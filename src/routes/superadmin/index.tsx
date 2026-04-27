@@ -57,12 +57,22 @@ const emptyForm: InstitutionFormState = {
 };
 
 function makeSchemaSlug(value: string) {
-  const slug = value
-    .trim()
+  const cyrillicMap: Record<string, string> = {
+    а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i", й: "y",
+    к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f",
+    х: "h", ц: "c", ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y", ь: "", э: "e", ю: "yu", я: "ya",
+    қ: "q", ғ: "g", ҳ: "h", ў: "u",
+  };
+  const transliterated = value
     .toLowerCase()
+    .split("")
+    .map((char) => cyrillicMap[char] ?? char)
+    .join("");
+  const slug = transliterated
+    .trim()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
-  return slug || `institution_${Date.now().toString(36)}`;
+  return slug || "institution";
 }
 
 function SuperadminHome() {
@@ -116,12 +126,16 @@ function SuperadminHome() {
   };
 
   const handleSubmit = () => {
-    if (!form.name.trim() || !form.slug.trim() || !form.city.trim()) {
+    if (!form.name.trim() || !form.city.trim()) {
       toast.error(t("common.required"));
       return;
     }
-    const schemaSlug = makeSchemaSlug(form.slug);
-    const domain = form.domain.trim() || `${schemaSlug}.localhost`;
+    const schemaSlug = editing
+      ? makeSchemaSlug(form.slug || form.name)
+      : makeSchemaSlug(form.name);
+    const domain = editing
+      ? form.domain.trim() || `${schemaSlug}.localhost`
+      : `${schemaSlug}.localhost`;
     if (!editing && (!form.directorName.trim() || !form.directorPhone.trim() || !form.directorPassword.trim())) {
       toast.error(t("common.required"));
       return;
@@ -305,28 +319,14 @@ function SuperadminHome() {
                 value={form.name}
                 onChange={(e) => {
                   const name = e.target.value;
+                  const generatedSlug = makeSchemaSlug(name);
                   setForm((prev) => ({
                     ...prev,
                     name,
-                    slug: editing || prev.slug ? prev.slug : makeSchemaSlug(name),
+                    slug: editing ? prev.slug : generatedSlug,
+                    domain: editing ? prev.domain : `${generatedSlug}.localhost`,
                   }));
                 }}
-              />
-            </Field>
-            <Field label="Schema slug">
-              <Input
-                value={form.slug}
-                disabled={!!editing}
-                onChange={(e) => setForm({ ...form, slug: makeSchemaSlug(e.target.value) })}
-                placeholder="school_name"
-              />
-            </Field>
-            <Field label="Domain">
-              <Input
-                value={form.domain}
-                disabled={!!editing}
-                onChange={(e) => setForm({ ...form, domain: e.target.value })}
-                placeholder="school.localhost"
               />
             </Field>
             <Field label={t("sa.field.city")}>
@@ -355,6 +355,12 @@ function SuperadminHome() {
             <Field label={t("sa.field.expires")} className="md:col-span-2">
               <Input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} />
             </Field>
+            {!editing && form.name.trim() && (
+              <div className="md:col-span-2 rounded-lg border border-info/20 bg-info/10 px-4 py-3 text-xs text-muted-foreground">
+                Texnik sozlamalar avtomatik yaratiladi: schema <span className="font-mono text-foreground">{makeSchemaSlug(form.name)}</span>,
+                domain <span className="font-mono text-foreground">{makeSchemaSlug(form.name)}.localhost</span>.
+              </div>
+            )}
             <div className="md:col-span-2 mt-2 rounded-lg border border-border/60 bg-accent/30 p-4">
               <div className="mb-1 text-sm font-semibold">{t("sa.directorBlock")}</div>
               <div className="mb-3 text-xs text-muted-foreground">{t("sa.directorHint")}</div>
