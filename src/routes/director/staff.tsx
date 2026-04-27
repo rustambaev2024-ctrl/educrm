@@ -1,0 +1,280 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Search, Phone, Briefcase, Plus, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { PageHeader } from "@/components/edu/page-header";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useData } from "@/lib/data/store";
+import { useI18n } from "@/lib/i18n";
+import { formatMoney } from "@/lib/format";
+import type { Staff } from "@/lib/data/types";
+
+export const Route = createFileRoute("/director/staff")({ component: StaffPage });
+
+const ROLE_TONE: Record<string, string> = {
+  director: "bg-primary/15 text-primary border-primary/30",
+  admin: "bg-info/15 text-info border-info/30",
+  teacher: "bg-success/15 text-success border-success/30",
+};
+
+type StaffRole = Staff["role"];
+
+interface FormState {
+  fullName: string;
+  phone: string;
+  role: StaffRole;
+  branchId: string;
+}
+
+const empty: FormState = { fullName: "", phone: "", role: "teacher", branchId: "" };
+
+function StaffPage() {
+  const { t, lang } = useI18n();
+  const { staff, branches, groups, payments, addStaff, updateStaff, deleteStaff } = useData();
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<"all" | "teachers" | "admins">("all");
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Staff | null>(null);
+  const [form, setForm] = useState<FormState>(empty);
+
+  const branchById = useMemo(() => Object.fromEntries(branches.map((b) => [b.id, b])), [branches]);
+
+  const enriched = useMemo(() => {
+    return staff.map((s) => {
+      const sGroups = groups.filter((g) => g.teacherId === s.id);
+      const studentSet = new Set<string>();
+      sGroups.forEach((g) => g.studentIds.forEach((sid) => studentSet.add(sid)));
+      const lastSalary = payments
+        .filter((p) => p.staffId === s.id && p.direction === "out" && p.category === "salary")
+        .sort((a, b) => b.date.localeCompare(a.date))[0];
+      return {
+        ...s,
+        groupsCount: sGroups.length,
+        studentsCount: studentSet.size,
+        lastSalary: lastSalary?.amount ?? 0,
+      };
+    });
+  }, [staff, groups, payments]);
+
+  const filtered = useMemo(() => {
+    let list = enriched;
+    if (tab === "teachers") list = list.filter((s) => s.role === "teacher");
+    if (tab === "admins") list = list.filter((s) => s.role === "admin" || s.role === "director");
+    const q = search.trim().toLowerCase();
+    if (q) list = list.filter((s) => s.fullName.toLowerCase().includes(q) || s.phone.includes(q));
+    return list;
+  }, [enriched, tab, search]);
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ ...empty, branchId: branches[0]?.id ?? "" });
+    setOpen(true);
+  };
+
+  const openEdit = (s: Staff) => {
+    setEditing(s);
+    setForm({ fullName: s.fullName, phone: s.phone, role: s.role, branchId: s.branchId ?? "" });
+    setOpen(true);
+  };
+
+  const submit = () => {
+    if (!form.fullName.trim() || !form.phone.trim()) {
+      toast.error(t("common.required"));
+      return;
+    }
+    const payload = {
+      fullName: form.fullName.trim(),
+      phone: form.phone.trim(),
+      role: form.role,
+      branchId: form.role === "director" ? undefined : form.branchId || undefined,
+    };
+    if (editing) {
+      updateStaff(editing.id, payload);
+      toast.success(t("staff.updated"));
+    } else {
+      addStaff(payload);
+      toast.success(t("staff.created"));
+    }
+    setOpen(false);
+  };
+
+  const remove = (s: Staff) => {
+    deleteStaff(s.id);
+    toast.success(t("staff.deleted"));
+  };
+
+  return (
+    <>
+      <PageHeader
+        title={t("staff.title")}
+        description={t("staff.subtitle")}
+        actions={
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="size-4" /> {t("staff.add")}
+          </Button>
+        }
+      />
+      <div className="space-y-4 p-4 md:p-8">
+        <Card className="overflow-hidden shadow-elegant">
+          <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center md:justify-between">
+            <div className="relative max-w-sm flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("common.search")} className="pl-9" />
+            </div>
+            <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+              <TabsList>
+                <TabsTrigger value="all">{t("staff.tab.all")}</TabsTrigger>
+                <TabsTrigger value="teachers">{t("staff.tab.teachers")}</TabsTrigger>
+                <TabsTrigger value="admins">{t("staff.tab.admins")}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="p-12 text-center text-sm text-muted-foreground">{t("staff.empty")}</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("staff.col.name")}</TableHead>
+                  <TableHead>{t("staff.col.role")}</TableHead>
+                  <TableHead>{t("staff.col.phone")}</TableHead>
+                  <TableHead>{t("staff.col.branch")}</TableHead>
+                  <TableHead className="text-right">{t("staff.col.groups")}</TableHead>
+                  <TableHead className="text-right">{t("staff.col.students")}</TableHead>
+                  <TableHead className="text-right">{t("staff.col.salary")}</TableHead>
+                  <TableHead className="text-right">{t("common.actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-9 items-center justify-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
+                          {s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
+                        </div>
+                        <div>
+                          <div className="font-medium leading-tight">{s.fullName}</div>
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <Briefcase className="size-3" /> ID: {s.id}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={ROLE_TONE[s.role] ?? ""}>{t(`role.${s.role}`)}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      <span className="inline-flex items-center gap-1"><Phone className="size-3" /> {s.phone}</span>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{s.branchId ? branchById[s.branchId]?.name : "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{s.role === "teacher" ? s.groupsCount : "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{s.role === "teacher" ? s.studentsCount : "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">{s.lastSalary > 0 ? formatMoney(s.lastSalary, lang) : "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(s)} title={t("staff.edit")}>
+                          <Pencil className="size-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="icon" variant="ghost" className="text-destructive" title={t("staff.delete")}>
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>{t("staff.delete")}</AlertDialogTitle>
+                              <AlertDialogDescription>{t("common.confirmDelete")} — {s.fullName}</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => remove(s)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                {t("common.delete")}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? t("staff.edit") : t("staff.add")}</DialogTitle>
+            <DialogDescription>{t("staff.subtitle")}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <Field label={t("staff.field.name")}>
+              <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
+            </Field>
+            <Field label={t("staff.field.phone")}>
+              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+998 ..." />
+            </Field>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label={t("staff.field.role")}>
+                <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as StaffRole })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="director">{t("role.director")}</SelectItem>
+                    <SelectItem value="admin">{t("role.admin")}</SelectItem>
+                    <SelectItem value="teacher">{t("role.teacher")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={t("staff.field.branch")}>
+                <Select
+                  value={form.branchId}
+                  onValueChange={(v) => setForm({ ...form, branchId: v })}
+                  disabled={form.role === "director"}
+                >
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={submit}>{editing ? t("common.save") : t("common.create")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}

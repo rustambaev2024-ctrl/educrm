@@ -1,0 +1,274 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Plus, Award, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { PageHeader } from "@/components/edu/page-header";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useData } from "@/lib/data/store";
+import { useI18n } from "@/lib/i18n";
+import { useCurrentTeacherId } from "@/lib/data/identity";
+import { formatDate } from "@/lib/format";
+import type { GradeKind } from "@/lib/data/types";
+
+export const Route = createFileRoute("/teacher/grades")({ component: TeacherGrades });
+
+const KIND_OPTIONS: GradeKind[] = ["homework", "quiz", "exam", "midterm", "final", "oral"];
+
+function scoreTone(score: number, max: number): string {
+  const pct = (score / max) * 100;
+  if (pct >= 85) return "bg-success/15 text-success";
+  if (pct >= 65) return "bg-info/15 text-info";
+  if (pct >= 50) return "bg-warning/15 text-warning";
+  return "bg-destructive/15 text-destructive";
+}
+
+function initialsOf(name: string) {
+  return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+}
+
+function TeacherGrades() {
+  const { t, lang } = useI18n();
+  const teacherId = useCurrentTeacherId();
+  const { groups, grades, students, addGrade, deleteGrade } = useData();
+
+  const myGroups = useMemo(() => groups.filter((g) => g.teacherId === teacherId), [groups, teacherId]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(() => myGroups[0]?.id ?? "");
+  const studentById = useMemo(() => Object.fromEntries(students.map((s) => [s.id, s])), [students]);
+  const selectedGroup = myGroups.find((g) => g.id === selectedGroupId);
+
+  const groupGrades = useMemo(
+    () => grades.filter((g) => g.groupId === selectedGroupId).sort((a, b) => b.date.localeCompare(a.date)),
+    [grades, selectedGroupId],
+  );
+
+  const avgByStudent = useMemo(() => {
+    const map: Record<string, { sum: number; cnt: number }> = {};
+    for (const g of groupGrades) {
+      if (!map[g.studentId]) map[g.studentId] = { sum: 0, cnt: 0 };
+      map[g.studentId].sum += (g.score / g.maxScore) * 100;
+      map[g.studentId].cnt += 1;
+    }
+    return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, Math.round(v.sum / v.cnt)]));
+  }, [groupGrades]);
+
+  const overallAvg = useMemo(() => {
+    if (groupGrades.length === 0) return 0;
+    return Math.round(groupGrades.reduce((s, g) => s + (g.score / g.maxScore) * 100, 0) / groupGrades.length);
+  }, [groupGrades]);
+
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    studentId: "",
+    kind: "quiz" as GradeKind,
+    title: "",
+    score: "",
+    maxScore: "100",
+    date: new Date().toISOString().slice(0, 10),
+    comment: "",
+  });
+
+  const submit = () => {
+    if (!form.studentId || !form.title.trim() || !form.score || !selectedGroup || !teacherId) {
+      toast.error(t("validation.fillAll"));
+      return;
+    }
+    addGrade({
+      groupId: selectedGroup.id,
+      studentId: form.studentId,
+      teacherId,
+      kind: form.kind,
+      title: form.title.trim(),
+      score: Number(form.score),
+      maxScore: Number(form.maxScore) || 100,
+      date: form.date,
+      comment: form.comment.trim() || undefined,
+    });
+    toast.success(t("grades.created"));
+    setOpen(false);
+    setForm({ ...form, studentId: "", title: "", score: "", comment: "" });
+  };
+
+  return (
+    <>
+      <PageHeader
+        title={t("grades.title")}
+        description={t("grades.subtitle")}
+        actions={
+          <div className="flex items-center gap-2">
+            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+              <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {myGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setOpen(true)} disabled={!selectedGroup}>
+              <Plus className="mr-1 size-4" /> {t("grades.add")}
+            </Button>
+          </div>
+        }
+      />
+      <div className="space-y-4 p-4 md:p-8">
+        {/* Summary */}
+        <div className="grid gap-3 md:grid-cols-3">
+          <Card className="p-4 shadow-elegant">
+            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("grades.average")}</div>
+            <div className="mt-1 flex items-center gap-2">
+              <div className="text-3xl font-bold">{overallAvg}</div>
+              <span className="text-sm text-muted-foreground">/ 100</span>
+            </div>
+          </Card>
+          <Card className="p-4 shadow-elegant">
+            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("groups.field.students")}</div>
+            <div className="mt-1 text-3xl font-bold">{selectedGroup?.studentIds.length ?? 0}</div>
+          </Card>
+          <Card className="p-4 shadow-elegant">
+            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("grades.title")}</div>
+            <div className="mt-1 text-3xl font-bold">{groupGrades.length}</div>
+          </Card>
+        </div>
+
+        {/* Per-student average */}
+        <Card className="overflow-hidden p-0 shadow-elegant">
+          <div className="border-b border-border/60 px-4 py-3 text-sm font-semibold">{t("grades.average")} — {t("groups.field.students")}</div>
+          <div className="divide-y divide-border/60">
+            {(selectedGroup?.studentIds ?? []).map((sid) => {
+              const stu = studentById[sid];
+              const avg = avgByStudent[sid];
+              return (
+                <div key={sid} className="flex items-center gap-3 px-4 py-2.5">
+                  <Avatar className="size-8"><AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">{initialsOf(stu?.fullName ?? "?")}</AvatarFallback></Avatar>
+                  <div className="flex-1 truncate text-sm">{stu?.fullName ?? sid}</div>
+                  {avg !== undefined ? (
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${scoreTone(avg, 100)}`}>{avg}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </div>
+              );
+            })}
+            {(selectedGroup?.studentIds.length ?? 0) === 0 && (
+              <div className="py-8 text-center text-sm text-muted-foreground">{t("hw.noStudents")}</div>
+            )}
+          </div>
+        </Card>
+
+        {/* Journal */}
+        <Card className="overflow-hidden p-0 shadow-elegant">
+          <div className="border-b border-border/60 px-4 py-3 text-sm font-semibold">{t("grades.title")}</div>
+          {groupGrades.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">{t("grades.empty")}</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("grades.col.student")}</TableHead>
+                  <TableHead>{t("grades.col.kind")}</TableHead>
+                  <TableHead>{t("grades.col.title")}</TableHead>
+                  <TableHead>{t("grades.col.score")}</TableHead>
+                  <TableHead>{t("grades.col.date")}</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groupGrades.map((g) => (
+                  <TableRow key={g.id}>
+                    <TableCell className="font-medium">{studentById[g.studentId]?.fullName ?? g.studentId}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-[10px]">{t(`gkind.${g.kind}`)}</Badge></TableCell>
+                    <TableCell className="max-w-[260px] truncate">{g.title}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-bold ${scoreTone(g.score, g.maxScore)}`}>
+                        {g.score}<span className="text-muted-foreground">/{g.maxScore}</span>
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(g.date, lang)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        onClick={() => {
+                          deleteGrade(g.id);
+                          toast.success(t("grades.deleted"));
+                        }}
+                      >
+                        <Trash2 className="size-4 text-muted-foreground" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
+      </div>
+
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{t("grades.add")}</SheetTitle>
+            <SheetDescription>{selectedGroup?.name}</SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 px-4 pb-4">
+            <div className="space-y-1.5">
+              <Label>{t("grades.col.student")}*</Label>
+              <Select value={form.studentId} onValueChange={(v) => setForm({ ...form, studentId: v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {(selectedGroup?.studentIds ?? []).map((sid) => (
+                    <SelectItem key={sid} value={sid}>{studentById[sid]?.fullName ?? sid}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>{t("grades.field.kind")}*</Label>
+                <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as GradeKind })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {KIND_OPTIONS.map((k) => <SelectItem key={k} value={k}>{t(`gkind.${k}`)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("grades.field.date")}*</Label>
+                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("grades.field.title")}*</Label>
+              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>{t("grades.field.score")}*</Label>
+                <Input type="number" min={0} value={form.score} onChange={(e) => setForm({ ...form, score: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("grades.field.maxScore")}</Label>
+                <Input type="number" min={1} value={form.maxScore} onChange={(e) => setForm({ ...form, maxScore: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("grades.field.comment")}</Label>
+              <Textarea rows={2} value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
+              <Button onClick={submit}><Award className="mr-1 size-4" /> {t("common.save")}</Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}

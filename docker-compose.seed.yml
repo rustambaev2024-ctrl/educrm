@@ -1,0 +1,27 @@
+﻿# Optional local/demo bootstrap.
+# Usage:
+# docker-compose -f docker-compose.yml -f docker-compose.seed.yml run --rm seed
+
+services:
+  seed:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: python manage.py bootstrap_phase1
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: http://minio:9000
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:-secret123}
+      BOOTSTRAP_SCHEMA_NAME: ${BOOTSTRAP_SCHEMA_NAME:-demo}
+      BOOTSTRAP_INSTITUTION_NAME: ${BOOTSTRAP_INSTITUTION_NAME:-Demo Institution}
+      BOOTSTRAP_DOMAIN: ${BOOTSTRAP_DOMAIN:-demo.localhost}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started

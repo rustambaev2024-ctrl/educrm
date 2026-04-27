@@ -1,0 +1,36 @@
+﻿# Usage:
+# docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  web:
+    command: >
+      sh -c "python manage.py migrate_schemas --shared &&
+             python manage.py collectstatic --noinput &&
+             daphne -b 0.0.0.0 -p 8000 config.asgi:application"
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    restart: unless-stopped
+
+  celery_worker:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    restart: unless-stopped
+
+  celery_beat:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    restart: unless-stopped
+
+  nginx:
+    restart: unless-stopped
+
+  db:
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    restart: unless-stopped
+
+  minio:
+    restart: unless-stopped

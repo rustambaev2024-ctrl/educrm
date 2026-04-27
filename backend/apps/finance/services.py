@@ -1,0 +1,133 @@
+from calendar import monthrange
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+
+from django.db import transaction
+
+from apps.notifications.services import NotificationService
+from apps.students.models import Student
+
+from .models import Payment, Wallet
+
+
+CHARGEABLE_ATTENDANCE_STATUSES = {"present", "late", "online"}
+
+
+@dataclass
+class PaymentResult:
+    payment: Payment
+    status_changed: bool
+
+
+def get_or_create_wallet(student: Student) -> Wallet:
+    wallet, _ = Wallet.objects.get_or_create(
+        student=student,
+        defaults={"balance": student.wallet_balance},
+    )
+    if wallet.balance != student.wallet_balance:
+        wallet.balance = student.wallet_balance
+        wallet.save(update_fields=["balance", "updated_at"])
+    return wallet
+
+
+def calculate_lesson_price(group, lesson_date: date) -> Decimal:
+    year, month = lesson_date.year, lesson_date.month
+    _, days_in_month = monthrange(year, month)
+
+    lesson_days = {
+        slot.get("day")
+        for slot in (group.schedule or [])
+        if isinstance(slot, dict) and slot.get("day") is not None
+    }
+    lessons_count = sum(
+        1
+        for day in range(1, days_in_month + 1)
+        if date(year, month, day).weekday() in lesson_days
+    )
+    if lessons_count <= 0:
+        return Decimal("0.00")
+
+    return (group.monthly_price / Decimal(lessons_count)).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP,
+    )
+
+
+def _status_changed_for_balance(student: Student, balance: Decimal) -> bool:
+    previous = student.status
+    if balance < 0 and student.status != "debtor":
+        student.status = "debtor"
+    elif balance >= 0 and student.status == "debtor":
+        student.status = "active"
+    if previous != student.status:
+        student.save(update_fields=["status"])
+        return True
+    return False
+
+
+def _notify_student_became_debtor(student: Student):
+    recipients = [student.user]
+    parent_users = [parent.user for parent in student.parents.select_related("user").all()]
+    recipients.extend(parent_users)
+    NotificationService.notify(
+        recipients=recipients,
+        notification_type="payment_due",
+        title="Balance is negative",
+        body="Student wallet balance became negative. Please top up account.",
+        related_object_type="Student",
+        related_object_id=str(student.id),
+    )
+
+
+@transaction.atomic
+def apply_payment(
+    student: Student,
+    payment_type: str,
+    amount: Decimal,
+    *,
+    created_by=None,
+    group=None,
+    lesson=None,
+    comment: str = "",
+) -> PaymentResult:
+    amount = Decimal(amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if amount <= 0:
+        raise ValueError("Amount must be greater than zero")
+    if payment_type not in {"top_up", "charge", "discount", "refund"}:
+        raise ValueError("Unsupported payment type")
+
+    student = Student.objects.select_for_update().select_related("user").get(id=student.id)
+    wallet = Wallet.objects.select_for_update().get(student=student)
+
+    delta = amount
+    if payment_type == "charge":
+        delta = -amount
+
+    balance_before = wallet.balance
+    balance_after = (wallet.balance + delta).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    wallet.balance = balance_after
+    wallet.save(update_fields=["balance", "updated_at"])
+    student.wallet_balance = balance_after
+    student.save(update_fields=["wallet_balance"])
+
+    payment = Payment.objects.create(
+        wallet=wallet,
+        student=student,
+        branch=student.branch,
+        group=group,
+        lesson=lesson,
+        payment_type=payment_type,
+        amount=amount,
+        balance_before=balance_before,
+        balance_after=balance_after,
+        comment=comment,
+        created_by=created_by,
+    )
+
+    status_changed = _status_changed_for_balance(student, balance_after)
+    if status_changed and student.status == "debtor":
+        _notify_student_became_debtor(student)
+
+    return PaymentResult(payment=payment, status_changed=status_changed)

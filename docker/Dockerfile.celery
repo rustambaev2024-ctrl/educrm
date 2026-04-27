@@ -1,0 +1,29 @@
+﻿FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN apt-get update \
+    -o Acquire::ForceIPv4=true \
+    -o Acquire::Retries=3 \
+    -o Acquire::http::Timeout=30 \
+    -o Acquire::https::Timeout=30 \
+    && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    libcairo2 \
+    libffi-dev \
+    libglib2.0-0 \
+    libgdk-pixbuf-2.0-0 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    shared-mime-info \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements/ /app/requirements/
+RUN pip install --no-cache-dir -r /app/requirements/production.txt
+
+COPY . /app
+WORKDIR /app/backend

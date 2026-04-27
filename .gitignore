@@ -1,0 +1,80 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+.output
+.vinxi
+.tanstack/**
+.nitro
+*.local
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.development
+!.env.production
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+*.sqlite3
+db.sqlite3
+
+# Django generated assets / uploads
+staticfiles/
+media/
+backend/staticfiles/
+backend/media/
+
+# Test / browser artifacts
+.playwright-cli/
+playwright-report/
+test-results/
+coverage/
+e2e-*.png
+
+# Celery / runtime files
+celerybeat-schedule
+celerybeat.pid
+*.pid
+
+# OS / temp
+Thumbs.db
+*.tmp
+*.temp
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

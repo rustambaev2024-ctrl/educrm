@@ -1,0 +1,21 @@
+{
+  "name": "EduCRM — Платформа управления образовательными центрами",
+  "short_name": "EduCRM",
+  "description": "Управление учениками, группами, расписанием, финансами и аналитикой образовательного центра.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0F172A",
+  "theme_color": "#0F172A",
+  "lang": "uz",
+  "categories": ["education", "productivity", "business"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

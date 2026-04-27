@@ -1,0 +1,229 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { BookOpen, Calendar, ChevronRight, Clock, MapPin, MessageCircle, Wallet } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useCurrentStudentId } from "@/lib/data/identity";
+import { useAuth } from "@/lib/auth";
+import { useData } from "@/lib/data/store";
+import { formatTime } from "@/lib/format";
+
+export const Route = createFileRoute("/student/")({ component: StudentHome });
+
+function money(amount: number) {
+  return `${amount.toLocaleString("uz-Latn", { maximumFractionDigits: 0 })} UZS`;
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+function StudentHome() {
+  const studentId = useCurrentStudentId();
+  const { user } = useAuth();
+  const { students, groups, courses, lessons, rooms, homework, submissions, threads } = useData();
+
+  const student = useMemo(
+    () => students.find((item) => item.id === studentId),
+    [students, studentId],
+  );
+
+  const myGroups = useMemo(
+    () => (studentId ? groups.filter((group) => group.studentIds.includes(studentId)) : []),
+    [groups, studentId],
+  );
+  const myGroupIds = useMemo(() => new Set(myGroups.map((group) => group.id)), [myGroups]);
+  const groupById = useMemo(() => Object.fromEntries(groups.map((group) => [group.id, group])), [groups]);
+  const courseById = useMemo(() => Object.fromEntries(courses.map((course) => [course.id, course])), [courses]);
+  const roomById = useMemo(() => Object.fromEntries(rooms.map((room) => [room.id, room])), [rooms]);
+
+  const upcomingLessons = useMemo(
+    () =>
+      lessons
+        .filter((lesson) => myGroupIds.has(lesson.groupId) && new Date(lesson.datetime).getTime() >= Date.now())
+        .sort((a, b) => a.datetime.localeCompare(b.datetime)),
+    [lessons, myGroupIds],
+  );
+  const nextLesson = upcomingLessons[0];
+  const nextGroup = nextLesson ? groupById[nextLesson.groupId] : undefined;
+  const nextCourse = nextGroup ? courseById[nextGroup.courseId] : undefined;
+  const nextRoom = nextLesson ? roomById[nextLesson.roomId] : undefined;
+
+  const activeHomeworkCount = useMemo(() => {
+    if (!studentId) return 0;
+    return homework.filter((item) => {
+      if (!myGroupIds.has(item.groupId)) return false;
+      const submission = submissions.find(
+        (sub) => sub.homeworkId === item.id && sub.studentId === studentId,
+      );
+      return !submission || submission.status === "pending" || submission.status === "late";
+    }).length;
+  }, [homework, myGroupIds, studentId, submissions]);
+
+  const todayLessonsCount = useMemo(() => {
+    const today = new Date();
+    return lessons.filter((lesson) => {
+      const date = new Date(lesson.datetime);
+      return (
+        myGroupIds.has(lesson.groupId) &&
+        date.getFullYear() === today.getFullYear() &&
+        date.getMonth() === today.getMonth() &&
+        date.getDate() === today.getDate()
+      );
+    }).length;
+  }, [lessons, myGroupIds]);
+
+  const unreadCount = threads.reduce((sum, thread) => {
+    if (!user?.id || !thread.participantIds.includes(user.id)) return sum;
+    return sum + thread.unread;
+  }, 0);
+
+  if (!student) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-5">
+        <Card className="p-5 shadow-elegant">
+          <div className="text-sm font-semibold">Profile is not loaded yet</div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            The backend returned a session, but the student profile is still syncing.
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-md space-y-4 px-4 py-5 pb-24">
+      <div>
+        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Today</div>
+        <h1 className="text-2xl font-bold">{student.fullName}</h1>
+      </div>
+
+      <Card className="overflow-hidden bg-gradient-primary p-5 text-primary-foreground shadow-glow">
+        <div className="flex items-center gap-2 text-xs opacity-80">
+          <Clock className="size-3" /> NEXT LESSON
+        </div>
+        <div className="mt-2 text-2xl font-bold">{nextCourse?.name ?? nextGroup?.name ?? "No upcoming lessons"}</div>
+        <div className="mt-1 text-sm opacity-90">{nextGroup?.name ?? "Your schedule is clear"}</div>
+        <div className="mt-3 flex items-center gap-3 text-xs opacity-90">
+          <span className="flex items-center gap-1">
+            <Clock className="size-3.5" />
+            {nextLesson ? formatTime(nextLesson.datetime) : "--:--"}
+          </span>
+          <span className="flex items-center gap-1">
+            <MapPin className="size-3.5" />
+            {nextRoom?.name ?? "Room not set"}
+          </span>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-3">
+        <QuickCard
+          to="/student/messages"
+          icon={MessageCircle}
+          label="Messages"
+          value={String(unreadCount)}
+          hint="unread"
+          tone="info"
+        />
+        <QuickCard
+          to="/student/profile"
+          icon={Wallet}
+          label="Balance"
+          value={money(student.balance)}
+          hint={student.balance < 0 ? "debt" : "paid"}
+          tone={student.balance < 0 ? "warning" : "success"}
+        />
+        <QuickCard
+          to="/student/homework"
+          icon={BookOpen}
+          label="Homework"
+          value={String(activeHomeworkCount)}
+          hint="active tasks"
+          tone="warning"
+        />
+        <QuickCard
+          to="/student/schedule"
+          icon={Calendar}
+          label="Lessons"
+          value={String(todayLessonsCount)}
+          hint="today"
+          tone="primary"
+        />
+      </div>
+
+      <Card className="p-4 shadow-elegant">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold">My groups</h3>
+          <Badge variant="outline" className="text-[10px]">
+            {myGroups.length} active
+          </Badge>
+        </div>
+        <div className="space-y-2">
+          {myGroups.length === 0 ? (
+            <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+              You are not enrolled in an active group yet.
+            </div>
+          ) : (
+            myGroups.map((group) => {
+              const course = courseById[group.courseId];
+              const progress = group.status === "completed" ? 100 : group.status === "active" ? 56 : 12;
+              return (
+                <Link
+                  key={group.id}
+                  to="/student/schedule"
+                  className="flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-accent/40"
+                >
+                  <div className="flex size-10 items-center justify-center rounded-lg bg-gradient-primary text-sm font-bold text-primary-foreground">
+                    {initials(course?.name ?? group.name)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{course?.name ?? group.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">{group.name}</div>
+                    <div className="mt-1 h-1 overflow-hidden rounded-full bg-secondary">
+                      <div className="h-full bg-gradient-primary" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                  <ChevronRight className="size-4 text-muted-foreground" />
+                </Link>
+              );
+            })
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function QuickCard({ to, icon: Icon, label, value, hint, tone }: {
+  to: string;
+  icon: typeof Clock;
+  label: string;
+  value: string;
+  hint: string;
+  tone: "primary" | "success" | "warning" | "info";
+}) {
+  const tones = {
+    primary: "bg-accent text-primary",
+    success: "bg-success/10 text-success",
+    warning: "bg-warning/15 text-warning",
+    info: "bg-info/10 text-info",
+  };
+  return (
+    <Link to={to} className="block">
+      <Card className="gap-2 p-4 shadow-elegant transition-all active:scale-95">
+        <div className={`flex size-9 items-center justify-center rounded-lg ${tones[tone]}`}>
+          <Icon className="size-4" />
+        </div>
+        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="text-xl font-bold leading-none">{value}</div>
+        <div className="text-[11px] text-muted-foreground">{hint}</div>
+      </Card>
+    </Link>
+  );
+}

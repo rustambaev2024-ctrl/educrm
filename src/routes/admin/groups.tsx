@@ -1,0 +1,398 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Plus, Search, Users, Clock, MapPin, X, UserPlus, UserMinus } from "lucide-react";
+import { toast } from "sonner";
+import { PageHeader } from "@/components/edu/page-header";
+import { GroupStatusBadge } from "@/components/edu/status-badge";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useI18n } from "@/lib/i18n";
+import { useData } from "@/lib/data/store";
+import { dayLabel, formatDate, formatMoney } from "@/lib/format";
+import type { DayOfWeek, Group, ScheduleSlot, StudentStatus } from "@/lib/data/types";
+
+export const Route = createFileRoute("/admin/groups")({ component: GroupsPage });
+
+const DAYS: DayOfWeek[] = [1, 2, 3, 4, 5, 6, 7];
+
+function GroupsPage() {
+  const { t, lang } = useI18n();
+  const { groups, courses, staff, rooms } = useData();
+
+  const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return groups;
+    return groups.filter((g) => g.name.toLowerCase().includes(q));
+  }, [groups, search]);
+
+  const selected = useMemo(() => groups.find((g) => g.id === selectedId) ?? null, [groups, selectedId]);
+
+  return (
+    <>
+      <PageHeader
+        title={t("groups.title")}
+        description={t("groups.subtitle")}
+        actions={
+          <Button onClick={() => setCreateOpen(true)} className="bg-gradient-primary text-primary-foreground shadow-elegant">
+            <Plus className="mr-1 size-4" /> {t("groups.add")}
+          </Button>
+        }
+      />
+      <div className="space-y-4 p-4 md:p-8">
+        <div className="relative max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("groups.search")}
+            className="pl-9"
+          />
+        </div>
+
+        {filtered.length === 0 ? (
+          <Card className="p-12 text-center text-sm text-muted-foreground">{t("groups.empty")}</Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((g) => {
+              const course = courses.find((c) => c.id === g.courseId);
+              const teacher = staff.find((s) => s.id === g.teacherId);
+              const room = rooms.find((r) => r.id === g.roomId);
+              const fillRatio = g.studentIds.length / g.capacity;
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => setSelectedId(g.id)}
+                  className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-5 text-left shadow-sm transition-all hover:border-primary/40 hover:shadow-elegant"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{course?.name ?? "—"}</div>
+                      <div className="mt-0.5 truncate text-base font-semibold group-hover:text-primary">{g.name}</div>
+                    </div>
+                    <GroupStatusBadge status={g.status} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5"><Users className="size-3.5" /> {teacher?.fullName.split(" ")[0] ?? "—"}</div>
+                    <div className="flex items-center gap-1.5"><MapPin className="size-3.5" /> {room?.name ?? "—"}</div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {g.schedule.map((slot, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary/40 px-2 py-0.5 text-[11px] text-foreground">
+                        <Clock className="size-3" /> {dayLabel(slot.day, lang, true)} {slot.start}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-auto space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{g.studentIds.length} / {g.capacity}</span>
+                      <span className="font-semibold">{formatMoney(g.monthlyPrice, lang)}</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className={`h-full rounded-full transition-all ${fillRatio >= 1 ? "bg-destructive" : "bg-gradient-primary"}`}
+                        style={{ width: `${Math.min(100, fillRatio * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <CreateGroupSheet open={createOpen} onOpenChange={setCreateOpen} />
+      <GroupDetailSheet group={selected} onClose={() => setSelectedId(null)} />
+    </>
+  );
+}
+
+function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { t, lang } = useI18n();
+  const { courses, staff, rooms, branches, addGroup } = useData();
+  const teachers = staff.filter((s) => s.role === "teacher");
+
+  const [name, setName] = useState("");
+  const [courseId, setCourseId] = useState(courses[0]?.id ?? "");
+  const [teacherId, setTeacherId] = useState(teachers[0]?.id ?? "");
+  const [roomId, setRoomId] = useState(rooms[0]?.id ?? "");
+  const [capacity, setCapacity] = useState(12);
+  const [monthlyPrice, setMonthlyPrice] = useState(600000);
+  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [slots, setSlots] = useState<Record<DayOfWeek, { enabled: boolean; start: string; end: string }>>(
+    () => Object.fromEntries(DAYS.map((d) => [d, { enabled: false, start: "09:00", end: "10:30" }])) as Record<DayOfWeek, { enabled: boolean; start: string; end: string }>,
+  );
+
+  const submit = () => {
+    const schedule: ScheduleSlot[] = DAYS.filter((d) => slots[d].enabled).map((d) => ({ day: d, start: slots[d].start, end: slots[d].end }));
+    if (!name.trim() || !courseId || !teacherId || !roomId || schedule.length === 0) {
+      toast.error(t("validation.fillAll"));
+      return;
+    }
+    addGroup({
+      name: name.trim(),
+      courseId,
+      branchId: branches[0]?.id ?? "b1",
+      teacherId,
+      roomId,
+      capacity,
+      monthlyPrice,
+      startDate,
+      schedule,
+    });
+    toast.success(t("groups.created"));
+    onOpenChange(false);
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>{t("groups.add")}</SheetTitle>
+          <SheetDescription>{t("groups.subtitle")}</SheetDescription>
+        </SheetHeader>
+        <div className="space-y-4 px-4 py-6">
+          <div className="space-y-2">
+            <Label>{t("groups.field.name")} *</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="English General A2 — Morning" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>{t("groups.field.course")} *</Label>
+              <Select value={courseId} onValueChange={setCourseId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{t("groups.field.teacher")} *</Label>
+              <Select value={teacherId} onValueChange={setTeacherId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {teachers.map((s) => <SelectItem key={s.id} value={s.id}>{s.fullName}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{t("groups.field.room")} *</Label>
+              <Select value={roomId} onValueChange={setRoomId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {rooms.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{t("groups.field.capacity")} *</Label>
+              <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("groups.field.startDate")} *</Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("groups.field.price")} *</Label>
+              <Input type="number" min={0} step={10000} value={monthlyPrice} onChange={(e) => setMonthlyPrice(Number(e.target.value))} />
+              <div className="text-[11px] text-muted-foreground">{formatMoney(monthlyPrice, lang)}</div>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>{t("groups.field.schedule")} *</Label>
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              {DAYS.map((d) => {
+                const s = slots[d];
+                return (
+                  <div key={d} className="flex items-center gap-2">
+                    <label className="flex w-32 cursor-pointer items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={s.enabled}
+                        onCheckedChange={(v) => setSlots((prev) => ({ ...prev, [d]: { ...prev[d], enabled: v === true } }))}
+                      />
+                      <span>{dayLabel(d, lang)}</span>
+                    </label>
+                    <Input type="time" value={s.start} disabled={!s.enabled} onChange={(e) => setSlots((prev) => ({ ...prev, [d]: { ...prev[d], start: e.target.value } }))} className="w-28" />
+                    <span className="text-muted-foreground">—</span>
+                    <Input type="time" value={s.end} disabled={!s.enabled} onChange={(e) => setSlots((prev) => ({ ...prev, [d]: { ...prev[d], end: e.target.value } }))} className="w-28" />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <SheetFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
+          <Button onClick={submit} className="bg-gradient-primary text-primary-foreground">{t("common.create")}</Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function GroupDetailSheet({ group, onClose }: { group: Group | null; onClose: () => void }) {
+  const { t, lang } = useI18n();
+  const { students, courses, staff, rooms, addStudentToGroup, removeStudentFromGroup, lessons } = useData();
+  const open = group !== null;
+  if (!group) return <Sheet open={open} onOpenChange={(v) => !v && onClose()}><SheetContent /></Sheet>;
+
+  const course = courses.find((c) => c.id === group.courseId);
+  const teacher = staff.find((s) => s.id === group.teacherId);
+  const room = rooms.find((r) => r.id === group.roomId);
+  const enrolled = students.filter((s) => group.studentIds.includes(s.id));
+  const available = students.filter((s) => !group.studentIds.includes(s.id) && s.status !== "archived");
+  const groupLessons = lessons.filter((l) => l.groupId === group.id).sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+        <SheetHeader>
+          <div className="flex items-center justify-between">
+            <SheetTitle className="text-left">{group.name}</SheetTitle>
+            <Button variant="ghost" size="icon" onClick={onClose}><X className="size-4" /></Button>
+          </div>
+          <SheetDescription className="text-left">{course?.name}</SheetDescription>
+        </SheetHeader>
+        <div className="space-y-5 px-4 py-6">
+          <div className="flex items-center gap-3">
+            <GroupStatusBadge status={group.status} />
+            <div className="text-sm text-muted-foreground">{group.studentIds.length} / {group.capacity}</div>
+            <div className="ml-auto text-right">
+              <div className="text-xs text-muted-foreground">{t("groups.field.price")}</div>
+              <div className="text-lg font-semibold">{formatMoney(group.monthlyPrice, lang)}</div>
+            </div>
+          </div>
+          <Tabs defaultValue="overview">
+            <TabsList className="w-full">
+              <TabsTrigger value="overview" className="flex-1">{t("groups.tab.overview")}</TabsTrigger>
+              <TabsTrigger value="students" className="flex-1">{t("groups.tab.students")}</TabsTrigger>
+              <TabsTrigger value="lessons" className="flex-1">{t("groups.tab.lessons")}</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview" className="space-y-3 pt-4">
+              <Card className="p-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <Field label={t("groups.field.teacher")} value={teacher?.fullName ?? "—"} />
+                  <Field label={t("groups.field.room")} value={room?.name ?? "—"} />
+                  <Field label={t("groups.field.startDate")} value={formatDate(group.startDate, lang)} />
+                  <Field label={t("groups.field.capacity")} value={`${group.capacity}`} />
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("groups.field.schedule")}</div>
+                <div className="mt-3 space-y-2">
+                  {group.schedule.map((slot, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-md border border-border bg-secondary/40 px-3 py-2 text-sm">
+                      <span className="font-medium">{dayLabel(slot.day, lang)}</span>
+                      <span className="tabular-nums text-muted-foreground">{slot.start} — {slot.end}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </TabsContent>
+            <TabsContent value="students" className="space-y-3 pt-4">
+              <Card className="divide-y divide-border">
+                {enrolled.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-muted-foreground">{t("common.empty")}</div>
+                ) : (
+                  enrolled.map((s) => (
+                    <div key={s.id} className="flex items-center gap-3 p-3">
+                      <div className="flex size-8 items-center justify-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
+                        {s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium">{s.fullName}</div>
+                        <div className="text-[11px] text-muted-foreground">{s.phone}</div>
+                      </div>
+                      <StudentStatusInline status={s.status} />
+                      <Button variant="ghost" size="sm" onClick={() => { removeStudentFromGroup(group.id, s.id); toast.success(t("groups.studentRemoved")); }}>
+                        <UserMinus className="size-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </Card>
+              {group.studentIds.length < group.capacity && available.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("groups.addStudent")}</div>
+                  <Card className="max-h-64 divide-y divide-border overflow-y-auto">
+                    {available.slice(0, 30).map((s) => (
+                      <button key={s.id} type="button" onClick={() => { addStudentToGroup(group.id, s.id); toast.success(t("groups.studentAdded")); }} className="flex w-full items-center gap-3 p-3 text-left hover:bg-accent/40">
+                        <div className="flex size-8 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
+                          {s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium">{s.fullName}</div>
+                          <div className="text-[11px] text-muted-foreground">{s.phone}</div>
+                        </div>
+                        <UserPlus className="size-4 text-primary" />
+                      </button>
+                    ))}
+                  </Card>
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="lessons" className="space-y-2 pt-4">
+              {groupLessons.length === 0 ? (
+                <Card className="p-6 text-center text-sm text-muted-foreground">{t("common.empty")}</Card>
+              ) : (
+                groupLessons.slice(0, 20).map((l) => (
+                  <Card key={l.id} className="flex items-center gap-3 p-3">
+                    <div className="flex size-10 flex-col items-center justify-center rounded-md bg-accent text-center">
+                      <span className="text-[10px] uppercase text-muted-foreground">{new Date(l.datetime).toLocaleString(lang === "uz" ? "uz-Latn" : "ru-RU", { month: "short" })}</span>
+                      <span className="text-sm font-bold leading-none">{new Date(l.datetime).getDate()}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{new Date(l.datetime).toLocaleTimeString(lang === "uz" ? "uz-Latn" : "ru-RU", { hour: "2-digit", minute: "2-digit" })}</div>
+                      <div className="text-[11px] text-muted-foreground">{l.durationMinutes} min</div>
+                    </div>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] ${l.status === "completed" ? "bg-success/15 text-success" : l.status === "cancelled" ? "bg-destructive/15 text-destructive" : "bg-info/15 text-info"}`}>
+                      {t(`lstatus.${l.status}`)}
+                    </span>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-0.5 font-medium">{value}</div>
+    </div>
+  );
+}
+
+function StudentStatusInline({ status }: { status: StudentStatus }) {
+  const { t } = useI18n();
+  const tone = status === "active" ? "text-success" : status === "debtor" ? "text-destructive" : "text-muted-foreground";
+  return <span className={`text-[11px] font-medium ${tone}`}>{t(`status.${status}`)}</span>;
+}

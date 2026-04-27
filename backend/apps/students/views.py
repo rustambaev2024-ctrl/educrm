@@ -1,0 +1,175 @@
+from django.db import transaction
+from django.db.models import Q
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.response import Response
+
+from apps.accounts.permissions import IsBranchAdmin, IsTeacher
+from apps.finance.serializers import PaymentSerializer
+from apps.lessons.serializers import AttendanceSerializer
+
+from .models import Parent, Student
+from .serializers import (
+    CertificateSerializer,
+    ParentSerializer,
+    StudentDocumentSerializer,
+    StudentSerializer,
+)
+
+
+class StudentViewSet(viewsets.ModelViewSet):
+    queryset = Student.objects.select_related("user", "branch").all()
+    serializer_class = StudentSerializer
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve", "attendance_history", "payments_history"):
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            permission_classes = [IsBranchAdmin]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if not user.is_authenticated:
+            return qs.none()
+
+        if user.role in ("superadmin", "director"):
+            scoped = qs
+        elif user.role in ("admin", "branch_admin", "teacher") and hasattr(user, "staff_profile"):
+            branch_id = user.staff_profile.branch_id
+            scoped = qs.filter(branch_id=branch_id) if branch_id else qs.none()
+        elif user.role == "student" and hasattr(user, "student_profile"):
+            scoped = qs.filter(id=user.student_profile.id)
+        elif user.role == "parent" and hasattr(user, "parent_profile"):
+            scoped = qs.filter(parents=user.parent_profile)
+        else:
+            scoped = qs.none()
+
+        params = self.request.query_params
+        if params.get("branch_id"):
+            scoped = scoped.filter(branch_id=params["branch_id"])
+        if params.get("status"):
+            scoped = scoped.filter(status=params["status"])
+        if params.get("group_id"):
+            scoped = scoped.filter(
+                group_memberships__group_id=params["group_id"],
+                group_memberships__left_at__isnull=True,
+            )
+        if params.get("search"):
+            value = params["search"].strip()
+            scoped = scoped.filter(
+                Q(user__full_name__icontains=value)
+                | Q(user__phone__icontains=value)
+            )
+        return scoped.distinct().order_by("-registered_at")
+
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        student = self.get_object()
+        user = student.user
+        student.delete()
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="documents",
+        parser_classes=[MultiPartParser, FormParser, JSONParser],
+    )
+    def upload_document(self, request, pk=None):
+        student = self.get_object()
+        serializer = StudentDocumentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(student=student, uploaded_by=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="certificate",
+        parser_classes=[MultiPartParser, FormParser, JSONParser],
+    )
+    def attach_certificate(self, request, pk=None):
+        student = self.get_object()
+        serializer = CertificateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(student=student, issued_by=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["get"], url_path="attendance")
+    def attendance_history(self, request, pk=None):
+        student = self.get_object()
+        attendance_qs = student.attendance.select_related("lesson", "lesson__group")
+
+        params = request.query_params
+        if params.get("group_id"):
+            attendance_qs = attendance_qs.filter(lesson__group_id=params["group_id"])
+        if params.get("date_from"):
+            attendance_qs = attendance_qs.filter(lesson__datetime__date__gte=params["date_from"])
+        if params.get("date_to"):
+            attendance_qs = attendance_qs.filter(lesson__datetime__date__lte=params["date_to"])
+
+        total = attendance_qs.count()
+        present_count = attendance_qs.filter(status__in=["present", "late", "online"]).count()
+        percent = round((present_count * 100 / total), 2) if total > 0 else 0
+
+        serializer = AttendanceSerializer(attendance_qs.order_by("-lesson__datetime"), many=True)
+        return Response(
+            {
+                "student_id": str(student.id),
+                "total": total,
+                "present": present_count,
+                "attendance_percent": percent,
+                "records": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["get"], url_path="payments")
+    def payments_history(self, request, pk=None):
+        student = self.get_object()
+        payments = student.payments.select_related("lesson", "group", "created_by")
+        serializer = PaymentSerializer(payments, many=True)
+        return Response(
+            {
+                "student_id": str(student.id),
+                "wallet_balance": str(student.wallet_balance),
+                "payments": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class ParentViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Parent.objects.select_related("user").prefetch_related("children").all()
+    serializer_class = ParentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if not user.is_authenticated:
+            return qs.none()
+
+        if user.role in ("superadmin", "director"):
+            scoped = qs
+        elif user.role in ("admin", "branch_admin", "teacher") and hasattr(user, "staff_profile"):
+            branch_id = user.staff_profile.branch_id
+            scoped = qs.filter(children__branch_id=branch_id) if branch_id else qs.none()
+        elif user.role == "parent" and hasattr(user, "parent_profile"):
+            scoped = qs.filter(id=user.parent_profile.id)
+        elif user.role == "student" and hasattr(user, "student_profile"):
+            scoped = qs.filter(children=user.student_profile)
+        else:
+            scoped = qs.none()
+
+        search = self.request.query_params.get("search")
+        if search:
+            scoped = scoped.filter(
+                Q(user__full_name__icontains=search.strip())
+                | Q(user__phone__icontains=search.strip())
+            )
+        return scoped.distinct().order_by("user__full_name")
