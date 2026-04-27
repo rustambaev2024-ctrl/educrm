@@ -39,19 +39,31 @@ const PLAN_TONE: Record<InstitutionPlan, string> = {
 
 interface InstitutionFormState {
   name: string;
+  slug: string;
   city: string;
+  domain: string;
   plan: InstitutionPlan;
   status: InstitutionStatus;
   expiresAt: string;
   directorName: string;
   directorPhone: string;
+  directorPassword: string;
 }
 
 const emptyForm: InstitutionFormState = {
-  name: "", city: "", plan: "standard", status: "active",
+  name: "", slug: "", city: "", domain: "", plan: "standard", status: "active",
   expiresAt: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
-  directorName: "", directorPhone: "",
+  directorName: "", directorPhone: "", directorPassword: "",
 };
+
+function makeSchemaSlug(value: string) {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return slug || `institution_${Date.now().toString(36)}`;
+}
 
 function SuperadminHome() {
   const { t, lang } = useI18n();
@@ -97,31 +109,39 @@ function SuperadminHome() {
   const openEdit = (i: Institution) => {
     setEditing(i);
     setForm({
-      name: i.name, city: i.city, plan: i.plan, status: i.status, expiresAt: i.expiresAt,
-      directorName: i.directorName ?? "", directorPhone: i.directorPhone ?? "",
+      name: i.name, slug: i.slug ?? i.schemaName ?? "", city: i.city, domain: i.domain ?? "", plan: i.plan, status: i.status, expiresAt: i.expiresAt,
+      directorName: i.directorName ?? "", directorPhone: i.directorPhone ?? "", directorPassword: "",
     });
     setOpenInst(true);
   };
 
   const handleSubmit = () => {
-    if (!form.name.trim() || !form.city.trim()) {
+    if (!form.name.trim() || !form.slug.trim() || !form.city.trim()) {
+      toast.error(t("common.required"));
+      return;
+    }
+    const schemaSlug = makeSchemaSlug(form.slug);
+    const domain = form.domain.trim() || `${schemaSlug}.localhost`;
+    if (!editing && (!form.directorName.trim() || !form.directorPhone.trim() || !form.directorPassword.trim())) {
       toast.error(t("common.required"));
       return;
     }
     if (editing) {
       updateInstitution(editing.id, {
-        name: form.name.trim(), city: form.city.trim(), plan: form.plan, status: form.status,
+        name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), plan: form.plan, status: form.status,
         expiresAt: form.expiresAt,
         directorName: form.directorName.trim() || undefined,
         directorPhone: form.directorPhone.trim() || undefined,
+        directorPassword: form.directorPassword.trim() || undefined,
       });
       toast.success(t("sa.updated"));
     } else {
       addInstitution({
-        name: form.name.trim(), city: form.city.trim(), plan: form.plan, status: form.status,
+        name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), plan: form.plan, status: form.status,
         expiresAt: form.expiresAt,
         directorName: form.directorName.trim() || undefined,
         directorPhone: form.directorPhone.trim() || undefined,
+        directorPassword: form.directorPassword.trim() || undefined,
       });
       toast.success(t("sa.created"));
     }
@@ -281,7 +301,33 @@ function SuperadminHome() {
           </DialogHeader>
           <div className="grid gap-4 md:grid-cols-2">
             <Field label={t("sa.field.name")}>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <Input
+                value={form.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setForm((prev) => ({
+                    ...prev,
+                    name,
+                    slug: editing || prev.slug ? prev.slug : makeSchemaSlug(name),
+                  }));
+                }}
+              />
+            </Field>
+            <Field label="Schema slug">
+              <Input
+                value={form.slug}
+                disabled={!!editing}
+                onChange={(e) => setForm({ ...form, slug: makeSchemaSlug(e.target.value) })}
+                placeholder="school_name"
+              />
+            </Field>
+            <Field label="Domain">
+              <Input
+                value={form.domain}
+                disabled={!!editing}
+                onChange={(e) => setForm({ ...form, domain: e.target.value })}
+                placeholder="school.localhost"
+              />
             </Field>
             <Field label={t("sa.field.city")}>
               <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
@@ -319,6 +365,16 @@ function SuperadminHome() {
                 <Field label={t("sa.field.directorPhone")}>
                   <Input value={form.directorPhone} onChange={(e) => setForm({ ...form, directorPhone: e.target.value })} placeholder="+998 ..." />
                 </Field>
+                {!editing && (
+                  <Field label="Director password">
+                    <Input
+                      type="password"
+                      value={form.directorPassword}
+                      onChange={(e) => setForm({ ...form, directorPassword: e.target.value })}
+                      placeholder="min. 8 characters"
+                    />
+                  </Field>
+                )}
               </div>
             </div>
           </div>

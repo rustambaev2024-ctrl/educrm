@@ -13,6 +13,9 @@ class StudentSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="user.full_name")
     phone = serializers.CharField(source="user.phone")
     password = serializers.CharField(write_only=True, required=False, min_length=8)
+    parent_full_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    parent_phone = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    parent_password = serializers.CharField(write_only=True, required=False, allow_blank=True, min_length=8)
     group_ids = serializers.SerializerMethodField()
     parent_id = serializers.SerializerMethodField()
 
@@ -24,6 +27,9 @@ class StudentSerializer(serializers.ModelSerializer):
             "full_name",
             "phone",
             "password",
+            "parent_full_name",
+            "parent_phone",
+            "parent_password",
             "branch",
             "date_of_birth",
             "status",
@@ -54,13 +60,32 @@ class StudentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user_data = validated_data.pop("user")
         password = validated_data.pop("password", None) or "ChangeMe123"
+        parent_full_name = validated_data.pop("parent_full_name", "")
+        parent_phone = validated_data.pop("parent_phone", "")
+        parent_password = validated_data.pop("parent_password", "") or "ChangeMe123"
         user = User.objects.create_user(
             phone=user_data["phone"],
             full_name=user_data["full_name"],
             role="student",
             password=password,
         )
-        return Student.objects.create(user=user, **validated_data)
+        student = Student.objects.create(user=user, **validated_data)
+
+        if parent_full_name and parent_phone:
+            parent_user, created = User.objects.get_or_create(
+                phone=parent_phone,
+                defaults={
+                    "full_name": parent_full_name,
+                    "role": "parent",
+                },
+            )
+            if created:
+                parent_user.set_password(parent_password)
+                parent_user.save(update_fields=["password"])
+            parent, _ = Parent.objects.get_or_create(user=parent_user)
+            ParentStudentLink.objects.get_or_create(parent=parent, student=student)
+
+        return student
 
     @transaction.atomic
     def update(self, instance, validated_data):

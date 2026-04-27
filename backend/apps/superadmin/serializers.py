@@ -1,7 +1,13 @@
 from django.utils.text import slugify
+from django_tenants.utils import schema_context
 from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
 
+from apps.accounts.models import User
+from apps.finance.models import Payment
+from apps.institutions.models import Branch
+from apps.staff.models import Staff
+from apps.students.models import Student
 from apps.tenants.models import Domain, Institution
 
 from .models import InstitutionActionLog, InstitutionNotice
@@ -13,6 +19,12 @@ class InstitutionSerializer(serializers.ModelSerializer):
     director_phone = serializers.CharField(write_only=True, required=False, allow_blank=True)
     director_full_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
     director_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    director_name = serializers.SerializerMethodField()
+    director_login = serializers.SerializerMethodField()
+    student_count = serializers.SerializerMethodField()
+    branch_count = serializers.SerializerMethodField()
+    staff_count = serializers.SerializerMethodField()
+    monthly_revenue = serializers.SerializerMethodField()
     notices_count = serializers.IntegerField(read_only=True, required=False)
     logs_count = serializers.IntegerField(read_only=True, required=False)
 
@@ -37,15 +49,87 @@ class InstitutionSerializer(serializers.ModelSerializer):
             "director_phone",
             "director_full_name",
             "director_password",
+            "director_name",
+            "director_login",
+            "student_count",
+            "branch_count",
+            "staff_count",
+            "monthly_revenue",
             "notices_count",
             "logs_count",
         )
-        read_only_fields = ("id", "schema_name", "primary_domain", "created_at", "status")
+        read_only_fields = (
+            "id",
+            "schema_name",
+            "primary_domain",
+            "created_at",
+            "status",
+            "director_name",
+            "director_login",
+            "student_count",
+            "branch_count",
+            "staff_count",
+            "monthly_revenue",
+        )
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_primary_domain(self, obj):
         domain = obj.domains.filter(is_primary=True).first()
         return domain.domain if domain else None
+
+    def _with_tenant(self, obj, callback, default=None):
+        try:
+            with schema_context(obj.schema_name):
+                return callback()
+        except Exception:
+            return default
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_director_name(self, obj):
+        return self._with_tenant(
+            obj,
+            lambda: User.objects.filter(role="director").order_by("date_joined").values_list(
+                "full_name",
+                flat=True,
+            ).first(),
+            None,
+        )
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_director_login(self, obj):
+        return self._with_tenant(
+            obj,
+            lambda: User.objects.filter(role="director").order_by("date_joined").values_list(
+                "phone",
+                flat=True,
+            ).first(),
+            None,
+        )
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_student_count(self, obj):
+        return self._with_tenant(obj, lambda: Student.objects.count(), 0)
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_branch_count(self, obj):
+        return self._with_tenant(obj, lambda: Branch.objects.count(), 0)
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_staff_count(self, obj):
+        return self._with_tenant(obj, lambda: Staff.objects.count(), 0)
+
+    @extend_schema_field(OpenApiTypes.NUMBER)
+    def get_monthly_revenue(self, obj):
+        return self._with_tenant(
+            obj,
+            lambda: str(
+                sum(
+                    payment.amount
+                    for payment in Payment.objects.filter(payment_type="top_up")
+                )
+            ),
+            "0.00",
+        )
 
     def validate_slug(self, value):
         normalized = slugify(value).replace("-", "_")

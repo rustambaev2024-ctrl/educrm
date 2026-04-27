@@ -3,6 +3,7 @@ from django.db import transaction
 from django_tenants.utils import schema_context
 
 from apps.tenants.models import Institution
+from apps.staff.models import Staff
 
 from .models import InstitutionActionLog, InstitutionNotice
 
@@ -57,6 +58,7 @@ def create_director_in_tenant(
         if created:
             user.set_password(password)
             user.save(update_fields=["password"])
+        Staff.objects.get_or_create(user=user)
         return user
 
 
@@ -119,4 +121,3 @@ def create_notice(institution: Institution, *, title: str, body: str, send_at=No
         metadata={"notice_id": str(notice.id)},
     )
     return notice
-

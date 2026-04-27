@@ -47,6 +47,7 @@ export interface Staff {
   id: string;
   fullName: string;
   phone: string;
+  password?: string;
   role: "director" | "admin" | "teacher";
   branchId?: string;
 }
@@ -62,6 +63,7 @@ export interface Student {
   id: string;
   fullName: string;
   phone: string;
+  password?: string;
   birthDate?: string; // ISO
   photo?: string;
   branchId: string;
@@ -263,6 +265,9 @@ export type InstitutionStatus = "active" | "frozen" | "archived";
 export interface Institution {
   id: string;
   name: string;
+  slug?: string;
+  schemaName?: string;
+  domain?: string;
   city: string;
   studentsCount: number;
   branchesCount: number;
@@ -275,4 +280,5 @@ export interface Institution {
   directorId?: string;
   directorName?: string;
   directorPhone?: string;
+  directorPassword?: string;
 }

@@ -115,7 +115,7 @@ interface DataStoreState {
 
 interface DataStoreActions {
   reload: () => Promise<void>;
-  addStudent: (input: Omit<Student, "id" | "registeredAt" | "balance" | "groupIds" | "status"> & { parentName?: string; parentPhone?: string }) => Student;
+  addStudent: (input: Omit<Student, "id" | "registeredAt" | "balance" | "groupIds" | "status"> & { parentName?: string; parentPhone?: string; parentPassword?: string }) => Student;
   updateStudent: (id: string, patch: Partial<Student>) => void;
   archiveStudent: (id: string) => void;
   addGroup: (input: Omit<Group, "id" | "studentIds" | "status"> & { status?: Group["status"] }) => Group;
@@ -483,7 +483,10 @@ function institutionFromRaw(raw: InstitutionRaw): Institution {
   return {
     id: mapped.id,
     name: mapped.name,
-    city: String(source.city ?? ""),
+    slug: mapped.slug,
+    schemaName: mapped.schemaName,
+    domain: mapped.domain,
+    city: String(source.city ?? source.address ?? ""),
     studentsCount: mapped.studentsCount,
     branchesCount: mapped.branchesCount,
     staffCount: Number(source.staff_count ?? source.staffCount ?? 0),
@@ -492,6 +495,8 @@ function institutionFromRaw(raw: InstitutionRaw): Institution {
     monthlyRevenue: Number(source.monthly_revenue ?? source.monthlyRevenue ?? 0),
     expiresAt: String(source.expires_at ?? source.subscription_end ?? new Date().toISOString().slice(0, 10)),
     createdAt: mapped.createdAt,
+    directorName: source.director_name ? String(source.director_name) : undefined,
+    directorPhone: source.director_login ? String(source.director_login) : undefined,
   };
 }
 
@@ -704,8 +709,12 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       studentApi.create({
         full_name: created.fullName,
         phone: created.phone,
+        password: input.password,
         branch: created.branchId,
         date_of_birth: created.birthDate,
+        parent_full_name: input.parentName,
+        parent_phone: input.parentPhone,
+        parent_password: input.parentPassword,
       } as never).then((raw) => {
         const persisted = studentFromRaw(raw as StudentRaw);
         setStudents((prev) => prev.map((s) => (s.id === id ? { ...persisted, parentId } : s)));
@@ -1190,6 +1199,9 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     const created: Institution = {
       id,
       name: input.name,
+      slug: input.slug,
+      schemaName: input.slug,
+      domain: input.domain,
       city: input.city,
       plan: input.plan,
       status: input.status,
@@ -1202,11 +1214,21 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       directorId,
       directorName,
       directorPhone,
+      directorPassword: input.directorPassword,
     };
     setInstitutions((prev) => [created, ...prev]);
     fireAndForget(
       "addInstitution",
-      superadminApi.institutions.create(snake(created as unknown as AnyRecord) as never).then((raw) => {
+      superadminApi.institutions.create({
+        name: created.name,
+        slug: created.slug,
+        domain: created.domain,
+        address: created.city,
+        subscription_end: created.expiresAt,
+        director_full_name: created.directorName,
+        director_phone: created.directorPhone,
+        director_password: created.directorPassword,
+      } as never).then((raw) => {
         const persisted = institutionFromRaw(raw as InstitutionRaw);
         setInstitutions((prev) => prev.map((i) => (i.id === id ? { ...created, ...persisted } : i)));
       }),
@@ -1277,6 +1299,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       staffApi.create({
         full_name: input.fullName,
         phone: input.phone,
+        password: input.password,
         role: input.role,
         branch: input.branchId,
       } as never).then((raw) => {

@@ -36,11 +36,12 @@ type StaffRole = Staff["role"];
 interface FormState {
   fullName: string;
   phone: string;
+  password: string;
   role: StaffRole;
   branchId: string;
 }
 
-const empty: FormState = { fullName: "", phone: "", role: "teacher", branchId: "" };
+const empty: FormState = { fullName: "", phone: "", password: "", role: "teacher", branchId: "" };
 
 function StaffPage() {
   const { t, lang } = useI18n();
@@ -87,18 +88,19 @@ function StaffPage() {
 
   const openEdit = (s: Staff) => {
     setEditing(s);
-    setForm({ fullName: s.fullName, phone: s.phone, role: s.role, branchId: s.branchId ?? "" });
+    setForm({ fullName: s.fullName, phone: s.phone, password: "", role: s.role, branchId: s.branchId ?? "" });
     setOpen(true);
   };
 
   const submit = () => {
-    if (!form.fullName.trim() || !form.phone.trim()) {
+    if (!form.fullName.trim() || !form.phone.trim() || (!editing && !form.password.trim())) {
       toast.error(t("common.required"));
       return;
     }
     const payload = {
       fullName: form.fullName.trim(),
       phone: form.phone.trim(),
+      password: form.password.trim() || undefined,
       role: form.role,
       branchId: form.role === "director" ? undefined : form.branchId || undefined,
     };
@@ -232,6 +234,14 @@ function StaffPage() {
             </Field>
             <Field label={t("staff.field.phone")}>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+998 ..." />
+            </Field>
+            <Field label="Password">
+              <Input
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder={editing ? "Leave empty to keep current password" : "min. 8 characters"}
+              />
             </Field>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label={t("staff.field.role")}>

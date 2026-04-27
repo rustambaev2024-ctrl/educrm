@@ -215,41 +215,53 @@ function CreateStudentSheet({
   onCreate: (payload: {
     fullName: string;
     phone: string;
+    password?: string;
     birthDate?: string;
     branchId: string;
     parentName?: string;
     parentPhone?: string;
+    parentPassword?: string;
   }) => void;
 }) {
   const { t } = useI18n();
   const { branches } = useData();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
   const [parentName, setParentName] = useState("");
   const [parentPhone, setParentPhone] = useState("");
+  const [parentPassword, setParentPassword] = useState("");
 
   const reset = () => {
     setFullName("");
     setPhone("");
+    setPassword("");
     setBirthDate("");
     setParentName("");
     setParentPhone("");
+    setParentPassword("");
   };
 
   const submit = () => {
-    if (!fullName.trim() || !phone.trim() || !branchId) {
+    if (!fullName.trim() || !phone.trim() || !password.trim() || !branchId) {
+      toast.error(t("validation.fillAll"));
+      return;
+    }
+    if ((parentName.trim() || parentPhone.trim()) && (!parentName.trim() || !parentPhone.trim() || !parentPassword.trim())) {
       toast.error(t("validation.fillAll"));
       return;
     }
     onCreate({
       fullName: fullName.trim(),
       phone: phone.trim(),
+      password: password.trim(),
       birthDate: birthDate || undefined,
       branchId,
       parentName: parentName.trim() || undefined,
       parentPhone: parentPhone.trim() || undefined,
+      parentPassword: parentPassword.trim() || undefined,
     });
     reset();
   };
@@ -274,6 +286,10 @@ function CreateStudentSheet({
               <div className="space-y-2">
                 <Label htmlFor="phone">{t("students.field.phone")} *</Label>
                 <Input id="phone" type="tel" placeholder="+998 90 123 45 67" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studentPassword">Password *</Label>
+                <Input id="studentPassword" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="birthDate">{t("students.field.birthDate")}</Label>
@@ -304,6 +320,10 @@ function CreateStudentSheet({
             <div className="space-y-2">
               <Label htmlFor="parentPhone">{t("students.field.parentPhone")}</Label>
               <Input id="parentPhone" type="tel" placeholder="+998 90 ..." value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="parentPassword">Parent password</Label>
+              <Input id="parentPassword" type="password" value={parentPassword} onChange={(e) => setParentPassword(e.target.value)} />
             </div>
           </section>
         </div>

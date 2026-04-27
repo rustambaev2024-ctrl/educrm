@@ -37,7 +37,7 @@ class SuperadminInstitutionViewSet(
         queryset = Institution.objects.annotate(
             notices_count=Count("notices", distinct=True),
             logs_count=Count("superadmin_logs", distinct=True),
-        ).order_by("-created_at")
+        ).exclude(schema_name="demo").order_by("-created_at")
         params = self.request.query_params
         if params.get("status"):
             queryset = queryset.filter(status=params["status"])

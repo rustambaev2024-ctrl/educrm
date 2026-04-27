@@ -458,21 +458,31 @@ export function mapNotifications(data: { results: NotificationRaw[] } | Notifica
 export interface InstitutionRaw {
   id: string;
   name: string;
+  slug?: string;
   schema_name: string;
+  primary_domain?: string | null;
   logo: string | null;
+  address?: string;
+  subscription_end?: string | null;
   status: string;
   created_at: string;
   student_count?: number;
   students_count?: number;
   branch_count?: number;
   branches_count?: number;
+  staff_count?: number;
+  monthly_revenue?: string | number;
+  director_name?: string | null;
+  director_login?: string | null;
 }
 
 export function mapInstitution(r: InstitutionRaw) {
   return {
     id: r.id,
     name: r.name,
+    slug: r.slug ?? r.schema_name,
     schemaName: r.schema_name,
+    domain: r.primary_domain ?? "",
     logo: r.logo,
     status: r.status,
     createdAt: r.created_at,
