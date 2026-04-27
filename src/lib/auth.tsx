@@ -24,7 +24,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   /** true пока идёт первичная проверка сессии */
   isHydrating: boolean;
-  login: (phone: string, password: string) => Promise<void>;
+  login: (phone: string, password: string, schemaName?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -142,7 +142,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── Login ───────────────────────────────────────────────────────────────────
-  const login = async (phone: string, password: string) => {
+  const login = async (phone: string, password: string, schemaName?: string) => {
+    if (schemaName?.trim()) {
+      setTenantSchema(schemaName.trim());
+    }
     const payload = await authApi.login(phone, password);
 
     const loginUser: AuthUser = payload.user as AuthUser;
