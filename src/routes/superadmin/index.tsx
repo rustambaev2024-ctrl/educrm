@@ -355,12 +355,6 @@ function SuperadminHome() {
             <Field label={t("sa.field.expires")} className="md:col-span-2">
               <Input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} />
             </Field>
-            {!editing && form.name.trim() && (
-              <div className="md:col-span-2 rounded-lg border border-info/20 bg-info/10 px-4 py-3 text-xs text-muted-foreground">
-                Texnik sozlamalar avtomatik yaratiladi: schema <span className="font-mono text-foreground">{makeSchemaSlug(form.name)}</span>,
-                domain <span className="font-mono text-foreground">{makeSchemaSlug(form.name)}.localhost</span>.
-              </div>
-            )}
             <div className="md:col-span-2 mt-2 rounded-lg border border-border/60 bg-accent/30 p-4">
               <div className="mb-1 text-sm font-semibold">{t("sa.directorBlock")}</div>
               <div className="mb-3 text-xs text-muted-foreground">{t("sa.directorHint")}</div>

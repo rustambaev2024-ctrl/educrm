@@ -1,4 +1,5 @@
-from django.db import transaction
+from django.db import connection, transaction
+from django_tenants.utils import get_public_schema_name, get_tenant_model, schema_context
 from drf_spectacular.utils import OpenApiResponse, OpenApiTypes, extend_schema
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -6,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
+from .models import User
 from .permissions import IsBranchAdmin
 from .serializers import (
     ChangePasswordSerializer,
@@ -22,6 +24,16 @@ class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
+        if getattr(request, "tenant", None) is None:
+            phone = request.data.get("phone")
+            if not phone:
+                return Response({"phone": ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
+            tenant = self._resolve_tenant_by_phone(phone)
+            if tenant is None:
+                return Response({"detail": "Invalid phone or password"}, status=status.HTTP_401_UNAUTHORIZED)
+            connection.set_tenant(tenant)
+            request.tenant = tenant
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -30,6 +42,16 @@ class LoginView(TokenObtainPairView):
         create_user_session(serializer.user, str(refresh["jti"]), request)
 
         return Response(data, status=status.HTTP_200_OK)
+
+    def _resolve_tenant_by_phone(self, phone):
+        tenant_model = get_tenant_model()
+        tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
+
+        for tenant in tenants.iterator():
+            with schema_context(tenant.schema_name):
+                if User.objects.filter(phone=phone).exists():
+                    return tenant
+        return None
 
 
 class LogoutView(APIView):

@@ -329,7 +329,7 @@ function DirectorTariffsPage() {
         </section>
 
         <section className="grid gap-4 md:grid-cols-3">
-          <InfoCard icon={LockKeyhole} title="Data stays separated" body="Your institution data remains inside its own tenant schema. Changing tariff does not merge data with other centers." />
+            <InfoCard icon={LockKeyhole} title="Data stays separated" body="Your institution data remains in a private secure workspace. Changing tariff does not merge data with other centers." />
           <InfoCard icon={MessageSquare} title="Realtime where it matters" body="Standard and Pro keep daily work visible through chat and notification events for staff, students and parents." />
           <InfoCard icon={Headphones} title="Support level changes" body="Basic gets normal support. Standard gets faster operational support. Pro gets priority review for scale issues." />
         </section>

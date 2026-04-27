@@ -20,7 +20,6 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { ROLE_HOMES } from "@/lib/roles";
 import { useTheme } from "@/lib/theme";
-import { getTenantSchema } from "@/lib/api";
 
 export const Route = createFileRoute("/")({ component: LoginPage });
 
@@ -31,7 +30,6 @@ function LoginPage() {
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [schemaName, setSchemaName] = useState(() => getTenantSchema() || "demo");
   const [remember, setRemember] = useState(true);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,14 +43,14 @@ function LoginPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!phone.trim() || !password.trim() || !schemaName.trim()) {
+    if (!phone.trim() || !password.trim()) {
       toast.error(t("toast.fillFields"));
       return;
     }
 
     try {
       setIsSubmitting(true);
-      await login(phone.trim(), password, schemaName.trim());
+      await login(phone.trim(), password);
       toast.success(t("toast.welcome"));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Authentication failed";
@@ -90,9 +88,9 @@ function LoginPage() {
           <p className="mt-4 max-w-lg text-balance text-base text-muted-foreground md:text-lg">{t("login.subtitle")}</p>
 
           <div className="mt-8 rounded-2xl border border-border/60 bg-card/70 p-5 backdrop-blur-sm">
-            <div className="text-sm font-semibold">Backend Auth Ready</div>
+            <div className="text-sm font-semibold">Role-based workspace</div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Login now uses real API credentials and role is resolved from the server response.
+              Enter with your phone number and password. EduCRM opens the right workspace automatically for your role.
             </p>
           </div>
         </div>
@@ -110,17 +108,6 @@ function LoginPage() {
             </div>
 
             <form onSubmit={submit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="schemaName">Institution schema</Label>
-                <Input
-                  id="schemaName"
-                  placeholder="demo or school_schema"
-                  value={schemaName}
-                  onChange={(e) => setSchemaName(e.target.value)}
-                  autoComplete="organization"
-                  disabled={isSubmitting}
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">{t("login.phone")}</Label>
                 <Input

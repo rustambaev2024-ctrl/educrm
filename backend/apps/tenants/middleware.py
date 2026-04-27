@@ -15,6 +15,10 @@ class HeaderOrDomainTenantMiddleware:
         "/api/schema/",
         "/api/docs/",
     }
+    TENANT_OPTIONAL_PATHS = {
+        "/api/v1/auth/login/",
+        "/api/v1/auth/token/",
+    }
     PUBLIC_PATH_PREFIXES = ()
     MUTATING_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
 
@@ -31,6 +35,9 @@ class HeaderOrDomainTenantMiddleware:
         tenant = self._resolve_from_header(request) or self._resolve_from_domain(request)
 
         if tenant is None:
+            if request.path in self.TENANT_OPTIONAL_PATHS:
+                request.tenant = None
+                return self.get_response(request)
             if request.path in self.PUBLIC_PATHS:
                 request.tenant = None
                 return self.get_response(request)
