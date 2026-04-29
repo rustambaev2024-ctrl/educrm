@@ -5,11 +5,12 @@ from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 
 from .models import Chat, ChatParticipant, Message
-from .serializers import ChatSerializer, MessageCreateSerializer, MessageSerializer
+from .serializers import ChatSerializer, DirectChatCreateSerializer, MessageCreateSerializer, MessageSerializer
 from .services import (
     create_message,
     delete_message,
     edit_message,
+    get_or_create_direct_chat,
     mark_chat_as_read,
     serialize_message,
 )
@@ -70,6 +71,27 @@ class ChatViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         chat = self.get_object()
         mark_chat_as_read(chat, request.user)
         return Response({"detail": "Chat marked as read"}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"], url_path="direct")
+    def direct(self, request):
+        serializer = DirectChatCreateSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        target = serializer.context["target_user"]
+        chat_type = serializer.validated_data.get("chat_type") or self._infer_direct_chat_type(request.user, target)
+        chat = get_or_create_direct_chat(request.user, target, chat_type)
+        return Response(ChatSerializer(chat, context={"request": request}).data, status=status.HTTP_200_OK)
+
+    def _infer_direct_chat_type(self, actor, target):
+        roles = {actor.role, target.role}
+        if "parent" in roles and "teacher" in roles:
+            return "parent_teacher"
+        if "student" in roles and "teacher" in roles:
+            return "student_teacher"
+        if "director" in roles and ("admin" in roles or "branch_admin" in roles):
+            return "director_admin"
+        if "director" in roles:
+            return "director_staff"
+        return "support"
 
     @action(detail=False, methods=["get"], url_path="unread-count")
     def unread_count(self, request):

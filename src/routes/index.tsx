@@ -23,7 +23,7 @@ import { useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/")({ component: LoginPage });
 
-function LoginPage() {
+export function LoginPage() {
   const { user, login, isHydrating } = useAuth();
   const { theme, toggle } = useTheme();
   const { t } = useI18n();
@@ -50,10 +50,13 @@ function LoginPage() {
 
     try {
       setIsSubmitting(true);
-      await login(phone.trim(), password);
+      await login(phone.trim(), password.trim());
       toast.success(t("toast.welcome"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Authentication failed";
+      const message =
+        error instanceof Error && error.message !== "API 401"
+          ? error.message
+          : "Telefon raqam yoki parol noto'g'ri";
       toast.error(message);
     } finally {
       setIsSubmitting(false);

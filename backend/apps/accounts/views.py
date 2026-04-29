@@ -17,6 +17,7 @@ from .serializers import (
     ResetPasswordSerializer,
     UserSerializer,
     create_user_session,
+    normalize_phone,
 )
 
 
@@ -24,17 +25,23 @@ class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        if getattr(request, "tenant", None) is None:
-            phone = request.data.get("phone")
-            if not phone:
-                return Response({"phone": ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
-            tenant = self._resolve_tenant_by_phone(phone)
-            if tenant is None:
-                return Response({"detail": "Invalid phone or password"}, status=status.HTTP_401_UNAUTHORIZED)
-            connection.set_tenant(tenant)
-            request.tenant = tenant
+        data = request.data.copy()
+        if data.get("phone"):
+            data["phone"] = normalize_phone(data["phone"])
 
-        serializer = self.get_serializer(data=request.data)
+        phone = data.get("phone")
+        if not phone:
+            return Response({"phone": ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Login is tenant-discovery entry point. A stale localStorage tenant or
+        # localhost domain fallback must not force authentication in the wrong schema.
+        tenant = self._resolve_tenant_by_phone(phone)
+        if tenant is None:
+            return Response({"detail": "Invalid phone or password"}, status=status.HTTP_401_UNAUTHORIZED)
+        connection.set_tenant(tenant)
+        request.tenant = tenant
+
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
@@ -44,6 +51,7 @@ class LoginView(TokenObtainPairView):
         return Response(data, status=status.HTTP_200_OK)
 
     def _resolve_tenant_by_phone(self, phone):
+        phone = normalize_phone(phone)
         tenant_model = get_tenant_model()
         tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
 

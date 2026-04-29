@@ -6,6 +6,16 @@ from apps.accounts.models import User
 from .models import Staff
 
 
+def normalize_phone(value: str) -> str:
+    """Keep phone uniqueness stable for inputs with spaces/dashes."""
+    if not value:
+        return value
+    value = str(value).strip()
+    if value.startswith("+"):
+        return "+" + "".join(ch for ch in value[1:] if ch.isdigit())
+    return "".join(ch for ch in value if ch.isdigit())
+
+
 class StaffSerializer(serializers.ModelSerializer):
     user_id = serializers.UUIDField(read_only=True, source="user.id")
     full_name = serializers.CharField(source="user.full_name")
@@ -33,13 +43,30 @@ class StaffSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "user_id")
 
+    def validate_phone(self, value):
+        return normalize_phone(value)
+
     @transaction.atomic
     def create(self, validated_data):
         user_data = validated_data.pop("user")
         password = validated_data.pop("password", None) or "ChangeMe123"
+        phone = normalize_phone(user_data["phone"])
+
+        existing_user = User.objects.filter(phone=phone).first()
+        if existing_user:
+            if hasattr(existing_user, "staff_profile"):
+                raise serializers.ValidationError(
+                    {"phone": "Пользователь с этим телефоном уже является сотрудником."}
+                )
+
+            existing_user.full_name = user_data["full_name"]
+            existing_user.role = user_data["role"]
+            existing_user.set_password(password)
+            existing_user.save(update_fields=["full_name", "role", "password"])
+            return Staff.objects.create(user=existing_user, **validated_data)
 
         user = User.objects.create_user(
-            phone=user_data["phone"],
+            phone=phone,
             full_name=user_data["full_name"],
             role=user_data["role"],
             password=password,

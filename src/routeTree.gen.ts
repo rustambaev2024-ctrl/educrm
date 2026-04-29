@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as TeacherRouteRouteImport } from './routes/teacher/route'
 import { Route as SuperadminRouteRouteImport } from './routes/superadmin/route'
 import { Route as StudentRouteRouteImport } from './routes/student/route'
@@ -41,6 +42,7 @@ import { Route as DirectorTariffsRouteImport } from './routes/director/tariffs'
 import { Route as DirectorStaffRouteImport } from './routes/director/staff'
 import { Route as DirectorMessagesRouteImport } from './routes/director/messages'
 import { Route as DirectorFinanceRouteImport } from './routes/director/finance'
+import { Route as DirectorCoursesRouteImport } from './routes/director/courses'
 import { Route as DirectorBranchesRouteImport } from './routes/director/branches'
 import { Route as DirectorAuditRouteImport } from './routes/director/audit'
 import { Route as DirectorAnalyticsRouteImport } from './routes/director/analytics'
@@ -50,7 +52,13 @@ import { Route as AdminMessagesRouteImport } from './routes/admin/messages'
 import { Route as AdminGroupsRouteImport } from './routes/admin/groups'
 import { Route as AdminFinanceRouteImport } from './routes/admin/finance'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
+import { Route as AdminAccountsRouteImport } from './routes/admin/accounts'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TeacherRouteRoute = TeacherRouteRouteImport.update({
   id: '/teacher',
   path: '/teacher',
@@ -211,6 +219,11 @@ const DirectorFinanceRoute = DirectorFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => DirectorRouteRoute,
 } as any)
+const DirectorCoursesRoute = DirectorCoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => DirectorRouteRoute,
+} as any)
 const DirectorBranchesRoute = DirectorBranchesRouteImport.update({
   id: '/branches',
   path: '/branches',
@@ -256,6 +269,11 @@ const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminAccountsRoute = AdminAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -265,6 +283,8 @@ export interface FileRoutesByFullPath {
   '/student': typeof StudentRouteRouteWithChildren
   '/superadmin': typeof SuperadminRouteRouteWithChildren
   '/teacher': typeof TeacherRouteRouteWithChildren
+  '/login': typeof LoginRoute
+  '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/groups': typeof AdminGroupsRoute
@@ -274,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/director/analytics': typeof DirectorAnalyticsRoute
   '/director/audit': typeof DirectorAuditRoute
   '/director/branches': typeof DirectorBranchesRoute
+  '/director/courses': typeof DirectorCoursesRoute
   '/director/finance': typeof DirectorFinanceRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/staff': typeof DirectorStaffRoute
@@ -302,6 +323,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/groups': typeof AdminGroupsRoute
@@ -311,6 +334,7 @@ export interface FileRoutesByTo {
   '/director/analytics': typeof DirectorAnalyticsRoute
   '/director/audit': typeof DirectorAuditRoute
   '/director/branches': typeof DirectorBranchesRoute
+  '/director/courses': typeof DirectorCoursesRoute
   '/director/finance': typeof DirectorFinanceRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/staff': typeof DirectorStaffRoute
@@ -346,6 +370,8 @@ export interface FileRoutesById {
   '/student': typeof StudentRouteRouteWithChildren
   '/superadmin': typeof SuperadminRouteRouteWithChildren
   '/teacher': typeof TeacherRouteRouteWithChildren
+  '/login': typeof LoginRoute
+  '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/groups': typeof AdminGroupsRoute
@@ -355,6 +381,7 @@ export interface FileRoutesById {
   '/director/analytics': typeof DirectorAnalyticsRoute
   '/director/audit': typeof DirectorAuditRoute
   '/director/branches': typeof DirectorBranchesRoute
+  '/director/courses': typeof DirectorCoursesRoute
   '/director/finance': typeof DirectorFinanceRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/staff': typeof DirectorStaffRoute
@@ -391,6 +418,8 @@ export interface FileRouteTypes {
     | '/student'
     | '/superadmin'
     | '/teacher'
+    | '/login'
+    | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/finance'
     | '/admin/groups'
@@ -400,6 +429,7 @@ export interface FileRouteTypes {
     | '/director/analytics'
     | '/director/audit'
     | '/director/branches'
+    | '/director/courses'
     | '/director/finance'
     | '/director/messages'
     | '/director/staff'
@@ -428,6 +458,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
+    | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/finance'
     | '/admin/groups'
@@ -437,6 +469,7 @@ export interface FileRouteTypes {
     | '/director/analytics'
     | '/director/audit'
     | '/director/branches'
+    | '/director/courses'
     | '/director/finance'
     | '/director/messages'
     | '/director/staff'
@@ -471,6 +504,8 @@ export interface FileRouteTypes {
     | '/student'
     | '/superadmin'
     | '/teacher'
+    | '/login'
+    | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/finance'
     | '/admin/groups'
@@ -480,6 +515,7 @@ export interface FileRouteTypes {
     | '/director/analytics'
     | '/director/audit'
     | '/director/branches'
+    | '/director/courses'
     | '/director/finance'
     | '/director/messages'
     | '/director/staff'
@@ -515,10 +551,18 @@ export interface RootRouteChildren {
   StudentRouteRoute: typeof StudentRouteRouteWithChildren
   SuperadminRouteRoute: typeof SuperadminRouteRouteWithChildren
   TeacherRouteRoute: typeof TeacherRouteRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/teacher': {
       id: '/teacher'
       path: '/teacher'
@@ -743,6 +787,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirectorFinanceRouteImport
       parentRoute: typeof DirectorRouteRoute
     }
+    '/director/courses': {
+      id: '/director/courses'
+      path: '/courses'
+      fullPath: '/director/courses'
+      preLoaderRoute: typeof DirectorCoursesRouteImport
+      parentRoute: typeof DirectorRouteRoute
+    }
     '/director/branches': {
       id: '/director/branches'
       path: '/branches'
@@ -806,10 +857,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/accounts': {
+      id: '/admin/accounts'
+      path: '/accounts'
+      fullPath: '/admin/accounts'
+      preLoaderRoute: typeof AdminAccountsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
   }
 }
 
 interface AdminRouteRouteChildren {
+  AdminAccountsRoute: typeof AdminAccountsRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminGroupsRoute: typeof AdminGroupsRoute
@@ -820,6 +879,7 @@ interface AdminRouteRouteChildren {
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAccountsRoute: AdminAccountsRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminGroupsRoute: AdminGroupsRoute,
@@ -837,6 +897,7 @@ interface DirectorRouteRouteChildren {
   DirectorAnalyticsRoute: typeof DirectorAnalyticsRoute
   DirectorAuditRoute: typeof DirectorAuditRoute
   DirectorBranchesRoute: typeof DirectorBranchesRoute
+  DirectorCoursesRoute: typeof DirectorCoursesRoute
   DirectorFinanceRoute: typeof DirectorFinanceRoute
   DirectorMessagesRoute: typeof DirectorMessagesRoute
   DirectorStaffRoute: typeof DirectorStaffRoute
@@ -848,6 +909,7 @@ const DirectorRouteRouteChildren: DirectorRouteRouteChildren = {
   DirectorAnalyticsRoute: DirectorAnalyticsRoute,
   DirectorAuditRoute: DirectorAuditRoute,
   DirectorBranchesRoute: DirectorBranchesRoute,
+  DirectorCoursesRoute: DirectorCoursesRoute,
   DirectorFinanceRoute: DirectorFinanceRoute,
   DirectorMessagesRoute: DirectorMessagesRoute,
   DirectorStaffRoute: DirectorStaffRoute,
@@ -945,6 +1007,7 @@ const rootRouteChildren: RootRouteChildren = {
   StudentRouteRoute: StudentRouteRouteWithChildren,
   SuperadminRouteRoute: SuperadminRouteRouteWithChildren,
   TeacherRouteRoute: TeacherRouteRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

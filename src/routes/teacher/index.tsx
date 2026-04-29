@@ -118,29 +118,34 @@ function TeacherHome() {
                   <Link
                     key={lesson.id}
                     to="/teacher/attendance"
-                    className="flex items-center gap-4 rounded-lg border border-border/50 p-3 transition-all hover:border-primary/40 hover:bg-accent/40"
+                    className="flex flex-col gap-3 rounded-xl border border-border/50 p-3 transition-all hover:border-primary/40 hover:bg-accent/40 sm:flex-row sm:items-center sm:gap-4"
                   >
-                    <div
-                      className={`flex w-16 flex-shrink-0 flex-col items-center justify-center rounded-md py-1.5 ${
-                        isNext ? "bg-gradient-primary text-primary-foreground" : "bg-accent text-primary"
-                      }`}
-                    >
-                      <Clock className="size-3" />
-                      <div className="text-sm font-bold">{formatTime(lesson.datetime)}</div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 font-medium">
-                        {group.name}
-                        {isNext && <Badge className="bg-success/10 text-success hover:bg-success/15">{t("common.today")}</Badge>}
-                        {lesson.status !== "scheduled" && <LessonStatusBadge status={lesson.status} />}
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`flex w-20 flex-shrink-0 flex-col items-center justify-center rounded-xl py-2 ${
+                          isNext ? "bg-gradient-primary text-primary-foreground" : "bg-accent text-primary"
+                        }`}
+                      >
+                        <Clock className="size-3.5" />
+                        <div className="text-base font-bold">{formatTime(lesson.datetime)}</div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                        <span>{course?.name}</span>
-                        <span className="flex items-center gap-1"><MapPin className="size-3" />{room?.name}</span>
-                        <span className="flex items-center gap-1"><Users className="size-3" />{group.studentIds.length}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 font-semibold">
+                          {group.name}
+                          {isNext && <Badge className="bg-success/10 text-success hover:bg-success/15">{t("common.today")}</Badge>}
+                          {lesson.status !== "scheduled" && <LessonStatusBadge status={lesson.status} />}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">{course?.name}</div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span className="rounded-full bg-secondary px-2 py-1">Kabinet: {room?.name ?? "—"}</span>
+                          <span className="rounded-full bg-secondary px-2 py-1">O'quvchilar: {group.studentIds.length}</span>
+                        </div>
                       </div>
                     </div>
-                    <ChevronRight className="size-4 text-muted-foreground" />
+                    <div className="flex items-center justify-between rounded-lg bg-secondary/60 px-3 py-2 text-xs font-medium text-foreground sm:ml-auto sm:bg-transparent sm:p-0">
+                      <span>Davomatni ochish</span>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </div>
                   </Link>
                 );
               })}

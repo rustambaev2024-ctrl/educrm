@@ -5,6 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsSuperAdmin
+from apps.institutions.models import Branch
+from apps.institutions.serializers import BranchSerializer
 from apps.tenants.models import Institution
 
 from .models import InstitutionActionLog
@@ -120,6 +122,45 @@ class SuperadminInstitutionViewSet(
                 InstitutionNoticeSerializer(notice).data,
                 status=status.HTTP_201_CREATED,
             )
+
+    @action(detail=True, methods=["get", "post"], url_path="branches")
+    def branches(self, request, pk=None):
+        with schema_context("public"):
+            institution = self.get_object()
+
+        with schema_context(institution.schema_name):
+            if request.method == "GET":
+                serializer = BranchSerializer(Branch.objects.all().order_by("-created_at"), many=True)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+            serializer = BranchSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            branch = serializer.save()
+            return Response(BranchSerializer(branch).data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=["patch", "delete"],
+        url_path=r"branches/(?P<branch_id>[0-9a-f-]+)",
+    )
+    def branch_detail(self, request, pk=None, branch_id=None):
+        with schema_context("public"):
+            institution = self.get_object()
+
+        with schema_context(institution.schema_name):
+            try:
+                branch = Branch.objects.get(id=branch_id)
+            except Branch.DoesNotExist:
+                return Response({"detail": "Branch not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            if request.method == "DELETE":
+                branch.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+
+            serializer = BranchSerializer(branch, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class SuperadminLogViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):

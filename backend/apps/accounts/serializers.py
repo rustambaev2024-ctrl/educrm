@@ -7,6 +7,15 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User
 
 
+def normalize_phone(value: str) -> str:
+    value = (value or "").strip()
+    has_plus = value.startswith("+")
+    digits = "".join(ch for ch in value if ch.isdigit())
+    if has_plus or digits.startswith("998"):
+        return f"+{digits}"
+    return digits
+
+
 class UserSerializer(serializers.ModelSerializer):
     fullName = serializers.CharField(source="full_name")
     schemaName = serializers.SerializerMethodField()
@@ -98,6 +107,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
+        if "phone" in attrs:
+            attrs["phone"] = normalize_phone(attrs["phone"])
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
         data["schemaName"] = connection.schema_name
@@ -132,6 +143,23 @@ class ResetPasswordSerializer(serializers.Serializer):
             user = User.objects.get(id=value)
         except User.DoesNotExist as exc:
             raise serializers.ValidationError("User not found") from exc
+        request = self.context.get("request")
+        actor = getattr(request, "user", None)
+        if actor and actor.is_authenticated:
+            if actor.role in ("admin", "branch_admin"):
+                if user.role not in ("teacher", "student", "parent"):
+                    raise serializers.ValidationError("You can reset only teacher, student and parent passwords")
+                actor_branch = getattr(getattr(actor, "staff_profile", None), "branch_id", None)
+                target_branch = getattr(getattr(user, "staff_profile", None), "branch_id", None)
+                if user.role == "student":
+                    target_branch = getattr(getattr(user, "student_profile", None), "branch_id", None)
+                if user.role == "parent":
+                    parent = getattr(user, "parent_profile", None)
+                    if parent and not parent.children.filter(branch_id=actor_branch).exists():
+                        raise serializers.ValidationError("Parent is not linked to your branch")
+                    target_branch = actor_branch
+                if actor_branch and target_branch and actor_branch != target_branch:
+                    raise serializers.ValidationError("User is outside your branch")
         self.context["target_user"] = user
         return value
 

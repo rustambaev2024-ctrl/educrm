@@ -23,36 +23,41 @@ export const Route = createFileRoute("/teacher/attendance")({ component: Attenda
 
 const STATUS_ORDER: AttendanceStatus[] = ["present", "late", "online", "excused", "absent"];
 
-const STATUS_META: Record<AttendanceStatus, { icon: typeof Check; tone: string; activeTone: string; key: string }> = {
+const STATUS_META: Record<AttendanceStatus, { icon: typeof Check; tone: string; activeTone: string; key: string; short: string }> = {
   present: {
     icon: Check,
     tone: "border-border text-muted-foreground hover:bg-success/10 hover:text-success",
     activeTone: "border-success bg-success text-success-foreground",
     key: "att.present",
+    short: "K",
   },
   late: {
     icon: Clock,
     tone: "border-border text-muted-foreground hover:bg-warning/15 hover:text-warning-foreground",
     activeTone: "border-warning bg-warning text-warning-foreground",
     key: "att.late",
+    short: "Q",
   },
   online: {
     icon: Wifi,
     tone: "border-border text-muted-foreground hover:bg-info/10 hover:text-info",
     activeTone: "border-info bg-info text-info-foreground",
     key: "att.online",
+    short: "O",
   },
   excused: {
     icon: FileText,
     tone: "border-border text-muted-foreground hover:bg-accent",
     activeTone: "border-primary bg-primary text-primary-foreground",
     key: "att.excused",
+    short: "S",
   },
   absent: {
     icon: X,
     tone: "border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
     activeTone: "border-destructive bg-destructive text-destructive-foreground",
     key: "att.absent",
+    short: "Y",
   },
 };
 
@@ -189,6 +194,20 @@ function AttendancePage() {
                   </div>
                 </div>
 
+                <div className="mb-3 rounded-xl bg-secondary/50 p-3 sm:hidden">
+                  <div className="grid grid-cols-5 gap-1 text-center text-[10px] font-semibold text-muted-foreground">
+                    {STATUS_ORDER.map((status) => {
+                      const meta = STATUS_META[status];
+                      return (
+                        <div key={status} className="rounded-lg border border-border/60 px-1 py-1">
+                          <div className="text-sm text-foreground">{meta.short}</div>
+                          <div className="truncate">{t(meta.key)}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {groupStudents.length === 0 ? (
                   <div className="py-8 text-center text-sm text-muted-foreground">{t("students.empty")}</div>
                 ) : (
@@ -203,10 +222,10 @@ function AttendancePage() {
                       return (
                         <div
                           key={student.id}
-                          className="flex flex-col items-stretch gap-3 rounded-lg border border-border/50 p-3 transition-colors hover:bg-accent/30 sm:flex-row sm:items-center"
+                          className="flex flex-col gap-2 rounded-lg border border-border/50 p-2.5 transition-colors hover:bg-accent/30 sm:flex-row sm:items-center sm:gap-3 sm:p-3"
                         >
-                          <div className="flex min-w-0 flex-1 items-center gap-3">
-                            <Avatar className="size-9">
+                          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                            <Avatar className="size-8 sm:size-9">
                               <AvatarFallback className="bg-gradient-primary text-xs font-semibold text-primary-foreground">
                                 {initials}
                               </AvatarFallback>
@@ -216,7 +235,7 @@ function AttendancePage() {
                               <div className="truncate text-xs text-muted-foreground">{student.phone}</div>
                             </div>
                           </div>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-1.5">
                             {STATUS_ORDER.map((status) => {
                               const meta = STATUS_META[status];
                               const Icon = meta.icon;
@@ -225,11 +244,14 @@ function AttendancePage() {
                                 <button
                                   key={status}
                                   onClick={() => setStatus(student.id, status)}
-                                  className={`flex h-9 items-center gap-1 rounded-md border px-2.5 text-[11px] font-medium transition-all ${
+                                  className={`flex h-9 items-center justify-center rounded-lg border text-xs font-bold transition-all sm:justify-start sm:gap-1 sm:rounded-md sm:px-2.5 sm:text-[11px] ${
                                     active ? meta.activeTone : meta.tone
                                   }`}
+                                  aria-label={t(meta.key)}
+                                  title={t(meta.key)}
                                 >
-                                  <Icon className="size-3.5" />
+                                  <span className="sm:hidden">{meta.short}</span>
+                                  <Icon className="hidden size-3.5 sm:block" />
                                   <span className="hidden sm:inline">{t(meta.key)}</span>
                                 </button>
                               );

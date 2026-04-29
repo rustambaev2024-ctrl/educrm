@@ -1,10 +1,16 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, LogOut, Moon, Sun } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Topbar } from "@/components/edu/topbar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { NotificationsPopover } from "@/components/edu/notifications-popover";
+import { LangToggle } from "@/components/edu/lang-toggle";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme";
 
 export interface NavItem {
   to: string;
@@ -22,8 +28,20 @@ interface SidebarLayoutProps {
 
 export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = true }: SidebarLayoutProps) {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const { t } = useI18n();
+  const { theme, toggle } = useTheme();
+
+  const initials = user?.fullName
+    .split(" ")
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+
+  const isActive = (to: string) =>
+    location.pathname === to || (to !== "/" && to.split("/").length > 2 && location.pathname.startsWith(`${to}/`));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -42,7 +60,7 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {items.map((item) => {
-            const active = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to + "/"));
+            const active = isActive(item.to);
             return (
               <Link
                 key={item.to}
@@ -76,8 +94,81 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar showSearch={showSearch} />
-        <main className="flex-1 overflow-x-hidden">{children}</main>
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/60 bg-background/90 px-3 backdrop-blur-md md:hidden">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-primary shadow-glow">
+              <GraduationCap className="size-4 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-bold leading-tight">{brand}</div>
+              <div className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
+                {user && t(`role.${user.role}`)}
+              </div>
+            </div>
+          </div>
+
+          <div className="ml-auto flex items-center gap-1">
+            <LangToggle />
+            <Button variant="ghost" size="icon" className="size-8" onClick={toggle} aria-label={t("theme.toggle")}>
+              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </Button>
+            <NotificationsPopover size="sm" />
+            <Avatar className="size-8">
+              <AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              aria-label={t("topbar.logout")}
+              onClick={() => {
+                logout();
+                navigate({ to: "/" });
+              }}
+            >
+              <LogOut className="size-4" />
+            </Button>
+          </div>
+        </header>
+
+        <div className="hidden md:block">
+          <Topbar showSearch={showSearch} />
+        </div>
+
+        <main className="flex-1 overflow-x-hidden pb-20 md:pb-0">{children}</main>
+
+        <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/60 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+          <div className="flex items-center gap-1 overflow-x-auto px-2 py-1.5">
+            {items.map((item) => {
+              const active = isActive(item.to);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`flex min-w-[76px] flex-shrink-0 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 transition-colors ${
+                    active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <div
+                    className={`relative flex size-9 items-center justify-center rounded-lg transition-all ${
+                      active ? "bg-accent shadow-sm" : ""
+                    }`}
+                  >
+                    <item.icon className="size-[18px]" />
+                    {item.badge !== undefined && (
+                      <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1 text-[9px] font-bold leading-4 text-primary-foreground">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <span className="max-w-[70px] truncate text-[10px] font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
       </div>
     </div>
   );

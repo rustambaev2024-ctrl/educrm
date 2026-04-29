@@ -1,48 +1,29 @@
-from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
+from drf_spectacular.utils import OpenApiTypes, extend_schema_field
+
+from apps.accounts.models import User
 
 from .models import Chat, Message
-from .services import serialize_message
+from .services import serialize_chat, serialize_message
 
 
 class ChatSerializer(serializers.ModelSerializer):
-    unread_count = serializers.SerializerMethodField()
-    participants = serializers.SerializerMethodField()
-    last_message_at = serializers.SerializerMethodField()
+    payload = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
-        fields = (
-            "id",
-            "chat_type",
-            "group",
-            "name",
-            "is_active",
-            "created_at",
-            "unread_count",
-            "participants",
-            "last_message_at",
-        )
+        fields = ("id", "payload")
 
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_unread_count(self, obj):
-        user = self.context["request"].user
-        return obj.messages.filter(statuses__user=user, statuses__is_read=False).count()
+    def to_representation(self, instance):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return serialize_chat(instance, request.user)
+        return super().to_representation(instance)
 
-    @extend_schema_field(serializers.ListField(child=serializers.UUIDField()))
-    def get_participants(self, obj):
-        return [
-            str(user_id)
-            for user_id in obj.participants.filter(left_at__isnull=True).values_list(
-                "user_id",
-                flat=True,
-            )
-        ]
-
-    @extend_schema_field(OpenApiTypes.DATETIME)
-    def get_last_message_at(self, obj):
-        last_message = obj.messages.order_by("-created_at").first()
-        return (last_message.created_at if last_message else obj.created_at).isoformat()
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_payload(self, obj):
+        request = self.context.get("request")
+        return serialize_chat(obj, request.user) if request else {}
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -51,6 +32,9 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ("id", "payload")
+
+    def to_representation(self, instance):
+        return serialize_message(instance)
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_payload(self, obj):
@@ -73,7 +57,23 @@ class MessageCreateSerializer(serializers.Serializer):
         if message_type == "text" and not text.strip():
             raise serializers.ValidationError({"text": "Text cannot be empty for text messages"})
         if message_type in ("file", "image", "voice") and not file:
-            raise serializers.ValidationError(
-                {"file": "File is required for selected message type"}
-            )
+            raise serializers.ValidationError({"file": "File is required for selected message type"})
         return attrs
+
+
+class DirectChatCreateSerializer(serializers.Serializer):
+    user_id = serializers.UUIDField()
+    chat_type = serializers.ChoiceField(
+        choices=["student_teacher", "parent_teacher", "director_staff", "director_admin", "support"],
+        required=False,
+    )
+
+    def validate_user_id(self, value):
+        try:
+            target = User.objects.get(id=value, is_active=True)
+        except User.DoesNotExist as exc:
+            raise serializers.ValidationError("User not found") from exc
+        if self.context["request"].user.id == target.id:
+            raise serializers.ValidationError("Cannot create a chat with yourself")
+        self.context["target_user"] = target
+        return value

@@ -181,3 +181,58 @@ def mark_chat_as_read(chat: Chat, user):
         "message.read",
         {"chat_id": str(chat.id), "user_id": str(user.id), "read_at": now.isoformat()},
     )
+
+
+def chat_scope(chat: Chat) -> str:
+    if chat.chat_type == "group_chat":
+        return "group"
+    if chat.chat_type in ("system_notifications", "director_staff"):
+        return "broadcast"
+    return "direct"
+
+
+def chat_title_for_user(chat: Chat, user) -> str:
+    if chat.name:
+        return chat.name
+    if chat.chat_type == "group_chat" and chat.group_id:
+        return chat.group.name
+    other = (
+        chat.participants.filter(left_at__isnull=True)
+        .exclude(user=user)
+        .select_related("user")
+        .first()
+    )
+    if other:
+        return other.user.full_name
+    return "Saved messages"
+
+
+def serialize_chat(chat: Chat, user) -> dict:
+    last_message = chat.messages.select_related("sender").order_by("-created_at").first()
+    participants = chat.participants.filter(left_at__isnull=True).select_related("user")
+    participant_payload = [
+        {
+            "id": str(item.user_id),
+            "full_name": item.user.full_name,
+            "role": item.user.role,
+            "photo": item.user.photo.url if item.user.photo else None,
+            "participant_role": item.role,
+            "last_read_at": item.last_read_at.isoformat() if item.last_read_at else None,
+        }
+        for item in participants
+    ]
+    return {
+        "id": str(chat.id),
+        "chat_type": chat.chat_type,
+        "scope": chat_scope(chat),
+        "group": str(chat.group_id) if chat.group_id else None,
+        "title": chat_title_for_user(chat, user),
+        "name": chat.name,
+        "is_active": chat.is_active,
+        "created_at": chat.created_at.isoformat(),
+        "updated_at": (last_message.created_at if last_message else chat.created_at).isoformat(),
+        "last_message": serialize_message(last_message) if last_message else None,
+        "unread_count": chat.messages.filter(statuses__user=user, statuses__is_read=False).count(),
+        "participants": [str(item["id"]) for item in participant_payload],
+        "participant_details": participant_payload,
+    }

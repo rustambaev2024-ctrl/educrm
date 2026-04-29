@@ -70,6 +70,13 @@ export function setTenantSchema(schema: string | null) {
   else localStorage.removeItem(TENANT_SCHEMA_KEY);
 }
 
+export function normalizePhone(phone: string): string {
+  const trimmed = phone.trim();
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "");
+  return hasPlus ? `+${digits}` : digits.startsWith("998") ? `+${digits}` : digits;
+}
+
 function readPersistedAuth(): PersistedAuthShape | null {
   if (typeof window === "undefined") return null;
   try {
@@ -220,10 +227,23 @@ export function crudApi<T, C = Partial<T>, U = Partial<T>>(base: string) {
 
 export const authApi = {
   login: (phoneOrBody: string | LoginRequest, password?: string) => {
-    const body = typeof phoneOrBody === "string" ? { phone: phoneOrBody, password } : phoneOrBody;
-    return requestJson<LoginResponse>("/auth/token/", {
+    const body =
+      typeof phoneOrBody === "string"
+        ? { phone: normalizePhone(phoneOrBody), password: password?.trim() }
+        : { ...phoneOrBody, phone: normalizePhone(phoneOrBody.phone), password: phoneOrBody.password.trim() };
+
+    // Login must not reuse a stale tenant from localStorage. The backend resolves
+    // the correct tenant by phone for /auth/token/.
+    return fetch(`${API_BASE_URL}/auth/token/`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+    }).then(async (res) => {
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({}));
+        throw new ApiError(res.status, errorBody);
+      }
+      return res.json() as Promise<LoginResponse>;
     });
   },
 
@@ -248,6 +268,12 @@ export const authApi = {
         old_password: oldPassword,
         new_password: newPassword,
       }),
+    }),
+
+  resetPassword: (userId: string, newPassword: string) =>
+    requestJson<void>("/auth/reset-password/", {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId, new_password: newPassword }),
     }),
 };
 
@@ -355,6 +381,11 @@ export const gradeApi = crudApi("/grades/");
 
 export const chatApi = {
   list: () => requestJson("/chats/"),
+  direct: (userId: string, chatType?: string) =>
+    requestJson("/chats/direct/", {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId, chat_type: chatType }),
+    }),
   messages: (chatId: string, page = 1) => requestJson(`/chats/${chatId}/messages/?page=${page}`),
   send: (chatId: string, content: string, replyTo?: string) =>
     requestJson(`/chats/${chatId}/messages/`, {
@@ -386,6 +417,24 @@ export const auditApi = {
 
 export const superadminApi = {
   institutions: crudApi("/superadmin/institutions/"),
+  branches: {
+    list: (institutionId: string) =>
+      requestJson<ApiList<unknown> | unknown[]>(`/superadmin/institutions/${institutionId}/branches/`),
+    create: (institutionId: string, data: unknown) =>
+      requestJson(`/superadmin/institutions/${institutionId}/branches/`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (institutionId: string, branchId: string, data: unknown) =>
+      requestJson(`/superadmin/institutions/${institutionId}/branches/${branchId}/`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    delete: (institutionId: string, branchId: string) =>
+      requestJson<void>(`/superadmin/institutions/${institutionId}/branches/${branchId}/`, {
+        method: "DELETE",
+      }),
+  },
   freeze: (id: string, reason: string) =>
     requestJson(`/superadmin/institutions/${id}/freeze/`, {
       method: "POST",

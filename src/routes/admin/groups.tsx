@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Users, Clock, MapPin, X, UserPlus, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
@@ -132,7 +132,7 @@ function GroupsPage() {
 
 function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { t, lang } = useI18n();
-  const { courses, staff, rooms, branches, addGroup } = useData();
+  const { courses, staff, rooms, addGroup } = useData();
   const teachers = staff.filter((s) => s.role === "teacher");
 
   const [name, setName] = useState("");
@@ -146,16 +146,29 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
     () => Object.fromEntries(DAYS.map((d) => [d, { enabled: false, start: "09:00", end: "10:30" }])) as Record<DayOfWeek, { enabled: boolean; start: string; end: string }>,
   );
 
+  useEffect(() => {
+    if (!courseId && courses[0]?.id) setCourseId(courses[0].id);
+  }, [courseId, courses]);
+
+  useEffect(() => {
+    if (!teacherId && teachers[0]?.id) setTeacherId(teachers[0].id);
+  }, [teacherId, teachers]);
+
+  useEffect(() => {
+    if (!roomId && rooms[0]?.id) setRoomId(rooms[0].id);
+  }, [roomId, rooms]);
+
   const submit = () => {
     const schedule: ScheduleSlot[] = DAYS.filter((d) => slots[d].enabled).map((d) => ({ day: d, start: slots[d].start, end: slots[d].end }));
-    if (!name.trim() || !courseId || !teacherId || !roomId || schedule.length === 0) {
+    const selectedRoom = rooms.find((room) => room.id === roomId);
+    if (!name.trim() || !courseId || !teacherId || !selectedRoom || schedule.length === 0) {
       toast.error(t("validation.fillAll"));
       return;
     }
     addGroup({
       name: name.trim(),
       courseId,
-      branchId: branches[0]?.id ?? "b1",
+      branchId: selectedRoom.branchId,
       teacherId,
       roomId,
       capacity,
@@ -201,11 +214,14 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
             <div className="space-y-2">
               <Label>{t("groups.field.room")} *</Label>
               <Select value={roomId} onValueChange={setRoomId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Kabinet tanlang" /></SelectTrigger>
                 <SelectContent>
                   {rooms.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {rooms.length === 0 && (
+                <div className="text-[11px] text-destructive">Avval direktor kabinet yaratishi kerak.</div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>{t("groups.field.capacity")} *</Label>

@@ -67,6 +67,7 @@ export function mapRooms(data: { results: RoomRaw[] } | RoomRaw[]) {
 
 export interface StaffRaw {
   id: string;
+  user_id?: string;
   full_name: string;
   phone: string;
   role: string;
@@ -81,6 +82,7 @@ export interface StaffRaw {
 export function mapStaff(r: StaffRaw) {
   return {
     id: r.id,
+    userId: r.user_id ?? "",
     fullName: r.full_name,
     phone: r.phone,
     role: r.role === "branch_admin" ? "admin" : r.role,

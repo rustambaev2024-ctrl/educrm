@@ -45,6 +45,7 @@ export interface Course {
 
 export interface Staff {
   id: string;
+  userId?: string;
   fullName: string;
   phone: string;
   password?: string;
@@ -56,11 +57,14 @@ export interface Parent {
   id: string;
   fullName: string;
   phone: string;
+  password?: string;
+  userId?: string;
   childrenIds: string[];
 }
 
 export interface Student {
   id: string;
+  userId?: string;
   fullName: string;
   phone: string;
   password?: string;
@@ -150,18 +154,22 @@ export interface ChatMessage {
   threadId: string;
   authorId: string;
   authorName: string;
+  authorRole?: string;
   text: string;
   createdAt: string;
   read: boolean;
+  isEdited?: boolean;
+  isDeleted?: boolean;
 }
 
 export interface ChatThread {
   id: string;
   title: string;             // contact display name or group name
   scope: ChatScope;
-  participantIds: string[];  // user-ids (staff/student/parent)
+  participantIds: string[];  // user ids
   groupId?: string;          // when scope=group
   lastMessageAt: string;
+  lastMessage?: string;
   unread: number;
   avatar?: string;
 }

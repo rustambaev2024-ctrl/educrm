@@ -11,7 +11,7 @@ class StaffViewSet(viewsets.ModelViewSet):
     serializer_class = StaffSerializer
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
+        if self.action in ("list", "retrieve", "update", "partial_update"):
             permission_classes = [IsBranchAdmin]
         else:
             permission_classes = [IsDirector]

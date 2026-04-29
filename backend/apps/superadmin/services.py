@@ -8,6 +8,15 @@ from apps.staff.models import Staff
 from .models import InstitutionActionLog, InstitutionNotice
 
 
+def normalize_phone(value: str) -> str:
+    value = (value or "").strip()
+    has_plus = value.startswith("+")
+    digits = "".join(ch for ch in value if ch.isdigit())
+    if has_plus or digits.startswith("998"):
+        return f"+{digits}"
+    return digits
+
+
 def actor_payload(user) -> dict:
     return {
         "actor_id": str(getattr(user, "id", "")) if getattr(user, "id", None) else "",
@@ -41,6 +50,7 @@ def create_director_in_tenant(
     full_name: str,
     password: str,
 ):
+    phone = normalize_phone(phone)
     if not phone or not full_name or not password:
         return None
 
@@ -55,9 +65,12 @@ def create_director_in_tenant(
                 "is_staff": True,
             },
         )
-        if created:
-            user.set_password(password)
-            user.save(update_fields=["password"])
+        user.full_name = full_name
+        user.role = "director"
+        user.is_active = True
+        user.is_staff = True
+        user.set_password(password)
+        user.save(update_fields=["full_name", "role", "is_active", "is_staff", "password"])
         Staff.objects.get_or_create(user=user)
         return user
 

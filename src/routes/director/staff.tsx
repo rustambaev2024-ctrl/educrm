@@ -97,6 +97,12 @@ function StaffPage() {
       toast.error(t("common.required"));
       return;
     }
+    const normalizedPhone = form.phone.replace(/[^\d+]/g, "");
+    const phoneAlreadyUsed = staff.some((s) => s.id !== editing?.id && s.phone.replace(/[^\d+]/g, "") === normalizedPhone);
+    if (phoneAlreadyUsed) {
+      toast.error("Bu telefon raqam allaqachon xodimga biriktirilgan");
+      return;
+    }
     const payload = {
       fullName: form.fullName.trim(),
       phone: form.phone.trim(),

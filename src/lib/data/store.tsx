@@ -8,8 +8,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { toast } from "sonner";
 import {
   attendanceApi,
+  authApi,
   auditApi,
   branchApi,
   chatApi,
@@ -130,11 +132,13 @@ interface DataStoreActions {
   addPayment: (input: Omit<Payment, "id">) => Payment;
   applyInvoicePayment: (invoiceId: string, amount: number) => void;
   loadThreadMessages: (threadId: string) => void;
+  startDirectChat: (userId: string, chatType?: string) => Promise<string | null>;
   sendMessage: (threadId: string, authorId: string, authorName: string, text: string) => void;
   receiveChatMessage: (threadId: string, payload: unknown) => void;
   markThreadRead: (threadId: string) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: (audience: AppNotification["audience"][number]) => void;
+  updateParentPassword: (parentId: string, password: string) => void;
   // Homework
   addHomework: (input: Omit<Homework, "id" | "assignedAt">) => Homework;
   updateSubmission: (
@@ -165,6 +169,10 @@ interface DataStoreActions {
   addBranch: (input: Omit<Branch, "id">) => Branch;
   updateBranch: (id: string, patch: Partial<Branch>) => void;
   deleteBranch: (id: string) => void;
+  // Rooms (director)
+  addRoom: (input: Omit<Room, "id">) => Room;
+  updateRoom: (id: string, patch: Partial<Room>) => void;
+  deleteRoom: (id: string) => void;
   // Staff (director)
   addStaff: (input: Omit<Staff, "id">) => Staff;
   updateStaff: (id: string, patch: Partial<Staff>) => void;
@@ -201,7 +209,19 @@ function fireAndForget(label: string, task: Promise<unknown>, rollback?: () => v
   task.catch((err) => {
     console.error(`[store] ${label} failed:`, err);
     rollback?.();
+    toast.error(apiErrorMessage(err));
   });
+}
+
+function apiErrorMessage(err: unknown): string {
+  const body = (err as { body?: unknown })?.body;
+  if (body && typeof body === "object") {
+    const values = Object.values(body as Record<string, unknown>).flat();
+    const first = values.find(Boolean);
+    if (typeof first === "string") return first;
+    if (Array.isArray(first) && typeof first[0] === "string") return first[0];
+  }
+  return "Не удалось сохранить. Проверьте данные и попробуйте ещё раз.";
 }
 
 function roleAudience(role?: string): AppNotification["audience"][number] {
@@ -298,6 +318,7 @@ function parentFromRaw(raw: ParentRaw): Parent {
     fullName: mapped.fullName,
     phone: mapped.phone,
     childrenIds: mapped.childrenIds,
+    userId: mapped.userId,
   };
 }
 
@@ -305,6 +326,7 @@ function staffFromRaw(raw: StaffRaw): Staff {
   const mapped = mapStaffList([raw])[0];
   return {
     id: mapped.id,
+    userId: mapped.userId,
     fullName: mapped.fullName,
     phone: mapped.phone,
     role: toStaffRole(mapped.role),
@@ -316,6 +338,7 @@ function studentFromRaw(raw: StudentRaw): Student {
   const mapped = mapStudents([raw])[0];
   return {
     id: mapped.id,
+    userId: mapped.userId,
     fullName: mapped.fullName,
     phone: mapped.phone,
     birthDate: mapped.birthDate,
@@ -508,13 +531,16 @@ function mapChats(raw: unknown): ChatThread[] {
       : [];
   return items.map((item) => {
     const chat = item as AnyRecord;
+    const last = (chat.last_message ?? null) as AnyRecord | null;
+    const scope = String(chat.scope ?? (chat.chat_type === "group_chat" ? "group" : "direct"));
     return {
       id: String(chat.id ?? ""),
-      title: String(chat.name ?? chat.title ?? chat.chat_type ?? "Chat"),
-      scope: chat.chat_type === "group_chat" ? "group" : "direct",
+      title: String(chat.title ?? chat.name ?? chat.chat_type ?? "Chat"),
+      scope: scope === "broadcast" ? "broadcast" : scope === "group" ? "group" : "direct",
       participantIds: Array.isArray(chat.participants) ? (chat.participants as string[]) : [],
       groupId: chat.group ? String(chat.group) : undefined,
-      lastMessageAt: String(chat.last_message_at ?? chat.created_at ?? new Date().toISOString()),
+      lastMessageAt: String(chat.updated_at ?? chat.last_message_at ?? chat.created_at ?? new Date().toISOString()),
+      lastMessage: last?.text ? String(last.text) : undefined,
       unread: Number(chat.unread_count ?? 0),
     };
   });
@@ -528,9 +554,12 @@ function chatMessageFromRealtime(raw: unknown, fallbackThreadId: string): ChatMe
     threadId: String(payload.chat_id ?? payload.threadId ?? fallbackThreadId),
     authorId: String(sender.id ?? payload.sender_id ?? payload.authorId ?? ""),
     authorName: String(sender.full_name ?? payload.authorName ?? "System"),
-    text: String(payload.text ?? payload.content ?? ""),
+    authorRole: sender.role ? String(sender.role) : undefined,
+    text: String(payload.is_deleted ? "" : payload.text ?? payload.content ?? ""),
     createdAt: String(payload.created_at ?? payload.createdAt ?? new Date().toISOString()),
     read: false,
+    isEdited: Boolean(payload.is_edited),
+    isDeleted: Boolean(payload.is_deleted),
   };
 }
 
@@ -580,7 +609,22 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
           [],
           "institutions",
         );
-        setInstitutions(toResults(institutionsRaw).map(institutionFromRaw));
+        const loadedInstitutions = toResults(institutionsRaw).map(institutionFromRaw);
+        setInstitutions(loadedInstitutions);
+        const branchGroups = await Promise.all(
+          loadedInstitutions.map(async (institution) => {
+            const rawBranches = await safe(
+              superadminApi.branches.list(institution.id) as Promise<ListResponse<BranchRaw>>,
+              [],
+              `branches:${institution.id}`,
+            );
+            return toResults(rawBranches).map((raw) => ({
+              ...branchFromRaw(raw),
+              institutionId: institution.id,
+            }));
+          }),
+        );
+        setBranches(branchGroups.flat());
         return;
       }
 
@@ -685,6 +729,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         id: pid,
         fullName: input.parentName,
         phone: input.parentPhone,
+        password: input.parentPassword,
         childrenIds: [id],
       };
       setParents((prev) => [...prev, newParent]);
@@ -702,6 +747,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       balance: 0,
       groupIds: [],
       parentId,
+      password: input.password,
     };
     setStudents((prev) => [created, ...prev]);
     fireAndForget(
@@ -726,16 +772,21 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
 
   const updateStudent: DataStoreActions["updateStudent"] = useCallback((id, patch) => {
     const snapshot = students;
-    setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    const student = students.find((item) => item.id === id);
+    const { password, ...studentPatch } = patch;
+    setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, ...studentPatch } : s)));
+    const resetPassword = password && student?.userId ? authApi.resetPassword(student.userId, password) : Promise.resolve();
     fireAndForget(
       "updateStudent",
-      studentApi.update(id, {
-        full_name: patch.fullName,
-        phone: patch.phone,
-        branch: patch.branchId,
-        date_of_birth: patch.birthDate,
-        status: patch.status,
-      } as never),
+      resetPassword.then(() =>
+        studentApi.update(id, {
+          full_name: studentPatch.fullName,
+          phone: studentPatch.phone,
+          branch: studentPatch.branchId,
+          date_of_birth: studentPatch.birthDate,
+          status: studentPatch.status,
+        } as never),
+      ),
       () => setStudents(snapshot),
     );
   }, [students]);
@@ -958,6 +1009,23 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+
+  const startDirectChat: DataStoreActions["startDirectChat"] = useCallback(async (userId, chatType) => {
+    try {
+      const raw = await chatApi.direct(userId, chatType);
+      const [thread] = mapChats([raw]);
+      if (!thread?.id) return null;
+      setThreads((prev) => {
+        const exists = prev.some((item) => item.id === thread.id);
+        return exists ? prev.map((item) => (item.id === thread.id ? { ...item, ...thread } : item)) : [thread, ...prev];
+      });
+      return thread.id;
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
+      return null;
+    }
+  }, []);
+
   const sendMessage: DataStoreActions["sendMessage"] = useCallback((threadId, authorId, authorName, text) => {
     const message: ChatMessage = {
       id: uid("msg"),
@@ -1021,6 +1089,21 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     setMessages((prev) => prev.map((m) => (m.threadId === threadId ? { ...m, read: true } : m)));
     fireAndForget("markThreadRead", chatApi.markRead(threadId));
   }, []);
+
+
+  const updateParentPassword: DataStoreActions["updateParentPassword"] = useCallback((parentId, password) => {
+    const snapshot = parents;
+    const parent = parents.find((item) => item.id === parentId);
+    if (!parent?.userId) {
+      toast.error("Parent user is not available");
+      return;
+    }
+    fireAndForget(
+      "updateParentPassword",
+      authApi.resetPassword(parent.userId, password),
+      () => setParents(snapshot),
+    );
+  }, [parents]);
 
   const markNotificationRead: DataStoreActions["markNotificationRead"] = useCallback((id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
@@ -1258,28 +1341,39 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setInstitutions((prev) =>
         prev.map((i) => (i.id === input.institutionId ? { ...i, branchesCount: i.branchesCount + 1 } : i)),
       );
-    }
-    fireAndForget(
-      "addBranch",
-      branchApi.create(snake(input as AnyRecord) as never).then((raw) => {
-        const persisted = branchFromRaw(raw as BranchRaw);
-        setBranches((prev) => prev.map((b) => (b.id === created.id ? { ...created, ...persisted } : b)));
-      }),
-      () => setBranches((prev) => prev.filter((b) => b.id !== created.id)),
-    );
-    return created;
-  }, []);
+      }
+      fireAndForget(
+        "addBranch",
+        (
+          user?.role === "superadmin" && input.institutionId
+            ? superadminApi.branches.create(input.institutionId, snake(input as AnyRecord) as never)
+            : branchApi.create(snake(input as AnyRecord) as never)
+        ).then((raw) => {
+          const persisted = branchFromRaw(raw as BranchRaw);
+          setBranches((prev) => prev.map((b) => (b.id === created.id ? { ...created, ...persisted } : b)));
+        }),
+        () => setBranches((prev) => prev.filter((b) => b.id !== created.id)),
+      );
+      return created;
+    }, [user?.role]);
 
   const updateBranch: DataStoreActions["updateBranch"] = useCallback((id, patch) => {
     const snapshot = branches;
+    const target = branches.find((branch) => branch.id === id);
     setBranches((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
-    fireAndForget("updateBranch", branchApi.update(id, snake(patch as AnyRecord) as never), () => setBranches(snapshot));
-  }, [branches]);
+    fireAndForget(
+      "updateBranch",
+      user?.role === "superadmin" && target?.institutionId
+        ? superadminApi.branches.update(target.institutionId, id, snake(patch as AnyRecord) as never)
+        : branchApi.update(id, snake(patch as AnyRecord) as never),
+      () => setBranches(snapshot),
+    );
+  }, [branches, user?.role]);
 
   const deleteBranch: DataStoreActions["deleteBranch"] = useCallback((id) => {
     const snapshot = branches;
+    const target = branches.find((b) => b.id === id);
     setBranches((prev) => {
-      const target = prev.find((b) => b.id === id);
       if (target?.institutionId) {
         setInstitutions((insts) =>
           insts.map((i) => (i.id === target.institutionId ? { ...i, branchesCount: Math.max(0, i.branchesCount - 1) } : i)),
@@ -1287,8 +1381,53 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       }
       return prev.filter((b) => b.id !== id);
     });
-    fireAndForget("deleteBranch", branchApi.delete(id), () => setBranches(snapshot));
-  }, [branches]);
+    fireAndForget(
+      "deleteBranch",
+      user?.role === "superadmin" && target?.institutionId
+        ? superadminApi.branches.delete(target.institutionId, id)
+        : branchApi.delete(id),
+      () => setBranches(snapshot),
+    );
+  }, [branches, user?.role]);
+
+  // ---------------- Rooms ----------------
+  const addRoom: DataStoreActions["addRoom"] = useCallback((input) => {
+    const created: Room = { id: uid("r"), ...input };
+    setRooms((prev) => [...prev, created]);
+    fireAndForget(
+      "addRoom",
+      roomApi.create({
+        name: input.name,
+        branch: input.branchId,
+        capacity: input.capacity,
+      } as never).then((raw) => {
+        const persisted = roomFromRaw(raw as RoomRaw);
+        setRooms((prev) => prev.map((room) => (room.id === created.id ? persisted : room)));
+      }),
+      () => setRooms((prev) => prev.filter((room) => room.id !== created.id)),
+    );
+    return created;
+  }, []);
+
+  const updateRoom: DataStoreActions["updateRoom"] = useCallback((id, patch) => {
+    const snapshot = rooms;
+    setRooms((prev) => prev.map((room) => (room.id === id ? { ...room, ...patch } : room)));
+    fireAndForget(
+      "updateRoom",
+      roomApi.update(id, {
+        name: patch.name,
+        branch: patch.branchId,
+        capacity: patch.capacity,
+      } as never),
+      () => setRooms(snapshot),
+    );
+  }, [rooms]);
+
+  const deleteRoom: DataStoreActions["deleteRoom"] = useCallback((id) => {
+    const snapshot = rooms;
+    setRooms((prev) => prev.filter((room) => room.id !== id));
+    fireAndForget("deleteRoom", roomApi.delete(id), () => setRooms(snapshot));
+  }, [rooms]);
 
   // ---------------- Staff ----------------
   const addStaff: DataStoreActions["addStaff"] = useCallback((input) => {
@@ -1313,15 +1452,20 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
 
   const updateStaff: DataStoreActions["updateStaff"] = useCallback((id, patch) => {
     const snapshot = staff;
-    setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    const staffMember = staff.find((item) => item.id === id);
+    const { password, ...staffPatch } = patch;
+    setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, ...staffPatch } : s)));
+    const resetPassword = password && staffMember?.userId ? authApi.resetPassword(staffMember.userId, password) : Promise.resolve();
     fireAndForget(
       "updateStaff",
-      staffApi.update(id, {
-        full_name: patch.fullName,
-        phone: patch.phone,
-        role: patch.role,
-        branch: patch.branchId,
-      } as never),
+      resetPassword.then(() =>
+        staffApi.update(id, {
+          full_name: staffPatch.fullName,
+          phone: staffPatch.phone,
+          role: staffPatch.role,
+          branch: staffPatch.branchId,
+        } as never),
+      ),
       () => setStaff(snapshot),
     );
   }, [staff]);
@@ -1371,9 +1515,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       addPayment,
       applyInvoicePayment,
       loadThreadMessages,
+      startDirectChat,
       sendMessage,
       receiveChatMessage,
       markThreadRead,
+      updateParentPassword,
       markNotificationRead,
       markAllNotificationsRead,
       addHomework,
@@ -1388,11 +1534,14 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       addBranch,
       updateBranch,
       deleteBranch,
+      addRoom,
+      updateRoom,
+      deleteRoom,
       addStaff,
       updateStaff,
       deleteStaff,
     }),
-    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, addGroup, updateGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, setAttendance, getAttendanceFor, addPayment, applyInvoicePayment, loadThreadMessages, sendMessage, receiveChatMessage, markThreadRead, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addStaff, updateStaff, deleteStaff],
+    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, addGroup, updateGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, setAttendance, getAttendanceFor, addPayment, applyInvoicePayment, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
