@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, GraduationCap, Moon, Sun } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, GraduationCap, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,6 +30,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,13 +90,6 @@ export function LoginPage() {
             {t("login.heroPrefix")} <span className="text-primary">{t("login.heroAccent")}</span>
           </h1>
           <p className="mt-4 max-w-lg text-balance text-base text-muted-foreground md:text-lg">{t("login.subtitle")}</p>
-
-          <div className="mt-8 rounded-2xl border border-border/60 bg-card/70 p-5 backdrop-blur-sm">
-            <div className="text-sm font-semibold">Role-based workspace</div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Enter with your phone number and password. EduCRM opens the right workspace automatically for your role.
-            </p>
-          </div>
         </div>
 
         <div className="w-full max-w-md flex-shrink-0">
@@ -125,15 +119,27 @@ export function LoginPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">{t("login.password")}</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="********"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  disabled={isSubmitting}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="********"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    disabled={isSubmitting}
+                    className="pr-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    disabled={isSubmitting}
+                    className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                    aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
@@ -158,8 +164,6 @@ export function LoginPage() {
               </Button>
             </form>
           </Card>
-
-          <div className="mt-4 text-center text-xs text-muted-foreground">{t("login.footer")}</div>
         </div>
       </div>
 
