@@ -21,26 +21,26 @@ class Command(BaseCommand):
             except Institution.DoesNotExist:
                 pass
 
-        # 2. Setup Public Tenant
-        public_schema = get_public_schema_name()
-        public_inst, _ = Institution.objects.get_or_create(
-            schema_name=public_schema,
+        # 2. Setup System Tenant (NOT public, because User model is in TENANT_APPS)
+        tenant_schema = "crm"
+        crm_inst, _ = Institution.objects.get_or_create(
+            schema_name=tenant_schema,
             defaults={
-                "name": "EduCRM System",
-                "slug": "public",
+                "name": "EduCRM",
+                "slug": "crm",
             },
         )
         
-        # Register domains for public schema
+        # Register domains for this tenant
         domains = ["educrm-production.up.railway.app", "localhost", "127.0.0.1"]
         for i, domain in enumerate(domains):
             Domain.objects.get_or_create(
                 domain=domain,
-                defaults={"tenant": public_inst, "is_primary": (i == 0)},
+                defaults={"tenant": crm_inst, "is_primary": (i == 0)},
             )
 
-        # 3. Create Superadmin in public schema
-        with schema_context(public_schema):
+        # 3. Create Superadmin in the new tenant schema
+        with schema_context(tenant_schema):
             # Clear old users to ensure clean slate
             User.objects.all().delete()
             
