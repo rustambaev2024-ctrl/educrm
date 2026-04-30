@@ -222,7 +222,6 @@ function CreateStudentSheet({
   onCreate: (payload: {
     fullName: string;
     phone: string;
-    password?: string;
     birthDate?: string;
     photo?: string;
     photoFile?: File;
@@ -231,14 +230,12 @@ function CreateStudentSheet({
     branchId: string;
     parentName?: string;
     parentPhone?: string;
-    parentPassword?: string;
   }) => void;
 }) {
   const { t } = useI18n();
   const { branches } = useData();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [studentPhotoFile, setStudentPhotoFile] = useState<File | undefined>();
   const [studentPhotoPreview, setStudentPhotoPreview] = useState("");
@@ -247,12 +244,10 @@ function CreateStudentSheet({
   const [hasParent, setHasParent] = useState(false);
   const [parentName, setParentName] = useState("");
   const [parentPhone, setParentPhone] = useState("");
-  const [parentPassword, setParentPassword] = useState("");
 
   const reset = () => {
     setFullName("");
     setPhone("");
-    setPassword("");
     setBirthDate("");
     setStudentPhotoFile(undefined);
     setStudentPhotoPreview("");
@@ -260,22 +255,20 @@ function CreateStudentSheet({
     setHasParent(false);
     setParentName("");
     setParentPhone("");
-    setParentPassword("");
   };
 
   const submit = () => {
-    if (!fullName.trim() || !phone.trim() || !password.trim() || !branchId || !studentPhotoFile) {
+    if (!fullName.trim() || !phone.trim() || !branchId || !studentPhotoFile) {
       toast.error(t("validation.fillAll"));
       return;
     }
-    if (hasParent && (!parentName.trim() || !parentPhone.trim() || !parentPassword.trim())) {
+    if (hasParent && (!parentName.trim() || !parentPhone.trim())) {
       toast.error(t("validation.fillAll"));
       return;
     }
     onCreate({
       fullName: fullName.trim(),
       phone: phone.trim(),
-      password: password.trim(),
       birthDate: birthDate || undefined,
       photo: studentPhotoPreview,
       photoFile: studentPhotoFile,
@@ -284,63 +277,60 @@ function CreateStudentSheet({
       branchId,
       parentName: hasParent ? parentName.trim() || undefined : undefined,
       parentPhone: hasParent ? parentPhone.trim() || undefined : undefined,
-      parentPassword: hasParent ? parentPassword.trim() || undefined : undefined,
     });
     reset();
   };
 
   return (
     <Sheet open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{t("students.add")}</SheetTitle>
-          <SheetDescription>{t("students.section.student")}</SheetDescription>
+          <SheetDescription>Yangi o'quvchi va uning hujjatlarini tizimga kiritish</SheetDescription>
         </SheetHeader>
-        <div className="space-y-5 px-4 py-6">
-          <section className="space-y-3">
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {t("students.section.student")}
-            </div>
+        <div className="space-y-6 px-1 py-6">
+          <section className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="studentPhoto">Foto *</Label>
-              <div className="flex items-center gap-3">
-                <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted text-xs text-muted-foreground">
+              <Label htmlFor="studentPhoto">O'quvchi rasmi *</Label>
+              <div className="flex items-center gap-4">
+                <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-border bg-muted/50 text-xs text-muted-foreground shadow-sm">
                   {studentPhotoPreview ? (
                     <img src={studentPhotoPreview} alt="Student" className="size-full object-cover" />
                   ) : (
-                    "Foto"
+                    <span className="text-center text-[10px]">Rasm<br/>yuklash</span>
                   )}
                 </div>
-                <Input
-                  id="studentPhoto"
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    setStudentPhotoFile(file);
-                    setStudentPhotoPreview(file ? URL.createObjectURL(file) : "");
-                  }}
-                />
+                <div className="flex-1">
+                  <Input
+                    id="studentPhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      setStudentPhotoFile(file);
+                      setStudentPhotoPreview(file ? URL.createObjectURL(file) : "");
+                    }}
+                  />
+                </div>
               </div>
             </div>
+            
             <div className="space-y-2">
               <Label htmlFor="fullName">{t("students.field.fullName")} *</Label>
-              <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              <Input id="fullName" placeholder="F.I.SH." value={fullName} onChange={(e) => setFullName(e.target.value)} />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="phone">{t("students.field.phone")} *</Label>
                 <PhoneInput id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="studentPassword">Password *</Label>
-                <PasswordInput id="studentPassword" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="birthDate">{t("students.field.birthDate")}</Label>
                 <Input id="birthDate" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
               </div>
             </div>
+            
             <div className="space-y-2">
               <Label>{t("nav.branches")} *</Label>
               <Select value={branchId} onValueChange={setBranchId}>
@@ -352,51 +342,55 @@ function CreateStudentSheet({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="documentFile">Hujjat fotosi yoki fayli</Label>
+            
+            <div className="space-y-2 rounded-xl border border-border/50 bg-muted/20 p-3">
+              <Label htmlFor="documentFile">Shaxsni tasdiqlovchi hujjat</Label>
               <Input
                 id="documentFile"
                 type="file"
                 accept="image/*,.pdf"
+                className={documentFile ? "hidden" : ""}
                 onChange={(event) => setDocumentFile(event.target.files?.[0])}
               />
-              <p className="text-xs text-muted-foreground">Ixtiyoriy: pasport, ID karta, shartnoma yoki boshqa hujjat.</p>
+              {documentFile && (
+                <div className="flex items-center justify-between rounded-lg bg-background p-2 border border-border">
+                  <div className="truncate text-sm text-muted-foreground mr-2">{documentFile.name}</div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDocumentFile(undefined)}>
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground mt-1">Pasport, ID karta yoki tug'ilganlik guvohnomasi (ixtiyoriy)</p>
             </div>
           </section>
 
-          <section className="space-y-3">
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 p-3">
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {t("students.section.parent")}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Katta yoshdagi o'quvchilar uchun ota-ona ma'lumotlarini o'tkazib yuboring.
-                </p>
+                <div className="font-medium">{t("students.section.parent")}</div>
+                <p className="text-[11px] text-muted-foreground">Kichik yoshdagi o'quvchilar uchun to'ldiring</p>
               </div>
               <Switch checked={hasParent} onCheckedChange={setHasParent} />
             </div>
+            
             {hasParent && (
-              <>
+              <div className="space-y-4 rounded-xl border border-border/50 bg-muted/20 p-4">
                 <div className="space-y-2">
-                  <Label htmlFor="parentName">{t("students.field.parentName")}</Label>
-                  <Input id="parentName" value={parentName} onChange={(e) => setParentName(e.target.value)} />
+                  <Label htmlFor="parentName">Ota-onaning F.I.SH.</Label>
+                  <Input id="parentName" placeholder="F.I.SH." value={parentName} onChange={(e) => setParentName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="parentPhone">{t("students.field.parentPhone")}</Label>
+                  <Label htmlFor="parentPhone">Ota-onaning telefon raqami</Label>
                   <PhoneInput id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="parentPassword">Parent password</Label>
-                  <PasswordInput id="parentPassword" value={parentPassword} onChange={(e) => setParentPassword(e.target.value)} autoComplete="new-password" />
-                </div>
-              </>
+                <p className="text-[11px] text-muted-foreground">Ota-ona uchun parol avtomatik tarzda yaratiladi va ularga yuborilishi mumkin.</p>
+              </div>
             )}
           </section>
         </div>
-        <SheetFooter>
+        <SheetFooter className="px-1 mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
-          <Button onClick={submit} className="bg-gradient-primary text-primary-foreground">{t("common.create")}</Button>
+          <Button onClick={submit} className="bg-gradient-primary text-primary-foreground">O'quvchini qo'shish</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -442,7 +436,9 @@ function StudentDetailSheet({
           <div className="flex items-center gap-4">
             <div className="flex size-20 items-center justify-center overflow-hidden rounded-2xl bg-gradient-primary text-lg font-semibold text-primary-foreground shadow-elegant">
               {student.photo ? (
-                <img src={student.photo} alt={student.fullName} className="size-full object-cover" />
+                <a href={student.photo} target="_blank" rel="noreferrer" className="size-full hover:opacity-80 transition-opacity">
+                  <img src={student.photo} alt={student.fullName} className="size-full object-cover" />
+                </a>
               ) : (
                 student.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")
               )}

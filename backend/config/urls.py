@@ -45,3 +45,14 @@ urlpatterns = [
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]
+
+from django.conf import settings
+from django.urls import re_path
+from django.views.static import serve
+
+if settings.MEDIA_URL and settings.MEDIA_ROOT:
+    urlpatterns += [
+        re_path(r'^%s(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'), serve, {
+            'document_root': settings.MEDIA_ROOT,
+        }),
+    ]

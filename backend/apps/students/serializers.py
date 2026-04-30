@@ -58,6 +58,15 @@ class StudentSerializer(serializers.ModelSerializer):
         user_data = attrs.get("user", {})
         if self.instance is None and not user_data.get("photo"):
             raise serializers.ValidationError({"photo": "Student photo is required."})
+            
+        phone = user_data.get("phone")
+        if phone and self.instance is None:
+            if User.objects.filter(phone=phone).exists():
+                raise serializers.ValidationError({"phone": "This phone number is already registered."})
+        elif phone and self.instance:
+            if User.objects.filter(phone=phone).exclude(id=self.instance.user.id).exists():
+                raise serializers.ValidationError({"phone": "This phone number is already registered."})
+                
         return attrs
 
     @extend_schema_field(serializers.ListField(child=serializers.UUIDField()))

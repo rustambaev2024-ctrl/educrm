@@ -13,7 +13,7 @@ function AdminLayout() {
   const NAV: NavItem[] = [
     { to: "/admin", label: t("nav.dashboard"), icon: LayoutDashboard },
     { to: "/admin/students", label: t("nav.students"), icon: GraduationCap },
-    { to: "/admin/accounts", label: "???????", icon: KeyRound },
+    { to: "/admin/accounts", label: "Akkauntlar", icon: KeyRound },
     { to: "/admin/groups", label: t("nav.groups"), icon: Layers },
     { to: "/admin/schedule", label: t("nav.schedule"), icon: Calendar },
     { to: "/admin/finance", label: t("nav.finance"), icon: Wallet },
