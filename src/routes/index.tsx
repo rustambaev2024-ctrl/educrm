@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Eye, EyeOff, GraduationCap, Moon, Sun } from "lucide-react";
+import { ArrowRight, GraduationCap, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,6 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LangToggle } from "@/components/edu/lang-toggle";
+import { PasswordInput } from "@/components/edu/password-input";
+import { PhoneInput } from "@/components/edu/phone-input";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { ROLE_HOMES } from "@/lib/roles";
@@ -30,7 +32,6 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -107,10 +108,8 @@ export function LoginPage() {
             <form onSubmit={submit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">{t("login.phone")}</Label>
-                <Input
+                <PhoneInput
                   id="phone"
-                  type="tel"
-                  placeholder="+998 90 123 45 67"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   autoComplete="tel"
@@ -119,27 +118,13 @@ export function LoginPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">{t("login.password")}</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="********"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                    disabled={isSubmitting}
-                    className="pr-11"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((value) => !value)}
-                    disabled={isSubmitting}
-                    className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
-                    aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
-                  >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                </div>
+                <PasswordInput
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  disabled={isSubmitting}
+                />
               </div>
               <div className="flex items-center justify-between">
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">

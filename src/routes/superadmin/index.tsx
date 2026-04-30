@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import { Building2, Users, Activity, AlertTriangle, Search, Plus, Pencil, Trash2, MapPin, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
+import { PasswordInput } from "@/components/edu/password-input";
+import { PhoneInput } from "@/components/edu/phone-input";
 import { StatCard } from "@/components/edu/stat-card";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -363,15 +365,14 @@ function SuperadminHome() {
                   <Input value={form.directorName} onChange={(e) => setForm({ ...form, directorName: e.target.value })} placeholder={t("common.optional")} />
                 </Field>
                 <Field label={t("sa.field.directorPhone")}>
-                  <Input value={form.directorPhone} onChange={(e) => setForm({ ...form, directorPhone: e.target.value })} placeholder="+998 ..." />
+                  <PhoneInput value={form.directorPhone} onChange={(e) => setForm({ ...form, directorPhone: e.target.value })} />
                 </Field>
                 {!editing && (
                   <Field label="Director password">
-                    <Input
-                      type="password"
+                    <PasswordInput
                       value={form.directorPassword}
                       onChange={(e) => setForm({ ...form, directorPassword: e.target.value })}
-                      placeholder="min. 8 characters"
+                      autoComplete="new-password"
                     />
                   </Field>
                 )}

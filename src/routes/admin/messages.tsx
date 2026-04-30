@@ -1,20 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/edu/page-header";
-import { MessengerPanel } from "@/components/edu/messenger-panel";
-import { useAuth } from "@/lib/auth";
-import { useI18n } from "@/lib/i18n";
+import { ChatFrozenNotice } from "@/components/edu/chat-frozen-notice";
 
-export const Route = createFileRoute("/admin/messages")({ component: AdminMessagesPage });
+export const Route = createFileRoute("/admin/messages")({ component: MessagesPage });
 
-function AdminMessagesPage() {
-  const { t } = useI18n();
-  const { user } = useAuth();
+function MessagesPage() {
   return (
     <>
-      <PageHeader title={t("msg.title")} description={t("msg.subtitle")} />
-      <div className="p-4 md:p-8">
-        <MessengerPanel threadFilter={(th) => !!user?.id && th.participantIds.includes(user.id)} />
-      </div>
+      <PageHeader title="Сообщения" description="Раздел временно недоступен" />
+      <ChatFrozenNotice />
     </>
   );
 }

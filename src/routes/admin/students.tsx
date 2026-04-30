@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import { Plus, Search, Phone, Calendar as CalendarIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
+import { PasswordInput } from "@/components/edu/password-input";
+import { PhoneInput } from "@/components/edu/phone-input";
 import { StudentStatusBadge } from "@/components/edu/status-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -285,11 +287,11 @@ function CreateStudentSheet({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="phone">{t("students.field.phone")} *</Label>
-                <Input id="phone" type="tel" placeholder="+998 90 123 45 67" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <PhoneInput id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="studentPassword">Password *</Label>
-                <Input id="studentPassword" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <PasswordInput id="studentPassword" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="birthDate">{t("students.field.birthDate")}</Label>
@@ -319,11 +321,11 @@ function CreateStudentSheet({
             </div>
             <div className="space-y-2">
               <Label htmlFor="parentPhone">{t("students.field.parentPhone")}</Label>
-              <Input id="parentPhone" type="tel" placeholder="+998 90 ..." value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+              <PhoneInput id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="parentPassword">Parent password</Label>
-              <Input id="parentPassword" type="password" value={parentPassword} onChange={(e) => setParentPassword(e.target.value)} />
+              <PasswordInput id="parentPassword" value={parentPassword} onChange={(e) => setParentPassword(e.target.value)} autoComplete="new-password" />
             </div>
           </section>
         </div>

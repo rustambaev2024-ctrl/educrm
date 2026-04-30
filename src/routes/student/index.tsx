@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { BookOpen, Calendar, ChevronRight, Clock, MapPin, MessageCircle, Wallet } from "lucide-react";
+import { BookOpen, Calendar, ChevronRight, Clock, MapPin, Wallet } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentStudentId } from "@/lib/data/identity";
@@ -27,7 +27,7 @@ function initials(name: string) {
 function StudentHome() {
   const studentId = useCurrentStudentId();
   const { user } = useAuth();
-  const { students, groups, courses, lessons, rooms, homework, submissions, threads } = useData();
+  const { students, groups, courses, lessons, rooms, homework, submissions } = useData();
 
   const student = useMemo(
     () => students.find((item) => item.id === studentId),
@@ -79,11 +79,6 @@ function StudentHome() {
     }).length;
   }, [lessons, myGroupIds]);
 
-  const unreadCount = threads.reduce((sum, thread) => {
-    if (!user?.id || !thread.participantIds.includes(user.id)) return sum;
-    return sum + thread.unread;
-  }, 0);
-
   if (!student) {
     return (
       <div className="mx-auto max-w-md px-4 py-5">
@@ -123,14 +118,6 @@ function StudentHome() {
       </Card>
 
       <div className="grid grid-cols-2 gap-3">
-        <QuickCard
-          to="/student/messages"
-          icon={MessageCircle}
-          label="Messages"
-          value={String(unreadCount)}
-          hint="unread"
-          tone="info"
-        />
         <QuickCard
           to="/student/profile"
           icon={Wallet}

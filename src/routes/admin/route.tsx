@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, GraduationCap, Layers, Calendar, Wallet, MessageSquare, BarChart3, KeyRound } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Layers, Calendar, Wallet, BarChart3, KeyRound } from "lucide-react";
 import { SidebarLayout, type NavItem } from "@/components/layouts/sidebar-layout";
 import { RoleGuard } from "@/components/edu/role-guard";
 import { useI18n } from "@/lib/i18n";
@@ -17,7 +17,6 @@ function AdminLayout() {
     { to: "/admin/groups", label: t("nav.groups"), icon: Layers },
     { to: "/admin/schedule", label: t("nav.schedule"), icon: Calendar },
     { to: "/admin/finance", label: t("nav.finance"), icon: Wallet },
-    { to: "/admin/messages", label: t("nav.messages"), icon: MessageSquare },
     { to: "/admin/analytics", label: t("nav.analytics"), icon: BarChart3 },
   ];
   return (

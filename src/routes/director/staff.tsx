@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import { Search, Phone, Briefcase, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
+import { PasswordInput } from "@/components/edu/password-input";
+import { PhoneInput } from "@/components/edu/phone-input";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -239,14 +241,13 @@ function StaffPage() {
               <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
             </Field>
             <Field label={t("staff.field.phone")}>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+998 ..." />
+              <PhoneInput value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </Field>
             <Field label="Password">
-              <Input
-                type="password"
+              <PasswordInput
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder={editing ? "Leave empty to keep current password" : "min. 8 characters"}
+                autoComplete="new-password"
               />
             </Field>
             <div className="grid gap-4 md:grid-cols-2">

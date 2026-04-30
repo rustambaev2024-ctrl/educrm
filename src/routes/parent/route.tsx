@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { Home, Users, MessageCircle, User } from "lucide-react";
+import { Home, Users, User } from "lucide-react";
 import { MobileLayout, type MobileNavItem } from "@/components/layouts/mobile-layout";
 import { RoleGuard } from "@/components/edu/role-guard";
 import { useI18n } from "@/lib/i18n";
@@ -13,7 +13,6 @@ function ParentLayout() {
   const NAV: MobileNavItem[] = [
     { to: "/parent", label: t("nav.home"), icon: Home },
     { to: "/parent/children", label: t("nav.children"), icon: Users },
-    { to: "/parent/messages", label: t("nav.chat"), icon: MessageCircle },
     { to: "/parent/profile", label: t("nav.profile"), icon: User },
   ];
   return (

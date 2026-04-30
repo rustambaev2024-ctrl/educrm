@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { KeyRound, Search, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
+import { PasswordInput } from "@/components/edu/password-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -183,12 +184,10 @@ function AccountsPage() {
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="newPassword">Новый пароль</Label>
-            <Input
+            <PasswordInput
               id="newPassword"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
-              placeholder="min. 8 characters"
-              type="password"
               autoComplete="new-password"
             />
           </div>
