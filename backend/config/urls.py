@@ -1,7 +1,17 @@
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
+import django.urls.converters
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
+original_register = django.urls.converters.register_converter
+def safe_register_converter(converter, type_name):
+    if type_name in django.urls.converters.get_converters():
+        return
+    original_register(converter, type_name)
+
+django.urls.converters.register_converter = safe_register_converter
+django.urls.register_converter = safe_register_converter
 
 from apps.students.mobile_urls import parent_urlpatterns, student_urlpatterns
 
