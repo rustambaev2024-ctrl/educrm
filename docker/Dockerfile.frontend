@@ -1,16 +1,16 @@
 # Build stage
-FROM node:18-alpine as builder
+FROM oven/bun:1 as builder
 WORKDIR /app
 
 # Install dependencies
-COPY package.json package-lock.json* bun.lockb* ./
-RUN npm ci || npm install
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile
 
 # Copy source and build
 COPY . .
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-RUN npm run build
+RUN bun run build
 
 # Serve stage
 FROM nginx:alpine
