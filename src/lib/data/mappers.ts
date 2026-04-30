@@ -104,6 +104,7 @@ export interface StudentRaw {
   id: string;
   full_name: string;
   phone: string;
+  photo?: string | null;
   branch: string | { id: string } | null;
   date_of_birth: string | null;
   status: string;
@@ -113,6 +114,13 @@ export interface StudentRaw {
   user_id: string;
   parent_id?: string | null;
   group_ids?: string[];
+  documents?: Array<{
+    id: string;
+    name: string;
+    doc_type?: string;
+    file?: string | null;
+    uploaded_at: string;
+  }>;
 }
 
 export function mapStudent(r: StudentRaw) {
@@ -120,6 +128,7 @@ export function mapStudent(r: StudentRaw) {
     id: r.id,
     fullName: r.full_name,
     phone: r.phone,
+    photo: r.photo ?? undefined,
     branchId: extractId(r.branch),
     birthDate: r.date_of_birth ?? undefined,
     dateOfBirth: r.date_of_birth,
@@ -130,6 +139,13 @@ export function mapStudent(r: StudentRaw) {
     userId: r.user_id,
     groupIds: r.group_ids ?? [],
     parentId: r.parent_id ?? undefined,
+    documents: (r.documents ?? []).map((document) => ({
+      id: document.id,
+      name: document.name,
+      docType: document.doc_type,
+      file: document.file ?? null,
+      uploadedAt: document.uploaded_at,
+    })),
   };
 }
 

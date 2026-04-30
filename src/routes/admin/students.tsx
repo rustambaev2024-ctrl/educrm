@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -145,8 +146,12 @@ function StudentsPage() {
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex size-9 items-center justify-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
-                            {s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
+                          <div className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
+                            {s.photo ? (
+                              <img src={s.photo} alt={s.fullName} className="size-full object-cover" />
+                            ) : (
+                              s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")
+                            )}
                           </div>
                           <div>
                             <div className="font-medium leading-tight">{s.fullName}</div>
@@ -219,6 +224,10 @@ function CreateStudentSheet({
     phone: string;
     password?: string;
     birthDate?: string;
+    photo?: string;
+    photoFile?: File;
+    documentFile?: File;
+    documentType?: string;
     branchId: string;
     parentName?: string;
     parentPhone?: string;
@@ -231,7 +240,11 @@ function CreateStudentSheet({
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [studentPhotoFile, setStudentPhotoFile] = useState<File | undefined>();
+  const [studentPhotoPreview, setStudentPhotoPreview] = useState("");
+  const [documentFile, setDocumentFile] = useState<File | undefined>();
   const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
+  const [hasParent, setHasParent] = useState(false);
   const [parentName, setParentName] = useState("");
   const [parentPhone, setParentPhone] = useState("");
   const [parentPassword, setParentPassword] = useState("");
@@ -241,17 +254,21 @@ function CreateStudentSheet({
     setPhone("");
     setPassword("");
     setBirthDate("");
+    setStudentPhotoFile(undefined);
+    setStudentPhotoPreview("");
+    setDocumentFile(undefined);
+    setHasParent(false);
     setParentName("");
     setParentPhone("");
     setParentPassword("");
   };
 
   const submit = () => {
-    if (!fullName.trim() || !phone.trim() || !password.trim() || !branchId) {
+    if (!fullName.trim() || !phone.trim() || !password.trim() || !branchId || !studentPhotoFile) {
       toast.error(t("validation.fillAll"));
       return;
     }
-    if ((parentName.trim() || parentPhone.trim()) && (!parentName.trim() || !parentPhone.trim() || !parentPassword.trim())) {
+    if (hasParent && (!parentName.trim() || !parentPhone.trim() || !parentPassword.trim())) {
       toast.error(t("validation.fillAll"));
       return;
     }
@@ -260,10 +277,14 @@ function CreateStudentSheet({
       phone: phone.trim(),
       password: password.trim(),
       birthDate: birthDate || undefined,
+      photo: studentPhotoPreview,
+      photoFile: studentPhotoFile,
+      documentFile,
+      documentType: "passport",
       branchId,
-      parentName: parentName.trim() || undefined,
-      parentPhone: parentPhone.trim() || undefined,
-      parentPassword: parentPassword.trim() || undefined,
+      parentName: hasParent ? parentName.trim() || undefined : undefined,
+      parentPhone: hasParent ? parentPhone.trim() || undefined : undefined,
+      parentPassword: hasParent ? parentPassword.trim() || undefined : undefined,
     });
     reset();
   };
@@ -279,6 +300,28 @@ function CreateStudentSheet({
           <section className="space-y-3">
             <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {t("students.section.student")}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="studentPhoto">Foto *</Label>
+              <div className="flex items-center gap-3">
+                <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted text-xs text-muted-foreground">
+                  {studentPhotoPreview ? (
+                    <img src={studentPhotoPreview} alt="Student" className="size-full object-cover" />
+                  ) : (
+                    "Foto"
+                  )}
+                </div>
+                <Input
+                  id="studentPhoto"
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    setStudentPhotoFile(file);
+                    setStudentPhotoPreview(file ? URL.createObjectURL(file) : "");
+                  }}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="fullName">{t("students.field.fullName")} *</Label>
@@ -309,24 +352,46 @@ function CreateStudentSheet({
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="documentFile">Hujjat fotosi yoki fayli</Label>
+              <Input
+                id="documentFile"
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(event) => setDocumentFile(event.target.files?.[0])}
+              />
+              <p className="text-xs text-muted-foreground">Ixtiyoriy: pasport, ID karta, shartnoma yoki boshqa hujjat.</p>
+            </div>
           </section>
 
           <section className="space-y-3">
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {t("students.section.parent")} <span className="normal-case text-muted-foreground/70">({t("common.optional")})</span>
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 p-3">
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {t("students.section.parent")}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Katta yoshdagi o'quvchilar uchun ota-ona ma'lumotlarini o'tkazib yuboring.
+                </p>
+              </div>
+              <Switch checked={hasParent} onCheckedChange={setHasParent} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="parentName">{t("students.field.parentName")}</Label>
-              <Input id="parentName" value={parentName} onChange={(e) => setParentName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="parentPhone">{t("students.field.parentPhone")}</Label>
-              <PhoneInput id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="parentPassword">Parent password</Label>
-              <PasswordInput id="parentPassword" value={parentPassword} onChange={(e) => setParentPassword(e.target.value)} autoComplete="new-password" />
-            </div>
+            {hasParent && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="parentName">{t("students.field.parentName")}</Label>
+                  <Input id="parentName" value={parentName} onChange={(e) => setParentName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="parentPhone">{t("students.field.parentPhone")}</Label>
+                  <PhoneInput id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="parentPassword">Parent password</Label>
+                  <PasswordInput id="parentPassword" value={parentPassword} onChange={(e) => setParentPassword(e.target.value)} autoComplete="new-password" />
+                </div>
+              </>
+            )}
           </section>
         </div>
         <SheetFooter>
@@ -375,8 +440,12 @@ function StudentDetailSheet({
 
         <div className="space-y-5 px-4 py-6">
           <div className="flex items-center gap-4">
-            <div className="flex size-16 items-center justify-center rounded-xl bg-gradient-primary text-lg font-semibold text-primary-foreground shadow-elegant">
-              {student.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
+            <div className="flex size-20 items-center justify-center overflow-hidden rounded-2xl bg-gradient-primary text-lg font-semibold text-primary-foreground shadow-elegant">
+              {student.photo ? (
+                <img src={student.photo} alt={student.fullName} className="size-full object-cover" />
+              ) : (
+                student.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")
+              )}
             </div>
             <div className="space-y-1">
               <StudentStatusBadge status={student.status} />
@@ -453,9 +522,34 @@ function StudentDetailSheet({
             </TabsContent>
 
             <TabsContent value="documents" className="space-y-2 pt-4">
-              <Card className="p-6 text-center text-sm text-muted-foreground">
-                {t("students.docs.empty")}
-              </Card>
+              {!student.documents?.length ? (
+                <Card className="p-6 text-center text-sm text-muted-foreground">
+                  {t("students.docs.empty")}
+                </Card>
+              ) : (
+                student.documents.map((document) => (
+                  <Card key={document.id} className="p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{document.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {document.docType ?? "document"} · {formatDate(document.uploadedAt, lang)}
+                        </div>
+                      </div>
+                      {document.file && (
+                        <a
+                          href={document.file}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+                        >
+                          Ko'rish
+                        </a>
+                      )}
+                    </div>
+                  </Card>
+                ))
+              )}
             </TabsContent>
           </Tabs>
         </div>

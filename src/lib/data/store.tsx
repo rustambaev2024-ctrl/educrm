@@ -115,11 +115,21 @@ interface DataStoreState {
   loadError: string | null;
 }
 
+type AddStudentInput = Omit<Student, "id" | "registeredAt" | "balance" | "groupIds" | "status"> & {
+  parentName?: string;
+  parentPhone?: string;
+  parentPassword?: string;
+  photoFile?: File;
+  documentFile?: File;
+  documentType?: string;
+};
+
 interface DataStoreActions {
   reload: () => Promise<void>;
-  addStudent: (input: Omit<Student, "id" | "registeredAt" | "balance" | "groupIds" | "status"> & { parentName?: string; parentPhone?: string; parentPassword?: string }) => Student;
+  addStudent: (input: AddStudentInput) => Student;
   updateStudent: (id: string, patch: Partial<Student>) => void;
   archiveStudent: (id: string) => void;
+  syncParentChild: (studentId: string) => Promise<void>;
   addGroup: (input: Omit<Group, "id" | "studentIds" | "status"> & { status?: Group["status"] }) => Group;
   updateGroup: (id: string, patch: Partial<Group>) => void;
   addStudentToGroup: (groupId: string, studentId: string) => void;
@@ -740,7 +750,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       fullName: input.fullName,
       phone: input.phone,
       birthDate: input.birthDate,
-      photo: input.photo,
+      photo: input.photoFile ? URL.createObjectURL(input.photoFile) : input.photo,
       branchId: input.branchId,
       status: "active",
       registeredAt: new Date().toISOString().slice(0, 10),
@@ -748,20 +758,33 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       groupIds: [],
       parentId,
       password: input.password,
+      documents: input.documentFile
+        ? [{
+            id: uid("doc"),
+            name: input.documentFile.name,
+            docType: input.documentType ?? "passport",
+            uploadedAt: new Date().toISOString(),
+          }]
+        : [],
     };
     setStudents((prev) => [created, ...prev]);
+    const formData = new FormData();
+    formData.append("full_name", created.fullName);
+    formData.append("phone", created.phone);
+    if (input.password) formData.append("password", input.password);
+    formData.append("branch", created.branchId);
+    if (created.birthDate) formData.append("date_of_birth", created.birthDate);
+    if (input.parentName) formData.append("parent_full_name", input.parentName);
+    if (input.parentPhone) formData.append("parent_phone", input.parentPhone);
+    if (input.parentPassword) formData.append("parent_password", input.parentPassword);
+    if (input.photoFile) formData.append("photo", input.photoFile);
+    if (input.documentFile) {
+      formData.append("document_file", input.documentFile);
+      formData.append("document_type", input.documentType ?? "passport");
+    }
     fireAndForget(
       "addStudent",
-      studentApi.create({
-        full_name: created.fullName,
-        phone: created.phone,
-        password: input.password,
-        branch: created.branchId,
-        date_of_birth: created.birthDate,
-        parent_full_name: input.parentName,
-        parent_phone: input.parentPhone,
-        parent_password: input.parentPassword,
-      } as never).then((raw) => {
+      studentApi.createWithFiles(formData).then((raw) => {
         const persisted = studentFromRaw(raw as StudentRaw);
         setStudents((prev) => prev.map((s) => (s.id === id ? { ...persisted, parentId } : s)));
       }),
@@ -769,6 +792,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     );
     return created;
   }, []);
+
+  const syncParentChild: DataStoreActions["syncParentChild"] = useCallback(async (studentId) => {
+    await parentApi.linkChild(studentId);
+    await reload();
+  }, [reload]);
 
   const updateStudent: DataStoreActions["updateStudent"] = useCallback((id, patch) => {
     const snapshot = students;
@@ -1503,6 +1531,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       addStudent,
       updateStudent,
       archiveStudent,
+      syncParentChild,
       addGroup,
       updateGroup,
       addStudentToGroup,
@@ -1541,7 +1570,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       updateStaff,
       deleteStaff,
     }),
-    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, addGroup, updateGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, setAttendance, getAttendanceFor, addPayment, applyInvoicePayment, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
+    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, syncParentChild, addGroup, updateGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, setAttendance, getAttendanceFor, addPayment, applyInvoicePayment, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

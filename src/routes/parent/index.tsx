@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Clock, MapPin, Wallet, BookOpen, ChevronRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -20,7 +23,9 @@ function ParentHome() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
   const parentId = useCurrentParentId();
-  const { parents, students, lessons, groups, rooms, homework, submissions, attendance } = useData();
+  const { parents, students, lessons, groups, rooms, homework, submissions, attendance, syncParentChild } = useData();
+  const [studentId, setStudentId] = useState("");
+  const [syncing, setSyncing] = useState(false);
 
   const me = useMemo(() => parents.find((p) => p.id === parentId), [parents, parentId]);
   const children = useMemo(
@@ -42,6 +47,40 @@ function ParentHome() {
       {children.length === 0 && (
         <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{t("parent.noChildren")}</Card>
       )}
+
+      <Card className="space-y-3 p-4 shadow-elegant">
+        <div>
+          <div className="font-semibold">Farzandni ulash</div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Admin bergan o'quvchi ID raqamini kiriting. Ulangandan keyin bola shu kabinetda ko'rinadi.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={studentId}
+            onChange={(event) => setStudentId(event.target.value)}
+            placeholder="O'quvchi ID"
+            className="font-mono text-xs"
+          />
+          <Button
+            disabled={syncing || !studentId.trim()}
+            onClick={async () => {
+              setSyncing(true);
+              try {
+                await syncParentChild(studentId.trim());
+                setStudentId("");
+                toast.success("Farzand kabinetga ulandi");
+              } catch {
+                toast.error("O'quvchi topilmadi yoki ulab bo'lmadi");
+              } finally {
+                setSyncing(false);
+              }
+            }}
+          >
+            Ulash
+          </Button>
+        </div>
+      </Card>
 
       {children.map((child) => {
         const myGroupIds = new Set(child.groupIds);
@@ -68,6 +107,7 @@ function ParentHome() {
           <Card key={child.id} className="overflow-hidden p-0 shadow-elegant">
             <div className="flex items-center gap-3 border-b border-border/60 bg-gradient-subtle p-4">
               <Avatar className="size-11">
+                {child.photo && <AvatarImage src={child.photo} alt={child.fullName} />}
                 <AvatarFallback className="bg-gradient-primary text-sm font-semibold text-primary-foreground">
                   {initialsOf(child.fullName)}
                 </AvatarFallback>

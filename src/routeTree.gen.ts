@@ -38,7 +38,6 @@ import { Route as StudentHomeworkRouteImport } from './routes/student/homework'
 import { Route as ParentProfileRouteImport } from './routes/parent/profile'
 import { Route as ParentMessagesRouteImport } from './routes/parent/messages'
 import { Route as ParentChildrenRouteImport } from './routes/parent/children'
-import { Route as DirectorTariffsRouteImport } from './routes/director/tariffs'
 import { Route as DirectorStaffRouteImport } from './routes/director/staff'
 import { Route as DirectorMessagesRouteImport } from './routes/director/messages'
 import { Route as DirectorFinanceRouteImport } from './routes/director/finance'
@@ -199,11 +198,6 @@ const ParentChildrenRoute = ParentChildrenRouteImport.update({
   path: '/children',
   getParentRoute: () => ParentRouteRoute,
 } as any)
-const DirectorTariffsRoute = DirectorTariffsRouteImport.update({
-  id: '/tariffs',
-  path: '/tariffs',
-  getParentRoute: () => DirectorRouteRoute,
-} as any)
 const DirectorStaffRoute = DirectorStaffRouteImport.update({
   id: '/staff',
   path: '/staff',
@@ -298,7 +292,6 @@ export interface FileRoutesByFullPath {
   '/director/finance': typeof DirectorFinanceRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/staff': typeof DirectorStaffRoute
-  '/director/tariffs': typeof DirectorTariffsRoute
   '/parent/children': typeof ParentChildrenRoute
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
@@ -338,7 +331,6 @@ export interface FileRoutesByTo {
   '/director/finance': typeof DirectorFinanceRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/staff': typeof DirectorStaffRoute
-  '/director/tariffs': typeof DirectorTariffsRoute
   '/parent/children': typeof ParentChildrenRoute
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
@@ -385,7 +377,6 @@ export interface FileRoutesById {
   '/director/finance': typeof DirectorFinanceRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/staff': typeof DirectorStaffRoute
-  '/director/tariffs': typeof DirectorTariffsRoute
   '/parent/children': typeof ParentChildrenRoute
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
@@ -433,7 +424,6 @@ export interface FileRouteTypes {
     | '/director/finance'
     | '/director/messages'
     | '/director/staff'
-    | '/director/tariffs'
     | '/parent/children'
     | '/parent/messages'
     | '/parent/profile'
@@ -473,7 +463,6 @@ export interface FileRouteTypes {
     | '/director/finance'
     | '/director/messages'
     | '/director/staff'
-    | '/director/tariffs'
     | '/parent/children'
     | '/parent/messages'
     | '/parent/profile'
@@ -519,7 +508,6 @@ export interface FileRouteTypes {
     | '/director/finance'
     | '/director/messages'
     | '/director/staff'
-    | '/director/tariffs'
     | '/parent/children'
     | '/parent/messages'
     | '/parent/profile'
@@ -759,13 +747,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParentChildrenRouteImport
       parentRoute: typeof ParentRouteRoute
     }
-    '/director/tariffs': {
-      id: '/director/tariffs'
-      path: '/tariffs'
-      fullPath: '/director/tariffs'
-      preLoaderRoute: typeof DirectorTariffsRouteImport
-      parentRoute: typeof DirectorRouteRoute
-    }
     '/director/staff': {
       id: '/director/staff'
       path: '/staff'
@@ -901,7 +882,6 @@ interface DirectorRouteRouteChildren {
   DirectorFinanceRoute: typeof DirectorFinanceRoute
   DirectorMessagesRoute: typeof DirectorMessagesRoute
   DirectorStaffRoute: typeof DirectorStaffRoute
-  DirectorTariffsRoute: typeof DirectorTariffsRoute
   DirectorIndexRoute: typeof DirectorIndexRoute
 }
 
@@ -913,7 +893,6 @@ const DirectorRouteRouteChildren: DirectorRouteRouteChildren = {
   DirectorFinanceRoute: DirectorFinanceRoute,
   DirectorMessagesRoute: DirectorMessagesRoute,
   DirectorStaffRoute: DirectorStaffRoute,
-  DirectorTariffsRoute: DirectorTariffsRoute,
   DirectorIndexRoute: DirectorIndexRoute,
 }
 

@@ -76,7 +76,7 @@ export interface Student {
   balance: number;
   groupIds: string[];
   parentId?: string;
-  documents?: { id: string; name: string; uploadedAt: string }[];
+  documents?: { id: string; name: string; docType?: string; file?: string | null; uploadedAt: string }[];
   certificates?: { id: string; courseName: string; date: string }[];
 }
 

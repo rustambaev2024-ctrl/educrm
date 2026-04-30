@@ -21,6 +21,7 @@ from .serializers import (
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.select_related("user", "branch").all()
     serializer_class = StudentSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_permissions(self):
         if self.action in ("list", "retrieve", "attendance_history", "payments_history"):

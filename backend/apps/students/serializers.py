@@ -12,10 +12,19 @@ class StudentSerializer(serializers.ModelSerializer):
     user_id = serializers.UUIDField(read_only=True, source="user.id")
     full_name = serializers.CharField(source="user.full_name")
     phone = serializers.CharField(source="user.phone")
+    photo = serializers.ImageField(source="user.photo", required=False, allow_null=True)
     password = serializers.CharField(write_only=True, required=False, min_length=8)
     parent_full_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
     parent_phone = serializers.CharField(write_only=True, required=False, allow_blank=True)
     parent_password = serializers.CharField(write_only=True, required=False, allow_blank=True, min_length=8)
+    document_file = serializers.FileField(write_only=True, required=False, allow_null=True)
+    document_type = serializers.ChoiceField(
+        choices=StudentDocument.DOC_TYPE_CHOICES,
+        write_only=True,
+        required=False,
+        default="passport",
+    )
+    documents = serializers.SerializerMethodField()
     group_ids = serializers.SerializerMethodField()
     parent_id = serializers.SerializerMethodField()
 
@@ -26,10 +35,14 @@ class StudentSerializer(serializers.ModelSerializer):
             "user_id",
             "full_name",
             "phone",
+            "photo",
             "password",
             "parent_full_name",
             "parent_phone",
             "parent_password",
+            "document_file",
+            "document_type",
+            "documents",
             "branch",
             "date_of_birth",
             "status",
@@ -39,7 +52,13 @@ class StudentSerializer(serializers.ModelSerializer):
             "group_ids",
             "parent_id",
         )
-        read_only_fields = ("id", "user_id", "wallet_balance", "registered_at", "group_ids", "parent_id")
+        read_only_fields = ("id", "user_id", "wallet_balance", "registered_at", "documents", "group_ids", "parent_id")
+
+    def validate(self, attrs):
+        user_data = attrs.get("user", {})
+        if self.instance is None and not user_data.get("photo"):
+            raise serializers.ValidationError({"photo": "Student photo is required."})
+        return attrs
 
     @extend_schema_field(serializers.ListField(child=serializers.UUIDField()))
     def get_group_ids(self, obj):
@@ -56,20 +75,47 @@ class StudentSerializer(serializers.ModelSerializer):
         parent = obj.parents.first()
         return str(parent.id) if parent else None
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_documents(self, obj):
+        return [
+            {
+                "id": str(document.id),
+                "name": document.file.name.split("/")[-1],
+                "doc_type": document.doc_type,
+                "file": document.file.url if document.file else None,
+                "uploaded_at": document.uploaded_at.isoformat(),
+            }
+            for document in obj.documents.all()
+        ]
+
     @transaction.atomic
     def create(self, validated_data):
         user_data = validated_data.pop("user")
+        photo = user_data.pop("photo", None)
         password = validated_data.pop("password", None) or "ChangeMe123"
         parent_full_name = validated_data.pop("parent_full_name", "")
         parent_phone = validated_data.pop("parent_phone", "")
         parent_password = validated_data.pop("parent_password", "") or "ChangeMe123"
+        document_file = validated_data.pop("document_file", None)
+        document_type = validated_data.pop("document_type", "passport")
         user = User.objects.create_user(
             phone=user_data["phone"],
             full_name=user_data["full_name"],
             role="student",
             password=password,
         )
+        if photo:
+            user.photo = photo
+            user.save(update_fields=["photo"])
         student = Student.objects.create(user=user, **validated_data)
+
+        if document_file:
+            StudentDocument.objects.create(
+                student=student,
+                doc_type=document_type,
+                file=document_file,
+                uploaded_by=self.context["request"].user if self.context.get("request") else None,
+            )
 
         if parent_full_name and parent_phone:
             parent_user, created = User.objects.get_or_create(
@@ -91,6 +137,8 @@ class StudentSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", None)
         password = validated_data.pop("password", None)
+        document_file = validated_data.pop("document_file", None)
+        document_type = validated_data.pop("document_type", "passport")
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -107,6 +155,14 @@ class StudentSerializer(serializers.ModelSerializer):
             user = instance.user
             user.set_password(password)
             user.save(update_fields=["password"])
+
+        if document_file:
+            StudentDocument.objects.create(
+                student=instance,
+                doc_type=document_type,
+                file=document_file,
+                uploaded_by=self.context["request"].user if self.context.get("request") else None,
+            )
 
         return instance
 

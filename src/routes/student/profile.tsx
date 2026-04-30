@@ -4,7 +4,7 @@ import { Phone, Calendar, Building2, Wallet, Award, BookOpen, ClipboardCheck, Lo
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useData } from "@/lib/data/store";
@@ -88,6 +88,7 @@ function StudentProfile() {
         <div className="bg-gradient-primary p-5 text-primary-foreground">
           <div className="flex items-center gap-3">
             <Avatar className="size-16 ring-2 ring-white/20">
+              {stu.photo && <AvatarImage src={stu.photo} alt={stu.fullName} />}
               <AvatarFallback className="bg-white/20 text-lg font-bold text-primary-foreground">
                 {initialsOf(stu.fullName)}
               </AvatarFallback>

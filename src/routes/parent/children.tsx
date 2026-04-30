@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Calendar, BookOpen, Award, Wallet, Star, Clock, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useData } from "@/lib/data/store";
@@ -79,6 +79,7 @@ function ParentChildren() {
               }`}
             >
               <Avatar className="size-6">
+                {c.photo && <AvatarImage src={c.photo} alt={c.fullName} />}
                 <AvatarFallback className={`text-[10px] font-semibold ${c.id === child.id ? "bg-primary-foreground/20 text-primary-foreground" : "bg-gradient-primary text-primary-foreground"}`}>
                   {initialsOf(c.fullName)}
                 </AvatarFallback>
@@ -94,6 +95,7 @@ function ParentChildren() {
         <div className="bg-gradient-primary p-5 text-primary-foreground">
           <div className="flex items-center gap-3">
             <Avatar className="size-14 ring-2 ring-white/20">
+              {child.photo && <AvatarImage src={child.photo} alt={child.fullName} />}
               <AvatarFallback className="bg-white/20 text-base font-bold text-primary-foreground">{initialsOf(child.fullName)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">

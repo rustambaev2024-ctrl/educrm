@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Save, Settings as SettingsIcon, CreditCard, ShieldCheck, Palette } from "lucide-react";
+import { Save, Settings as SettingsIcon, ShieldCheck, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { Card } from "@/components/ui/card";
@@ -23,10 +23,6 @@ function SaSettings() {
   const [supportPhone, setSupportPhone] = useState("+998 71 200 00 00");
   const [defaultLang, setDefaultLang] = useState("uz");
   const [defaultTheme, setDefaultTheme] = useState("system");
-
-  const [basicPrice, setBasicPrice] = useState(2_000_000);
-  const [standardPrice, setStandardPrice] = useState(5_000_000);
-  const [proPrice, setProPrice] = useState(12_000_000);
 
   const [twoFactor, setTwoFactor] = useState(true);
   const [strongPwd, setStrongPwd] = useState(true);
@@ -57,7 +53,6 @@ function SaSettings() {
         <Tabs defaultValue="general">
           <TabsList className="mb-6">
             <TabsTrigger value="general"><SettingsIcon className="mr-1 size-3.5" />{t("sa.settings.general")}</TabsTrigger>
-            <TabsTrigger value="billing"><CreditCard className="mr-1 size-3.5" />{t("sa.settings.billing")}</TabsTrigger>
             <TabsTrigger value="security"><ShieldCheck className="mr-1 size-3.5" />{t("sa.settings.security")}</TabsTrigger>
             <TabsTrigger value="brand"><Palette className="mr-1 size-3.5" />{t("sa.settings.brand")}</TabsTrigger>
           </TabsList>
@@ -92,22 +87,6 @@ function SaSettings() {
                       <SelectItem value="dark">Dark</SelectItem>
                     </SelectContent>
                   </Select>
-                </Field>
-              </div>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="billing">
-            <Card className="space-y-5 p-6 shadow-elegant">
-              <div className="grid gap-4 md:grid-cols-3">
-                <Field label={t("sa.settings.basicPrice")}>
-                  <Input type="number" min={0} step={100000} value={basicPrice} onChange={(e) => setBasicPrice(Number(e.target.value))} />
-                </Field>
-                <Field label={t("sa.settings.standardPrice")}>
-                  <Input type="number" min={0} step={100000} value={standardPrice} onChange={(e) => setStandardPrice(Number(e.target.value))} />
-                </Field>
-                <Field label={t("sa.settings.proPrice")}>
-                  <Input type="number" min={0} step={100000} value={proPrice} onChange={(e) => setProPrice(Number(e.target.value))} />
                 </Field>
               </div>
             </Card>

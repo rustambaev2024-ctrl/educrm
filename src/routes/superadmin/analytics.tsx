@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { Building2, Users, Briefcase, Activity, TrendingUp, CalendarClock } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell, Legend as ChartLegend } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader } from "@/components/edu/page-header";
 import { StatCard } from "@/components/edu/stat-card";
 import { Card } from "@/components/ui/card";
@@ -10,8 +10,6 @@ import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 
 export const Route = createFileRoute("/superadmin/analytics")({ component: SaAnalytics });
-
-const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
 function SaAnalytics() {
   const { t, lang } = useI18n();
@@ -25,12 +23,6 @@ function SaAnalytics() {
     const days = (new Date(i.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
     return days >= 0 && days <= 30 && i.status === "active";
   }).length;
-
-  const byPlan = useMemo(() => {
-    const map = new Map<string, number>();
-    active.forEach((i) => map.set(i.plan, (map.get(i.plan) ?? 0) + 1));
-    return Array.from(map.entries()).map(([k, v]) => ({ name: t(`sa.plan.${k}`), value: v }));
-  }, [active, t]);
 
   const byCity = useMemo(() => {
     const map = new Map<string, number>();
@@ -95,23 +87,7 @@ function SaAnalytics() {
           </ResponsiveContainer>
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="p-6 shadow-elegant">
-            <div className="mb-4">
-              <h3 className="text-base font-semibold">{t("sa.byPlan")}</h3>
-              <p className="text-xs text-muted-foreground">{active.length}</p>
-            </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={byPlan} dataKey="value" nameKey="name" outerRadius={90} innerRadius={50} paddingAngle={3}>
-                  {byPlan.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <ChartLegend wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-
+        <div className="grid gap-6">
           <Card className="p-6 shadow-elegant">
             <div className="mb-4">
               <h3 className="text-base font-semibold">{t("sa.byCity")}</h3>

@@ -33,12 +33,6 @@ const STATUS_TONE: Record<InstitutionStatus, string> = {
   archived: "bg-muted text-muted-foreground border-border",
 };
 
-const PLAN_TONE: Record<InstitutionPlan, string> = {
-  basic: "border-border bg-secondary text-foreground",
-  standard: "border-info/30 bg-info/10 text-info",
-  pro: "border-primary/30 bg-accent text-primary",
-};
-
 interface InstitutionFormState {
   name: string;
   slug: string;
@@ -82,7 +76,6 @@ function SuperadminHome() {
   const { institutions, branches, addInstitution, updateInstitution, deleteInstitution, addBranch, deleteBranch } = useData();
   const [search, setSearch] = useState("");
   const [statusF, setStatusF] = useState<"all" | InstitutionStatus>("all");
-  const [planF, setPlanF] = useState<"all" | InstitutionPlan>("all");
 
   const [openInst, setOpenInst] = useState(false);
   const [editing, setEditing] = useState<Institution | null>(null);
@@ -95,11 +88,10 @@ function SuperadminHome() {
     const q = search.trim().toLowerCase();
     return institutions.filter((i) => {
       if (statusF !== "all" && i.status !== statusF) return false;
-      if (planF !== "all" && i.plan !== planF) return false;
       if (!q) return true;
       return i.name.toLowerCase().includes(q) || i.city.toLowerCase().includes(q);
     });
-  }, [institutions, search, statusF, planF]);
+  }, [institutions, search, statusF]);
 
   const totals = useMemo(() => {
     const active = institutions.filter((i) => i.status === "active");
@@ -220,15 +212,6 @@ function SuperadminHome() {
                 <SelectItem value="archived">{t("sa.istatus.archived")}</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={planF} onValueChange={(v) => setPlanF(v as typeof planF)}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("common.all")}</SelectItem>
-                <SelectItem value="basic">{t("sa.plan.basic")}</SelectItem>
-                <SelectItem value="standard">{t("sa.plan.standard")}</SelectItem>
-                <SelectItem value="pro">{t("sa.plan.pro")}</SelectItem>
-              </SelectContent>
-            </Select>
             <span className="ml-auto text-xs text-muted-foreground">{filtered.length} / {institutions.length}</span>
           </div>
 
@@ -243,7 +226,6 @@ function SuperadminHome() {
                   <TableHead>{t("sa.col.director")}</TableHead>
                   <TableHead className="text-right">{t("sa.col.students")}</TableHead>
                   <TableHead className="text-right">{t("sa.col.branches")}</TableHead>
-                  <TableHead>{t("sa.col.plan")}</TableHead>
                   <TableHead>{t("sa.col.status")}</TableHead>
                   <TableHead className="text-right">{t("sa.col.revenue")}</TableHead>
                   <TableHead>{t("sa.col.expires")}</TableHead>
@@ -267,7 +249,6 @@ function SuperadminHome() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{i.studentsCount}</TableCell>
                     <TableCell className="text-right tabular-nums">{i.branchesCount}</TableCell>
-                    <TableCell><Badge variant="outline" className={PLAN_TONE[i.plan]}>{t(`sa.plan.${i.plan}`)}</Badge></TableCell>
                     <TableCell><Badge variant="outline" className={STATUS_TONE[i.status]}>{t(`sa.istatus.${i.status}`)}</Badge></TableCell>
                     <TableCell className="text-right tabular-nums font-medium">{formatMoney(i.monthlyRevenue, lang)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatDate(i.expiresAt, lang)}</TableCell>
@@ -333,16 +314,6 @@ function SuperadminHome() {
             </Field>
             <Field label={t("sa.field.city")}>
               <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-            </Field>
-            <Field label={t("sa.field.plan")}>
-              <Select value={form.plan} onValueChange={(v) => setForm({ ...form, plan: v as InstitutionPlan })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="basic">{t("sa.plan.basic")}</SelectItem>
-                  <SelectItem value="standard">{t("sa.plan.standard")}</SelectItem>
-                  <SelectItem value="pro">{t("sa.plan.pro")}</SelectItem>
-                </SelectContent>
-              </Select>
             </Field>
             <Field label={t("sa.field.status")}>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as InstitutionStatus })}>

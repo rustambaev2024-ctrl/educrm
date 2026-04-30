@@ -187,6 +187,31 @@ export async function requestJson<T>(path: string, init: RequestInit = {}): Prom
   return res.json() as Promise<T>;
 }
 
+export async function requestForm<T>(path: string, formData: FormData, init: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    "X-Tenant-Schema": getTenantSchema(),
+    ...((init.headers as Record<string, string>) ?? {}),
+  };
+
+  const access = readAccessToken();
+  if (access) headers.Authorization = `Bearer ${access}`;
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    method: init.method ?? "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body as Record<string, unknown>);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -309,6 +334,7 @@ export const groupApi = {
 
 export const studentApi = {
   ...crudApi("/students/"),
+  createWithFiles: (data: FormData) => requestForm("/students/", data),
   me: () => requestJson("/student/me/"),
   mySchedule: () => requestJson("/student/me/schedule/"),
   myAttendance: () => requestJson("/student/me/attendance/"),
