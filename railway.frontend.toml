@@ -1,9 +1,0 @@
-[build]
-builder = "dockerfile"
-dockerfilePath = "docker/Dockerfile.frontend"
-buildArgs = { VITE_API_BASE_URL = "https://educrm-production.up.railway.app/api/v1" }
-
-[deploy]
-startCommand = "nginx -g 'daemon off;'"
-healthcheckPath = "/"
-healthcheckTimeout = 30
