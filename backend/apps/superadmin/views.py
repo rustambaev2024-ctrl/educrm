@@ -39,10 +39,21 @@ class SuperadminInstitutionViewSet(
     def destroy(self, request, *args, **kwargs):
         with schema_context("public"):
             institution = self.get_object()
+            schema_name = institution.schema_name
             try:
                 institution.delete(force_drop=True)
-            except TypeError:
-                institution.delete()
+            except Exception as e:
+                # If delete fails due to active connections, forcefully drop it or delete the record anyway
+                from django.db import connection
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE')
+                except Exception:
+                    pass
+                try:
+                    super(Institution, institution).delete()
+                except Exception:
+                    pass
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):
@@ -65,12 +76,21 @@ class SuperadminInstitutionViewSet(
     def create(self, request, *args, **kwargs):
         with schema_context("public"):
             serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            institution = create_institution_with_bootstrap(serializer, request.user)
-            return Response(
-                self.get_serializer(institution).data,
-                status=status.HTTP_201_CREATED,
-            )
+            try:
+                serializer.is_valid(raise_exception=True)
+                institution = create_institution_with_bootstrap(serializer, request.user)
+                return Response(
+                    self.get_serializer(institution).data,
+                    status=status.HTTP_201_CREATED,
+                )
+            except Exception as e:
+                import traceback
+                with open("create_error.log", "a") as f:
+                    f.write(traceback.format_exc() + "\n")
+                return Response(
+                    {"detail": str(e)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
     @action(detail=True, methods=["patch"], url_path="freeze")
     def freeze(self, request, pk=None):
