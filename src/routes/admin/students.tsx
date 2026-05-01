@@ -426,8 +426,32 @@ function StudentDetailSheet({
   onArchive: (id: string) => void;
 }) {
   const { t, lang } = useI18n();
-  const { groups, parents } = useData();
+  const { groups, parents, updateStudentPasswords } = useData();
   const open = student !== null;
+  const [newStudentPassword, setNewStudentPassword] = useState("");
+  const [newParentPassword, setNewParentPassword] = useState("");
+
+  const handleUpdateStudentPassword = () => {
+    if (!student) return;
+    if (!newStudentPassword.trim() || newStudentPassword.length < 8) {
+      toast.error("Parol kamida 8 ta belgidan iborat bo'lishi kerak");
+      return;
+    }
+    updateStudentPasswords(student.id, newStudentPassword.trim(), undefined);
+    toast.success("O'quvchi paroli yangilandi");
+    setNewStudentPassword("");
+  };
+
+  const handleUpdateParentPassword = () => {
+    if (!student) return;
+    if (!newParentPassword.trim() || newParentPassword.length < 8) {
+      toast.error("Parol kamida 8 ta belgidan iborat bo'lishi kerak");
+      return;
+    }
+    updateStudentPasswords(student.id, undefined, newParentPassword.trim());
+    toast.success("Ota-ona paroli yangilandi");
+    setNewParentPassword("");
+  };
 
   if (!student) {
     return (
@@ -497,6 +521,13 @@ function StudentDetailSheet({
                   <Field label={t("students.field.phone")} value={student.phone} />
                   <Field label={t("students.field.birthDate")} value={student.birthDate ? formatDate(student.birthDate, lang) : "—"} />
                 </div>
+                <div className="mt-4 border-t border-border pt-4">
+                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">Parolni o'zgartirish</div>
+                  <div className="flex gap-2 max-w-sm">
+                    <PasswordInput value={newStudentPassword} onChange={(e) => setNewStudentPassword(e.target.value)} placeholder="Yangi parol (ixtiyoriy)" />
+                    <Button variant="secondary" onClick={handleUpdateStudentPassword}>Saqlash</Button>
+                  </div>
+                </div>
               </Card>
               {parent && (
                 <Card className="p-4">
@@ -506,6 +537,13 @@ function StudentDetailSheet({
                   <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                     <Field label={t("students.field.parentName")} value={parent.fullName} />
                     <Field label={t("students.field.parentPhone")} value={parent.phone} />
+                  </div>
+                  <div className="mt-4 border-t border-border pt-4">
+                    <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">Ota-ona parolini o'zgartirish</div>
+                    <div className="flex gap-2 max-w-sm">
+                      <PasswordInput value={newParentPassword} onChange={(e) => setNewParentPassword(e.target.value)} placeholder="Yangi parol (ixtiyoriy)" />
+                      <Button variant="secondary" onClick={handleUpdateParentPassword}>Saqlash</Button>
+                    </div>
                   </div>
                 </Card>
               )}

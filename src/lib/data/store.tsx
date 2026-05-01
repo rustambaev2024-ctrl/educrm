@@ -132,6 +132,7 @@ interface DataStoreActions {
   syncParentChild: (studentId: string) => Promise<void>;
   addGroup: (input: Omit<Group, "id" | "studentIds" | "status"> & { status?: Group["status"] }) => Group;
   updateGroup: (id: string, patch: Partial<Group>) => void;
+  deleteGroup: (id: string) => void;
   addStudentToGroup: (groupId: string, studentId: string) => void;
   removeStudentFromGroup: (groupId: string, studentId: string) => void;
   setLessonStatus: (id: string, status: Lesson["status"], cancelReason?: string) => void;
@@ -149,6 +150,7 @@ interface DataStoreActions {
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: (audience: AppNotification["audience"][number]) => void;
   updateParentPassword: (parentId: string, password: string) => void;
+  updateStudentPasswords: (id: string, password?: string, parentPassword?: string) => void;
   // Homework
   addHomework: (input: Omit<Homework, "id" | "assignedAt">) => Homework;
   updateSubmission: (
@@ -821,6 +823,15 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, status: "archived" } : s)));
   }, []);
 
+  const updateStudentPasswords: DataStoreActions["updateStudentPasswords"] = useCallback((id, password, parentPassword) => {
+    const payload: any = {};
+    if (password) payload.password = password;
+    if (parentPassword) payload.parent_password = parentPassword;
+    if (Object.keys(payload).length > 0) {
+      fireAndForget("updateStudentPasswords", studentApi.update(id, payload as never));
+    }
+  }, []);
+
   const addGroup: DataStoreActions["addGroup"] = useCallback((input) => {
     const id = uid("g");
     const created: Group = {
@@ -881,6 +892,16 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         status: patch.status,
       } as never),
       () => setGroups(snapshot),
+    );
+  }, [groups]);
+
+  const deleteGroup: DataStoreActions["deleteGroup"] = useCallback((id) => {
+    const snapshot = groups;
+    setGroups((prev) => prev.filter((g) => g.id !== id));
+    fireAndForget(
+      "deleteGroup",
+      groupApi.delete(id),
+      () => setGroups(snapshot)
     );
   }, [groups]);
 
@@ -1530,8 +1551,10 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       updateStudent,
       archiveStudent,
       syncParentChild,
+      updateStudentPasswords,
       addGroup,
       updateGroup,
+      deleteGroup,
       addStudentToGroup,
       removeStudentFromGroup,
       setLessonStatus,
@@ -1568,7 +1591,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       updateStaff,
       deleteStaff,
     }),
-    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, syncParentChild, addGroup, updateGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, setAttendance, getAttendanceFor, addPayment, applyInvoicePayment, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
+    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, syncParentChild, updateStudentPasswords, addGroup, updateGroup, deleteGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, setAttendance, getAttendanceFor, addPayment, applyInvoicePayment, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
