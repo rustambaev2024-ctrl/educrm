@@ -222,6 +222,7 @@ function CreateStudentSheet({
   onCreate: (payload: {
     fullName: string;
     phone: string;
+    password?: string;
     birthDate?: string;
     photo?: string;
     photoFile?: File;
@@ -230,12 +231,14 @@ function CreateStudentSheet({
     branchId: string;
     parentName?: string;
     parentPhone?: string;
+    parentPassword?: string;
   }) => void;
 }) {
   const { t } = useI18n();
   const { branches } = useData();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [studentPhotoFile, setStudentPhotoFile] = useState<File | undefined>();
   const [studentPhotoPreview, setStudentPhotoPreview] = useState("");
@@ -244,10 +247,12 @@ function CreateStudentSheet({
   const [hasParent, setHasParent] = useState(false);
   const [parentName, setParentName] = useState("");
   const [parentPhone, setParentPhone] = useState("");
+  const [parentPassword, setParentPassword] = useState("");
 
   const reset = () => {
     setFullName("");
     setPhone("");
+    setPassword("");
     setBirthDate("");
     setStudentPhotoFile(undefined);
     setStudentPhotoPreview("");
@@ -255,6 +260,7 @@ function CreateStudentSheet({
     setHasParent(false);
     setParentName("");
     setParentPhone("");
+    setParentPassword("");
   };
 
   const submit = () => {
@@ -269,6 +275,7 @@ function CreateStudentSheet({
     onCreate({
       fullName: fullName.trim(),
       phone: phone.trim(),
+      password: password.trim() || undefined,
       birthDate: birthDate || undefined,
       photo: studentPhotoPreview,
       photoFile: studentPhotoFile,
@@ -277,13 +284,14 @@ function CreateStudentSheet({
       branchId,
       parentName: hasParent ? parentName.trim() || undefined : undefined,
       parentPhone: hasParent ? parentPhone.trim() || undefined : undefined,
+      parentPassword: hasParent ? parentPassword.trim() || undefined : undefined,
     });
     reset();
   };
 
   return (
     <Sheet open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{t("students.add")}</SheetTitle>
           <SheetDescription>Yangi o'quvchi va uning hujjatlarini tizimga kiritish</SheetDescription>
@@ -315,9 +323,15 @@ function CreateStudentSheet({
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="fullName">{t("students.field.fullName")} *</Label>
-              <Input id="fullName" placeholder="F.I.SH." value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">{t("students.field.fullName")} *</Label>
+                <Input id="fullName" placeholder="F.I.SH." value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="birthDate">{t("students.field.birthDate")}</Label>
+                <Input id="birthDate" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+              </div>
             </div>
             
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -326,8 +340,8 @@ function CreateStudentSheet({
                 <PhoneInput id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="birthDate">{t("students.field.birthDate")}</Label>
-                <Input id="birthDate" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+                <Label htmlFor="password">Parol (ixtiyoriy)</Label>
+                <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="Avtomatik: ChangeMe123" />
               </div>
             </div>
             
@@ -376,14 +390,19 @@ function CreateStudentSheet({
             {hasParent && (
               <div className="space-y-4 rounded-xl border border-border/50 bg-muted/20 p-4">
                 <div className="space-y-2">
-                  <Label htmlFor="parentName">Ota-onaning F.I.SH.</Label>
+                  <Label htmlFor="parentName">Ota-onaning F.I.SH. *</Label>
                   <Input id="parentName" placeholder="F.I.SH." value={parentName} onChange={(e) => setParentName(e.target.value)} />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="parentPhone">Ota-onaning telefon raqami</Label>
-                  <PhoneInput id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="parentPhone">Ota-onaning telefon raqami *</Label>
+                    <PhoneInput id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="parentPassword">Ota-ona paroli</Label>
+                    <PasswordInput id="parentPassword" value={parentPassword} onChange={(e) => setParentPassword(e.target.value)} autoComplete="new-password" placeholder="Avtomatik: ChangeMe123" />
+                  </div>
                 </div>
-                <p className="text-[11px] text-muted-foreground">Ota-ona uchun parol avtomatik tarzda yaratiladi va ularga yuborilishi mumkin.</p>
               </div>
             )}
           </section>

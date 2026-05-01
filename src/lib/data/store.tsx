@@ -115,9 +115,10 @@ interface DataStoreState {
   loadError: string | null;
 }
 
-type AddStudentInput = Omit<Student, "id" | "registeredAt" | "balance" | "groupIds" | "status" | "password"> & {
+type AddStudentInput = Omit<Student, "id" | "registeredAt" | "balance" | "groupIds" | "status"> & {
   parentName?: string;
   parentPhone?: string;
+  parentPassword?: string;
   photoFile?: File;
   documentFile?: File;
   documentType?: string;
@@ -768,10 +769,12 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     const formData = new FormData();
     formData.append("full_name", created.fullName);
     formData.append("phone", created.phone);
+    if (input.password) formData.append("password", input.password);
     formData.append("branch", created.branchId);
     if (created.birthDate) formData.append("date_of_birth", created.birthDate);
     if (input.parentName) formData.append("parent_full_name", input.parentName);
     if (input.parentPhone) formData.append("parent_phone", input.parentPhone);
+    if (input.parentPassword) formData.append("parent_password", input.parentPassword);
     if (input.photoFile) formData.append("photo", input.photoFile);
     if (input.documentFile) {
       formData.append("document_file", input.documentFile);
