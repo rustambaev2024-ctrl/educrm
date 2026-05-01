@@ -23,6 +23,7 @@ import {
   notificationApi,
   parentApi,
   paymentApi,
+  requestJson,
   roomApi,
   staffApi,
   studentApi,
@@ -129,7 +130,7 @@ interface DataStoreActions {
   addStudent: (input: AddStudentInput) => Student;
   updateStudent: (id: string, patch: Partial<Student>) => void;
   archiveStudent: (id: string) => void;
-  deleteStudent: (id: string) => void;
+  deleteStudent: (id: string, deleteParent?: boolean) => void;
   syncParentChild: (studentId: string) => Promise<void>;
   addGroup: (input: Omit<Group, "id" | "studentIds" | "status"> & { status?: Group["status"] }) => Group;
   updateGroup: (id: string, patch: Partial<Group>) => void;
@@ -824,15 +825,24 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, status: "archived" } : s)));
   }, []);
 
-  const deleteStudent: DataStoreActions["deleteStudent"] = useCallback((id) => {
+  const deleteStudent: DataStoreActions["deleteStudent"] = useCallback((id, deleteParent) => {
     const snapshot = students;
+    const parentSnapshot = parents;
     setStudents((prev) => prev.filter((s) => s.id !== id));
+    if (deleteParent) {
+      // Find and remove the parent linked to this student
+      const student = students.find((s) => s.id === id);
+      if (student?.parentId) {
+        setParents((prev) => prev.filter((p) => p.id !== student.parentId));
+      }
+    }
+    const url = deleteParent ? `/students/${id}/?delete_parent=true` : `/students/${id}/`;
     fireAndForget(
       "deleteStudent",
-      studentApi.delete(id),
-      () => setStudents(snapshot)
+      requestJson(url, { method: "DELETE" }),
+      () => { setStudents(snapshot); setParents(parentSnapshot); }
     );
-  }, [students]);
+  }, [students, parents]);
 
   const updateStudentPasswords: DataStoreActions["updateStudentPasswords"] = useCallback((id, password, parentPassword) => {
     const payload: any = {};

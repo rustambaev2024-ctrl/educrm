@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -217,8 +218,8 @@ function StudentsPage() {
           toast.success(t("students.archived"));
           setSelectedId(null);
         }}
-        onDelete={(id) => {
-          deleteStudent(id);
+        onDelete={(id, deleteParent) => {
+          deleteStudent(id, deleteParent);
           toast.success("O'quvchi o'chirildi");
           setSelectedId(null);
         }}
@@ -449,7 +450,7 @@ function StudentDetailSheet({
   student: Student | null;
   onClose: () => void;
   onArchive: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, deleteParent: boolean) => void;
 }) {
   const { t, lang } = useI18n();
   const { groups, parents, updateStudentPasswords } = useData();
@@ -457,6 +458,7 @@ function StudentDetailSheet({
   const [newStudentPassword, setNewStudentPassword] = useState("");
   const [newParentPassword, setNewParentPassword] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteParentToo, setDeleteParentToo] = useState(false);
 
   const handleUpdateStudentPassword = () => {
     if (!student) return;
@@ -657,9 +659,15 @@ function StudentDetailSheet({
               Rostdan ham o'quvchi <b>{student.fullName}</b> o'chirilsinmi? Bu amalni bekor qilib bo'lmaydi.
             </DialogDescription>
           </DialogHeader>
+          {parent && (
+            <label className="flex items-center gap-2 cursor-pointer px-1 py-2">
+              <Checkbox checked={deleteParentToo} onCheckedChange={(v) => setDeleteParentToo(v === true)} />
+              <span className="text-sm">Ota-onani ham o'chirish ({parent.fullName})</span>
+            </label>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>{t("common.cancel")}</Button>
-            <Button variant="destructive" onClick={() => { onDelete(student.id); onClose(); setShowDeleteConfirm(false); }}>O'chirish</Button>
+            <Button variant="outline" onClick={() => { setShowDeleteConfirm(false); setDeleteParentToo(false); }}>{t("common.cancel")}</Button>
+            <Button variant="destructive" onClick={() => { onDelete(student.id, deleteParentToo); onClose(); setShowDeleteConfirm(false); setDeleteParentToo(false); }}>O'chirish</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -70,8 +70,24 @@ class StudentViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         student = self.get_object()
         user = student.user
+        delete_parent = request.query_params.get("delete_parent", "").lower() == "true"
+
+        parent_user_to_delete = None
+        if delete_parent:
+            from .models import Parent, ParentStudentLink
+            links = ParentStudentLink.objects.filter(student=student).select_related("parent__user")
+            for link in links:
+                parent = link.parent
+                # Only delete if this parent has no other children
+                other_children = ParentStudentLink.objects.filter(parent=parent).exclude(student=student).count()
+                if other_children == 0:
+                    parent_user_to_delete = parent.user
+                    parent.delete()
+
         student.delete()
         user.delete()
+        if parent_user_to_delete:
+            parent_user_to_delete.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
