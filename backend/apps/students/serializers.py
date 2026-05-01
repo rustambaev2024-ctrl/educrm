@@ -129,6 +129,8 @@ class StudentSerializer(serializers.ModelSerializer):
                 )
 
             if parent_full_name and parent_phone:
+                from apps.accounts.managers import UserManager
+                parent_phone = UserManager.normalize_phone(parent_phone)
                 parent_user, created = User.objects.get_or_create(
                     phone=parent_phone,
                     defaults={
