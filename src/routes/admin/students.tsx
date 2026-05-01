@@ -56,7 +56,7 @@ const STATUS_OPTIONS: StatusFilter[] = [
 
 function StudentsPage() {
   const { t, lang } = useI18n();
-  const { students, groups, addStudent, archiveStudent } = useData();
+  const { students, groups, addStudent, archiveStudent, deleteStudent } = useData();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -99,6 +99,8 @@ function StudentsPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t("students.search")}
                 className="pl-9"
+                autoComplete="off"
+                name="student-search-field"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -205,6 +207,11 @@ function StudentsPage() {
         onArchive={(id) => {
           archiveStudent(id);
           toast.success(t("students.archived"));
+          setSelectedId(null);
+        }}
+        onDelete={(id) => {
+          deleteStudent(id);
+          toast.success("O'quvchi o'chirildi");
           setSelectedId(null);
         }}
       />
@@ -429,16 +436,19 @@ function StudentDetailSheet({
   student,
   onClose,
   onArchive,
+  onDelete,
 }: {
   student: Student | null;
   onClose: () => void;
   onArchive: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const { t, lang } = useI18n();
   const { groups, parents, updateStudentPasswords } = useData();
   const open = student !== null;
   const [newStudentPassword, setNewStudentPassword] = useState("");
   const [newParentPassword, setNewParentPassword] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleUpdateStudentPassword = () => {
     if (!student) return;
@@ -533,7 +543,7 @@ function StudentDetailSheet({
                 <div className="mt-4 border-t border-border pt-4">
                   <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">Parolni o'zgartirish</div>
                   <div className="flex gap-2 max-w-sm">
-                    <PasswordInput value={newStudentPassword} onChange={(e) => setNewStudentPassword(e.target.value)} placeholder="Yangi parol (ixtiyoriy)" />
+                    <PasswordInput value={newStudentPassword} onChange={(e) => setNewStudentPassword(e.target.value)} placeholder="Yangi parol (ixtiyoriy)" autoComplete="new-password" name="new-student-pwd" />
                     <Button variant="secondary" onClick={handleUpdateStudentPassword}>Saqlash</Button>
                   </div>
                 </div>
@@ -550,7 +560,7 @@ function StudentDetailSheet({
                   <div className="mt-4 border-t border-border pt-4">
                     <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">Ota-ona parolini o'zgartirish</div>
                     <div className="flex gap-2 max-w-sm">
-                      <PasswordInput value={newParentPassword} onChange={(e) => setNewParentPassword(e.target.value)} placeholder="Yangi parol (ixtiyoriy)" />
+                      <PasswordInput value={newParentPassword} onChange={(e) => setNewParentPassword(e.target.value)} placeholder="Yangi parol (ixtiyoriy)" autoComplete="new-password" name="new-parent-pwd" />
                       <Button variant="secondary" onClick={handleUpdateParentPassword}>Saqlash</Button>
                     </div>
                   </div>
@@ -616,15 +626,35 @@ function StudentDetailSheet({
           </Tabs>
         </div>
 
-        <SheetFooter>
-          {student.status !== "archived" && (
-            <Button variant="outline" onClick={() => onArchive(student.id)}>
-              {t("students.archive")}
+        <SheetFooter className="flex flex-col sm:flex-row gap-2 justify-between w-full">
+          <div className="flex gap-2">
+            <Button variant="outline" className="text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive/20" onClick={() => setShowDeleteConfirm(true)}>
+              O'quvchini o'chirish
             </Button>
-          )}
+            {student.status !== "archived" && (
+              <Button variant="outline" onClick={() => onArchive(student.id)}>
+                {t("students.archive")}
+              </Button>
+            )}
+          </div>
           <Button onClick={onClose}>{t("common.back")}</Button>
         </SheetFooter>
       </SheetContent>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>O'quvchini o'chirish</DialogTitle>
+            <DialogDescription>
+              Rostdan ham o'quvchi <b>{student.fullName}</b> o'chirilsinmi? Bu amalni bekor qilib bo'lmaydi.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>{t("common.cancel")}</Button>
+            <Button variant="destructive" onClick={() => { onDelete(student.id); onClose(); setShowDeleteConfirm(false); }}>O'chirish</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
