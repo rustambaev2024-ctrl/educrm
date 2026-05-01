@@ -1,24 +1,13 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { KeyRound, Search, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
+import { ShieldCheck, Search } from "lucide-react";
 import { PageHeader } from "@/components/edu/page-header";
-import { PasswordInput } from "@/components/edu/password-input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useData } from "@/lib/data/store";
+import { useI18n } from "@/lib/i18n";
 import type { Parent, Staff, Student } from "@/lib/data/types";
 
 export const Route = createFileRoute("/admin/accounts")({ component: AccountsPage });
@@ -35,42 +24,24 @@ type AccountRow = {
 };
 
 function AccountsPage() {
-  const { staff, students, parents, branches, updateStaff, updateStudent, updateParentPassword } = useData();
+  const { staff, students, parents, branches } = useData();
+  const { lang } = useI18n();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"all" | AccountType>("all");
-  const [editing, setEditing] = useState<AccountRow | null>(null);
-  const [newPassword, setNewPassword] = useState("");
 
-  const branchById = useMemo(() => Object.fromEntries(branches.map((branch) => [branch.id, branch.name])), [branches]);
+  const branchById = useMemo(() => Object.fromEntries(branches.map((b) => [b.id, b.name])), [branches]);
 
   const rows = useMemo<AccountRow[]>(() => {
     const teachers = staff
-      .filter((member) => member.role === "teacher")
-      .map((member) => ({
-        id: member.id,
-        type: "teacher" as const,
-        fullName: member.fullName,
-        phone: member.phone,
-        branchId: member.branchId,
-        ref: member,
-      }));
+      .filter((m) => m.role === "teacher")
+      .map((m) => ({ id: m.id, type: "teacher" as const, fullName: m.fullName, phone: m.phone, branchId: m.branchId, ref: m }));
 
-    const studentRows = students.map((student) => ({
-      id: student.id,
-      type: "student" as const,
-      fullName: student.fullName,
-      phone: student.phone,
-      branchId: student.branchId,
-      ref: student,
+    const studentRows = students.map((s) => ({
+      id: s.id, type: "student" as const, fullName: s.fullName, phone: s.phone, branchId: s.branchId, ref: s,
     }));
 
-    const parentRows = parents.map((parent) => ({
-      id: parent.id,
-      userId: parent.userId,
-      type: "parent" as const,
-      fullName: parent.fullName,
-      phone: parent.phone,
-      ref: parent,
+    const parentRows = parents.map((p) => ({
+      id: p.id, userId: p.userId, type: "parent" as const, fullName: p.fullName, phone: p.phone, ref: p,
     }));
 
     return [...teachers, ...studentRows, ...parentRows];
@@ -85,31 +56,48 @@ function AccountsPage() {
     });
   }, [query, rows, tab]);
 
-  const savePassword = () => {
-    if (!editing || newPassword.trim().length < 8) {
-      toast.error("Parol kamida 8 ta belgi bo'lishi kerak");
-      return;
-    }
-    const password = newPassword.trim();
-    if (editing.type === "teacher") updateStaff(editing.id, { password });
-    if (editing.type === "student") updateStudent(editing.id, { password });
-    if (editing.type === "parent") updateParentPassword(editing.id, password);
-    toast.success("Parol yangilandi");
-    setEditing(null);
-    setNewPassword("");
+  const t = (key: string) => {
+    const uz: Record<string, string> = {
+      title: "Akkauntlar",
+      description: "Barcha foydalanuvchilar ro'yxati va ularning rollari",
+      teachers: "O'qituvchilar",
+      students: "O'quvchilar",
+      parents: "Ota-onalar",
+      all: "Barchasi",
+      search: "Ism yoki telefon bo'yicha qidirish",
+      empty: "Akkauntlar topilmadi",
+      passwordHidden: "Parol maxfiy saqlangan",
+      teacher: "O'qituvchi",
+      student: "O'quvchi",
+      parent: "Ota-ona",
+      branch: "Filial",
+    };
+    const ru: Record<string, string> = {
+      title: "Доступы",
+      description: "Список всех пользователей и их ролей",
+      teachers: "Учителя",
+      students: "Ученики",
+      parents: "Родители",
+      all: "Все",
+      search: "Поиск по имени или телефону",
+      empty: "Нет учетных записей",
+      passwordHidden: "Пароль надёжно скрыт",
+      teacher: "Учитель",
+      student: "Ученик",
+      parent: "Родитель",
+      branch: "Филиал",
+    };
+    return (lang === "uz" ? uz : ru)[key] ?? key;
   };
 
   return (
     <>
-      <PageHeader
-        title="Доступы"
-        description="Создание и безопасный сброс паролей без показа текущего пароля"
-      />
+      <PageHeader title={t("title")} description={t("description")} />
       <div className="space-y-4 p-4 md:p-8">
         <div className="grid gap-3 md:grid-cols-3">
-          <AccessStat label="Учителя" value={rows.filter((row) => row.type === "teacher").length} />
-          <AccessStat label="Ученики" value={rows.filter((row) => row.type === "student").length} />
-          <AccessStat label="Родители" value={rows.filter((row) => row.type === "parent").length} />
+          <AccessStat label={t("teachers")} value={rows.filter((r) => r.type === "teacher").length} />
+          <AccessStat label={t("students")} value={rows.filter((r) => r.type === "student").length} />
+          <AccessStat label={t("parents")} value={rows.filter((r) => r.type === "parent").length} />
         </div>
 
         <Card className="overflow-hidden shadow-elegant">
@@ -118,31 +106,31 @@ function AccountsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Поиск по имени или телефону"
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("search")}
                 className="pl-9"
               />
             </div>
-            <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
+            <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
               <TabsList className="grid grid-cols-4">
-                <TabsTrigger value="all">Все</TabsTrigger>
-                <TabsTrigger value="teacher">Учителя</TabsTrigger>
-                <TabsTrigger value="student">Ученики</TabsTrigger>
-                <TabsTrigger value="parent">Родители</TabsTrigger>
+                <TabsTrigger value="all">{t("all")}</TabsTrigger>
+                <TabsTrigger value="teacher">{t("teachers")}</TabsTrigger>
+                <TabsTrigger value="student">{t("students")}</TabsTrigger>
+                <TabsTrigger value="parent">{t("parents")}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
 
           <div className="divide-y divide-border/60">
             {filtered.length === 0 ? (
-              <div className="p-12 text-center text-sm text-muted-foreground">Нет учетных записей</div>
+              <div className="p-12 text-center text-sm text-muted-foreground">{t("empty")}</div>
             ) : (
               filtered.map((row) => (
-                <div key={`${row.type}-${row.id}`} className="grid gap-3 p-4 md:grid-cols-[1.4fr_0.8fr_1fr_auto] md:items-center">
+                <div key={`${row.type}-${row.id}`} className="grid gap-3 p-4 md:grid-cols-[1.4fr_0.8fr_1fr] md:items-center">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-xs font-semibold text-primary">
-                        {row.fullName.split(" ").slice(0, 2).map((part) => part[0]).join("")}
+                        {row.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
                       </div>
                       <div className="min-w-0">
                         <div className="truncate font-medium">{row.fullName}</div>
@@ -151,60 +139,20 @@ function AccountsPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="capitalize">{roleLabel(row.type)}</Badge>
-                    {row.branchId && <span className="text-xs text-muted-foreground">{branchById[row.branchId] ?? "Филиал"}</span>}
+                    <Badge variant="outline">{t(row.type)}</Badge>
+                    {row.branchId && <span className="text-xs text-muted-foreground">{branchById[row.branchId] ?? t("branch")}</span>}
                   </div>
                   <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                    Пароль скрыт. Доступен только сброс.
+                    🔒 {t("passwordHidden")}
                   </div>
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => {
-                      setEditing(row);
-                      setNewPassword("");
-                    }}
-                  >
-                    <KeyRound className="size-4" /> Сбросить пароль
-                  </Button>
                 </div>
               ))
             )}
           </div>
         </Card>
       </div>
-
-      <Dialog open={!!editing} onOpenChange={(open) => { if (!open) setEditing(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Сбросить пароль</DialogTitle>
-            <DialogDescription>
-              {editing?.fullName}. После сохранения старый пароль перестанет работать.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="newPassword">Новый пароль</Label>
-            <PasswordInput
-              id="newPassword"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              autoComplete="new-password"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Отмена</Button>
-            <Button onClick={savePassword}>Сохранить</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
-}
-
-function roleLabel(type: AccountType) {
-  if (type === "teacher") return "Учитель";
-  if (type === "student") return "Ученик";
-  return "Родитель";
 }
 
 function AccessStat({ label, value }: { label: string; value: number }) {

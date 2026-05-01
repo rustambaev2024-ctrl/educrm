@@ -341,7 +341,8 @@ function CreateStudentSheet({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Parol (ixtiyoriy)</Label>
-                <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="Avtomatik: ChangeMe123" />
+                <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="Bo'sh qoldirsa: ChangeMe123" />
+                <p className="text-[11px] text-muted-foreground">Login qilish uchun foydalaniladi. Bo'sh qoldirsa, avtomatik "ChangeMe123" qo'yiladi.</p>
               </div>
             </div>
             
