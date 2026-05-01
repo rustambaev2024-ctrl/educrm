@@ -99,48 +99,54 @@ class StudentSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        user_data = validated_data.pop("user")
-        photo = user_data.pop("photo", None)
-        password = validated_data.pop("password", None) or "ChangeMe123"
-        parent_full_name = validated_data.pop("parent_full_name", "")
-        parent_phone = validated_data.pop("parent_phone", "")
-        parent_password = validated_data.pop("parent_password", "") or "ChangeMe123"
-        document_file = validated_data.pop("document_file", None)
-        document_type = validated_data.pop("document_type", "passport")
-        user = User.objects.create_user(
-            phone=user_data["phone"],
-            full_name=user_data["full_name"],
-            role="student",
-            password=password,
-        )
-        if photo:
-            user.photo = photo
-            user.save(update_fields=["photo"])
-        student = Student.objects.create(user=user, **validated_data)
-
-        if document_file:
-            StudentDocument.objects.create(
-                student=student,
-                doc_type=document_type,
-                file=document_file,
-                uploaded_by=self.context["request"].user if self.context.get("request") else None,
+        try:
+            user_data = validated_data.pop("user")
+            photo = user_data.pop("photo", None)
+            password = validated_data.pop("password", None) or "ChangeMe123"
+            parent_full_name = validated_data.pop("parent_full_name", "")
+            parent_phone = validated_data.pop("parent_phone", "")
+            parent_password = validated_data.pop("parent_password", "") or "ChangeMe123"
+            document_file = validated_data.pop("document_file", None)
+            document_type = validated_data.pop("document_type", "passport")
+            
+            user = User.objects.create_user(
+                phone=user_data["phone"],
+                full_name=user_data["full_name"],
+                role="student",
+                password=password,
             )
+            if photo:
+                user.photo = photo
+                user.save(update_fields=["photo"])
+            student = Student.objects.create(user=user, **validated_data)
 
-        if parent_full_name and parent_phone:
-            parent_user, created = User.objects.get_or_create(
-                phone=parent_phone,
-                defaults={
-                    "full_name": parent_full_name,
-                    "role": "parent",
-                },
-            )
-            if created:
-                parent_user.set_password(parent_password)
-                parent_user.save(update_fields=["password"])
-            parent, _ = Parent.objects.get_or_create(user=parent_user)
-            ParentStudentLink.objects.get_or_create(parent=parent, student=student)
+            if document_file:
+                StudentDocument.objects.create(
+                    student=student,
+                    doc_type=document_type,
+                    file=document_file,
+                    uploaded_by=self.context["request"].user if self.context.get("request") else None,
+                )
 
-        return student
+            if parent_full_name and parent_phone:
+                parent_user, created = User.objects.get_or_create(
+                    phone=parent_phone,
+                    defaults={
+                        "full_name": parent_full_name,
+                        "role": "parent",
+                    },
+                )
+                if created:
+                    parent_user.set_password(parent_password)
+                    parent_user.save(update_fields=["password"])
+                parent, _ = Parent.objects.get_or_create(user=parent_user)
+                ParentStudentLink.objects.get_or_create(parent=parent, student=student)
+
+            return student
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            raise serializers.ValidationError({"detail": f"Ошибка сервера: {str(e)}"})
 
     @transaction.atomic
     def update(self, instance, validated_data):
