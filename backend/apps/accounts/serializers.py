@@ -125,7 +125,7 @@ class MeUpdateSerializer(serializers.ModelSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(write_only=True, min_length=8)
+    new_password = serializers.CharField(write_only=True)
 
     def validate_old_password(self, value):
         user = self.context["request"].user
@@ -136,7 +136,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class ResetPasswordSerializer(serializers.Serializer):
     user_id = serializers.UUIDField()
-    new_password = serializers.CharField(write_only=True, min_length=8)
+    new_password = serializers.CharField(write_only=True)
 
     def validate_user_id(self, value):
         try:

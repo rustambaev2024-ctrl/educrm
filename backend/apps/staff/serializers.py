@@ -24,7 +24,7 @@ class StaffSerializer(serializers.ModelSerializer):
         source="user.role",
         choices=["director", "admin", "branch_admin", "teacher"],
     )
-    password = serializers.CharField(write_only=True, required=False, min_length=8)
+    password = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Staff

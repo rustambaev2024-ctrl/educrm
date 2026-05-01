@@ -236,9 +236,10 @@ function CreateStudentSheet({
 }) {
   const { t } = useI18n();
   const { branches } = useData();
+  const genPin = () => String(Math.floor(100000 + Math.random() * 900000));
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState(genPin);
   const [birthDate, setBirthDate] = useState("");
   const [studentPhotoFile, setStudentPhotoFile] = useState<File | undefined>();
   const [studentPhotoPreview, setStudentPhotoPreview] = useState("");
@@ -247,12 +248,12 @@ function CreateStudentSheet({
   const [hasParent, setHasParent] = useState(false);
   const [parentName, setParentName] = useState("");
   const [parentPhone, setParentPhone] = useState("");
-  const [parentPassword, setParentPassword] = useState("");
+  const [parentPassword, setParentPassword] = useState(genPin);
 
   const reset = () => {
     setFullName("");
     setPhone("");
-    setPassword("");
+    setPassword(genPin());
     setBirthDate("");
     setStudentPhotoFile(undefined);
     setStudentPhotoPreview("");
@@ -260,7 +261,7 @@ function CreateStudentSheet({
     setHasParent(false);
     setParentName("");
     setParentPhone("");
-    setParentPassword("");
+    setParentPassword(genPin());
   };
 
   const submit = () => {
@@ -340,9 +341,9 @@ function CreateStudentSheet({
                 <PhoneInput id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Parol (ixtiyoriy)</Label>
-                <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="Bo'sh qoldirsa: ChangeMe123" />
-                <p className="text-[11px] text-muted-foreground">Login qilish uchun foydalaniladi. Bo'sh qoldirsa, avtomatik "ChangeMe123" qo'yiladi.</p>
+                <Label htmlFor="password">O'quvchi paroli</Label>
+                <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+                <p className="text-[11px] text-muted-foreground">Avtomatik 6 xonali parol yaratildi. Xohlasangiz o'zgartiring.</p>
               </div>
             </div>
             
@@ -401,7 +402,8 @@ function CreateStudentSheet({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="parentPassword">Ota-ona paroli</Label>
-                    <PasswordInput id="parentPassword" value={parentPassword} onChange={(e) => setParentPassword(e.target.value)} autoComplete="new-password" placeholder="Avtomatik: ChangeMe123" />
+                    <PasswordInput id="parentPassword" value={parentPassword} onChange={(e) => setParentPassword(e.target.value)} autoComplete="new-password" />
+                    <p className="text-[11px] text-muted-foreground">Avtomatik 6 xonali parol yaratildi.</p>
                   </div>
                 </div>
               </div>
@@ -434,8 +436,8 @@ function StudentDetailSheet({
 
   const handleUpdateStudentPassword = () => {
     if (!student) return;
-    if (!newStudentPassword.trim() || newStudentPassword.length < 8) {
-      toast.error("Parol kamida 8 ta belgidan iborat bo'lishi kerak");
+    if (!newStudentPassword.trim()) {
+      toast.error("Parolni kiriting");
       return;
     }
     updateStudentPasswords(student.id, newStudentPassword.trim(), undefined);
@@ -445,8 +447,8 @@ function StudentDetailSheet({
 
   const handleUpdateParentPassword = () => {
     if (!student) return;
-    if (!newParentPassword.trim() || newParentPassword.length < 8) {
-      toast.error("Parol kamida 8 ta belgidan iborat bo'lishi kerak");
+    if (!newParentPassword.trim()) {
+      toast.error("Parolni kiriting");
       return;
     }
     updateStudentPasswords(student.id, undefined, newParentPassword.trim());
