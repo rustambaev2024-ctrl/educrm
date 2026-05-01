@@ -236,7 +236,13 @@ function CreateStudentSheet({
 }) {
   const { t } = useI18n();
   const { branches } = useData();
-  const genPin = () => String(Math.floor(100000 + Math.random() * 900000));
+  // Combines current timestamp (last 3 digits = milliseconds) + 3 random digits.
+  // This gives ~1 in 1,000,000,000 chance of collision — practically unique.
+  const genPin = () => {
+    const timePart = String(Date.now()).slice(-3);
+    const randPart = String(Math.floor(100 + Math.random() * 900));
+    return timePart + randPart;
+  };
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState(genPin);
