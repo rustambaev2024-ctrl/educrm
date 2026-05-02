@@ -73,17 +73,51 @@ class GroupViewSet(
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     queryset = Group.objects.select_related("course", "branch", "teacher").all().order_by("name")
     serializer_class = GroupSerializer
 
     def get_permissions(self):
-        if self.action in ("create", "add_student", "remove_student"):
+        if self.action in (
+            "create",
+            "update",
+            "partial_update",
+            "destroy",
+            "add_student",
+            "remove_student",
+        ):
             permission_classes = [IsBranchAdmin]
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
+
+    def destroy(self, request, *args, **kwargs):
+        group = self.get_object()
+        active_students_count = group.memberships.filter(left_at__isnull=True).count()
+        if active_students_count:
+            return Response(
+                {
+                    "detail": (
+                        "Group has active students and cannot be deleted. "
+                        "Remove students from the group first."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if group.lessons.exists():
+            return Response(
+                {
+                    "detail": (
+                        "Group has lessons and cannot be deleted. "
+                        "Archive or complete the group instead."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
