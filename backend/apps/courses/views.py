@@ -17,12 +17,18 @@ from .serializers import (
 )
 
 
-class CourseViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+class CourseViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     queryset = Course.objects.all().order_by("name")
     serializer_class = CourseSerializer
 
     def get_permissions(self):
-        if self.action == "create":
+        if self.action in ("create", "update", "partial_update", "destroy"):
             permission_classes = [IsBranchAdmin]
         else:
             permission_classes = [permissions.IsAuthenticated]
@@ -30,6 +36,15 @@ class CourseViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gen
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        course = self.get_object()
+        if course.groups.exists():
+            return Response(
+                {"detail": "Course has groups and cannot be deleted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
         qs = super().get_queryset()

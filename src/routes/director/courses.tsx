@@ -1,6 +1,6 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { BookOpen, Layers, Plus, Search } from "lucide-react";
+import { BookOpen, Layers, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -21,9 +31,11 @@ import { useData } from "@/lib/data/store";
 export const Route = createFileRoute("/director/courses")({ component: DirectorCoursesPage });
 
 function DirectorCoursesPage() {
-  const { courses, groups, addCourse } = useData();
+  const { courses, groups, addCourse, updateCourse, deleteCourse } = useData();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [deleteCourseId, setDeleteCourseId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -45,6 +57,27 @@ function DirectorCoursesPage() {
     );
   }, [courses, groups]);
 
+  const editingCourse = editingCourseId ? courses.find((course) => course.id === editingCourseId) : null;
+  const deletingCourse = deleteCourseId ? courses.find((course) => course.id === deleteCourseId) : null;
+
+  const resetForm = () => {
+    setEditingCourseId(null);
+    setName("");
+    setDescription("");
+  };
+
+  const openCreate = () => {
+    resetForm();
+    setOpen(true);
+  };
+
+  const openEdit = (course: { id: string; name: string; description?: string }) => {
+    setEditingCourseId(course.id);
+    setName(course.name);
+    setDescription(course.description ?? "");
+    setOpen(true);
+  };
+
   const submit = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -52,17 +85,36 @@ function DirectorCoursesPage() {
       return;
     }
 
-    const duplicate = courses.some((course) => course.name.trim().toLowerCase() === trimmedName.toLowerCase());
+    const duplicate = courses.some(
+      (course) => course.id !== editingCourseId && course.name.trim().toLowerCase() === trimmedName.toLowerCase(),
+    );
     if (duplicate) {
       toast.error("Bu nomdagi kurs allaqachon mavjud");
       return;
     }
 
-    addCourse({ name: trimmedName, description: description.trim() || undefined });
-    toast.success("Kurs yaratildi");
-    setName("");
-    setDescription("");
+    if (editingCourseId) {
+      updateCourse(editingCourseId, { name: trimmedName, description: description.trim() || "" });
+      toast.success("Kurs yangilandi");
+    } else {
+      addCourse({ name: trimmedName, description: description.trim() || undefined });
+      toast.success("Kurs yaratildi");
+    }
+    resetForm();
     setOpen(false);
+  };
+
+  const confirmDelete = () => {
+    if (!deletingCourse) return;
+    const stats = courseStats[deletingCourse.id] ?? { groupsCount: 0, studentsCount: 0 };
+    if (stats.groupsCount > 0) {
+      toast.error("Bu kursda guruhlar bor. Avval guruhlarni boshqa kursga o'tkazing yoki o'chiring.");
+      setDeleteCourseId(null);
+      return;
+    }
+    deleteCourse(deletingCourse.id);
+    toast.success("Kurs o'chirildi");
+    setDeleteCourseId(null);
   };
 
   return (
@@ -71,7 +123,7 @@ function DirectorCoursesPage() {
         title="Kurslar"
         description="Muassasa bo'yicha barcha o'quv yo'nalishlarini direktor yaratadi va boshqaradi"
         actions={
-          <Button onClick={() => setOpen(true)} className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant">
+          <Button onClick={openCreate} className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant">
             <Plus className="size-4" /> Kurs qo'shish
           </Button>
         }
@@ -107,7 +159,7 @@ function DirectorCoursesPage() {
               </div>
               <h3 className="mt-4 font-semibold">Hali kurs yo'q</h3>
               <p className="mt-1 text-sm text-muted-foreground">Birinchi kursni yarating: masalan English A1, Math Foundation yoki IELTS.</p>
-              <Button onClick={() => setOpen(true)} className="mt-4 gap-2">
+              <Button onClick={openCreate} className="mt-4 gap-2">
                 <Plus className="size-4" /> Kurs qo'shish
               </Button>
             </div>
@@ -126,6 +178,21 @@ function DirectorCoursesPage() {
                         <p className="mt-1 line-clamp-2 min-h-10 text-sm text-muted-foreground">
                           {course.description || "Tavsif kiritilmagan"}
                         </p>
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <Button type="button" variant="ghost" size="icon" className="size-8" title="Kursni tahrirlash" onClick={() => openEdit(course)}>
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-destructive hover:text-destructive"
+                          title="Kursni o'chirish"
+                          onClick={() => setDeleteCourseId(course.id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                       </div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
@@ -146,12 +213,18 @@ function DirectorCoursesPage() {
         </Card>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (!nextOpen) resetForm();
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Kurs qo'shish</DialogTitle>
+            <DialogTitle>{editingCourse ? "Kursni tahrirlash" : "Kurs qo'shish"}</DialogTitle>
             <DialogDescription>
-              Bu yerda faqat o'quv yo'nalishi yaratiladi. Guruh, o'qituvchi, xona va jadval keyingi bosqichda belgilanadi.
+              Direktor kurs nomi va tavsifini boshqaradi. Guruh, o'qituvchi, xona va jadval alohida belgilanadi.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
@@ -171,10 +244,29 @@ function DirectorCoursesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Bekor qilish</Button>
-            <Button onClick={submit}>Yaratish</Button>
+            <Button onClick={submit}>{editingCourse ? "Saqlash" : "Yaratish"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteCourseId} onOpenChange={(nextOpen) => !nextOpen && setDeleteCourseId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kurs o'chirilsinmi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingCourse
+                ? `"${deletingCourse.name}" kursi o'chiriladi. Guruhlarga bog'langan kurslarni o'chirish mumkin emas.`
+                : "Tanlangan kurs o'chiriladi."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              O'chirish
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

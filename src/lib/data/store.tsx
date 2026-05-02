@@ -140,6 +140,8 @@ interface DataStoreActions {
   setLessonStatus: (id: string, status: Lesson["status"], cancelReason?: string) => void;
   rescheduleLesson: (id: string, datetime: string) => void;
   addCourse: (input: Omit<Course, "id">) => Course;
+  updateCourse: (id: string, patch: Partial<Omit<Course, "id">>) => void;
+  deleteCourse: (id: string) => void;
   setAttendance: (lessonId: string, records: { studentId: string; status: AttendanceStatus; comment?: string }[]) => void;
   getAttendanceFor: (lessonId: string) => AttendanceRecord[];
   addPayment: (input: Omit<Payment, "id">) => Payment;
@@ -994,6 +996,25 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     return c;
   }, []);
 
+  const updateCourse: DataStoreActions["updateCourse"] = useCallback((id, patch) => {
+    const snapshot = courses;
+    setCourses((prev) => prev.map((course) => (course.id === id ? { ...course, ...patch } : course)));
+    fireAndForget(
+      "updateCourse",
+      courseApi.update(id, snake(patch as AnyRecord) as never).then((raw) => {
+        const persisted = courseFromRaw(raw as CourseRaw);
+        setCourses((prev) => prev.map((course) => (course.id === id ? persisted : course)));
+      }),
+      () => setCourses(snapshot),
+    );
+  }, [courses]);
+
+  const deleteCourse: DataStoreActions["deleteCourse"] = useCallback((id) => {
+    const snapshot = courses;
+    setCourses((prev) => prev.filter((course) => course.id !== id));
+    fireAndForget("deleteCourse", courseApi.delete(id), () => setCourses(snapshot));
+  }, [courses]);
+
   const setAttendance: DataStoreActions["setAttendance"] = useCallback((lessonId, records) => {
     const snapshot = attendance;
     setAttendanceState((prev) => {
@@ -1582,6 +1603,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setLessonStatus,
       rescheduleLesson,
       addCourse,
+      updateCourse,
+      deleteCourse,
       setAttendance,
       getAttendanceFor,
       addPayment,
@@ -1613,7 +1636,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       updateStaff,
       deleteStaff,
     }),
-    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, deleteStudent, syncParentChild, updateStudentPasswords, addGroup, updateGroup, deleteGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, setAttendance, getAttendanceFor, addPayment, applyInvoicePayment, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
+    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, deleteStudent, syncParentChild, updateStudentPasswords, addGroup, updateGroup, deleteGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, updateCourse, deleteCourse, setAttendance, getAttendanceFor, addPayment, applyInvoicePayment, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
