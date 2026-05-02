@@ -35,6 +35,7 @@ import { Route as StudentScheduleRouteImport } from './routes/student/schedule'
 import { Route as StudentProfileRouteImport } from './routes/student/profile'
 import { Route as StudentMessagesRouteImport } from './routes/student/messages'
 import { Route as StudentHomeworkRouteImport } from './routes/student/homework'
+import { Route as StudentGradesRouteImport } from './routes/student/grades'
 import { Route as ParentProfileRouteImport } from './routes/parent/profile'
 import { Route as ParentMessagesRouteImport } from './routes/parent/messages'
 import { Route as ParentChildrenRouteImport } from './routes/parent/children'
@@ -183,6 +184,11 @@ const StudentHomeworkRoute = StudentHomeworkRouteImport.update({
   path: '/homework',
   getParentRoute: () => StudentRouteRoute,
 } as any)
+const StudentGradesRoute = StudentGradesRouteImport.update({
+  id: '/grades',
+  path: '/grades',
+  getParentRoute: () => StudentRouteRoute,
+} as any)
 const ParentProfileRoute = ParentProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -295,6 +301,7 @@ export interface FileRoutesByFullPath {
   '/parent/children': typeof ParentChildrenRoute
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
+  '/student/grades': typeof StudentGradesRoute
   '/student/homework': typeof StudentHomeworkRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/profile': typeof StudentProfileRoute
@@ -334,6 +341,7 @@ export interface FileRoutesByTo {
   '/parent/children': typeof ParentChildrenRoute
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
+  '/student/grades': typeof StudentGradesRoute
   '/student/homework': typeof StudentHomeworkRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/profile': typeof StudentProfileRoute
@@ -380,6 +388,7 @@ export interface FileRoutesById {
   '/parent/children': typeof ParentChildrenRoute
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
+  '/student/grades': typeof StudentGradesRoute
   '/student/homework': typeof StudentHomeworkRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/profile': typeof StudentProfileRoute
@@ -427,6 +436,7 @@ export interface FileRouteTypes {
     | '/parent/children'
     | '/parent/messages'
     | '/parent/profile'
+    | '/student/grades'
     | '/student/homework'
     | '/student/messages'
     | '/student/profile'
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/parent/children'
     | '/parent/messages'
     | '/parent/profile'
+    | '/student/grades'
     | '/student/homework'
     | '/student/messages'
     | '/student/profile'
@@ -511,6 +522,7 @@ export interface FileRouteTypes {
     | '/parent/children'
     | '/parent/messages'
     | '/parent/profile'
+    | '/student/grades'
     | '/student/homework'
     | '/student/messages'
     | '/student/profile'
@@ -726,6 +738,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentHomeworkRouteImport
       parentRoute: typeof StudentRouteRoute
     }
+    '/student/grades': {
+      id: '/student/grades'
+      path: '/grades'
+      fullPath: '/student/grades'
+      preLoaderRoute: typeof StudentGradesRouteImport
+      parentRoute: typeof StudentRouteRoute
+    }
     '/parent/profile': {
       id: '/parent/profile'
       path: '/profile'
@@ -919,6 +938,7 @@ const ParentRouteRouteWithChildren = ParentRouteRoute._addFileChildren(
 )
 
 interface StudentRouteRouteChildren {
+  StudentGradesRoute: typeof StudentGradesRoute
   StudentHomeworkRoute: typeof StudentHomeworkRoute
   StudentMessagesRoute: typeof StudentMessagesRoute
   StudentProfileRoute: typeof StudentProfileRoute
@@ -927,6 +947,7 @@ interface StudentRouteRouteChildren {
 }
 
 const StudentRouteRouteChildren: StudentRouteRouteChildren = {
+  StudentGradesRoute: StudentGradesRoute,
   StudentHomeworkRoute: StudentHomeworkRoute,
   StudentMessagesRoute: StudentMessagesRoute,
   StudentProfileRoute: StudentProfileRoute,
