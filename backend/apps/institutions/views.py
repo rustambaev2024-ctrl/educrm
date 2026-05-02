@@ -1,5 +1,6 @@
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
@@ -103,3 +104,22 @@ class RoomViewSet(viewsets.ModelViewSet):
         if branch_id:
             scoped = scoped.filter(branch_id=branch_id)
         return scoped
+
+    def perform_destroy(self, instance):
+        from apps.courses.models import Group
+
+        active_groups = Group.objects.filter(
+            room=instance,
+            status__in=["recruiting", "active"],
+        )
+        if active_groups.exists():
+            group_names = ", ".join(active_groups.values_list("name", flat=True)[:3])
+            raise ValidationError(
+                {
+                    "detail": (
+                        f"Кабинет используется группами: {group_names}. "
+                        "Сначала переназначьте группы на другой кабинет."
+                    )
+                }
+            )
+        instance.delete()
