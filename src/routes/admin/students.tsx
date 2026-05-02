@@ -240,8 +240,6 @@ function CreateStudentSheet({
     phone: string;
     password?: string;
     birthDate?: string;
-    photo?: string;
-    photoFile?: File;
     documentFile?: File;
     documentType?: string;
     branchId: string;
@@ -263,8 +261,6 @@ function CreateStudentSheet({
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState(genPin);
   const [birthDate, setBirthDate] = useState("");
-  const [studentPhotoFile, setStudentPhotoFile] = useState<File | undefined>();
-  const [studentPhotoPreview, setStudentPhotoPreview] = useState("");
   const [documentFile, setDocumentFile] = useState<File | undefined>();
   const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
   const [hasParent, setHasParent] = useState(false);
@@ -277,8 +273,6 @@ function CreateStudentSheet({
     setPhone("");
     setPassword(genPin());
     setBirthDate("");
-    setStudentPhotoFile(undefined);
-    setStudentPhotoPreview("");
     setDocumentFile(undefined);
     setHasParent(false);
     setParentName("");
@@ -287,7 +281,7 @@ function CreateStudentSheet({
   };
 
   const submit = () => {
-    if (!fullName.trim() || !phone.trim() || !branchId || !studentPhotoFile) {
+    if (!fullName.trim() || !phone.trim() || !branchId) {
       toast.error(t("validation.fillAll"));
       return;
     }
@@ -300,8 +294,6 @@ function CreateStudentSheet({
       phone: phone.trim(),
       password: password.trim() || undefined,
       birthDate: birthDate || undefined,
-      photo: studentPhotoPreview,
-      photoFile: studentPhotoFile,
       documentFile,
       documentType: "passport",
       branchId,
@@ -321,31 +313,6 @@ function CreateStudentSheet({
         </SheetHeader>
         <div className="space-y-6 px-1 py-6">
           <section className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="studentPhoto">O'quvchi rasmi *</Label>
-              <div className="flex items-center gap-4">
-                <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-border bg-muted/50 text-xs text-muted-foreground shadow-sm">
-                  {studentPhotoPreview ? (
-                    <img src={studentPhotoPreview} alt="Student" className="size-full object-cover" />
-                  ) : (
-                    <span className="text-center text-[10px]">Rasm<br/>yuklash</span>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <Input
-                    id="studentPhoto"
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      setStudentPhotoFile(file);
-                      setStudentPhotoPreview(file ? URL.createObjectURL(file) : "");
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-            
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="fullName">{t("students.field.fullName")} *</Label>

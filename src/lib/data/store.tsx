@@ -120,7 +120,6 @@ type AddStudentInput = Omit<Student, "id" | "registeredAt" | "balance" | "groupI
   parentName?: string;
   parentPhone?: string;
   parentPassword?: string;
-  photoFile?: File;
   documentFile?: File;
   documentType?: string;
 };
@@ -755,7 +754,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       fullName: input.fullName,
       phone: input.phone,
       birthDate: input.birthDate,
-      photo: input.photoFile ? URL.createObjectURL(input.photoFile) : input.photo,
+      photo: input.photo,
       branchId: input.branchId,
       status: "active",
       registeredAt: new Date().toISOString().slice(0, 10),
@@ -781,7 +780,6 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     if (input.parentName) formData.append("parent_full_name", input.parentName);
     if (input.parentPhone) formData.append("parent_phone", input.parentPhone);
     if (input.parentPassword) formData.append("parent_password", input.parentPassword);
-    if (input.photoFile) formData.append("photo", input.photoFile);
     if (input.documentFile) {
       formData.append("document_file", input.documentFile);
       formData.append("document_type", input.documentType ?? "passport");

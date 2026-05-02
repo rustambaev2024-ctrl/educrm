@@ -56,9 +56,6 @@ class StudentSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         user_data = attrs.get("user", {})
-        if self.instance is None and not user_data.get("photo"):
-            raise serializers.ValidationError({"photo": "Student photo is required."})
-            
         phone = user_data.get("phone")
         if phone and self.instance is None:
             if User.objects.filter(phone=phone).exists():
