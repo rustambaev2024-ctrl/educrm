@@ -31,7 +31,10 @@ function SchedulePage() {
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => startOfWeek(new Date()));
   const [selected, setSelected] = useState<Lesson | null>(null);
 
-  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekAnchor, i)), [weekAnchor]);
+  const days = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekAnchor, i)),
+    [weekAnchor],
+  );
 
   const lessonsByDay = useMemo(() => {
     const map = new Map<string, Lesson[]>();
@@ -60,15 +63,27 @@ function SchedulePage() {
         description={t("schedule.subtitle")}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}
+            >
               <ChevronLeft className="size-4" />
               <span className="hidden sm:inline">{t("schedule.prev")}</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setWeekAnchor(startOfWeek(new Date()))}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekAnchor(startOfWeek(new Date()))}
+            >
               <Calendar className="mr-1 size-4" />
               {t("schedule.today")}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}
+            >
               <span className="hidden sm:inline">{t("schedule.next")}</span>
               <ChevronRight className="size-4" />
             </Button>
@@ -79,68 +94,99 @@ function SchedulePage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="size-4" />
           <span>
-            {t("schedule.weekRange")}: {weekStartLabel} — {weekEndLabel}
+            {t("schedule.weekRange")}: {weekStartLabel} - {weekEndLabel}
           </span>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-7">
-          {days.map((day) => {
-            const isToday = sameDay(day, today);
-            const list = lessonsByDay.get(day.toDateString()) ?? [];
-            return (
-              <Card
-                key={day.toISOString()}
-                className={`flex min-h-48 flex-col gap-2 p-3 shadow-elegant ${isToday ? "border-primary/40 ring-1 ring-primary/20" : ""}`}
-              >
-                <div className="flex items-baseline justify-between border-b border-border/60 pb-2">
-                  <div>
-                    <div className={`text-[11px] font-semibold uppercase tracking-wider ${isToday ? "text-primary" : "text-muted-foreground"}`}>
-                      {dayLabel(((day.getDay() + 6) % 7) + 1, lang, true)}
+        <div className="-mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
+          <div className="grid min-w-[1180px] grid-cols-7 gap-3 lg:min-w-0">
+            {days.map((day) => {
+              const isToday = sameDay(day, today);
+              const list = lessonsByDay.get(day.toDateString()) ?? [];
+              return (
+                <Card
+                  key={day.toISOString()}
+                  className={`flex h-[min(66vh,680px)] min-h-80 flex-col overflow-hidden p-0 shadow-elegant ${isToday ? "border-primary/40 ring-1 ring-primary/20" : ""}`}
+                >
+                  <div className="flex shrink-0 items-start justify-between border-b border-border/60 bg-card/95 p-3">
+                    <div>
+                      <div
+                        className={`text-[11px] font-semibold uppercase tracking-wider ${isToday ? "text-primary" : "text-muted-foreground"}`}
+                      >
+                        {dayLabel(((day.getDay() + 6) % 7) + 1, lang, true)}
+                      </div>
+                      <div
+                        className={`text-xl font-bold leading-none ${isToday ? "text-primary" : ""}`}
+                      >
+                        {day.getDate()}
+                      </div>
                     </div>
-                    <div className={`text-lg font-bold leading-none ${isToday ? "text-primary" : ""}`}>{day.getDate()}</div>
-                  </div>
-                  {list.length > 0 && (
-                    <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                    <Badge
+                      variant={list.length > 0 ? "default" : "outline"}
+                      className="h-6 min-w-6 justify-center px-1.5 text-[11px]"
+                    >
                       {list.length}
                     </Badge>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col gap-1.5">
-                  {list.length === 0 && (
-                    <div className="flex flex-1 items-center justify-center text-center text-[11px] text-muted-foreground/70">
-                      {t("schedule.empty")}
-                    </div>
-                  )}
-                  {list.map((lesson) => {
-                    const group = groupById[lesson.groupId];
-                    if (!group) return null;
-                    const teacher = teacherById[group.teacherId];
-                    const cancelled = lesson.status === "cancelled";
-                    const completed = lesson.status === "completed";
-                    return (
-                      <button
-                        key={lesson.id}
-                        onClick={() => setSelected(lesson)}
-                        className={`group rounded-md border border-border/60 bg-card p-2 text-left text-xs transition-all hover:border-primary/40 hover:shadow-sm ${cancelled ? "opacity-50" : ""}`}
-                      >
-                        <div className="flex items-center gap-1 text-[11px] font-semibold text-primary">
-                          <Clock className="size-3" />
-                          {formatTime(lesson.datetime)}
-                        </div>
-                        <div className={`mt-0.5 truncate font-medium ${cancelled ? "line-through" : ""}`}>{group.name}</div>
-                        <div className="truncate text-[10px] text-muted-foreground">{teacher?.fullName}</div>
-                        {(cancelled || completed || lesson.status === "rescheduled") && (
-                          <div className="mt-1">
-                            <LessonStatusBadge status={lesson.status} />
+                  </div>
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2 pr-1.5">
+                    {list.length === 0 && (
+                      <div className="flex h-full min-h-40 items-center justify-center rounded-lg border border-dashed border-border/70 text-center text-[11px] text-muted-foreground/70">
+                        {t("schedule.empty")}
+                      </div>
+                    )}
+                    {list.map((lesson) => {
+                      const group = groupById[lesson.groupId];
+                      if (!group) return null;
+                      const teacher = teacherById[group.teacherId];
+                      const room = roomById[lesson.roomId];
+                      const cancelled = lesson.status === "cancelled";
+                      const completed = lesson.status === "completed";
+                      const statusTone =
+                        lesson.status === "completed"
+                          ? "bg-emerald-500"
+                          : lesson.status === "cancelled"
+                            ? "bg-destructive"
+                            : lesson.status === "rescheduled"
+                              ? "bg-amber-500"
+                              : "bg-primary";
+                      return (
+                        <button
+                          key={lesson.id}
+                          onClick={() => setSelected(lesson)}
+                          className={`group w-full rounded-xl border border-border/70 bg-muted/20 p-2.5 text-left text-xs transition-all hover:border-primary/50 hover:bg-primary/5 hover:shadow-sm ${cancelled ? "opacity-55" : ""}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+                              <Clock className="size-3" />
+                              {formatTime(lesson.datetime)}
+                            </div>
+                            <span className={`size-2 rounded-full ${statusTone}`} />
                           </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Card>
-            );
-          })}
+                          <div
+                            className={`mt-1 line-clamp-2 min-h-8 font-semibold leading-4 ${cancelled ? "line-through" : ""}`}
+                          >
+                            {group.name}
+                          </div>
+                          <div className="mt-1 flex items-center gap-1 truncate text-[10px] text-muted-foreground">
+                            <MapPin className="size-3 shrink-0" />
+                            <span className="truncate">{room?.name ?? "-"}</span>
+                          </div>
+                          <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                            {teacher?.fullName ?? "-"}
+                          </div>
+                          {(cancelled || completed || lesson.status === "rescheduled") && (
+                            <div className="mt-2">
+                              <LessonStatusBadge status={lesson.status} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -188,7 +234,7 @@ function LessonDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-24px)] max-w-2xl overflow-y-auto">
         {lesson && group && (
           <>
             <DialogHeader>
@@ -197,32 +243,66 @@ function LessonDetailDialog({
                 <LessonStatusBadge status={lesson.status} />
               </DialogTitle>
               <DialogDescription>
-                {course?.name} · {formatDate(lesson.datetime, lang)}
+                {course?.name} - {formatDate(lesson.datetime, lang)}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
-                <Field icon={Clock} label={t("common.today")} value={`${formatTime(lesson.datetime)} · ${lesson.durationMinutes} ${lang === "uz" ? "daqiqa" : "мин"}`} />
-                <Field icon={MapPin} label={t("groups.field.room")} value={room?.name ?? "—"} />
-                <Field icon={Users} label={t("groups.field.students")} value={`${group.studentIds.length} / ${group.capacity}`} />
-                <Field icon={Users} label={t("groups.field.teacher")} value={teacher?.fullName ?? "—"} />
+              <div className="grid gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 sm:grid-cols-2">
+                <Field
+                  icon={Clock}
+                  label={t("common.today")}
+                  value={`${formatTime(lesson.datetime)} - ${lesson.durationMinutes} ${lang === "uz" ? "daqiqa" : "min"}`}
+                />
+                <Field icon={MapPin} label={t("groups.field.room")} value={room?.name ?? "-"} />
+                <Field
+                  icon={Users}
+                  label={t("groups.field.students")}
+                  value={`${group.studentIds.length} / ${group.capacity}`}
+                />
+                <Field
+                  icon={Users}
+                  label={t("groups.field.teacher")}
+                  value={teacher?.fullName ?? "-"}
+                />
               </div>
 
               {lesson.status === "scheduled" && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="reason" className="text-xs">{t("schedule.cancelReason")}</Label>
-                    <Textarea id="reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="..." rows={2} />
+                    <Label htmlFor="reason" className="text-xs">
+                      {t("schedule.cancelReason")}
+                    </Label>
+                    <Textarea
+                      id="reason"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="..."
+                      rows={2}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label htmlFor="newDate" className="text-xs">{t("groups.field.startDate")}</Label>
-                      <Input id="newDate" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
+                      <Label htmlFor="newDate" className="text-xs">
+                        {t("groups.field.startDate")}
+                      </Label>
+                      <Input
+                        id="newDate"
+                        type="date"
+                        value={newDate}
+                        onChange={(e) => setNewDate(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="newTime" className="text-xs">{t("common.today")}</Label>
-                      <Input id="newTime" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
+                      <Label htmlFor="newTime" className="text-xs">
+                        {t("common.today")}
+                      </Label>
+                      <Input
+                        id="newTime"
+                        type="time"
+                        value={newTime}
+                        onChange={(e) => setNewTime(e.target.value)}
+                      />
                     </div>
                   </div>
                 </>
