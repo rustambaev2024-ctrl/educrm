@@ -1,8 +1,8 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
-import { ChatFrozenNotice } from "@/components/edu/chat-frozen-notice";
+import { MessengerPanel } from "@/components/edu/messenger-panel";
 
 export const Route = createFileRoute("/student/messages")({ component: MessagesPage });
 
 function MessagesPage() {
-  return <ChatFrozenNotice />;
+  return <MessengerPanel mobileMode />;
 }
