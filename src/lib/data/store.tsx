@@ -233,10 +233,22 @@ function apiErrorMessage(err: unknown): string {
   if (body && typeof body === "object") {
     const values = Object.values(body as Record<string, unknown>).flat();
     const first = values.find(Boolean);
-    if (typeof first === "string") return first;
-    if (Array.isArray(first) && typeof first[0] === "string") return first[0];
+    if (typeof first === "string") return friendlyApiMessage(first);
+    if (Array.isArray(first) && typeof first[0] === "string") return friendlyApiMessage(first[0]);
   }
-  return "Не удалось сохранить. Проверьте данные и попробуйте ещё раз.";
+  return "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ. РџСЂРѕРІРµСЂСЊС‚Рµ РґР°РЅРЅС‹Рµ Рё РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.";
+}
+function friendlyApiMessage(message: string): string {
+  if (message.includes("Group has lessons and cannot be deleted")) {
+    return "Bu guruhda darslar bor. Uni o'chirib bo'lmaydi. Guruhni tugallangan holatiga o'tkazing.";
+  }
+  if (message.includes("Group has active students and cannot be deleted")) {
+    return "Bu guruhda faol o'quvchilar bor. Avval o'quvchilarni guruhdan olib tashlang.";
+  }
+  if (message.includes("Course has groups and cannot be deleted")) {
+    return "Bu kursga guruhlar biriktirilgan. Avval guruhlarni tugallang yoki boshqa kursga o'tkazing.";
+  }
+  return message;
 }
 
 function roleAudience(role?: string): AppNotification["audience"][number] {
@@ -709,7 +721,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setAuditLog(toResults(auditRaw).map(auditFromRaw));
     } catch (err) {
       console.error("[store] reload failed:", err);
-      setLoadError("Не удалось загрузить данные");
+      setLoadError("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґР°РЅРЅС‹Рµ");
     } finally {
       setIsLoading(false);
       loadingRef.current = false;

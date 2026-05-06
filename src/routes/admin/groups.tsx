@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Users, Clock, MapPin, X, UserPlus, UserMinus, Edit, Trash } from "lucide-react";
+import { CheckCircle2, Plus, Search, Users, Clock, MapPin, X, UserPlus, UserMinus, Edit, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { GroupStatusBadge } from "@/components/edu/status-badge";
@@ -274,7 +274,7 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
 
 function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onClose: () => void; onEdit: () => void }) {
   const { t, lang } = useI18n();
-  const { students, courses, staff, rooms, addStudentToGroup, removeStudentFromGroup, lessons, deleteGroup } = useData();
+  const { students, courses, staff, rooms, addStudentToGroup, removeStudentFromGroup, lessons, deleteGroup, updateGroup } = useData();
   const open = group !== null;
   if (!group) return <Sheet open={open} onOpenChange={(v) => !v && onClose()}><SheetContent /></Sheet>;
 
@@ -284,6 +284,31 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
   const enrolled = students.filter((s) => group.studentIds.includes(s.id));
   const available = students.filter((s) => !group.studentIds.includes(s.id) && s.status !== "archived");
   const groupLessons = lessons.filter((l) => l.groupId === group.id).sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
+  const completeGroup = () => {
+    updateGroup(group.id, { status: "completed" });
+    toast.success("Guruh tugallangan holatiga o'tkazildi");
+  };
+  const handleDeleteGroup = () => {
+    if (groupLessons.length > 0) {
+      toast.warning("Bu guruhda darslar bor. Uni o'chirib bo'lmaydi.", {
+        description: "Tarix va davomat saqlanishi uchun guruhni tugallangan holatiga o'tkazing.",
+        action: {
+          label: "Tugallash",
+          onClick: completeGroup,
+        },
+      });
+      return;
+    }
+    if (group.studentIds.length > 0) {
+      toast.warning("Avval guruhdagi o'quvchilarni olib tashlang.");
+      return;
+    }
+    if (confirm("Guruhni butunlay o'chirishni xohlaysizmi?")) {
+      deleteGroup(group.id);
+      toast.success("Guruh o'chirildi");
+      onClose();
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -292,8 +317,13 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
           <div className="flex items-center justify-between">
             <SheetTitle className="text-left">{group.name}</SheetTitle>
             <div className="flex items-center gap-1">
+              {group.status !== "completed" && (
+                <Button variant="ghost" size="icon" onClick={completeGroup} className="text-muted-foreground hover:text-emerald-600" title="Guruhni tugallash">
+                  <CheckCircle2 className="size-4" />
+                </Button>
+              )}
               <Button variant="ghost" size="icon" onClick={onEdit} className="text-muted-foreground hover:text-foreground"><Edit className="size-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => { if (confirm("Guruhni o'chirishni xohlaysizmi?")) { deleteGroup(group.id); toast.success("Guruh o'chirildi"); onClose(); } }} className="text-destructive hover:text-destructive/80"><Trash className="size-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={handleDeleteGroup} className="text-destructive hover:text-destructive/80"><Trash className="size-4" /></Button>
               <Button variant="ghost" size="icon" onClick={onClose}><X className="size-4" /></Button>
             </div>
           </div>
