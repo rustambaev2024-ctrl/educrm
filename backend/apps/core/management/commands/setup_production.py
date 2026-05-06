@@ -46,7 +46,7 @@ class Command(BaseCommand):
             
             # Create your personal superadmin
             user = User.objects.create(
-                phone="+998914235141",
+                phone="+998912755141",
                 full_name="Super Admin",
                 role="superadmin",
                 is_staff=True,
@@ -55,4 +55,4 @@ class Command(BaseCommand):
             user.set_password("iyricc-8")
             user.save()
             
-        self.stdout.write(self.style.SUCCESS("Superadmin setup complete! Your account +998914235141 is ready."))
+        self.stdout.write(self.style.SUCCESS("Superadmin setup complete! Your account +998912755141 is ready."))
