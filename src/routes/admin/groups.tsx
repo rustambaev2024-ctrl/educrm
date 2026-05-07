@@ -289,17 +289,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
     toast.success("Guruh tugallangan holatiga o'tkazildi");
   };
   const handleDeleteGroup = () => {
-    if (groupLessons.length > 0) {
-      toast.warning("Bu guruhda darslar bor. Uni o'chirib bo'lmaydi.", {
-        description: "Tarix va davomat saqlanishi uchun guruhni tugallangan holatiga o'tkazing.",
-        action: {
-          label: "Tugallash",
-          onClick: completeGroup,
-        },
-      });
-      return;
-    }
-    if (group.studentIds.length > 0) {
+    if (enrolled.length > 0) {
       toast.warning("Avval guruhdagi o'quvchilarni olib tashlang.");
       return;
     }

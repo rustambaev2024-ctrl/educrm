@@ -107,16 +107,6 @@ class GroupViewSet(
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if group.lessons.exists():
-            return Response(
-                {
-                    "detail": (
-                        "Group has lessons and cannot be deleted. "
-                        "Archive or complete the group instead."
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
