@@ -230,15 +230,32 @@ function fireAndForget(label: string, task: Promise<unknown>, rollback?: () => v
 
 function apiErrorMessage(err: unknown): string {
   const body = (err as { body?: unknown })?.body;
-  if (body && typeof body === "object") {
-    const values = Object.values(body as Record<string, unknown>).flat();
-    const first = values.find(Boolean);
-    if (typeof first === "string") return friendlyApiMessage(first);
-    if (Array.isArray(first) && typeof first[0] === "string") return friendlyApiMessage(first[0]);
+  if (typeof body === "string" && body.trim()) {
+    return friendlyApiMessage(body);
   }
-  return "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ. РџСЂРѕРІРµСЂСЊС‚Рµ РґР°РЅРЅС‹Рµ Рё РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.";
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    const direct = record.detail ?? record.error ?? record.message ?? record.non_field_errors;
+    const message = firstText(direct) ?? firstText(Object.values(record));
+    if (message) return friendlyApiMessage(message);
+  }
+  return "Amalni bajarib bo'lmadi. Ma'lumotlarni tekshirib, qayta urinib ko'ring.";
+}
+
+function firstText(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = firstText(item);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 function friendlyApiMessage(message: string): string {
+  if (message.includes("РќРµ") || message.includes("Р Сњ")) {
+    return "Amalni bajarib bo'lmadi. Ma'lumotlarni tekshirib, qayta urinib ko'ring.";
+  }
   if (message.includes("Group has lessons and cannot be deleted")) {
     return "Bu guruhda darslar bor. Uni o'chirib bo'lmaydi. Guruhni tugallangan holatiga o'tkazing.";
   }
@@ -721,7 +738,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setAuditLog(toResults(auditRaw).map(auditFromRaw));
     } catch (err) {
       console.error("[store] reload failed:", err);
-      setLoadError("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґР°РЅРЅС‹Рµ");
+      setLoadError("Ma'lumotlarni yuklab bo'lmadi");
     } finally {
       setIsLoading(false);
       loadingRef.current = false;
