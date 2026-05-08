@@ -29,6 +29,7 @@ class Staff(models.Model):
     hire_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     salary_percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    fixed_salary = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
     class Meta:
         db_table = "staff_staff"

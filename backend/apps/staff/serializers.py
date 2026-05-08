@@ -40,6 +40,7 @@ class StaffSerializer(serializers.ModelSerializer):
             "hire_date",
             "status",
             "salary_percent",
+            "fixed_salary",
         )
         read_only_fields = ("id", "user_id")
 
