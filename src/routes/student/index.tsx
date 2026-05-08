@@ -161,7 +161,9 @@ function StudentHome() {
           ) : (
             myGroups.map((group) => {
               const course = courseById[group.courseId];
-              const progress = group.status === "completed" ? 100 : group.status === "active" ? 56 : 12;
+              const gLessons = lessons.filter((l) => l.groupId === group.id);
+              const completed = gLessons.filter((l) => l.status === "completed").length;
+              const progress = gLessons.length > 0 ? Math.round((completed / gLessons.length) * 100) : 0;
               return (
                 <Link
                   key={group.id}

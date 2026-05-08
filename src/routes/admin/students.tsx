@@ -240,8 +240,6 @@ function CreateStudentSheet({
     phone: string;
     password?: string;
     birthDate?: string;
-    documentFile?: File;
-    documentType?: string;
     branchId: string;
     parentName?: string;
     parentPhone?: string;
@@ -261,7 +259,7 @@ function CreateStudentSheet({
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState(genPin);
   const [birthDate, setBirthDate] = useState("");
-  const [documentFile, setDocumentFile] = useState<File | undefined>();
+
   const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
   const [hasParent, setHasParent] = useState(false);
   const [parentName, setParentName] = useState("");
@@ -273,7 +271,6 @@ function CreateStudentSheet({
     setPhone("");
     setPassword(genPin());
     setBirthDate("");
-    setDocumentFile(undefined);
     setHasParent(false);
     setParentName("");
     setParentPhone("");
@@ -294,8 +291,6 @@ function CreateStudentSheet({
       phone: phone.trim(),
       password: password.trim() || undefined,
       birthDate: birthDate || undefined,
-      documentFile,
-      documentType: "passport",
       branchId,
       parentName: hasParent ? parentName.trim() || undefined : undefined,
       parentPhone: hasParent ? parentPhone.trim() || undefined : undefined,
@@ -348,25 +343,7 @@ function CreateStudentSheet({
               </Select>
             </div>
             
-            <div className="space-y-2 rounded-xl border border-border/50 bg-muted/20 p-3">
-              <Label htmlFor="documentFile">Shaxsni tasdiqlovchi hujjat</Label>
-              <Input
-                id="documentFile"
-                type="file"
-                accept="image/*,.pdf"
-                className={documentFile ? "hidden" : ""}
-                onChange={(event) => setDocumentFile(event.target.files?.[0])}
-              />
-              {documentFile && (
-                <div className="flex items-center justify-between rounded-lg bg-background p-2 border border-border">
-                  <div className="truncate text-sm text-muted-foreground mr-2">{documentFile.name}</div>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDocumentFile(undefined)}>
-                    <X className="size-4" />
-                  </Button>
-                </div>
-              )}
-              <p className="text-[11px] text-muted-foreground mt-1">Pasport, ID karta yoki tug'ilganlik guvohnomasi (ixtiyoriy)</p>
-            </div>
+
           </section>
 
           <section className="space-y-4">
@@ -420,7 +397,7 @@ function StudentDetailSheet({
   onDelete: (id: string, deleteParent: boolean) => void;
 }) {
   const { t, lang } = useI18n();
-  const { groups, parents, updateStudentPasswords } = useData();
+  const { groups, parents, payments, updateStudentPasswords } = useData();
   const open = student !== null;
   const [newStudentPassword, setNewStudentPassword] = useState("");
   const [newParentPassword, setNewParentPassword] = useState("");
@@ -506,7 +483,6 @@ function StudentDetailSheet({
               <TabsTrigger value="main" className="flex-1">{t("students.tab.main")}</TabsTrigger>
               <TabsTrigger value="groups" className="flex-1">{t("students.tab.groups")}</TabsTrigger>
               <TabsTrigger value="finance" className="flex-1">{t("students.tab.finance")}</TabsTrigger>
-              <TabsTrigger value="documents" className="flex-1">{t("students.tab.documents")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="main" className="space-y-3 pt-4">
@@ -565,40 +541,36 @@ function StudentDetailSheet({
             </TabsContent>
 
             <TabsContent value="finance" className="space-y-2 pt-4">
-              <Card className="p-6 text-center text-sm text-muted-foreground">
-                {t("common.empty")}
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="documents" className="space-y-2 pt-4">
-              {!student.documents?.length ? (
-                <Card className="p-6 text-center text-sm text-muted-foreground">
-                  {t("students.docs.empty")}
-                </Card>
-              ) : (
-                student.documents.map((document) => (
-                  <Card key={document.id} className="p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate font-medium">{document.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {document.docType ?? "document"} · {formatDate(document.uploadedAt, lang)}
-                        </div>
+              {(() => {
+                const stuPayments = payments
+                  .filter((p) => p.studentId === student.id && p.direction === "in")
+                  .sort((a, b) => b.date.localeCompare(a.date));
+                if (stuPayments.length === 0) {
+                  return (
+                    <Card className="p-6 text-center text-sm text-muted-foreground">
+                      {t("finance.empty")}
+                    </Card>
+                  );
+                }
+                return stuPayments.map((p) => {
+                  const grp = p.groupId ? groups.find((g) => g.id === p.groupId) : undefined;
+                  return (
+                    <Card key={p.id} className="flex items-center gap-3 p-3">
+                      <div className="flex size-9 items-center justify-center rounded-lg bg-success/10 text-success">
+                        <Plus className="size-4" />
                       </div>
-                      {document.file && (
-                        <a
-                          href={document.file}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent"
-                        >
-                          Ko'rish
-                        </a>
-                      )}
-                    </div>
-                  </Card>
-                ))
-              )}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-success">+{formatMoney(p.amount, lang)}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {formatDate(p.date, lang)} · {t(`finance.method.${p.method}`)}
+                          {grp ? ` · ${grp.name}` : ""}
+                        </div>
+                        {p.comment && <div className="text-[11px] text-muted-foreground truncate">{p.comment}</div>}
+                      </div>
+                    </Card>
+                  );
+                });
+              })()}
             </TabsContent>
           </Tabs>
         </div>

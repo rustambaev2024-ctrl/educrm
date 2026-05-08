@@ -378,6 +378,7 @@ function staffFromRaw(raw: StaffRaw): Staff {
     role: toStaffRole(mapped.role),
     branchId: mapped.branchId || undefined,
     salaryPercent: mapped.salaryPercent,
+    fixedSalary: mapped.fixedSalary,
   };
 }
 
@@ -1608,6 +1609,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         password: input.password,
         role: input.role,
         branch: input.branchId,
+        salary_percent: input.salaryPercent ?? null,
+        fixed_salary: input.fixedSalary ?? null,
       } as never).then((raw) => {
         const persisted = staffFromRaw(raw as StaffRaw);
         setStaff((prev) => prev.map((s) => (s.id === created.id ? persisted : s)));
@@ -1631,6 +1634,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
           phone: staffPatch.phone,
           role: staffPatch.role,
           branch: staffPatch.branchId,
+          salary_percent: staffPatch.salaryPercent ?? null,
+          fixed_salary: staffPatch.fixedSalary ?? null,
         } as never),
       ),
       () => setStaff(snapshot),

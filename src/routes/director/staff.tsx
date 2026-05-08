@@ -41,9 +41,11 @@ interface FormState {
   password: string;
   role: StaffRole;
   branchId: string;
+  salaryPercent: string;
+  fixedSalary: string;
 }
 
-const empty: FormState = { fullName: "", phone: "", password: "", role: "teacher", branchId: "" };
+const empty: FormState = { fullName: "", phone: "", password: "", role: "teacher", branchId: "", salaryPercent: "40", fixedSalary: "2000000" };
 
 function StaffPage() {
   const { t, lang } = useI18n();
@@ -90,7 +92,15 @@ function StaffPage() {
 
   const openEdit = (s: Staff) => {
     setEditing(s);
-    setForm({ fullName: s.fullName, phone: s.phone, password: "", role: s.role, branchId: s.branchId ?? "" });
+    setForm({
+      fullName: s.fullName,
+      phone: s.phone,
+      password: "",
+      role: s.role,
+      branchId: s.branchId ?? "",
+      salaryPercent: String(s.salaryPercent ?? 40),
+      fixedSalary: String(s.fixedSalary ?? 2000000),
+    });
     setOpen(true);
   };
 
@@ -111,6 +121,8 @@ function StaffPage() {
       password: form.password.trim() || undefined,
       role: form.role,
       branchId: form.role === "director" ? undefined : form.branchId || undefined,
+      salaryPercent: form.role === "teacher" ? Number(form.salaryPercent) || 40 : undefined,
+      fixedSalary: form.role !== "teacher" ? Number(form.fixedSalary) || 0 : undefined,
     };
     if (editing) {
       updateStaff(editing.id, payload);
@@ -195,7 +207,13 @@ function StaffPage() {
                     <TableCell className="text-sm text-muted-foreground">{s.branchId ? branchById[s.branchId]?.name : "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{s.role === "teacher" ? s.groupsCount : "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{s.role === "teacher" ? s.studentsCount : "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">{s.lastSalary > 0 ? formatMoney(s.lastSalary, lang) : "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">
+                      {s.role === "teacher"
+                        ? `${s.salaryPercent ?? 40}%`
+                        : s.fixedSalary
+                          ? formatMoney(s.fixedSalary, lang)
+                          : s.lastSalary > 0 ? formatMoney(s.lastSalary, lang) : "—"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button size="icon" variant="ghost" onClick={() => openEdit(s)} title={t("staff.edit")}>
@@ -276,6 +294,33 @@ function StaffPage() {
                 </Select>
               </Field>
             </div>
+            {form.role === "teacher" ? (
+              <Field label={lang === "uz" ? "O'qituvchi foizi (%)" : "Процент учителя (%)"} >
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={form.salaryPercent}
+                  onChange={(e) => setForm({ ...form, salaryPercent: e.target.value })}
+                  placeholder="40"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {lang === "uz" ? "Kurs oylik narxidan foiz" : "Процент от месячной стоимости курса"}
+                </p>
+              </Field>
+            ) : form.role !== "director" ? (
+              <Field label={lang === "uz" ? "Belgilangan oylik (UZS)" : "Фиксированная зарплата (UZS)"}>
+                <Input
+                  type="number"
+                  min={0}
+                  step={100000}
+                  value={form.fixedSalary}
+                  onChange={(e) => setForm({ ...form, fixedSalary: e.target.value })}
+                  placeholder="2000000"
+                />
+              </Field>
+            ) : null}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>

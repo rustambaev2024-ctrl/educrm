@@ -21,7 +21,7 @@ export const Route = createFileRoute("/director/")({ component: DirectorHome });
 function DirectorHome() {
   const { t, lang } = useI18n();
   const {
-    students, groups, staff, courses, branches, payments, invoices, attendance, auditLog,
+    students, groups, staff, courses, branches, payments, invoices, lessons, attendance, auditLog,
   } = useData();
 
   const monthStart = useMemo(() => {
@@ -88,18 +88,24 @@ function DirectorHome() {
         const studentSet = new Set<string>();
         tGroups.forEach((g) => g.studentIds.forEach((sid) => studentSet.add(sid)));
         const courseName = tGroups.length > 0 ? courses.find((c) => c.id === tGroups[0].courseId)?.name ?? "—" : "—";
-        const score = 80 + ((studentSet.size * 7) % 18);
+        // Real attendance: filter attendance records for this teacher's groups' lessons
+        const tGroupIds = new Set(tGroups.map((g) => g.id));
+        const tLessonIds = new Set(lessons.filter((l) => tGroupIds.has(l.groupId)).map((l) => l.id));
+        const tAtt = attendance.filter((a) => tLessonIds.has(a.lessonId));
+        const attScore = tAtt.length > 0
+          ? Math.round((tAtt.filter((a) => a.status !== "absent").length / tAtt.length) * 100)
+          : 0;
         return {
           id: tch.id,
           name: tch.fullName,
           subject: courseName,
           students: studentSet.size,
-          attendance: score,
+          attendance: attScore,
         };
       })
       .sort((a, b) => b.students - a.students)
       .slice(0, 5);
-  }, [staff, groups, courses]);
+  }, [staff, groups, courses, lessons, attendance]);
 
   const recentAudit = auditLog.slice(0, 6);
   const branchById = useMemo(() => Object.fromEntries(branches.map((b) => [b.id, b])), [branches]);

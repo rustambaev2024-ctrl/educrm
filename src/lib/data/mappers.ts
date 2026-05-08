@@ -1,4 +1,4 @@
-﻿// snake_case backend -> camelCase frontend domain types
+// snake_case backend -> camelCase frontend domain types
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +77,7 @@ export interface StaffRaw {
   hired_at?: string | null;
   hire_date?: string | null;
   salary_percent: number | string | null;
+  fixed_salary?: number | string | null;
 }
 
 export function mapStaff(r: StaffRaw) {
@@ -91,6 +92,7 @@ export function mapStaff(r: StaffRaw) {
     photo: r.photo ?? null,
     hiredAt: r.hired_at ?? r.hire_date ?? null,
     salaryPercent: r.salary_percent === null ? null : Number(r.salary_percent),
+    fixedSalary: r.fixed_salary ? Number(r.fixed_salary) : undefined,
   };
 }
 
