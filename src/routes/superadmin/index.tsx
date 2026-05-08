@@ -83,6 +83,15 @@ function SuperadminHome() {
 
   const [branchInst, setBranchInst] = useState<Institution | null>(null);
   const [branchForm, setBranchForm] = useState({ name: "", address: "" });
+  const activeBranchInst = useMemo(() => {
+    if (!branchInst) return null;
+    return (
+      institutions.find((i) => i.id === branchInst.id) ??
+      institutions.find((i) => i.slug && i.slug === branchInst.slug) ??
+      institutions.find((i) => i.schemaName && i.schemaName === branchInst.schemaName) ??
+      branchInst
+    );
+  }, [branchInst, institutions]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -162,7 +171,11 @@ function SuperadminHome() {
   };
 
   const submitBranch = () => {
-    if (!branchInst) return;
+    if (!activeBranchInst) return;
+    if (String(activeBranchInst.id).startsWith("i_")) {
+      toast.warning("Muassasa hali saqlanmoqda. Bir necha soniyadan keyin qayta urinib ko'ring.");
+      return;
+    }
     if (!branchForm.name.trim() || !branchForm.address.trim()) {
       toast.error(t("common.required"));
       return;
@@ -170,7 +183,7 @@ function SuperadminHome() {
     addBranch({
       name: branchForm.name.trim(),
       address: branchForm.address.trim(),
-      institutionId: branchInst.id,
+      institutionId: activeBranchInst.id,
     });
     toast.success(t("sa.branches.added"));
     setBranchForm({ name: "", address: "" });
@@ -358,13 +371,13 @@ function SuperadminHome() {
       </Dialog>
 
       {/* Branches manager */}
-      <Dialog open={!!branchInst} onOpenChange={(o) => !o && setBranchInst(null)}>
+      <Dialog open={!!activeBranchInst} onOpenChange={(o) => !o && setBranchInst(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{t("sa.branches.title")}</DialogTitle>
-            <DialogDescription>{branchInst?.name}</DialogDescription>
+            <DialogDescription>{activeBranchInst?.name}</DialogDescription>
           </DialogHeader>
-          {branchInst && (
+          {activeBranchInst && (
             <div className="space-y-4">
               <div className="rounded-lg border border-border/60 p-3">
                 <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("sa.branches.add")}</div>
@@ -376,11 +389,11 @@ function SuperadminHome() {
               </div>
 
               <div className="rounded-lg border border-border/60">
-                {branchesOf(branchInst.id).length === 0 ? (
+                {branchesOf(activeBranchInst.id).length === 0 ? (
                   <div className="p-6 text-center text-sm text-muted-foreground">{t("sa.branches.empty")}</div>
                 ) : (
                   <div className="divide-y divide-border/60">
-                    {branchesOf(branchInst.id).map((b: Branch) => (
+                    {branchesOf(activeBranchInst.id).map((b: Branch) => (
                       <div key={b.id} className="flex items-center justify-between gap-3 p-3">
                         <div className="flex items-center gap-3">
                           <div className="flex size-9 items-center justify-center rounded-md bg-accent text-primary">

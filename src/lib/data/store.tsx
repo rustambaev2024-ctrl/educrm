@@ -1430,6 +1430,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       } as never).then((raw) => {
         const persisted = institutionFromRaw(raw as InstitutionRaw);
         setInstitutions((prev) => prev.map((i) => (i.id === id ? { ...created, ...persisted } : i)));
+        setBranches((prev) =>
+          prev.map((branch) =>
+            branch.institutionId === id ? { ...branch, institutionId: persisted.id } : branch,
+          ),
+        );
       }),
       () => setInstitutions((prev) => prev.filter((i) => i.id !== id)),
     );
