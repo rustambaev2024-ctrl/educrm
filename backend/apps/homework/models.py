@@ -81,7 +81,7 @@ class HomeworkStatus(models.Model):
     grade = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
-        validators=[MaxValueValidator(100)],
+        validators=[MaxValueValidator(10)],
     )
     teacher_comment = models.TextField(blank=True)
     checked_by = models.ForeignKey(

@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useCurrentStudentId } from "@/lib/data/identity";
+import { attendancePercentage } from "@/lib/data/metrics";
 import { LangToggle } from "@/components/edu/lang-toggle";
 import { StudentStatusBadge } from "@/components/edu/status-badge";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -46,13 +47,11 @@ function StudentProfile() {
     [grades, studentId],
   );
   const avg = myGrades.length
-    ? Math.round(myGrades.reduce((s, g) => s + (g.score / g.maxScore) * 100, 0) / myGrades.length)
+    ? Math.round((myGrades.reduce((s, g) => s + (g.score / g.maxScore) * 10, 0) / myGrades.length) * 10) / 10
     : 0;
 
   const myAttendance = useMemo(() => attendance.filter((a) => a.studentId === studentId), [attendance, studentId]);
-  const totalAtt = myAttendance.length;
-  const presentAtt = myAttendance.filter((a) => a.status === "present" || a.status === "online" || a.status === "late").length;
-  const attPct = totalAtt ? Math.round((presentAtt / totalAtt) * 100) : 100;
+  const attPct = attendancePercentage(myAttendance);
 
   const myPayments = useMemo(
     () => payments.filter((p) => p.studentId === studentId).sort((a, b) => b.date.localeCompare(a.date)),
@@ -61,12 +60,13 @@ function StudentProfile() {
 
   const activeHw = useMemo(() => {
     if (!studentId) return 0;
-    const myGroupHwIds = homework.map((h) => h.id);
+    const groupIds = new Set(stu?.groupIds ?? []);
+    const myGroupHwIds = homework.filter((h) => groupIds.has(h.groupId)).map((h) => h.id);
     return myGroupHwIds.filter((hwId) => {
       const sub = submissions.find((s) => s.homeworkId === hwId && s.studentId === studentId);
       return !sub || sub.status === "pending";
     }).length;
-  }, [homework, submissions, studentId]);
+  }, [homework, submissions, studentId, stu]);
 
   const upcomingLessons = useMemo(() => {
     if (!stu) return [];
@@ -184,7 +184,7 @@ function StudentProfile() {
               <div className="h-full bg-gradient-primary" style={{ width: `${attPct}%` }} />
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="rounded-md bg-success/10 p-2"><div className="font-bold text-success">{myAttendance.filter((a) => a.status === "present").length}</div><div className="text-muted-foreground">{t("att.present")}</div></div>
+              <div className="rounded-md bg-success/10 p-2"><div className="font-bold text-success">{myAttendance.filter((a) => a.status === "present" || a.status === "online").length}</div><div className="text-muted-foreground">{t("att.present")}</div></div>
               <div className="rounded-md bg-warning/15 p-2"><div className="font-bold text-warning">{myAttendance.filter((a) => a.status === "late").length}</div><div className="text-muted-foreground">{t("att.late")}</div></div>
               <div className="rounded-md bg-destructive/10 p-2"><div className="font-bold text-destructive">{myAttendance.filter((a) => a.status === "absent").length}</div><div className="text-muted-foreground">{t("att.absent")}</div></div>
             </div>

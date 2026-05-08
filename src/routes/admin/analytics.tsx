@@ -75,8 +75,11 @@ function AdminAnalytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="income" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+              <Tooltip
+                formatter={(value) => [value, t("finance.kpi.income")]}
+                contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+              />
+              <Bar dataKey="income" name={t("finance.kpi.income")} fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>

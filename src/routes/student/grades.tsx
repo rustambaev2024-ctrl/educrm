@@ -29,7 +29,7 @@ function StudentGradesPage() {
     [grades, studentId],
   );
   const average = myGrades.length
-    ? Math.round(myGrades.reduce((sum, grade) => sum + (grade.score / grade.maxScore) * 100, 0) / myGrades.length)
+    ? Math.round((myGrades.reduce((sum, grade) => sum + (grade.score / grade.maxScore) * 10, 0) / myGrades.length) * 10) / 10
     : 0;
 
   return (
@@ -49,7 +49,7 @@ function StudentGradesPage() {
             </div>
             <div>
               <div className="text-xs uppercase tracking-wider opacity-80">{t("grades.average")}</div>
-              <div className="text-3xl font-bold">{average}/100</div>
+              <div className="text-3xl font-bold">{average}/10</div>
             </div>
           </div>
         </div>

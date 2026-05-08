@@ -142,9 +142,9 @@ function DirectorHome() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <Area type="monotone" dataKey="income" stroke="var(--chart-1)" fill="url(#dr-in)" strokeWidth={2} />
-                <Area type="monotone" dataKey="expense" stroke="var(--chart-3)" fill="url(#dr-out)" strokeWidth={2} />
+                <Tooltip formatter={(value, name) => [value, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                <Area type="monotone" dataKey="income" name={t("finance.kpi.income")} stroke="var(--chart-1)" fill="url(#dr-in)" strokeWidth={2} />
+                <Area type="monotone" dataKey="expense" name={t("finance.kpi.expense")} stroke="var(--chart-3)" fill="url(#dr-out)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </Card>

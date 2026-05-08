@@ -9,7 +9,7 @@ from .serializers import PaymentCreateSerializer, PaymentSerializer
 
 
 class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
-    queryset = Payment.objects.select_related("student", "branch", "group", "lesson").all()
+    queryset = Payment.objects.select_related("student", "branch", "group", "lesson", "staff").all()
 
     def get_permissions(self):
         if self.action == "create":

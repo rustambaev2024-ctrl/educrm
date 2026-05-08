@@ -309,6 +309,7 @@ export interface PaymentRaw {
   student: string | { id: string } | null;
   branch?: string | { id: string } | null;
   group: string | { id: string } | null;
+  staff?: string | { id: string } | null;
   transaction_type?: string;
   payment_type?: string;
   type?: string;
@@ -322,18 +323,25 @@ export interface PaymentRaw {
 
 export function mapPayment(r: PaymentRaw) {
   const transactionType = r.transaction_type ?? r.payment_type ?? r.type ?? "top_up";
+  const direction =
+    transactionType === "expense" || transactionType === "refund"
+      ? "out"
+      : transactionType === "charge" || transactionType === "discount"
+        ? "internal"
+        : "in";
   return {
     id: r.id,
     studentId: extractId(r.student ?? undefined),
     groupId: extractId(r.group ?? undefined),
+    staffId: extractId(r.staff ?? undefined),
     branchId: extractId(r.branch ?? undefined),
     type: transactionType,
-    direction: transactionType === "charge" || transactionType === "expense" ? "out" : "in",
+    direction,
     method: r.method ?? "cash",
     amount: Number(r.amount),
     date: r.created_at ?? r.date ?? new Date().toISOString(),
     comment: r.comment ?? undefined,
-    category: r.category ?? (transactionType === "expense" ? "other" : "tuition"),
+    category: r.category ?? (direction === "out" ? "other" : "tuition"),
   };
 }
 
@@ -424,6 +432,8 @@ export interface GradeRaw {
 
 export function mapGrade(r: GradeRaw) {
   const type = r.grade_type ?? r.type ?? "exam";
+  const rawScore = Number(r.score);
+  const normalizedScore = rawScore > 10 ? Math.round((rawScore / 100) * 10) : rawScore;
   return {
     id: r.id,
     studentId: extractId(r.student),
@@ -432,8 +442,8 @@ export function mapGrade(r: GradeRaw) {
     kind: type,
     type,
     title: type,
-    score: r.score,
-    maxScore: 100,
+    score: normalizedScore,
+    maxScore: 10,
     date: r.graded_at ?? r.created_at ?? new Date().toISOString(),
     comment: r.comment ?? undefined,
     createdAt: r.graded_at ?? r.created_at ?? new Date().toISOString(),

@@ -67,6 +67,13 @@ class Payment(models.Model):
         blank=True,
         related_name="payments",
     )
+    staff = models.ForeignKey(
+        "staff.Staff",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="salary_payments",
+    )
     payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     balance_before = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))

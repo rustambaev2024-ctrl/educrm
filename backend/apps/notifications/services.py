@@ -96,8 +96,8 @@ class NotificationService:
         NotificationService.notify(
             recipients=recipients,
             notification_type="lesson_cancelled",
-            title="Lesson cancelled",
-            body=f"Lesson for {lesson.group.name} was cancelled.",
+            title="Dars bekor qilindi",
+            body=f"{lesson.group.name} guruhi uchun dars bekor qilindi.",
             related_object_type="Lesson",
             related_object_id=str(lesson.id),
         )
@@ -125,8 +125,8 @@ class NotificationService:
         NotificationService.notify(
             recipients=student_users + parent_users,
             notification_type="new_homework",
-            title="New homework",
-            body=f"New homework assigned: {homework.title}",
+            title="Yangi uy vazifasi",
+            body=f"Yangi uy vazifasi berildi: {homework.title}",
             related_object_type="Homework",
             related_object_id=str(homework.id),
         )

@@ -36,6 +36,7 @@ import {
   mapCourses,
   mapGrades,
   mapGroups,
+  mapAttendance,
   mapHomeworkSubmissions,
   mapHomeworks,
   mapInstitutions,
@@ -48,6 +49,7 @@ import {
   mapStudents,
   toResults,
   type AuditRaw,
+  type AttendanceRaw,
   type BranchRaw,
   type CourseRaw,
   type GradeRaw,
@@ -311,7 +313,7 @@ function toNotificationKind(value: unknown): AppNotification["kind"] {
 }
 
 function toGradeKind(value: unknown): Grade["kind"] {
-  const allowed: Grade["kind"][] = ["homework", "quiz", "exam", "midterm", "final", "oral"];
+  const allowed: Grade["kind"][] = ["lesson", "homework", "exam", "activity"];
   return allowed.includes(value as Grade["kind"]) ? (value as Grade["kind"]) : "exam";
 }
 
@@ -375,6 +377,7 @@ function staffFromRaw(raw: StaffRaw): Staff {
     phone: mapped.phone,
     role: toStaffRole(mapped.role),
     branchId: mapped.branchId || undefined,
+    salaryPercent: mapped.salaryPercent,
   };
 }
 
@@ -431,11 +434,31 @@ function lessonFromRaw(raw: LessonRaw): Lesson {
   };
 }
 
+function attendanceFromRaw(raw: AttendanceRaw): AttendanceRecord {
+  const mapped = mapAttendance(raw);
+  const status = toAttendanceStatus(mapped.status);
+  return {
+    id: mapped.id,
+    lessonId: mapped.lessonId,
+    studentId: mapped.studentId,
+    status,
+    comment: mapped.comment,
+  };
+}
+
+function toAttendanceStatus(value: unknown): AttendanceStatus {
+  if (value === "present" || value === "absent" || value === "late" || value === "excused" || value === "online") {
+    return value;
+  }
+  return "absent";
+}
+
 function paymentFromRaw(raw: PaymentRaw): Payment {
   const mapped = mapPayments([raw])[0];
   return {
     id: mapped.id,
     studentId: mapped.studentId || undefined,
+    staffId: mapped.staffId || undefined,
     groupId: mapped.groupId || undefined,
     branchId: mapped.branchId || "",
     amount: mapped.amount,
@@ -692,6 +715,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         staffRaw,
         parentsRaw,
         lessonsRaw,
+        attendanceRaw,
         paymentsRaw,
         homeworkRaw,
         submissionsRaw,
@@ -708,6 +732,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         canSeeStaff ? safe(staffApi.list() as Promise<ListResponse<StaffRaw>>, [], "staff") : Promise.resolve([]),
         canSeeStudents ? safe(parentApi.list() as Promise<ListResponse<ParentRaw>>, [], "parents") : Promise.resolve([]),
         safe(lessonApi.list() as Promise<ListResponse<LessonRaw>>, [], "lessons"),
+        safe(attendanceApi.list() as Promise<ListResponse<AttendanceRaw>>, [], "attendance"),
         (canSeeFinance || user?.role === "student" || user?.role === "parent")
           ? safe(paymentApi.list() as Promise<ListResponse<PaymentRaw>>, [], "payments")
           : Promise.resolve([]),
@@ -736,6 +761,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       );
       setStaff(toResults(staffRaw).map(staffFromRaw));
       setLessons(toResults(lessonsRaw).map(lessonFromRaw));
+      setAttendanceState(toResults(attendanceRaw).map(attendanceFromRaw));
       setPayments(toResults(paymentsRaw).map(paymentFromRaw));
       setHomework(toResults(homeworkRaw).map(homeworkFromRaw));
       setSubmissions(toResults(submissionsRaw).map(submissionFromRaw));
@@ -1092,6 +1118,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       "addPayment",
       paymentApi.create({
         student_id: created.direction === "in" ? created.studentId : undefined,
+        staff_id: created.staffId,
         group_id: created.groupId,
         branch_id: created.branchId,
         amount: created.amount,
@@ -1336,15 +1363,25 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
             kind: "homework",
             title: hw.title,
             score: grade,
-            maxScore: 100,
+            maxScore: 10,
             date: new Date().toISOString().slice(0, 10),
             comment: feedback,
           };
           return [created, ...prev];
         });
       }
+      const existing = submissions.find((s) => s.homeworkId === homeworkId && s.studentId === studentId);
+      if (existing) {
+        fireAndForget(
+          "gradeSubmission",
+          homeworkApi.gradeSubmission(
+            existing.id,
+            submissionPatchToApi({ grade, feedback, status: "graded" }),
+          ),
+        );
+      }
     },
-    [homework],
+    [homework, submissions],
   );
 
   const addGrade: DataStoreActions["addGrade"] = useCallback((input) => {

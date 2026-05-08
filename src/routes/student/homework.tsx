@@ -101,7 +101,7 @@ function StudentHomeworkPage() {
         </div>
         {sub && sub.status === "graded" && sub.grade !== undefined && (
           <div className="mt-2 flex items-center gap-1.5 rounded-md bg-success/10 px-2 py-1 text-xs font-semibold text-success">
-            <Star className="size-3.5" /> {sub.grade}/100
+            <Star className="size-3.5" /> {sub.grade}/10
           </div>
         )}
         {sub && sub.status === "submitted" && (
@@ -179,7 +179,7 @@ function StudentHomeworkPage() {
                     <Card className="space-y-2 bg-success/5 p-3 shadow-elegant">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("shw.score")}</span>
-                        <span className="rounded-md bg-success px-2 py-0.5 text-sm font-bold text-success-foreground">{sub.grade}/100</span>
+                        <span className="rounded-md bg-success px-2 py-0.5 text-sm font-bold text-success-foreground">{sub.grade}/10</span>
                       </div>
                       {sub.feedback && (
                         <div className="border-t border-border/60 pt-2">

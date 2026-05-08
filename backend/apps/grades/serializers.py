@@ -21,12 +21,22 @@ class GradeSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "graded_by", "graded_at")
 
+    def validate_score(self, value):
+        if value > 10:
+            raise serializers.ValidationError("Score must be between 0 and 10.")
+        return value
+
 
 class ExamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Exam
         fields = ("id", "group", "name", "date", "max_score", "created_by", "created_at")
         read_only_fields = ("id", "created_by", "created_at")
+
+    def validate_max_score(self, value):
+        if value > 10:
+            raise serializers.ValidationError("Max score must be between 1 and 10.")
+        return value
 
 
 class ExamResultSerializer(serializers.ModelSerializer):
@@ -43,3 +53,8 @@ class ExamResultSerializer(serializers.ModelSerializer):
             "recorded_at",
         )
         read_only_fields = ("id", "recorded_by", "recorded_at")
+
+    def validate_score(self, value):
+        if value > 10:
+            raise serializers.ValidationError("Score must be between 0 and 10.")
+        return value

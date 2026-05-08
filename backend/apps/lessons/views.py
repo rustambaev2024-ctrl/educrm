@@ -148,10 +148,44 @@ class LessonViewSet(
         return Response(output.data, status=status.HTTP_200_OK)
 
 
-class AttendanceViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class AttendanceViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     queryset = Attendance.objects.select_related("lesson", "student").all()
     serializer_class = AttendanceSerializer
-    permission_classes = [IsBranchAdmin]
+
+    def get_permissions(self):
+        if self.action == "list":
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            permission_classes = [IsBranchAdmin]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if not user.is_authenticated:
+            return qs.none()
+
+        if user.role in ("superadmin", "director"):
+            scoped = qs
+        elif user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
+            branch_id = user.staff_profile.branch_id
+            scoped = qs.filter(lesson__group__branch_id=branch_id) if branch_id else qs.none()
+        elif user.role == "teacher" and hasattr(user, "staff_profile"):
+            scoped = qs.filter(lesson__group__teacher=user.staff_profile)
+        elif user.role == "student" and hasattr(user, "student_profile"):
+            scoped = qs.filter(student=user.student_profile)
+        elif user.role == "parent" and hasattr(user, "parent_profile"):
+            scoped = qs.filter(student__parents=user.parent_profile)
+        else:
+            scoped = qs.none()
+
+        lesson_id = self.request.query_params.get("lesson_id")
+        if lesson_id:
+            scoped = scoped.filter(lesson_id=lesson_id)
+        student_id = self.request.query_params.get("student_id")
+        if student_id:
+            scoped = scoped.filter(student_id=student_id)
+        return scoped.order_by("-lesson__datetime")
 
     def update(self, request, *args, **kwargs):
         kwargs["partial"] = True

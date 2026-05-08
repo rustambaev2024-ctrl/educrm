@@ -410,7 +410,7 @@ function ExpenseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
       return;
     }
     addPayment({
-      branchId: branches[0]?.id ?? "b1",
+      branchId: branches[0]?.id,
       amount: num,
       direction: "out",
       method,

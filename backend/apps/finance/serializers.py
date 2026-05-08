@@ -5,6 +5,7 @@ from rest_framework import serializers
 from apps.courses.models import Group
 from apps.institutions.models import Branch
 from apps.lessons.models import Lesson
+from apps.staff.models import Staff
 from apps.students.models import Student
 
 from .models import Payment
@@ -20,6 +21,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             "branch",
             "group",
             "lesson",
+            "staff",
             "payment_type",
             "amount",
             "balance_before",
@@ -47,6 +49,7 @@ class PaymentCreateSerializer(serializers.Serializer):
     branch_id = serializers.UUIDField(required=False)
     group_id = serializers.UUIDField(required=False)
     lesson_id = serializers.UUIDField(required=False)
+    staff_id = serializers.UUIDField(required=False)
     method = serializers.CharField(required=False, allow_blank=True, max_length=20)
     category = serializers.CharField(required=False, allow_blank=True, max_length=50)
     comment = serializers.CharField(required=False, allow_blank=True, max_length=500)
@@ -77,6 +80,14 @@ class PaymentCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Lesson not found")
         return value
 
+    def validate_staff_id(self, value):
+        try:
+            staff = Staff.objects.get(id=value)
+        except Staff.DoesNotExist as exc:
+            raise serializers.ValidationError("Staff not found") from exc
+        self.context["staff"] = staff
+        return value
+
     def validate(self, attrs):
         payment_type = attrs.get("payment_type")
         request = self.context.get("request")
@@ -103,6 +114,7 @@ class PaymentCreateSerializer(serializers.Serializer):
         if validated_data["payment_type"] == "expense":
             return Payment.objects.create(
                 branch=validated_data["branch"],
+                staff=self.context.get("staff"),
                 payment_type="expense",
                 amount=validated_data["amount"],
                 balance_before=Decimal("0.00"),

@@ -22,7 +22,7 @@ class NotificationViewSet(
             queryset = queryset.filter(is_read=False)
         return queryset.order_by("-created_at")
 
-    @action(detail=False, methods=["patch"], url_path="read-all")
+    @action(detail=False, methods=["patch", "post"], url_path="read-all")
     def read_all(self, request):
         now = timezone.now()
         Notification.objects.filter(recipient=request.user, is_read=False).update(
@@ -36,7 +36,7 @@ class NotificationViewSet(
         unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
         return Response({"unread_count": unread_count}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["patch"], url_path="read")
+    @action(detail=True, methods=["patch", "post"], url_path="read")
     def read_one(self, request, pk=None):
         notification = self.get_object()
         if not notification.is_read:

@@ -91,7 +91,7 @@ function AnalyticsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+              <Tooltip formatter={(value, name) => [value, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
               <ChartLegend wrapperStyle={{ fontSize: 12 }} />
               <Line type="monotone" dataKey="income" stroke="var(--chart-1)" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyRevenue")} />
               <Line type="monotone" dataKey="expense" stroke="var(--chart-3)" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyExpense")} />

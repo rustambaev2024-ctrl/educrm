@@ -369,6 +369,7 @@ export const lessonApi = {
 };
 
 export const attendanceApi = {
+  list: () => requestJson("/attendance/"),
   forLesson: (lessonId: string) => requestJson(`/lessons/${lessonId}/attendance/`),
   bulkMark: (lessonId: string, records: unknown[]) =>
     requestJson(`/lessons/${lessonId}/attendance/`, {
@@ -423,8 +424,8 @@ export const chatApi = {
 
 export const notificationApi = {
   list: () => requestJson("/notifications/"),
-  markRead: (id: string) => requestJson(`/notifications/${id}/read/`, { method: "POST" }),
-  markAllRead: () => requestJson("/notifications/read-all/", { method: "POST" }),
+  markRead: (id: string) => requestJson(`/notifications/${id}/read/`, { method: "PATCH" }),
+  markAllRead: () => requestJson("/notifications/read-all/", { method: "PATCH" }),
 };
 
 export const analyticsApi = {

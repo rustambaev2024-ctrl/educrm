@@ -51,6 +51,8 @@ export interface Staff {
   password?: string;
   role: "director" | "admin" | "teacher";
   branchId?: string;
+  salaryPercent?: number | null;
+  fixedSalary?: number;
 }
 
 export interface Parent {
@@ -118,7 +120,7 @@ export interface AttendanceRecord {
 }
 
 export type PaymentMethod = "cash" | "card" | "transfer" | "click" | "payme";
-export type PaymentDirection = "in" | "out";
+export type PaymentDirection = "in" | "out" | "internal";
 
 export interface Payment {
   id: string;
@@ -127,7 +129,7 @@ export interface Payment {
   groupId?: string;
   branchId: string;
   amount: number;           // positive value
-  direction: PaymentDirection;
+  direction: PaymentDirection; // internal = wallet operation, not organisation income/expense
   method: PaymentMethod;
   date: string;             // ISO
   comment?: string;
@@ -221,13 +223,13 @@ export interface HomeworkSubmission {
   status: HomeworkSubmissionStatus;
   submittedAt?: string;
   comment?: string;
-  grade?: number;     // 0..100
+  grade?: number;     // 0..10
   feedback?: string;
   attachments?: HomeworkAttachment[];
 }
 
 // Grades / exams
-export type GradeKind = "homework" | "quiz" | "exam" | "midterm" | "final" | "oral";
+export type GradeKind = "lesson" | "homework" | "exam" | "activity";
 
 export interface Grade {
   id: string;
@@ -236,8 +238,8 @@ export interface Grade {
   teacherId: string;
   kind: GradeKind;
   title: string;       // e.g. "Unit 4 Quiz", "Midterm"
-  score: number;       // 0..100
-  maxScore: number;    // usually 100
+  score: number;       // 0..10
+  maxScore: number;    // usually 10
   date: string;        // ISO date
   comment?: string;
 }

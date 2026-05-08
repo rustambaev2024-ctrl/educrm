@@ -140,8 +140,8 @@ function DirectorFinancePage() {
                   <TableCell className="text-xs text-muted-foreground">
                     {branches.find((b) => b.id === p.branchId)?.name}
                   </TableCell>
-                  <TableCell className={`text-right font-semibold ${p.direction === "in" ? "text-success" : "text-destructive"}`}>
-                    {p.direction === "in" ? "+" : "−"}{formatMoney(p.amount, lang)}
+                  <TableCell className={`text-right font-semibold ${p.direction === "in" ? "text-success" : p.direction === "out" ? "text-destructive" : "text-muted-foreground"}`}>
+                    {p.direction === "in" ? "+" : p.direction === "out" ? "−" : ""}{formatMoney(p.amount, lang)}
                   </TableCell>
                 </TableRow>
               ))}

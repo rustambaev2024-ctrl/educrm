@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plus, Award, Trash2 } from "lucide-react";
+import { Award, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { Card } from "@/components/ui/card";
@@ -21,7 +21,7 @@ import type { GradeKind } from "@/lib/data/types";
 
 export const Route = createFileRoute("/teacher/grades")({ component: TeacherGrades });
 
-const KIND_OPTIONS: GradeKind[] = ["homework", "quiz", "exam", "midterm", "final", "oral"];
+const KIND_OPTIONS: GradeKind[] = ["lesson", "homework", "exam", "activity"];
 
 function scoreTone(score: number, max: number): string {
   const pct = (score / max) * 100;
@@ -54,47 +54,42 @@ function TeacherGrades() {
     const map: Record<string, { sum: number; cnt: number }> = {};
     for (const g of groupGrades) {
       if (!map[g.studentId]) map[g.studentId] = { sum: 0, cnt: 0 };
-      map[g.studentId].sum += (g.score / g.maxScore) * 100;
+      map[g.studentId].sum += (g.score / g.maxScore) * 10;
       map[g.studentId].cnt += 1;
     }
-    return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, Math.round(v.sum / v.cnt)]));
+    return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, Math.round((v.sum / v.cnt) * 10) / 10]));
   }, [groupGrades]);
 
   const overallAvg = useMemo(() => {
     if (groupGrades.length === 0) return 0;
-    return Math.round(groupGrades.reduce((s, g) => s + (g.score / g.maxScore) * 100, 0) / groupGrades.length);
+    return Math.round((groupGrades.reduce((s, g) => s + (g.score / g.maxScore) * 10, 0) / groupGrades.length) * 10) / 10;
   }, [groupGrades]);
 
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    studentId: "",
-    kind: "quiz" as GradeKind,
-    title: "",
-    score: "",
-    maxScore: "100",
-    date: new Date().toISOString().slice(0, 10),
-    comment: "",
-  });
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [form, setForm] = useState({ kind: "lesson" as GradeKind, score: "", comment: "" });
 
   const submit = () => {
-    if (!form.studentId || !form.title.trim() || !form.score || !selectedGroup || !teacherId) {
+    const score = Number(form.score);
+    if (!selectedStudentId || !form.score || Number.isNaN(score) || score < 0 || score > 10 || !selectedGroup || !teacherId) {
       toast.error(t("validation.fillAll"));
       return;
     }
     addGrade({
       groupId: selectedGroup.id,
-      studentId: form.studentId,
+      studentId: selectedStudentId,
       teacherId,
       kind: form.kind,
-      title: form.title.trim(),
-      score: Number(form.score),
-      maxScore: Number(form.maxScore) || 100,
-      date: form.date,
+      title: t(`gkind.${form.kind}`),
+      score,
+      maxScore: 10,
+      date: new Date().toISOString().slice(0, 10),
       comment: form.comment.trim() || undefined,
     });
     toast.success(t("grades.created"));
     setOpen(false);
-    setForm({ ...form, studentId: "", title: "", score: "", comment: "" });
+    setSelectedStudentId("");
+    setForm({ kind: "lesson", score: "", comment: "" });
   };
 
   return (
@@ -103,27 +98,21 @@ function TeacherGrades() {
         title={t("grades.title")}
         description={t("grades.subtitle")}
         actions={
-          <div className="flex items-center gap-2">
-            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-              <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {myGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button onClick={() => setOpen(true)} disabled={!selectedGroup}>
-              <Plus className="mr-1 size-4" /> {t("grades.add")}
-            </Button>
-          </div>
+          <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {myGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         }
       />
       <div className="space-y-4 p-4 md:p-8">
-        {/* Summary */}
         <div className="grid gap-3 md:grid-cols-3">
           <Card className="p-4 shadow-elegant">
             <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("grades.average")}</div>
             <div className="mt-1 flex items-center gap-2">
               <div className="text-3xl font-bold">{overallAvg}</div>
-              <span className="text-sm text-muted-foreground">/ 100</span>
+              <span className="text-sm text-muted-foreground">/ 10</span>
             </div>
           </Card>
           <Card className="p-4 shadow-elegant">
@@ -136,23 +125,36 @@ function TeacherGrades() {
           </Card>
         </div>
 
-        {/* Per-student average */}
         <Card className="overflow-hidden p-0 shadow-elegant">
-          <div className="border-b border-border/60 px-4 py-3 text-sm font-semibold">{t("grades.average")} — {t("groups.field.students")}</div>
+          <div className="border-b border-border/60 px-4 py-3 text-sm font-semibold">
+            {t("grades.average")} - {t("groups.field.students")}. {t("grades.add")}: {lang === "uz" ? "o'quvchini bosing" : "нажмите на ученика"}
+          </div>
           <div className="divide-y divide-border/60">
             {(selectedGroup?.studentIds ?? []).map((sid) => {
               const stu = studentById[sid];
               const avg = avgByStudent[sid];
               return (
-                <div key={sid} className="flex items-center gap-3 px-4 py-2.5">
-                  <Avatar className="size-8"><AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">{initialsOf(stu?.fullName ?? "?")}</AvatarFallback></Avatar>
+                <button
+                  key={sid}
+                  type="button"
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-accent/50"
+                  onClick={() => {
+                    setSelectedStudentId(sid);
+                    setOpen(true);
+                  }}
+                >
+                  <Avatar className="size-8">
+                    <AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
+                      {initialsOf(stu?.fullName ?? "?")}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1 truncate text-sm">{stu?.fullName ?? sid}</div>
                   {avg !== undefined ? (
-                    <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${scoreTone(avg, 100)}`}>{avg}</span>
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${scoreTone(avg, 10)}`}>{avg}/10</span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
+                    <span className="text-xs text-muted-foreground">{t("grades.add")}</span>
                   )}
-                </div>
+                </button>
               );
             })}
             {(selectedGroup?.studentIds.length ?? 0) === 0 && (
@@ -161,7 +163,6 @@ function TeacherGrades() {
           </div>
         </Card>
 
-        {/* Journal */}
         <Card className="overflow-hidden p-0 shadow-elegant">
           <div className="border-b border-border/60 px-4 py-3 text-sm font-semibold">{t("grades.title")}</div>
           {groupGrades.length === 0 ? (
@@ -172,10 +173,9 @@ function TeacherGrades() {
                 <TableRow>
                   <TableHead>{t("grades.col.student")}</TableHead>
                   <TableHead>{t("grades.col.kind")}</TableHead>
-                  <TableHead>{t("grades.col.title")}</TableHead>
                   <TableHead>{t("grades.col.score")}</TableHead>
                   <TableHead>{t("grades.col.date")}</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -183,7 +183,6 @@ function TeacherGrades() {
                   <TableRow key={g.id}>
                     <TableCell className="font-medium">{studentById[g.studentId]?.fullName ?? g.studentId}</TableCell>
                     <TableCell><Badge variant="outline" className="text-[10px]">{t(`gkind.${g.kind}`)}</Badge></TableCell>
-                    <TableCell className="max-w-[260px] truncate">{g.title}</TableCell>
                     <TableCell>
                       <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-bold ${scoreTone(g.score, g.maxScore)}`}>
                         {g.score}<span className="text-muted-foreground">/{g.maxScore}</span>
@@ -218,49 +217,26 @@ function TeacherGrades() {
             <SheetDescription>{selectedGroup?.name}</SheetDescription>
           </SheetHeader>
           <div className="space-y-4 px-4 pb-4">
+            <Card className="p-3 text-sm">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("grades.col.student")}</div>
+              <div className="mt-1 font-semibold">{selectedStudentId ? studentById[selectedStudentId]?.fullName ?? selectedStudentId : "-"}</div>
+            </Card>
             <div className="space-y-1.5">
-              <Label>{t("grades.col.student")}*</Label>
-              <Select value={form.studentId} onValueChange={(v) => setForm({ ...form, studentId: v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <Label>{t("grades.field.kind")}*</Label>
+              <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as GradeKind })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {(selectedGroup?.studentIds ?? []).map((sid) => (
-                    <SelectItem key={sid} value={sid}>{studentById[sid]?.fullName ?? sid}</SelectItem>
-                  ))}
+                  {KIND_OPTIONS.map((k) => <SelectItem key={k} value={k}>{t(`gkind.${k}`)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>{t("grades.field.kind")}*</Label>
-                <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as GradeKind })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {KIND_OPTIONS.map((k) => <SelectItem key={k} value={k}>{t(`gkind.${k}`)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t("grades.field.date")}*</Label>
-                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-              </div>
-            </div>
             <div className="space-y-1.5">
-              <Label>{t("grades.field.title")}*</Label>
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>{t("grades.field.score")}*</Label>
-                <Input type="number" min={0} value={form.score} onChange={(e) => setForm({ ...form, score: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t("grades.field.maxScore")}</Label>
-                <Input type="number" min={1} value={form.maxScore} onChange={(e) => setForm({ ...form, maxScore: e.target.value })} />
-              </div>
+              <Label>{t("grades.field.score")}* (0-10)</Label>
+              <Input type="number" min={0} max={10} step={1} value={form.score} onChange={(e) => setForm({ ...form, score: e.target.value })} />
             </div>
             <div className="space-y-1.5">
               <Label>{t("grades.field.comment")}</Label>
-              <Textarea rows={2} value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
+              <Textarea rows={3} value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>

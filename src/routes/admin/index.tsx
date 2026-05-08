@@ -127,6 +127,7 @@ function AdminHome() {
                   const stu = p.studentId ? studentById[p.studentId] : undefined;
                   const grp = p.groupId ? groupById[p.groupId] : undefined;
                   const positive = p.direction === "in";
+                  const negative = p.direction === "out";
                   const name = stu?.fullName ?? (p.category ? t(`status.${p.category}`) ?? p.category : t("nav.finance"));
                   return (
                     <div key={p.id} className="flex items-center gap-3">
@@ -139,8 +140,8 @@ function AdminHome() {
                         <div className="truncate text-sm font-medium">{name}</div>
                         <div className="truncate text-xs text-muted-foreground">{grp?.name ?? p.method.toUpperCase()}</div>
                       </div>
-                      <div className={`text-sm font-semibold tabular-nums ${positive ? "text-success" : "text-destructive"}`}>
-                        {positive ? "+" : "−"} {formatMoney(p.amount, lang)}
+                      <div className={`text-sm font-semibold tabular-nums ${positive ? "text-success" : negative ? "text-destructive" : "text-muted-foreground"}`}>
+                        {positive ? "+" : negative ? "−" : ""} {formatMoney(p.amount, lang)}
                       </div>
                     </div>
                   );

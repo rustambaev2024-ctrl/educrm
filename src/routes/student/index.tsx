@@ -7,6 +7,7 @@ import { useCurrentStudentId } from "@/lib/data/identity";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/data/store";
 import { formatTime } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/student/")({ component: StudentHome });
 
@@ -27,6 +28,7 @@ function initials(name: string) {
 function StudentHome() {
   const studentId = useCurrentStudentId();
   const { user } = useAuth();
+  const { t } = useI18n();
   const { students, groups, courses, lessons, rooms, homework, submissions } = useData();
 
   const student = useMemo(
@@ -85,7 +87,7 @@ function StudentHome() {
         <Card className="p-5 shadow-elegant">
           <div className="text-sm font-semibold">Profile is not loaded yet</div>
           <div className="mt-1 text-xs text-muted-foreground">
-            The backend returned a session, but the student profile is still syncing.
+            {t("studentHome.profileSync")}
           </div>
         </Card>
       </div>
@@ -95,16 +97,16 @@ function StudentHome() {
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-5 pb-24">
       <div>
-        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Today</div>
+        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("studentHome.today")}</div>
         <h1 className="text-2xl font-bold">{student.fullName}</h1>
       </div>
 
       <Card className="overflow-hidden bg-gradient-primary p-5 text-primary-foreground shadow-glow">
         <div className="flex items-center gap-2 text-xs opacity-80">
-          <Clock className="size-3" /> NEXT LESSON
+          <Clock className="size-3" /> {t("studentHome.nextLesson")}
         </div>
-        <div className="mt-2 text-2xl font-bold">{nextCourse?.name ?? nextGroup?.name ?? "No upcoming lessons"}</div>
-        <div className="mt-1 text-sm opacity-90">{nextGroup?.name ?? "Your schedule is clear"}</div>
+        <div className="mt-2 text-2xl font-bold">{nextCourse?.name ?? nextGroup?.name ?? t("studentHome.noUpcoming")}</div>
+        <div className="mt-1 text-sm opacity-90">{nextGroup?.name ?? t("studentHome.clearSchedule")}</div>
         <div className="mt-3 flex items-center gap-3 text-xs opacity-90">
           <span className="flex items-center gap-1">
             <Clock className="size-3.5" />
@@ -112,7 +114,7 @@ function StudentHome() {
           </span>
           <span className="flex items-center gap-1">
             <MapPin className="size-3.5" />
-            {nextRoom?.name ?? "Room not set"}
+            {nextRoom?.name ?? t("studentHome.noRoom")}
           </span>
         </div>
       </Card>
@@ -121,40 +123,40 @@ function StudentHome() {
         <QuickCard
           to="/student/profile"
           icon={Wallet}
-          label="Balance"
+          label={t("studentHome.balance")}
           value={money(student.balance)}
-          hint={student.balance < 0 ? "debt" : "paid"}
+          hint={student.balance < 0 ? t("studentHome.debt") : t("studentHome.paid")}
           tone={student.balance < 0 ? "warning" : "success"}
         />
         <QuickCard
           to="/student/homework"
           icon={BookOpen}
-          label="Homework"
+          label={t("studentHome.homework")}
           value={String(activeHomeworkCount)}
-          hint="active tasks"
+          hint={t("studentHome.activeTasks")}
           tone="warning"
         />
         <QuickCard
           to="/student/schedule"
           icon={Calendar}
-          label="Lessons"
+          label={t("studentHome.lessons")}
           value={String(todayLessonsCount)}
-          hint="today"
+          hint={t("studentHome.todayLower")}
           tone="primary"
         />
       </div>
 
       <Card className="p-4 shadow-elegant">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">My groups</h3>
+          <h3 className="text-sm font-semibold">{t("studentHome.myGroups")}</h3>
           <Badge variant="outline" className="text-[10px]">
-            {myGroups.length} active
+            {myGroups.length} {t("studentHome.active")}
           </Badge>
         </div>
         <div className="space-y-2">
           {myGroups.length === 0 ? (
             <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-              You are not enrolled in an active group yet.
+              {t("studentHome.noGroups")}
             </div>
           ) : (
             myGroups.map((group) => {
