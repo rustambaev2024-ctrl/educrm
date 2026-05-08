@@ -361,7 +361,15 @@ function PaymentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">{t("finance.col.amount")} *</Label>
-              <Input value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))} placeholder="600000" inputMode="numeric" />
+              <Input
+                type="number"
+                min={0}
+                step={1000}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="600000"
+                inputMode="numeric"
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">{t("finance.col.method")}</Label>
@@ -436,7 +444,15 @@ function ExpenseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">{t("finance.col.amount")} *</Label>
-              <Input value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))} placeholder="500000" inputMode="numeric" />
+              <Input
+                type="number"
+                min={0}
+                step={1000}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="500000"
+                inputMode="numeric"
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">{t("finance.col.method")}</Label>

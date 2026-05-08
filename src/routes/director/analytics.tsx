@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/edu/page-header";
 import { StatCard } from "@/components/edu/stat-card";
 import { Card } from "@/components/ui/card";
 import { useData } from "@/lib/data/store";
+import { attendancePercentage } from "@/lib/data/metrics";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 
@@ -67,9 +68,7 @@ function AnalyticsPage() {
   const totalRevenue = payments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
   const totalExpense = payments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
   const overdueAmount = invoices.filter((i) => i.status === "overdue").reduce((s, i) => s + (i.amount - i.paidAmount), 0);
-  const attPct = attendance.length > 0
-    ? Math.round((attendance.filter((a) => a.status === "present" || a.status === "online" || a.status === "late").length / attendance.length) * 100)
-    : 92;
+  const attPct = attendancePercentage(attendance);
 
   return (
     <>

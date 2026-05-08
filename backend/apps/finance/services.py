@@ -89,6 +89,8 @@ def apply_payment(
     created_by=None,
     group=None,
     lesson=None,
+    method: str = "",
+    category: str = "tuition",
     comment: str = "",
 ) -> PaymentResult:
     amount = Decimal(amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -122,6 +124,8 @@ def apply_payment(
         amount=amount,
         balance_before=balance_before,
         balance_after=balance_after,
+        method=method,
+        category=category,
         comment=comment,
         created_by=created_by,
     )

@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.response import Response
 
@@ -8,7 +9,7 @@ from .serializers import PaymentCreateSerializer, PaymentSerializer
 
 
 class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
-    queryset = Payment.objects.select_related("student", "group", "lesson").all()
+    queryset = Payment.objects.select_related("student", "branch", "group", "lesson").all()
 
     def get_permissions(self):
         if self.action == "create":
@@ -36,7 +37,7 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
             scoped = qs
         elif user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
-            scoped = qs.filter(student__branch_id=branch_id) if branch_id else qs.none()
+            scoped = qs.filter(Q(student__branch_id=branch_id) | Q(branch_id=branch_id)) if branch_id else qs.none()
         elif user.role == "student" and hasattr(user, "student_profile"):
             scoped = qs.filter(student=user.student_profile)
         elif user.role == "parent" and hasattr(user, "parent_profile"):

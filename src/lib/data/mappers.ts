@@ -306,11 +306,14 @@ export function mapAttendance(r: AttendanceRaw) {
 
 export interface PaymentRaw {
   id: string;
-  student: string | { id: string };
+  student: string | { id: string } | null;
+  branch?: string | { id: string } | null;
   group: string | { id: string } | null;
   transaction_type?: string;
   payment_type?: string;
   type?: string;
+  method?: string | null;
+  category?: string | null;
   amount: string | number;
   created_at?: string;
   date?: string;
@@ -321,16 +324,16 @@ export function mapPayment(r: PaymentRaw) {
   const transactionType = r.transaction_type ?? r.payment_type ?? r.type ?? "top_up";
   return {
     id: r.id,
-    studentId: extractId(r.student),
+    studentId: extractId(r.student ?? undefined),
     groupId: extractId(r.group ?? undefined),
-    branchId: "",
+    branchId: extractId(r.branch ?? undefined),
     type: transactionType,
-    direction: transactionType === "charge" ? "out" : "in",
-    method: "cash",
+    direction: transactionType === "charge" || transactionType === "expense" ? "out" : "in",
+    method: r.method ?? "cash",
     amount: Number(r.amount),
     date: r.created_at ?? r.date ?? new Date().toISOString(),
     comment: r.comment ?? undefined,
-    category: "tuition",
+    category: r.category ?? (transactionType === "expense" ? "other" : "tuition"),
   };
 }
 

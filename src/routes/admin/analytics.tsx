@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/edu/page-header";
 import { StatCard } from "@/components/edu/stat-card";
 import { Card } from "@/components/ui/card";
 import { useData } from "@/lib/data/store";
+import { attendancePercentage } from "@/lib/data/metrics";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 
@@ -19,9 +20,7 @@ function AdminAnalytics() {
 
   const totalIncome = payments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
   const completedLessons = lessons.filter((l) => l.status === "completed").length;
-  const attPct = attendance.length > 0
-    ? Math.round((attendance.filter((a) => a.status === "present" || a.status === "online" || a.status === "late").length / attendance.length) * 100)
-    : 92;
+  const attPct = attendancePercentage(attendance);
 
   const byStatus = useMemo(() => {
     const map = new Map<string, number>();

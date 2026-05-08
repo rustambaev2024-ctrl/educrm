@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useData } from "@/lib/data/store";
+import { attendancePercentage } from "@/lib/data/metrics";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney, formatDateTime } from "@/lib/format";
 
@@ -41,11 +42,7 @@ function DirectorHome() {
   const debtors = students.filter((s) => s.status === "debtor" || s.balance < 0).length;
   const activeGroups = groups.filter((g) => g.status === "active").length;
 
-  const attendancePct = useMemo(() => {
-    if (attendance.length === 0) return 92;
-    const present = attendance.filter((a) => a.status === "present" || a.status === "online" || a.status === "late").length;
-    return Math.round((present / attendance.length) * 100);
-  }, [attendance]);
+  const attendancePct = useMemo(() => attendancePercentage(attendance), [attendance]);
 
   // Daily revenue for last 14 days
   const revenueSeries = useMemo(() => {

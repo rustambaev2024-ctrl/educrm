@@ -28,14 +28,23 @@ class Payment(models.Model):
         ("charge", "Charge"),
         ("discount", "Discount"),
         ("refund", "Refund"),
+        ("expense", "Expense"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name="payments")
+    wallet = models.ForeignKey(
+        Wallet,
+        on_delete=models.CASCADE,
+        related_name="payments",
+        null=True,
+        blank=True,
+    )
     student = models.ForeignKey(
         "students.Student",
         on_delete=models.CASCADE,
         related_name="payments",
+        null=True,
+        blank=True,
     )
     branch = models.ForeignKey(
         "institutions.Branch",
@@ -60,8 +69,10 @@ class Payment(models.Model):
     )
     payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    balance_before = models.DecimalField(max_digits=12, decimal_places=2)
-    balance_after = models.DecimalField(max_digits=12, decimal_places=2)
+    balance_before = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    balance_after = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    method = models.CharField(max_length=20, blank=True)
+    category = models.CharField(max_length=50, blank=True)
     comment = models.CharField(max_length=500, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

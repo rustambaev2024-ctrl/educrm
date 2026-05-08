@@ -443,8 +443,15 @@ function paymentFromRaw(raw: PaymentRaw): Payment {
     method: toPaymentMethod(mapped.method),
     date: mapped.date,
     comment: mapped.comment,
-    category: "tuition",
+    category: toPaymentCategory(mapped.category),
   };
+}
+
+function toPaymentCategory(value: unknown): Payment["category"] {
+  if (value === "tuition" || value === "salary" || value === "rent" || value === "utilities" || value === "marketing" || value === "other") {
+    return value;
+  }
+  return "other";
 }
 
 function homeworkFromRaw(raw: HomeworkRaw): Homework {
@@ -1084,12 +1091,13 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     fireAndForget(
       "addPayment",
       paymentApi.create({
-        student_id: created.studentId,
-        group: created.groupId,
-        branch: created.branchId,
+        student_id: created.direction === "in" ? created.studentId : undefined,
+        group_id: created.groupId,
+        branch_id: created.branchId,
         amount: created.amount,
-        payment_type: created.direction === "out" ? "charge" : "top_up",
+        payment_type: created.direction === "out" ? "expense" : "top_up",
         method: created.method,
+        category: created.category ?? (created.direction === "out" ? "other" : "tuition"),
         comment: created.comment,
       } as never).then((raw) => {
         const persisted = paymentFromRaw(raw as PaymentRaw);
@@ -1259,6 +1267,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       homeworkApi.create({
         title: created.title,
         description: created.description,
+        assign_type: "group",
         group: created.groupId,
         deadline: created.dueDate,
       } as never).then((raw) => {
