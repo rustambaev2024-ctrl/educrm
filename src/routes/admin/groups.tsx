@@ -275,6 +275,7 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
 function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onClose: () => void; onEdit: () => void }) {
   const { t, lang } = useI18n();
   const { students, courses, staff, rooms, addStudentToGroup, removeStudentFromGroup, lessons, deleteGroup, updateGroup } = useData();
+  const [studentSearch, setStudentSearch] = useState("");
   const open = group !== null;
   if (!group) return <Sheet open={open} onOpenChange={(v) => !v && onClose()}><SheetContent /></Sheet>;
 
@@ -283,6 +284,20 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
   const room = rooms.find((r) => r.id === group.roomId);
   const enrolled = students.filter((s) => group.studentIds.includes(s.id));
   const available = students.filter((s) => !group.studentIds.includes(s.id) && s.status !== "archived");
+  const studentQuery = studentSearch.trim().toLowerCase().replace(/\s+/g, "");
+  const filteredAvailable = available
+    .filter((student) => {
+      if (!studentQuery) return true;
+      const haystack = `${student.fullName} ${student.phone} ${student.id}`.toLowerCase().replace(/\s+/g, "");
+      return haystack.includes(studentQuery);
+    })
+    .sort((a, b) => {
+      const branchDiff = Number(b.branchId === group.branchId) - Number(a.branchId === group.branchId);
+      if (branchDiff !== 0) return branchDiff;
+      return a.fullName.localeCompare(b.fullName);
+    });
+  const visibleAvailable = filteredAvailable.slice(0, 80);
+  const remainingAvailable = Math.max(0, filteredAvailable.length - visibleAvailable.length);
   const groupLessons = lessons.filter((l) => l.groupId === group.id).sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
   const completeGroup = () => {
     updateGroup(group.id, { status: "completed" });
@@ -379,22 +394,73 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
               </Card>
               {group.studentIds.length < group.capacity && available.length > 0 && (
                 <div className="space-y-2">
-                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("groups.addStudent")}</div>
-                  <Card className="max-h-64 divide-y divide-border overflow-y-auto">
-                    {available.slice(0, 30).map((s) => (
-                      <button key={s.id} type="button" onClick={() => { addStudentToGroup(group.id, s.id); toast.success(t("groups.studentAdded")); }} className="flex w-full items-center gap-3 p-3 text-left hover:bg-accent/40">
-                        <div className="flex size-8 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
-                          {s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{s.fullName}</div>
-                          <div className="text-[11px] text-muted-foreground">{s.phone}</div>
-                        </div>
-                        <UserPlus className="size-4 text-primary" />
-                      </button>
-                    ))}
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("groups.addStudent")}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {filteredAvailable.length} ta topildi · {group.capacity - group.studentIds.length} ta joy qoldi
+                      </div>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={studentSearch}
+                      onChange={(event) => setStudentSearch(event.target.value)}
+                      placeholder="Ism, telefon yoki ID bo'yicha qidirish"
+                      className="pl-9"
+                    />
+                  </div>
+                  <Card className="max-h-80 overflow-y-auto">
+                    {visibleAvailable.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-muted-foreground">
+                        Bunday o'quvchi topilmadi.
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {visibleAvailable.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              addStudentToGroup(group.id, s.id);
+                              setStudentSearch("");
+                              toast.success(t("groups.studentAdded"));
+                            }}
+                            className="flex w-full items-center gap-3 p-3 text-left hover:bg-accent/40"
+                          >
+                            <div className="flex size-9 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
+                              {s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-medium">{s.fullName}</div>
+                              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                                <span>{s.phone}</span>
+                                {s.branchId === group.branchId && <span className="rounded-full bg-success/10 px-2 py-0.5 text-success">shu filial</span>}
+                              </div>
+                            </div>
+                            <UserPlus className="size-4 text-primary" />
+                          </button>
+                        ))}
+                        {remainingAvailable > 0 && (
+                          <div className="p-3 text-center text-xs text-muted-foreground">
+                            Yana {remainingAvailable} ta o'quvchi bor. Aniqroq qidiruv kiriting.
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </Card>
                 </div>
+              )}
+              {group.studentIds.length >= group.capacity && (
+                <Card className="p-4 text-center text-sm text-muted-foreground">
+                  Guruh to'lgan. Yangi o'quvchi qo'shish uchun avval joy bo'shating yoki sig'imni oshiring.
+                </Card>
+              )}
+              {group.studentIds.length < group.capacity && available.length === 0 && (
+                <Card className="p-4 text-center text-sm text-muted-foreground">
+                  Qo'shish uchun bo'sh o'quvchi yo'q.
+                </Card>
               )}
             </TabsContent>
             <TabsContent value="lessons" className="space-y-2 pt-4">
