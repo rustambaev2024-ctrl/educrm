@@ -100,6 +100,40 @@ export function mapStaffList(data: { results: StaffRaw[] } | StaffRaw[]) {
   return toResults(data).map(mapStaff);
 }
 
+export interface StaffPenaltyRaw {
+  id: string;
+  staff: string | { id: string };
+  branch?: string | { id: string } | null;
+  amount: string | number;
+  reason: string;
+  penalty_date: string;
+  status: string;
+  comment?: string | null;
+  created_by_name?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function mapStaffPenalty(r: StaffPenaltyRaw) {
+  return {
+    id: r.id,
+    staffId: extractId(r.staff),
+    branchId: extractId(r.branch ?? undefined),
+    amount: Number(r.amount),
+    reason: r.reason,
+    penaltyDate: r.penalty_date,
+    status: r.status,
+    comment: r.comment ?? undefined,
+    createdByName: r.created_by_name ?? undefined,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+export function mapStaffPenalties(data: { results: StaffPenaltyRaw[] } | StaffPenaltyRaw[]) {
+  return toResults(data).map(mapStaffPenalty);
+}
+
 // ─── Student ──────────────────────────────────────────────────────────────────
 
 export interface StudentRaw {

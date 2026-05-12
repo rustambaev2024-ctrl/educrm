@@ -55,6 +55,22 @@ export interface Staff {
   fixedSalary?: number;
 }
 
+export type StaffPenaltyStatus = "active" | "cancelled";
+
+export interface StaffPenalty {
+  id: string;
+  staffId: string;
+  branchId?: string;
+  amount: number;
+  reason: string;
+  penaltyDate: string;
+  status: StaffPenaltyStatus;
+  comment?: string;
+  createdByName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Parent {
   id: string;
   fullName: string;
@@ -80,6 +96,24 @@ export interface Student {
   parentId?: string;
   documents?: { id: string; name: string; docType?: string; file?: string | null; uploadedAt: string }[];
   certificates?: { id: string; courseName: string; date: string }[];
+}
+
+export type StudentLeadStatus = "new" | "contacted" | "trial" | "won" | "lost";
+export type StudentLeadSource = "walk_in" | "phone" | "telegram" | "instagram" | "referral" | "other";
+
+export interface StudentLead {
+  id: string;
+  fullName: string;
+  phone: string;
+  branchId?: string;
+  interestedCourseId?: string;
+  source: StudentLeadSource;
+  status: StudentLeadStatus;
+  nextFollowUp?: string;
+  notes: string;
+  createdByName?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Group {

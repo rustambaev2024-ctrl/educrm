@@ -126,3 +126,63 @@ class Certificate(models.Model):
     class Meta:
         db_table = "students_certificate"
         ordering = ["-issued_at"]
+
+
+class StudentLead(models.Model):
+    STATUS_CHOICES = [
+        ("new", "New"),
+        ("contacted", "Contacted"),
+        ("trial", "Trial lesson"),
+        ("won", "Enrolled"),
+        ("lost", "Lost"),
+    ]
+    SOURCE_CHOICES = [
+        ("walk_in", "Walk-in"),
+        ("phone", "Phone"),
+        ("telegram", "Telegram"),
+        ("instagram", "Instagram"),
+        ("referral", "Referral"),
+        ("other", "Other"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    full_name = models.CharField(max_length=255)
+    phone = models.CharField(max_length=32)
+    branch = models.ForeignKey(
+        "institutions.Branch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="student_leads",
+    )
+    interested_course = models.ForeignKey(
+        "courses.Course",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="student_leads",
+    )
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default="walk_in")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new")
+    next_follow_up = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_student_leads",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "students_lead"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "next_follow_up"]),
+            models.Index(fields=["phone"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.full_name} ({self.phone})"

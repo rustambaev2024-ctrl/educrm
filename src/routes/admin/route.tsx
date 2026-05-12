@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, GraduationCap, Layers, Calendar, Wallet, BarChart3, KeyRound } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Layers, Calendar, Wallet, BarChart3, KeyRound, MessageSquarePlus } from "lucide-react";
 import { SidebarLayout, type NavItem } from "@/components/layouts/sidebar-layout";
 import { RoleGuard } from "@/components/edu/role-guard";
 import { useI18n } from "@/lib/i18n";
@@ -13,6 +13,7 @@ function AdminLayout() {
   const NAV: NavItem[] = [
     { to: "/admin", label: t("nav.dashboard"), icon: LayoutDashboard },
     { to: "/admin/students", label: t("nav.students"), icon: GraduationCap },
+    { to: "/admin/leads", label: t("nav.leads"), icon: MessageSquarePlus },
     { to: "/admin/accounts", label: "Akkauntlar", icon: KeyRound },
     { to: "/admin/groups", label: t("nav.groups"), icon: Layers },
     { to: "/admin/schedule", label: t("nav.schedule"), icon: Calendar },

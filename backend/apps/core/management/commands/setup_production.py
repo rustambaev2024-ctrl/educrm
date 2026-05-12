@@ -1,27 +1,15 @@
 from django.core.management.base import BaseCommand
-from django.db import connection
-from django_tenants.utils import schema_context, get_public_schema_name
+from django_tenants.utils import schema_context
 
 from apps.accounts.models import User
 from apps.tenants.models import Domain, Institution
 
 class Command(BaseCommand):
-    help = "Setup production superadmin and remove demo data"
+    help = "Ensure production tenant and superadmin exist without deleting existing data"
 
     def handle(self, *args, **options):
-        # 1. Drop demo and bootstrap schemas to clean up dummy data
-        schemas_to_drop = ["demo", "bootstrap"]
-        for schema in schemas_to_drop:
-            try:
-                inst = Institution.objects.get(schema_name=schema)
-                with connection.cursor() as cursor:
-                    cursor.execute(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE;')
-                inst.delete()
-                self.stdout.write(self.style.SUCCESS(f"Deleted schema: {schema}"))
-            except Institution.DoesNotExist:
-                pass
-
-        # 2. Setup System Tenant (NOT public, because User model is in TENANT_APPS)
+        # Setup System Tenant (NOT public, because User model is in TENANT_APPS).
+        # This command runs on production boot, so it must never delete tenant data.
         tenant_schema = "crm"
         crm_inst, _ = Institution.objects.get_or_create(
             schema_name=tenant_schema,
@@ -39,20 +27,31 @@ class Command(BaseCommand):
                 defaults={"tenant": crm_inst, "is_primary": (i == 0)},
             )
 
-        # 3. Create Superadmin in the new tenant schema
+        # Ensure your personal superadmin exists in the tenant schema.
         with schema_context(tenant_schema):
-            # Clear old users to ensure clean slate
-            User.objects.all().delete()
-            
-            # Create your personal superadmin
-            user = User.objects.create(
+            user, created = User.objects.get_or_create(
                 phone="+998912755141",
-                full_name="Super Admin",
-                role="superadmin",
-                is_staff=True,
-                is_superuser=True
+                defaults={
+                    "full_name": "Super Admin",
+                    "role": "superadmin",
+                    "is_staff": True,
+                    "is_superuser": True,
+                },
             )
-            user.set_password("iyricc-8")
-            user.save()
+            update_fields = []
+            if user.role != "superadmin":
+                user.role = "superadmin"
+                update_fields.append("role")
+            if not user.is_staff:
+                user.is_staff = True
+                update_fields.append("is_staff")
+            if not user.is_superuser:
+                user.is_superuser = True
+                update_fields.append("is_superuser")
+            if created:
+                user.set_password("iyricc-8")
+                update_fields.append("password")
+            if update_fields:
+                user.save(update_fields=update_fields)
             
         self.stdout.write(self.style.SUCCESS("Superadmin setup complete! Your account +998912755141 is ready."))

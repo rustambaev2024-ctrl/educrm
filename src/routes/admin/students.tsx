@@ -63,7 +63,7 @@ const STATUS_OPTIONS: StatusFilter[] = [
   "archived",
 ];
 
-function StudentsPage() {
+export function StudentsPage() {
   const { t, lang } = useI18n();
   const { students, groups, addStudent, archiveStudent, deleteStudent } = useData();
 

@@ -9,11 +9,12 @@ from apps.accounts.permissions import IsBranchAdmin, IsTeacher
 from apps.finance.serializers import PaymentSerializer
 from apps.lessons.serializers import AttendanceSerializer
 
-from .models import Parent, Student
+from .models import Parent, Student, StudentLead
 from .serializers import (
     CertificateSerializer,
     ParentSerializer,
     StudentDocumentSerializer,
+    StudentLeadSerializer,
     StudentSerializer,
 )
 
@@ -190,3 +191,47 @@ class ParentViewSet(viewsets.ReadOnlyModelViewSet):
                 | Q(user__phone__icontains=search.strip())
             )
         return scoped.distinct().order_by("user__full_name")
+
+
+class StudentLeadViewSet(viewsets.ModelViewSet):
+    queryset = StudentLead.objects.select_related("branch", "interested_course", "created_by").all()
+    serializer_class = StudentLeadSerializer
+    permission_classes = [IsBranchAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if not user.is_authenticated:
+            return qs.none()
+
+        if user.role in ("superadmin", "director"):
+            scoped = qs
+        elif user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
+            branch_id = user.staff_profile.branch_id
+            scoped = qs.filter(branch_id=branch_id) if branch_id else qs.none()
+        else:
+            scoped = qs.none()
+
+        params = self.request.query_params
+        if params.get("branch_id"):
+            scoped = scoped.filter(branch_id=params["branch_id"])
+        if params.get("course_id"):
+            scoped = scoped.filter(interested_course_id=params["course_id"])
+        if params.get("status"):
+            scoped = scoped.filter(status=params["status"])
+        if params.get("search"):
+            value = params["search"].strip()
+            scoped = scoped.filter(
+                Q(full_name__icontains=value)
+                | Q(phone__icontains=value)
+                | Q(notes__icontains=value)
+            )
+        return scoped.distinct().order_by("-created_at")
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        branch = serializer.validated_data.get("branch")
+        if not branch and hasattr(user, "staff_profile") and user.staff_profile.branch_id:
+            serializer.save(created_by=user, branch=user.staff_profile.branch)
+            return
+        serializer.save(created_by=user)

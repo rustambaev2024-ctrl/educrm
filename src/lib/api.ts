@@ -316,6 +316,8 @@ export const staffApi = {
     }),
 };
 
+export const penaltyApi = crudApi("/penalties/");
+
 export const courseApi = crudApi("/courses/");
 
 export const groupApi = {
@@ -342,6 +344,8 @@ export const studentApi = {
   myHomeworks: () => requestJson("/student/me/homeworks/"),
   myWallet: () => requestJson("/student/me/wallet/"),
 };
+
+export const leadApi = crudApi("/leads/");
 
 export const parentApi = {
   list: () => requestJson("/parents/"),

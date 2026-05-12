@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
+import { formatAuditSummary } from "@/lib/audit";
 import type { AuditAction } from "@/lib/data/types";
 
 export const Route = createFileRoute("/director/audit")({ component: AuditPage });
@@ -45,9 +46,12 @@ function AuditPage() {
     const q = search.trim().toLowerCase();
     return auditLog
       .filter((a) => action === "all" || a.action === action)
-      .filter((a) => !q || a.summary.toLowerCase().includes(q) || a.actorName.toLowerCase().includes(q))
+      .filter((a) => {
+        const summary = formatAuditSummary(a, t).toLowerCase();
+        return !q || summary.includes(q) || a.actorName.toLowerCase().includes(q);
+      })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [auditLog, action, search]);
+  }, [auditLog, action, search, t]);
 
   return (
     <>
@@ -88,7 +92,7 @@ function AuditPage() {
                         <Badge variant="outline" className="text-[10px]">{t(`role.${entry.actorRole}`)}</Badge>
                         <span className="text-xs text-muted-foreground">{t(`audit.action.${entry.action}`)}</span>
                       </div>
-                      <div className="mt-0.5 truncate text-sm text-foreground">{entry.summary}</div>
+                      <div className="mt-0.5 truncate text-sm text-foreground">{formatAuditSummary(entry, t)}</div>
                       <div className="mt-1 text-[11px] text-muted-foreground">{formatDateTime(entry.createdAt, lang)}</div>
                     </div>
                   </div>

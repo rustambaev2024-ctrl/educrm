@@ -22,6 +22,7 @@ import {
   lessonApi,
   notificationApi,
   parentApi,
+  penaltyApi,
   paymentApi,
   requestJson,
   roomApi,
@@ -46,6 +47,7 @@ import {
   mapPayments,
   mapRooms,
   mapStaffList,
+  mapStaffPenalties,
   mapStudents,
   toResults,
   type AuditRaw,
@@ -63,6 +65,7 @@ import {
   type PaymentRaw,
   type RoomRaw,
   type StaffRaw,
+  type StaffPenaltyRaw,
   type StudentRaw,
 } from "@/lib/data/mappers";
 import { openNotificationSocket } from "@/lib/realtime";
@@ -86,6 +89,7 @@ import type {
   Payment,
   Room,
   Staff,
+  StaffPenalty,
   Student,
   AuditEntry,
   Institution,
@@ -105,6 +109,7 @@ interface DataStoreState {
   lessons: Lesson[];
   attendance: AttendanceRecord[];
   payments: Payment[];
+  penalties: StaffPenalty[];
   invoices: Invoice[];
   threads: ChatThread[];
   messages: ChatMessage[];
@@ -146,6 +151,9 @@ interface DataStoreActions {
   setAttendance: (lessonId: string, records: { studentId: string; status: AttendanceStatus; comment?: string }[]) => void;
   getAttendanceFor: (lessonId: string) => AttendanceRecord[];
   addPayment: (input: Omit<Payment, "id">) => Payment;
+  addPenalty: (input: Omit<StaffPenalty, "id" | "createdAt" | "updatedAt">) => StaffPenalty;
+  updatePenalty: (id: string, patch: Partial<StaffPenalty>) => void;
+  deletePenalty: (id: string) => void;
   applyInvoicePayment: (invoiceId: string, amount: number) => void;
   loadThreadMessages: (threadId: string) => void;
   startDirectChat: (userId: string, chatType?: string) => Promise<string | null>;
@@ -478,6 +486,27 @@ function toPaymentCategory(value: unknown): Payment["category"] {
   return "other";
 }
 
+function toPenaltyStatus(value: unknown): StaffPenalty["status"] {
+  return value === "cancelled" ? "cancelled" : "active";
+}
+
+function penaltyFromRaw(raw: StaffPenaltyRaw): StaffPenalty {
+  const mapped = mapStaffPenalties([raw])[0];
+  return {
+    id: mapped.id,
+    staffId: mapped.staffId,
+    branchId: mapped.branchId || undefined,
+    amount: mapped.amount,
+    reason: mapped.reason,
+    penaltyDate: mapped.penaltyDate,
+    status: toPenaltyStatus(mapped.status),
+    comment: mapped.comment,
+    createdByName: mapped.createdByName,
+    createdAt: mapped.createdAt,
+    updatedAt: mapped.updatedAt,
+  };
+}
+
 function homeworkFromRaw(raw: HomeworkRaw): Homework {
   const mapped = mapHomeworks([raw])[0];
   return {
@@ -658,6 +687,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [attendance, setAttendanceState] = useState<AttendanceRecord[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [penalties, setPenalties] = useState<StaffPenalty[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -670,6 +700,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadingRef = useRef(false);
+  const lastReloadAtRef = useRef(0);
 
   const reload = useCallback(async () => {
     if (!isAuthenticated || loadingRef.current) return;
@@ -706,6 +737,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       const canSeeStudents = ["director", "admin", "branch_admin", "teacher", "student", "parent"].includes(user?.role ?? "");
       const canSeeStaff = ["director", "admin", "branch_admin"].includes(user?.role ?? "");
       const canSeeFinance = ["director", "admin", "branch_admin"].includes(user?.role ?? "");
+      const canSeePenalties = user?.role === "director";
 
       const [
         branchesRaw,
@@ -718,6 +750,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         lessonsRaw,
         attendanceRaw,
         paymentsRaw,
+        penaltiesRaw,
         homeworkRaw,
         submissionsRaw,
         gradesRaw,
@@ -737,6 +770,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         (canSeeFinance || user?.role === "student" || user?.role === "parent")
           ? safe(paymentApi.list() as Promise<ListResponse<PaymentRaw>>, [], "payments")
           : Promise.resolve([]),
+        canSeePenalties ? safe(penaltyApi.list() as Promise<ListResponse<StaffPenaltyRaw>>, [], "penalties") : Promise.resolve([]),
         safe(homeworkApi.list() as Promise<ListResponse<HomeworkRaw>>, [], "homework"),
         safe(homeworkApi.allSubmissions() as Promise<ListResponse<HomeworkSubmissionRaw>>, [], "homework submissions"),
         safe(gradeApi.list() as Promise<ListResponse<GradeRaw>>, [], "grades"),
@@ -764,6 +798,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setLessons(toResults(lessonsRaw).map(lessonFromRaw));
       setAttendanceState(toResults(attendanceRaw).map(attendanceFromRaw));
       setPayments(toResults(paymentsRaw).map(paymentFromRaw));
+      setPenalties(toResults(penaltiesRaw).map(penaltyFromRaw));
       setHomework(toResults(homeworkRaw).map(homeworkFromRaw));
       setSubmissions(toResults(submissionsRaw).map(submissionFromRaw));
       setGrades(toResults(gradesRaw).map(gradeFromRaw));
@@ -774,6 +809,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       console.error("[store] reload failed:", err);
       setLoadError("Ma'lumotlarni yuklab bo'lmadi");
     } finally {
+      lastReloadAtRef.current = Date.now();
       setIsLoading(false);
       loadingRef.current = false;
     }
@@ -781,6 +817,23 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isAuthenticated) void reload();
+  }, [isAuthenticated, reload]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const reloadFreshData = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastReloadAtRef.current < 15000) return;
+      void reload();
+    };
+
+    window.addEventListener("focus", reloadFreshData);
+    document.addEventListener("visibilitychange", reloadFreshData);
+    return () => {
+      window.removeEventListener("focus", reloadFreshData);
+      document.removeEventListener("visibilitychange", reloadFreshData);
+    };
   }, [isAuthenticated, reload]);
 
   useEffect(() => {
@@ -1135,6 +1188,57 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     );
     return created;
   }, []);
+
+  const addPenalty: DataStoreActions["addPenalty"] = useCallback((input) => {
+    const id = uid("pen");
+    const now = new Date().toISOString();
+    const created: StaffPenalty = { id, createdAt: now, updatedAt: now, ...input };
+    setPenalties((prev) => [created, ...prev]);
+    fireAndForget(
+      "addPenalty",
+      penaltyApi.create({
+        staff: created.staffId,
+        branch: created.branchId || null,
+        amount: created.amount,
+        reason: created.reason,
+        penalty_date: created.penaltyDate,
+        status: created.status,
+        comment: created.comment ?? "",
+      } as never).then((raw) => {
+        const persisted = penaltyFromRaw(raw as StaffPenaltyRaw);
+        setPenalties((prev) => prev.map((penalty) => (penalty.id === id ? persisted : penalty)));
+      }),
+      () => setPenalties((prev) => prev.filter((penalty) => penalty.id !== id)),
+    );
+    return created;
+  }, []);
+
+  const updatePenalty: DataStoreActions["updatePenalty"] = useCallback((id, patch) => {
+    const snapshot = penalties;
+    setPenalties((prev) => prev.map((penalty) => (penalty.id === id ? { ...penalty, ...patch } : penalty)));
+    fireAndForget(
+      "updatePenalty",
+      penaltyApi.update(id, {
+        staff: patch.staffId,
+        branch: patch.branchId ?? undefined,
+        amount: patch.amount,
+        reason: patch.reason,
+        penalty_date: patch.penaltyDate,
+        status: patch.status,
+        comment: patch.comment,
+      } as never).then((raw) => {
+        const persisted = penaltyFromRaw(raw as StaffPenaltyRaw);
+        setPenalties((prev) => prev.map((penalty) => (penalty.id === id ? persisted : penalty)));
+      }),
+      () => setPenalties(snapshot),
+    );
+  }, [penalties]);
+
+  const deletePenalty: DataStoreActions["deletePenalty"] = useCallback((id) => {
+    const snapshot = penalties;
+    setPenalties((prev) => prev.filter((penalty) => penalty.id !== id));
+    fireAndForget("deletePenalty", penaltyApi.delete(id), () => setPenalties(snapshot));
+  }, [penalties]);
 
   const applyInvoicePayment: DataStoreActions["applyInvoicePayment"] = useCallback((invoiceId, amount) => {
     setInvoices((prev) =>
@@ -1660,6 +1764,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       lessons,
       attendance,
       payments,
+      penalties,
       invoices,
       threads,
       messages,
@@ -1691,6 +1796,9 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setAttendance,
       getAttendanceFor,
       addPayment,
+      addPenalty,
+      updatePenalty,
+      deletePenalty,
       applyInvoicePayment,
       loadThreadMessages,
       startDirectChat,
@@ -1719,7 +1827,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       updateStaff,
       deleteStaff,
     }),
-    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, deleteStudent, syncParentChild, updateStudentPasswords, addGroup, updateGroup, deleteGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, updateCourse, deleteCourse, setAttendance, getAttendanceFor, addPayment, applyInvoicePayment, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
+    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, penalties, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, deleteStudent, syncParentChild, updateStudentPasswords, addGroup, updateGroup, deleteGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, updateCourse, deleteCourse, setAttendance, getAttendanceFor, addPayment, addPenalty, updatePenalty, deletePenalty, applyInvoicePayment, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

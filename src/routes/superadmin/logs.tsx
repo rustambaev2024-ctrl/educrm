@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
+import { formatAuditSummary } from "@/lib/audit";
 import type { AuditAction } from "@/lib/data/types";
 
 export const Route = createFileRoute("/superadmin/logs")({ component: SaLogs });
@@ -46,9 +47,12 @@ function SaLogs() {
     const q = search.trim().toLowerCase();
     return platformEvents
       .filter((e) => role === "all" || e.actorRole === role)
-      .filter((e) => !q || e.summary.toLowerCase().includes(q) || e.actorName.toLowerCase().includes(q) || e.institutionName.toLowerCase().includes(q))
+      .filter((e) => {
+        const summary = formatAuditSummary(e, t).toLowerCase();
+        return !q || summary.includes(q) || e.actorName.toLowerCase().includes(q) || e.institutionName.toLowerCase().includes(q);
+      })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [platformEvents, role, search]);
+  }, [platformEvents, role, search, t]);
 
   return (
     <>
@@ -90,7 +94,7 @@ function SaLogs() {
                         <span className="text-xs text-muted-foreground">·</span>
                         <span className="text-xs font-medium text-primary">{entry.institutionName}</span>
                       </div>
-                      <div className="mt-0.5 truncate text-sm text-foreground">{entry.summary}</div>
+                      <div className="mt-0.5 truncate text-sm text-foreground">{formatAuditSummary(entry, t)}</div>
                       <div className="mt-1 text-[11px] text-muted-foreground">{formatDateTime(entry.createdAt, lang)} · {t(`audit.action.${entry.action}`)}</div>
                     </div>
                   </div>

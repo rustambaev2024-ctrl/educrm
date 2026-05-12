@@ -13,11 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { groupApi } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentTeacherId } from "@/lib/data/identity";
 import { formatDate, formatTime } from "@/lib/format";
-import type { AttendanceStatus } from "@/lib/data/types";
+import { mapStudents, toResults, type StudentRaw } from "@/lib/data/mappers";
+import type { AttendanceStatus, Student } from "@/lib/data/types";
 
 export const Route = createFileRoute("/teacher/attendance")({ component: AttendancePage });
 
@@ -83,15 +85,57 @@ function AttendancePage() {
 
   useEffect(() => {
     if (!selectedLessonId && myLessons.length > 0) {
-      setSelectedLessonId(myLessons[0].id);
+      const lessonWithStudents = myLessons.find((item) => {
+        const itemGroup = groups.find((groupItem) => groupItem.id === item.groupId);
+        return (itemGroup?.studentIds.length ?? 0) > 0;
+      });
+      setSelectedLessonId((lessonWithStudents ?? myLessons[0]).id);
     }
-  }, [myLessons, selectedLessonId]);
+  }, [groups, myLessons, selectedLessonId]);
 
   const lesson = myLessons.find((l) => l.id === selectedLessonId);
   const group = lesson ? groups.find((g) => g.id === lesson.groupId) : undefined;
+  const [lessonStudents, setLessonStudents] = useState<Student[]>([]);
+  const [isRosterLoading, setIsRosterLoading] = useState(false);
+
+  useEffect(() => {
+    if (!group?.id) {
+      setLessonStudents([]);
+      return;
+    }
+
+    let cancelled = false;
+    setIsRosterLoading(true);
+    void groupApi
+      .students(group.id)
+      .then((raw) => {
+        if (cancelled) return;
+        setLessonStudents(mapStudents(toResults(raw as { results: StudentRaw[] } | StudentRaw[])));
+      })
+      .catch((error) => {
+        console.warn("[attendance] failed to load group roster:", error);
+        if (!cancelled) setLessonStudents([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsRosterLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [group?.id]);
+
   const groupStudents = useMemo(
-    () => (group ? students.filter((s) => group.studentIds.includes(s.id)) : []),
-    [group, students],
+    () => {
+      if (!group) return [];
+      if (lessonStudents.length > 0) return lessonStudents;
+
+      const studentsById = new Map(students.map((student) => [student.id, student]));
+      return group.studentIds
+        .map((studentId) => studentsById.get(studentId))
+        .filter((student): student is Student => Boolean(student));
+    },
+    [group, lessonStudents, students],
   );
 
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
@@ -208,8 +252,10 @@ function AttendancePage() {
                   </div>
                 </div>
 
-                {groupStudents.length === 0 ? (
-                  <div className="py-8 text-center text-sm text-muted-foreground">{t("students.empty")}</div>
+                {isRosterLoading ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">O'quvchilar yuklanmoqda...</div>
+                ) : groupStudents.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">Guruhda faol o'quvchi yo'q</div>
                 ) : (
                   <div className="space-y-2">
                     {groupStudents.map((student) => {

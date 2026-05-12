@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 
-from .models import Staff
+from .models import Staff, StaffPenalty
 
 
 def normalize_phone(value: str) -> str:
@@ -96,3 +96,49 @@ class StaffSerializer(serializers.ModelSerializer):
             user.save(update_fields=["password"])
 
         return instance
+
+
+class StaffPenaltySerializer(serializers.ModelSerializer):
+    staff_name = serializers.CharField(source="staff.user.full_name", read_only=True)
+    branch_name = serializers.CharField(source="branch.name", read_only=True)
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
+
+    class Meta:
+        model = StaffPenalty
+        fields = (
+            "id",
+            "staff",
+            "staff_name",
+            "branch",
+            "branch_name",
+            "amount",
+            "reason",
+            "penalty_date",
+            "status",
+            "comment",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "staff_name",
+            "branch_name",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "updated_at",
+        )
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Amount must be greater than zero.")
+        return value
+
+    def validate(self, attrs):
+        staff = attrs.get("staff") or getattr(self.instance, "staff", None)
+        branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+        if staff and branch and staff.branch_id and staff.branch_id != branch.id:
+            raise serializers.ValidationError({"branch": "Penalty branch must match staff branch."})
+        return attrs

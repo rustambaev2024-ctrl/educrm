@@ -81,7 +81,9 @@ class GroupViewSet(
     serializer_class = GroupSerializer
 
     def get_permissions(self):
-        if self.action in (
+        if self.action == "add_student" and self.request.method == "GET":
+            permission_classes = [permissions.IsAuthenticated]
+        elif self.action in (
             "create",
             "update",
             "partial_update",
@@ -141,9 +143,18 @@ class GroupViewSet(
         return scoped.distinct()
 
     @transaction.atomic
-    @action(detail=True, methods=["post"], url_path="students")
+    @action(detail=True, methods=["get", "post"], url_path="students")
     def add_student(self, request, pk=None):
         group = self.get_object()
+        if request.method == "GET":
+            from apps.students.serializers import StudentSerializer
+
+            students = Student.objects.filter(
+                group_memberships__group=group,
+                group_memberships__left_at__isnull=True,
+            ).select_related("user", "branch").distinct().order_by("user__full_name")
+            return Response(StudentSerializer(students, many=True).data, status=status.HTTP_200_OK)
+
         serializer = GroupAddStudentSerializer(data=request.data, context={"group": group})
         serializer.is_valid(raise_exception=True)
         student = serializer.context["student"]

@@ -12,7 +12,7 @@ from apps.courses.models import GroupMembership
 from apps.finance.models import Payment
 from apps.institutions.models import Branch, Room
 from apps.lessons.models import Attendance, Lesson
-from apps.staff.models import Staff
+from apps.staff.models import Staff, StaffPenalty
 from apps.students.models import Student
 
 
@@ -396,6 +396,16 @@ def calculate_teacher_salary(
 
     total_student_payments = _quantize(total_student_payments)
     calculated_salary = _quantize(total_student_payments * (applied_percent / Decimal("100")))
+    penalties_qs = StaffPenalty.objects.filter(
+        staff=teacher,
+        status="active",
+        penalty_date__gte=period_start,
+        penalty_date__lte=period_end,
+    ).order_by("-penalty_date", "-created_at")
+    total_penalties = _quantize(
+        penalties_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
+    )
+    net_salary = _quantize(max(calculated_salary - total_penalties, Decimal("0.00")))
 
     return {
         "teacher": {
@@ -407,6 +417,18 @@ def calculate_teacher_salary(
         "total_student_payments": str(total_student_payments),
         "salary_percent": str(applied_percent),
         "calculated_salary": str(calculated_salary),
+        "penalties_total": str(total_penalties),
+        "net_salary": str(net_salary),
+        "penalties": [
+            {
+                "id": str(penalty.id),
+                "amount": str(_quantize(penalty.amount)),
+                "reason": penalty.reason,
+                "penalty_date": str(penalty.penalty_date),
+                "comment": penalty.comment,
+            }
+            for penalty in penalties_qs
+        ],
     }
 
 

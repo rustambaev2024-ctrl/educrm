@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 
-from .models import Certificate, Parent, ParentStudentLink, Student, StudentDocument
+from .models import Certificate, Parent, ParentStudentLink, Student, StudentDocument, StudentLead
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -220,3 +220,26 @@ class ParentStudentLinkSerializer(serializers.ModelSerializer):
         model = ParentStudentLink
         fields = ("parent", "student", "linked_at")
         read_only_fields = ("linked_at",)
+
+
+class StudentLeadSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
+
+    class Meta:
+        model = StudentLead
+        fields = (
+            "id",
+            "full_name",
+            "phone",
+            "branch",
+            "interested_course",
+            "source",
+            "status",
+            "next_follow_up",
+            "notes",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_by", "created_by_name", "created_at", "updated_at")
