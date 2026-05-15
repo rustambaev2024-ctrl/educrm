@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, Building, Users, Wallet, BarChart3, FileClock, BookOpen, BadgeDollarSign, GraduationCap, Ban } from "lucide-react";
+import { LayoutDashboard, Building, Users, Wallet, BarChart3, FileClock, BookOpen, BadgeDollarSign, GraduationCap, Ban, MessageSquarePlus } from "lucide-react";
 import { SidebarLayout, type NavItem } from "@/components/layouts/sidebar-layout";
 import { RoleGuard } from "@/components/edu/role-guard";
 import { useI18n } from "@/lib/i18n";
@@ -14,6 +14,7 @@ function DirectorLayout() {
     { to: "/director", label: t("nav.dashboard"), icon: LayoutDashboard },
     { to: "/director/branches", label: t("nav.branches"), icon: Building },
     { to: "/director/students", label: t("nav.students"), icon: GraduationCap },
+    { to: "/director/leads", label: t("nav.leads"), icon: MessageSquarePlus },
     { to: "/director/courses", label: "Kurslar", icon: BookOpen },
     { to: "/director/staff", label: t("nav.staff"), icon: Users },
     { to: "/director/finance", label: t("nav.finance"), icon: Wallet },

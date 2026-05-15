@@ -44,6 +44,7 @@ import { Route as DirectorStaffRouteImport } from './routes/director/staff'
 import { Route as DirectorSalariesRouteImport } from './routes/director/salaries'
 import { Route as DirectorPenaltiesRouteImport } from './routes/director/penalties'
 import { Route as DirectorMessagesRouteImport } from './routes/director/messages'
+import { Route as DirectorLeadsRouteImport } from './routes/director/leads'
 import { Route as DirectorFinanceRouteImport } from './routes/director/finance'
 import { Route as DirectorCoursesRouteImport } from './routes/director/courses'
 import { Route as DirectorBranchesRouteImport } from './routes/director/branches'
@@ -233,6 +234,11 @@ const DirectorMessagesRoute = DirectorMessagesRouteImport.update({
   path: '/messages',
   getParentRoute: () => DirectorRouteRoute,
 } as any)
+const DirectorLeadsRoute = DirectorLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => DirectorRouteRoute,
+} as any)
 const DirectorFinanceRoute = DirectorFinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
@@ -321,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/director/branches': typeof DirectorBranchesRoute
   '/director/courses': typeof DirectorCoursesRoute
   '/director/finance': typeof DirectorFinanceRoute
+  '/director/leads': typeof DirectorLeadsRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
   '/director/salaries': typeof DirectorSalariesRoute
@@ -365,6 +372,7 @@ export interface FileRoutesByTo {
   '/director/branches': typeof DirectorBranchesRoute
   '/director/courses': typeof DirectorCoursesRoute
   '/director/finance': typeof DirectorFinanceRoute
+  '/director/leads': typeof DirectorLeadsRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
   '/director/salaries': typeof DirectorSalariesRoute
@@ -416,6 +424,7 @@ export interface FileRoutesById {
   '/director/branches': typeof DirectorBranchesRoute
   '/director/courses': typeof DirectorCoursesRoute
   '/director/finance': typeof DirectorFinanceRoute
+  '/director/leads': typeof DirectorLeadsRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
   '/director/salaries': typeof DirectorSalariesRoute
@@ -468,6 +477,7 @@ export interface FileRouteTypes {
     | '/director/branches'
     | '/director/courses'
     | '/director/finance'
+    | '/director/leads'
     | '/director/messages'
     | '/director/penalties'
     | '/director/salaries'
@@ -512,6 +522,7 @@ export interface FileRouteTypes {
     | '/director/branches'
     | '/director/courses'
     | '/director/finance'
+    | '/director/leads'
     | '/director/messages'
     | '/director/penalties'
     | '/director/salaries'
@@ -562,6 +573,7 @@ export interface FileRouteTypes {
     | '/director/branches'
     | '/director/courses'
     | '/director/finance'
+    | '/director/leads'
     | '/director/messages'
     | '/director/penalties'
     | '/director/salaries'
@@ -849,6 +861,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirectorMessagesRouteImport
       parentRoute: typeof DirectorRouteRoute
     }
+    '/director/leads': {
+      id: '/director/leads'
+      path: '/leads'
+      fullPath: '/director/leads'
+      preLoaderRoute: typeof DirectorLeadsRouteImport
+      parentRoute: typeof DirectorRouteRoute
+    }
     '/director/finance': {
       id: '/director/finance'
       path: '/finance'
@@ -977,6 +996,7 @@ interface DirectorRouteRouteChildren {
   DirectorBranchesRoute: typeof DirectorBranchesRoute
   DirectorCoursesRoute: typeof DirectorCoursesRoute
   DirectorFinanceRoute: typeof DirectorFinanceRoute
+  DirectorLeadsRoute: typeof DirectorLeadsRoute
   DirectorMessagesRoute: typeof DirectorMessagesRoute
   DirectorPenaltiesRoute: typeof DirectorPenaltiesRoute
   DirectorSalariesRoute: typeof DirectorSalariesRoute
@@ -991,6 +1011,7 @@ const DirectorRouteRouteChildren: DirectorRouteRouteChildren = {
   DirectorBranchesRoute: DirectorBranchesRoute,
   DirectorCoursesRoute: DirectorCoursesRoute,
   DirectorFinanceRoute: DirectorFinanceRoute,
+  DirectorLeadsRoute: DirectorLeadsRoute,
   DirectorMessagesRoute: DirectorMessagesRoute,
   DirectorPenaltiesRoute: DirectorPenaltiesRoute,
   DirectorSalariesRoute: DirectorSalariesRoute,
