@@ -33,9 +33,7 @@ class LoginView(TokenObtainPairView):
         if not phone:
             return Response({"phone": ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Login is tenant-discovery entry point. A stale localStorage tenant or
-        # localhost domain fallback must not force authentication in the wrong schema.
-        tenant = self._resolve_tenant_by_phone(phone)
+        tenant = self._resolve_tenant_by_phone(phone, request)
         if tenant is None:
             return Response({"detail": "Invalid phone or password"}, status=status.HTTP_401_UNAUTHORIZED)
         connection.set_tenant(tenant)
@@ -50,16 +48,37 @@ class LoginView(TokenObtainPairView):
 
         return Response(data, status=status.HTTP_200_OK)
 
-    def _resolve_tenant_by_phone(self, phone):
+    def _resolve_tenant_by_phone(self, phone, request):
         phone = normalize_phone(phone)
         tenant_model = get_tenant_model()
-        tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
+        from rest_framework.exceptions import ValidationError
+        
+        schema_header = request.META.get("HTTP_X_TENANT_SCHEMA")
 
-        for tenant in tenants.iterator():
-            with schema_context(tenant.schema_name):
-                if User.objects.filter(phone=phone).exists():
-                    return tenant
-        return None
+        if not schema_header:
+            raise ValidationError({"detail": "X-Tenant-Schema header is required"})
+
+        if schema_header == get_public_schema_name():
+            # Superadmin logs in via public schema header.
+            # Since User table is tenant-specific, we find the superadmin across tenants.
+            tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
+            for tenant in tenants.iterator():
+                with schema_context(tenant.schema_name):
+                    u = User.objects.filter(phone=phone).first()
+                    if u and u.role == "superadmin":
+                        return tenant
+            raise ValidationError({"detail": "Invalid credentials or not a superadmin"})
+
+        try:
+            requested_tenant = tenant_model.objects.get(schema_name=schema_header)
+        except tenant_model.DoesNotExist:
+            raise ValidationError({"detail": "Institution not found"})
+
+        with schema_context(requested_tenant.schema_name):
+            if not User.objects.filter(phone=phone).exists():
+                raise ValidationError({"detail": "Invalid credentials"})
+
+        return requested_tenant
 
 
 class LogoutView(APIView):
