@@ -1,8 +1,7 @@
 #!/bin/bash
 set -e
 
-cd /app/backend
-
+# WORKDIR is already /app/backend (set in Dockerfile)
 echo "Running migrations..."
 python manage.py migrate_schemas --shared
 
