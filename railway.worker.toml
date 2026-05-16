@@ -1,0 +1,7 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "docker/Dockerfile.celery"
+
+[deploy]
+startCommand = "sh -c 'cd backend && celery -A config worker -l warning -c 2'"
+restartPolicyType = "on_failure"
