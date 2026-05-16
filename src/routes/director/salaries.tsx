@@ -143,6 +143,7 @@ function DirectorSalaries() {
       branchId: selected.branchId ?? branches[0]?.id ?? "",
       amount: payout,
       direction: "out",
+      type: "expense",
       method,
       date: new Date().toISOString(),
       category: "salary",

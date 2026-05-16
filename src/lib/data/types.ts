@@ -162,6 +162,7 @@ export interface Payment {
   staffId?: string;         // for salary outgoing
   groupId?: string;
   branchId: string;
+  type: string;
   amount: number;           // positive value
   direction: PaymentDirection; // internal = wallet operation, not organisation income/expense
   method: PaymentMethod;

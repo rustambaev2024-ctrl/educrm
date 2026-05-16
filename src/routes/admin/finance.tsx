@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plus, TrendingUp, TrendingDown, Wallet, AlertTriangle, Receipt } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, AlertTriangle, Receipt, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { Card } from "@/components/ui/card";
@@ -49,7 +49,7 @@ const METHODS: PaymentMethod[] = ["cash", "card", "transfer", "click", "payme"];
 
 function FinancePage() {
   const { t, lang } = useI18n();
-  const { payments, students, groups } = useData();
+  const { payments, students, groups, reversePayment } = useData();
   const [payOpen, setPayOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
@@ -136,6 +136,7 @@ function FinancePage() {
                 {debtors.length > 0 && <Badge className="ml-2 h-4 min-w-4 px-1 text-[10px]">{debtors.length}</Badge>}
               </TabsTrigger>
               <TabsTrigger value="expenses">{t("finance.tab.expenses")}</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
             </TabsList>
             
             <div className="flex items-center gap-2">
@@ -192,6 +193,7 @@ function FinancePage() {
                     <TableHead>{t("finance.col.method")}</TableHead>
                     <TableHead>{t("finance.col.date")}</TableHead>
                     <TableHead>{t("finance.col.comment")}</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -210,6 +212,50 @@ function FinancePage() {
                       <TableCell><Badge variant="outline">{t(`finance.method.${p.method}`)}</Badge></TableCell>
                       <TableCell className="text-xs text-muted-foreground">{formatDate(p.date, lang)}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{p.comment ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => reversePayment(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                          <RotateCcw className="size-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-4">
+            <Card className="overflow-hidden shadow-elegant">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("finance.col.student")}</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">{t("finance.col.amount")}</TableHead>
+                    <TableHead>{t("finance.col.date")}</TableHead>
+                    <TableHead>{t("finance.col.comment")}</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...payments].sort((a,b) => b.date.localeCompare(a.date)).map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.studentId ? studentById[p.studentId]?.fullName : "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">{p.type}</Badge>
+                      </TableCell>
+                      <TableCell className={`text-right font-semibold ${p.direction === 'in' ? 'text-success' : p.direction === 'out' ? 'text-destructive' : 'text-amber-600'}`}>
+                        {p.direction === 'in' ? '+' : p.direction === 'out' ? '-' : '•'} {formatMoney(p.amount, lang)}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{formatDate(p.date, lang)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{p.comment ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        {p.type !== 'refund' && (
+                          <Button variant="ghost" size="icon" onClick={() => reversePayment(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <RotateCcw className="size-4" />
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -343,6 +389,7 @@ function PaymentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
       branchId: student?.branchId ?? branches[0]?.id ?? "b1",
       amount: num,
       direction: "in",
+      type: "top_up",
       method,
       date: new Date().toISOString(),
       comment: comment || undefined,
@@ -443,6 +490,7 @@ function ExpenseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
       branchId: branches[0]?.id,
       amount: num,
       direction: "out",
+      type: "expense",
       method,
       date: new Date().toISOString(),
       comment: comment || undefined,

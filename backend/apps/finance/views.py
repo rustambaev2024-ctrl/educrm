@@ -1,11 +1,13 @@
 from django.db.models import Q
 from rest_framework import mixins, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin
 
 from .models import Payment
 from .serializers import PaymentCreateSerializer, PaymentSerializer
+from .services import reverse_payment
 
 
 class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -29,6 +31,15 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
         payment = serializer.save()
         output = PaymentSerializer(payment)
         return Response(output.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsBranchAdmin])
+    def reverse(self, request, pk=None):
+        payment = self.get_object()
+        try:
+            result = reverse_payment(payment, created_by=request.user)
+            return Response(PaymentSerializer(result.payment).data)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def get_queryset(self):
         user = self.request.user

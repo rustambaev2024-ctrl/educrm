@@ -151,6 +151,7 @@ interface DataStoreActions {
   setAttendance: (lessonId: string, records: { studentId: string; status: AttendanceStatus; comment?: string }[]) => void;
   getAttendanceFor: (lessonId: string) => AttendanceRecord[];
   addPayment: (input: Omit<Payment, "id">) => Payment;
+  reversePayment: (id: string) => Promise<void>;
   addPenalty: (input: Omit<StaffPenalty, "id" | "createdAt" | "updatedAt">) => StaffPenalty;
   updatePenalty: (id: string, patch: Partial<StaffPenalty>) => void;
   deletePenalty: (id: string) => void;
@@ -470,6 +471,7 @@ function paymentFromRaw(raw: PaymentRaw): Payment {
     staffId: mapped.staffId || undefined,
     groupId: mapped.groupId || undefined,
     branchId: mapped.branchId || "",
+    type: mapped.type,
     amount: mapped.amount,
     direction: mapped.direction as any,
     method: toPaymentMethod(mapped.method),
@@ -1189,6 +1191,29 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     return created;
   }, []);
 
+  const reversePayment: DataStoreActions["reversePayment"] = useCallback(async (id) => {
+    try {
+      const raw = await paymentApi.reverse(id);
+      const refund = paymentFromRaw(raw as PaymentRaw);
+      setPayments((prev) => [refund, ...prev]);
+      
+      if (refund.studentId) {
+        setStudents((prev) => prev.map((s) => {
+          if (s.id === refund.studentId) {
+            // 'refund' increases balance (reverses 'charge')
+            // 'charge' (reversal of 'top_up') decreases balance
+            const delta = refund.type === "refund" ? refund.amount : -refund.amount;
+            return { ...s, balance: s.balance + delta };
+          }
+          return s;
+        }));
+      }
+      toast.success("Transaction reversed");
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
+    }
+  }, []);
+
   const addPenalty: DataStoreActions["addPenalty"] = useCallback((input) => {
     const id = uid("pen");
     const now = new Date().toISOString();
@@ -1785,6 +1810,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setAttendance,
       getAttendanceFor,
       addPayment,
+      reversePayment,
       addPenalty,
       updatePenalty,
       deletePenalty,

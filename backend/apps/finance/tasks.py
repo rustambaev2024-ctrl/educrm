@@ -52,6 +52,9 @@ def daily_lesson_charge():
                         lesson=lesson,
                         comment=f"Daily lesson charge for {today}",
                     )
+                    if lesson:
+                        from apps.lessons.models import Attendance
+                        Attendance.objects.filter(lesson=lesson, student=student).update(is_charged=True)
             except Exception as e:
                 logger.error(f"Failed to charge student {student.id} for group {group.id}: {e}")
 

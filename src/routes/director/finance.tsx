@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, Wallet, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, AlertTriangle, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/edu/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/director/finance")({ component: DirectorF
 
 function DirectorFinancePage() {
   const { t, lang } = useI18n();
-  const { payments, students, branches } = useData();
+  const { payments, students, branches, reversePayment } = useData();
 
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
@@ -199,6 +200,7 @@ function DirectorFinancePage() {
                 <TableHead>{t("finance.col.category")}</TableHead>
                 <TableHead>{t("nav.branches")}</TableHead>
                 <TableHead className="text-right">{t("finance.col.amount")}</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -213,6 +215,13 @@ function DirectorFinancePage() {
                   </TableCell>
                   <TableCell className={`text-right font-semibold ${p.direction === "in" ? "text-success" : p.direction === "out" ? "text-destructive" : "text-muted-foreground"}`}>
                     {p.direction === "in" ? "+" : p.direction === "out" ? "−" : ""}{formatMoney(p.amount, lang)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {p.type !== 'refund' && (
+                      <Button variant="ghost" size="icon" onClick={() => reversePayment(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                        <RotateCcw className="size-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

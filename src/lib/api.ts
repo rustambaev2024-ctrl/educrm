@@ -395,6 +395,10 @@ export const paymentApi = {
       body: JSON.stringify({ student: studentId, transaction_type: "top_up", ...(data as any) }),
     }),
   debtors: (branchId?: string) => requestJson(`/payments/debtors/${branchId ? `?branch=${branchId}` : ""}`),
+  reverse: (id: string) =>
+    requestJson(`/payments/${id}/reverse/`, {
+      method: "POST",
+    }),
 };
 
 export const homeworkApi = {
