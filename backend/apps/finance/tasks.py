@@ -1,46 +1,57 @@
+import logging
+from datetime import date
+
 from celery import shared_task
 from django.db import transaction
 
-from apps.lessons.models import Attendance
+from apps.courses.models import Group
 from apps.students.models import Student
 
 from .services import (
-    CHARGEABLE_ATTENDANCE_STATUSES,
     apply_payment,
     calculate_lesson_price,
     get_or_create_wallet,
 )
 
+logger = logging.getLogger(__name__)
+
 
 @shared_task
-def charge_attendance(attendance_id: str):
-    with transaction.atomic():
-        attendance = (
-            Attendance.objects.select_for_update()
-            .select_related("lesson__group", "student")
-            .filter(id=attendance_id)
-            .first()
-        )
-        if attendance is None or attendance.is_charged:
-            return
+def daily_lesson_charge():
+    today = date.today()
+    weekday = today.weekday()
 
-        if attendance.status not in CHARGEABLE_ATTENDANCE_STATUSES:
-            return
+    active_groups = Group.objects.filter(status="active").prefetch_related("students")
 
-        lesson = attendance.lesson
-        group = lesson.group
-        lesson_price = calculate_lesson_price(group, lesson.datetime.date())
-        get_or_create_wallet(attendance.student)
-        apply_payment(
-            student=attendance.student,
-            payment_type="charge",
-            amount=lesson_price,
-            group=group,
-            lesson=lesson,
-            comment=f"Auto charge for lesson {lesson.id}",
-        )
-        attendance.is_charged = True
-        attendance.save(update_fields=["is_charged", "updated_at"])
+    for group in active_groups:
+        lesson_days = {
+            slot.get("day")
+            for slot in (group.schedule or [])
+            if isinstance(slot, dict) and slot.get("day") is not None
+        }
+        
+        if weekday not in lesson_days:
+            continue
+
+        lesson_price = calculate_lesson_price(group, today)
+        if lesson_price <= 0:
+            continue
+
+        students_to_charge = group.students.exclude(status__in=["frozen", "archived", "graduate", "expelled"])
+        
+        for student in students_to_charge:
+            try:
+                with transaction.atomic():
+                    get_or_create_wallet(student)
+                    apply_payment(
+                        student=student,
+                        payment_type="charge",
+                        amount=lesson_price,
+                        group=group,
+                        comment=f"Daily lesson charge for {today}",
+                    )
+            except Exception as e:
+                logger.error(f"Failed to charge student {student.id} for group {group.id}: {e}")
 
 
 @shared_task

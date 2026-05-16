@@ -1,4 +1,4 @@
-﻿import os
+import os
 
 from celery import Celery
 from celery.schedules import crontab
@@ -13,6 +13,10 @@ app.conf.beat_schedule = {
     "core-health-ping": {
         "task": "apps.core.tasks.health_ping",
         "schedule": crontab(minute="*/15"),
+    },
+    "daily-lesson-charge": {
+        "task": "apps.finance.tasks.daily_lesson_charge",
+        "schedule": crontab(hour=23, minute=0),
     },
     "update-debtor-statuses": {
         "task": "apps.finance.tasks.update_debtor_statuses",
