@@ -29,3 +29,6 @@ COPY . /app
 WORKDIR /app/backend
 
 EXPOSE 8000
+
+COPY docker/start.sh /start.sh
+RUN chmod +x /start.sh
