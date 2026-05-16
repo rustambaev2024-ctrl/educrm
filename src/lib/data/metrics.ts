@@ -1,6 +1,6 @@
 import type { AttendanceRecord } from "@/lib/data/types";
 
-const PRESENT_STATUSES = new Set(["present", "late", "online"]);
+const PRESENT_STATUSES = new Set(["present", "late"]);
 
 export function attendancePercentage(records: AttendanceRecord[]): number {
   const counted = records.filter((record) => record.status !== "excused");

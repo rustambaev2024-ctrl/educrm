@@ -23,7 +23,7 @@ import type { AttendanceStatus, Student } from "@/lib/data/types";
 
 export const Route = createFileRoute("/teacher/attendance")({ component: AttendancePage });
 
-const STATUS_ORDER: AttendanceStatus[] = ["present", "late", "online", "excused", "absent"];
+const STATUS_ORDER: AttendanceStatus[] = ["present", "late", "excused", "absent"];
 
 const STATUS_META: Record<AttendanceStatus, { icon: typeof Check; tone: string; activeTone: string; key: string; short: string }> = {
   present: {
@@ -40,13 +40,7 @@ const STATUS_META: Record<AttendanceStatus, { icon: typeof Check; tone: string; 
     key: "att.late",
     short: "Q",
   },
-  online: {
-    icon: Wifi,
-    tone: "border-border text-muted-foreground hover:bg-info/10 hover:text-info",
-    activeTone: "border-info bg-info text-info-foreground",
-    key: "att.online",
-    short: "O",
-  },
+
   excused: {
     icon: FileText,
     tone: "border-border text-muted-foreground hover:bg-accent",
@@ -110,7 +104,7 @@ function AttendancePage() {
       .students(group.id)
       .then((raw) => {
         if (cancelled) return;
-        setLessonStudents(mapStudents(toResults(raw as { results: StudentRaw[] } | StudentRaw[])));
+        setLessonStudents(mapStudents(toResults(raw as { results: StudentRaw[] } | StudentRaw[])) as Student[]);
       })
       .catch((error) => {
         console.warn("[attendance] failed to load group roster:", error);
@@ -170,7 +164,7 @@ function AttendancePage() {
   };
 
   const summary = useMemo(() => {
-    const present = Object.values(marks).filter((s) => s === "present" || s === "online").length;
+    const present = Object.values(marks).filter((s) => s === "present").length;
     const absent = Object.values(marks).filter((s) => s === "absent").length;
     const late = Object.values(marks).filter((s) => s === "late").length;
     return { present, absent, late };

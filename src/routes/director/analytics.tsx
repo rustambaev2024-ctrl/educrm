@@ -18,7 +18,7 @@ const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--cha
 
 function AnalyticsPage() {
   const { t, lang } = useI18n();
-  const { students, groups, courses, branches, payments, invoices, attendance, staff } = useData();
+  const { students, groups, courses, branches, payments, attendance, staff } = useData();
 
   // Monthly revenue for last 6 months
   const monthly = useMemo(() => {
@@ -67,7 +67,7 @@ function AnalyticsPage() {
 
   const totalRevenue = payments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
   const totalExpense = payments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
-  const overdueAmount = invoices.filter((i) => i.status === "overdue").reduce((s, i) => s + (i.amount - i.paidAmount), 0);
+  const overdueAmount = students.filter((s) => s.status === "debtor").reduce((s, st) => s + Math.abs(st.balance), 0);
   const attPct = attendancePercentage(attendance);
 
   return (

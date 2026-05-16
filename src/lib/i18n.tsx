@@ -212,7 +212,7 @@ const UZ: Dict = {
   "att.present": "Keldi",
   "att.absent": "Kelmadi",
   "att.late": "Kechikdi",
-  "att.online": "Onlayn",
+
   "att.excused": "Sababli",
   "att.markAll": "Hammasini «Keldi»",
   "att.summary": "{present} keldi · {absent} kelmadi · {late} kechikdi",

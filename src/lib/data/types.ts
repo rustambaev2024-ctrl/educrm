@@ -13,7 +13,7 @@ export type GroupStatus = "recruiting" | "active" | "frozen" | "completed";
 
 export type LessonStatus = "scheduled" | "completed" | "cancelled" | "rescheduled";
 
-export type AttendanceStatus = "present" | "absent" | "late" | "excused" | "online";
+export type AttendanceStatus = "present" | "absent" | "late" | "excused";
 
 export type DayOfWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7; // 1=Mon ... 7=Sun
 
@@ -170,18 +170,6 @@ export interface Payment {
   category?: "tuition" | "salary" | "rent" | "utilities" | "marketing" | "other";
 }
 
-export type InvoiceStatus = "pending" | "paid" | "partial" | "overdue";
-
-export interface Invoice {
-  id: string;
-  studentId: string;
-  groupId: string;
-  period: string;           // "YYYY-MM"
-  amount: number;
-  paidAmount: number;
-  dueDate: string;          // ISO
-  status: InvoiceStatus;
-}
 
 export type ChatScope = "direct" | "group" | "broadcast";
 
@@ -227,7 +215,7 @@ export interface AppNotification {
   createdAt: string;
   read: boolean;
   link?: string;
-  audience: ("superadmin" | "director" | "admin" | "teacher" | "student" | "parent")[];
+  audience: ("superadmin" | "director" | "admin" | "branch_admin" | "teacher" | "student" | "parent")[];
 }
 
 // Homework
@@ -293,7 +281,7 @@ export interface AuditEntry {
   id: string;
   actorId: string;
   actorName: string;
-  actorRole: "superadmin" | "director" | "admin" | "teacher" | "student" | "parent";
+  actorRole: "superadmin" | "director" | "admin" | "branch_admin" | "teacher" | "student" | "parent";
   action: AuditAction;
   entity: string;        // e.g. "student", "group", "lesson", "payment"
   entityId?: string;

@@ -38,7 +38,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { InvoiceStatusBadge } from "@/components/edu/status-badge";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -50,7 +49,7 @@ const METHODS: PaymentMethod[] = ["cash", "card", "transfer", "click", "payme"];
 
 function FinancePage() {
   const { t, lang } = useI18n();
-  const { payments, invoices, students, groups } = useData();
+  const { payments, students, groups } = useData();
   const [payOpen, setPayOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
 
@@ -64,20 +63,17 @@ function FinancePage() {
   const monthPayments = payments.filter((p) => new Date(p.date) >= monthStart);
   const monthIncome = monthPayments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
   const monthExpense = monthPayments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
-  const totalDebt = invoices
-    .filter((i) => i.status === "overdue" || i.status === "partial")
-    .reduce((s, i) => s + (i.amount - i.paidAmount), 0);
-  const totalPending = invoices
-    .filter((i) => i.status === "pending")
-    .reduce((s, i) => s + (i.amount - i.paidAmount), 0);
+  const totalDebt = students
+    .filter((s) => s.status === "debtor")
+    .reduce((s, st) => s + Math.abs(st.balance), 0);
+  const totalPending = 0;
 
   const incomingPayments = [...payments].filter((p) => p.direction === "in").sort((a, b) => b.date.localeCompare(a.date));
   const outgoingPayments = [...payments].filter((p) => p.direction === "out").sort((a, b) => b.date.localeCompare(a.date));
-  const debtors = invoices
-    .filter((i) => i.status === "overdue" || i.status === "partial")
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  const allInvoices = [...invoices].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-
+  const debtors = students
+    .filter((s) => s.status === "debtor")
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
+  
   return (
     <>
       <PageHeader
@@ -107,8 +103,7 @@ function FinancePage() {
         <Tabs defaultValue="payments">
           <TabsList>
             <TabsTrigger value="payments">{t("finance.tab.payments")}</TabsTrigger>
-            <TabsTrigger value="invoices">{t("finance.tab.invoices")}</TabsTrigger>
-            <TabsTrigger value="debtors">
+                        <TabsTrigger value="debtors">
               {t("finance.tab.debtors")}
               {debtors.length > 0 && <Badge className="ml-2 h-4 min-w-4 px-1 text-[10px]">{debtors.length}</Badge>}
             </TabsTrigger>
@@ -151,38 +146,7 @@ function FinancePage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="invoices" className="mt-4">
-            <Card className="overflow-hidden shadow-elegant">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("finance.col.student")}</TableHead>
-                    <TableHead>{t("finance.col.group")}</TableHead>
-                    <TableHead>{t("finance.col.period")}</TableHead>
-                    <TableHead className="text-right">{t("finance.col.amount")}</TableHead>
-                    <TableHead>{t("finance.col.due")}</TableHead>
-                    <TableHead>{t("finance.col.status")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allInvoices.map((inv) => (
-                    <TableRow key={inv.id}>
-                      <TableCell className="font-medium">{studentById[inv.studentId]?.fullName ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{groupById[inv.groupId]?.name ?? "—"}</TableCell>
-                      <TableCell className="text-xs">{inv.period}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {formatMoney(inv.paidAmount, lang)}
-                        <span className="text-muted-foreground"> / {formatMoney(inv.amount, lang)}</span>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{formatDate(inv.dueDate, lang)}</TableCell>
-                      <TableCell><InvoiceStatusBadge status={inv.status} /></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
-
+          
           <TabsContent value="debtors" className="mt-4">
             {debtors.length === 0 ? (
               <Card className="flex flex-col items-center gap-3 p-12 text-center shadow-elegant">
@@ -193,20 +157,18 @@ function FinancePage() {
               </Card>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
-                {debtors.map((inv) => {
-                  const due = inv.amount - inv.paidAmount;
+                {debtors.map((student) => {
                   return (
-                    <Card key={inv.id} className="flex items-center gap-3 p-4 shadow-elegant">
+                    <Card key={student.id} className="flex items-center gap-3 p-4 shadow-elegant">
                       <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-destructive/15 text-destructive">
                         <AlertTriangle className="size-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium">{studentById[inv.studentId]?.fullName}</div>
-                        <div className="truncate text-xs text-muted-foreground">{groupById[inv.groupId]?.name}</div>
+                        <div className="truncate text-sm font-medium">{student.fullName}</div>
+                        <div className="truncate text-xs text-muted-foreground">{student.phone}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-bold text-destructive">{formatMoney(due, lang)}</div>
-                        <div className="text-[10px] text-muted-foreground">{formatDate(inv.dueDate, lang)}</div>
+                        <div className="text-sm font-bold text-destructive">{formatMoney(Math.abs(student.balance), lang)}</div>
                       </div>
                     </Card>
                   );
@@ -282,7 +244,7 @@ function KpiCard({ tone, icon: Icon, label, value }: {
 
 function PaymentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { t, lang } = useI18n();
-  const { students, groups, branches, addPayment, invoices, applyInvoicePayment } = useData();
+  const { students, groups, branches, addPayment, } = useData();
   const [studentId, setStudentId] = useState("");
   const [groupId, setGroupId] = useState("");
   const [amount, setAmount] = useState("");
@@ -315,11 +277,8 @@ function PaymentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
       comment: comment || undefined,
       category: "tuition",
     });
-    // Apply to oldest unpaid invoice for this student
-    const studentInvoice = invoices
-      .filter((i) => i.studentId === studentId && i.status !== "paid")
-      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
-    if (studentInvoice) applyInvoicePayment(studentInvoice.id, num);
+    
+    toast.success(t("finance.received"));
     toast.success(t("finance.received"));
     reset();
     onOpenChange(false);

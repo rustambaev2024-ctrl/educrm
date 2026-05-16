@@ -184,7 +184,7 @@ function StudentProfile() {
               <div className="h-full bg-gradient-primary" style={{ width: `${attPct}%` }} />
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="rounded-md bg-success/10 p-2"><div className="font-bold text-success">{myAttendance.filter((a) => a.status === "present" || a.status === "online").length}</div><div className="text-muted-foreground">{t("att.present")}</div></div>
+              <div className="rounded-md bg-success/10 p-2"><div className="font-bold text-success">{myAttendance.filter((a) => a.status === "present").length}</div><div className="text-muted-foreground">{t("att.present")}</div></div>
               <div className="rounded-md bg-warning/15 p-2"><div className="font-bold text-warning">{myAttendance.filter((a) => a.status === "late").length}</div><div className="text-muted-foreground">{t("att.late")}</div></div>
               <div className="rounded-md bg-destructive/10 p-2"><div className="font-bold text-destructive">{myAttendance.filter((a) => a.status === "absent").length}</div><div className="text-muted-foreground">{t("att.absent")}</div></div>
             </div>

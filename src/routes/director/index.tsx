@@ -21,7 +21,7 @@ export const Route = createFileRoute("/director/")({ component: DirectorHome });
 function DirectorHome() {
   const { t, lang } = useI18n();
   const {
-    students, groups, staff, courses, branches, payments, invoices, lessons, attendance, auditLog,
+    students, groups, staff, courses, branches, payments, lessons, attendance, auditLog,
   } = useData();
 
   const monthStart = useMemo(() => {
@@ -67,18 +67,8 @@ function DirectorHome() {
   }, [payments]);
 
   const courseRevenue = useMemo(() => {
-    const map = new Map<string, number>();
-    invoices.forEach((inv) => {
-      const g = groups.find((x) => x.id === inv.groupId);
-      if (!g) return;
-      const c = courses.find((cc) => cc.id === g.courseId);
-      const key = c?.name ?? "—";
-      map.set(key, (map.get(key) ?? 0) + inv.paidAmount);
-    });
-    return Array.from(map.entries())
-      .map(([name, value]) => ({ name, value: Math.round(value / 1_000_000) }))
-      .sort((a, b) => b.value - a.value);
-  }, [invoices, groups, courses]);
+    return []; // No invoices anymore, will need full transaction processing later
+  }, []);
 
   const topTeachers = useMemo(() => {
     const teachers = staff.filter((s) => s.role === "teacher");

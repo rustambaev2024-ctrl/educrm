@@ -71,7 +71,6 @@ class Attendance(models.Model):
         ("absent", "Absent"),
         ("late", "Late"),
         ("excused", "Excused"),
-        ("online", "Online"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

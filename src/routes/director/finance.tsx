@@ -20,7 +20,7 @@ export const Route = createFileRoute("/director/finance")({ component: DirectorF
 
 function DirectorFinancePage() {
   const { t, lang } = useI18n();
-  const { payments, invoices, branches } = useData();
+  const { payments, students, branches } = useData();
 
   const monthStart = new Date();
   monthStart.setDate(1);
@@ -29,9 +29,9 @@ function DirectorFinancePage() {
   const monthPayments = payments.filter((p) => new Date(p.date) >= monthStart);
   const income = monthPayments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
   const expense = monthPayments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
-  const debt = invoices
-    .filter((i) => i.status === "overdue" || i.status === "partial")
-    .reduce((s, i) => s + (i.amount - i.paidAmount), 0);
+  const debt = students
+    .filter((s) => s.status === "debtor")
+    .reduce((s, st) => s + Math.abs(st.balance), 0);
 
   // Per-branch breakdown
   const perBranch = useMemo(

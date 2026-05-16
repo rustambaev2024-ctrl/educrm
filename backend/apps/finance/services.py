@@ -11,7 +11,7 @@ from apps.students.models import Student
 from .models import Payment, Wallet
 
 
-CHARGEABLE_ATTENDANCE_STATUSES = {"present", "late", "online"}
+CHARGEABLE_ATTENDANCE_STATUSES = {"present", "late"}
 
 
 @dataclass

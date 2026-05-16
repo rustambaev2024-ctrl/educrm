@@ -83,7 +83,7 @@ import type {
   Homework,
   HomeworkSubmission,
   HomeworkSubmissionStatus,
-  Invoice,
+
   Lesson,
   Parent,
   Payment,
@@ -110,7 +110,7 @@ interface DataStoreState {
   attendance: AttendanceRecord[];
   payments: Payment[];
   penalties: StaffPenalty[];
-  invoices: Invoice[];
+
   threads: ChatThread[];
   messages: ChatMessage[];
   notifications: AppNotification[];
@@ -154,7 +154,7 @@ interface DataStoreActions {
   addPenalty: (input: Omit<StaffPenalty, "id" | "createdAt" | "updatedAt">) => StaffPenalty;
   updatePenalty: (id: string, patch: Partial<StaffPenalty>) => void;
   deletePenalty: (id: string) => void;
-  applyInvoicePayment: (invoiceId: string, amount: number) => void;
+
   loadThreadMessages: (threadId: string) => void;
   startDirectChat: (userId: string, chatType?: string) => Promise<string | null>;
   sendMessage: (threadId: string, authorId: string, authorName: string, text: string) => void;
@@ -456,7 +456,7 @@ function attendanceFromRaw(raw: AttendanceRaw): AttendanceRecord {
 }
 
 function toAttendanceStatus(value: unknown): AttendanceStatus {
-  if (value === "present" || value === "absent" || value === "late" || value === "excused" || value === "online") {
+  if (value === "present" || value === "absent" || value === "late" || value === "excused") {
     return value;
   }
   return "absent";
@@ -688,7 +688,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [attendance, setAttendanceState] = useState<AttendanceRecord[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [penalties, setPenalties] = useState<StaffPenalty[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -840,7 +840,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     if (!isAuthenticated || !user) return;
     const handle = openNotificationSocket({
       onNotification: (payload) => {
-        const notification = notificationFromRaw(payload as NotificationRaw, currentAudience);
+        const notification = notificationFromRaw(payload as unknown as NotificationRaw, currentAudience);
         setNotifications((prev) => {
           const exists = prev.some((item) => item.id === notification.id);
           if (exists) return prev.map((item) => (item.id === notification.id ? notification : item));
@@ -1239,17 +1239,6 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     setPenalties((prev) => prev.filter((penalty) => penalty.id !== id));
     fireAndForget("deletePenalty", penaltyApi.delete(id), () => setPenalties(snapshot));
   }, [penalties]);
-
-  const applyInvoicePayment: DataStoreActions["applyInvoicePayment"] = useCallback((invoiceId, amount) => {
-    setInvoices((prev) =>
-      prev.map((inv) => {
-        if (inv.id !== invoiceId) return inv;
-        const paidAmount = Math.min(inv.amount, inv.paidAmount + amount);
-        const status: Invoice["status"] = paidAmount >= inv.amount ? "paid" : paidAmount > 0 ? "partial" : inv.status;
-        return { ...inv, paidAmount, status };
-      }),
-    );
-  }, []);
 
   const loadThreadMessages: DataStoreActions["loadThreadMessages"] = useCallback((threadId) => {
     fireAndForget(
@@ -1765,7 +1754,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       attendance,
       payments,
       penalties,
-      invoices,
+
       threads,
       messages,
       notifications,
@@ -1799,7 +1788,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       addPenalty,
       updatePenalty,
       deletePenalty,
-      applyInvoicePayment,
+
       loadThreadMessages,
       startDirectChat,
       sendMessage,
@@ -1827,7 +1816,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       updateStaff,
       deleteStaff,
     }),
-    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, penalties, invoices, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, deleteStudent, syncParentChild, updateStudentPasswords, addGroup, updateGroup, deleteGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, updateCourse, deleteCourse, setAttendance, getAttendanceFor, addPayment, addPenalty, updatePenalty, deletePenalty, applyInvoicePayment, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
+    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, penalties, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, deleteStudent, syncParentChild, updateStudentPasswords, addGroup, updateGroup, deleteGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, updateCourse, deleteCourse, setAttendance, getAttendanceFor, addPayment, addPenalty, updatePenalty, deletePenalty, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
