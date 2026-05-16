@@ -51,6 +51,15 @@ function FinancePage() {
   const { t, lang } = useI18n();
   const { payments, students, groups } = useData();
   const [payOpen, setPayOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d.toISOString().split("T")[0];
+  });
+  const [dateTo, setDateTo] = useState(() => {
+    const d = new Date();
+    return d.toISOString().split("T")[0];
+  });
   const [expenseOpen, setExpenseOpen] = useState(false);
 
   const studentById = useMemo(() => Object.fromEntries(students.map((s) => [s.id, s])), [students]);
@@ -73,6 +82,23 @@ function FinancePage() {
   const debtors = students
     .filter((s) => s.status === "debtor")
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
+    
+  const wallets = useMemo(() => {
+    const fromTime = new Date(dateFrom).getTime();
+    const toTime = new Date(dateTo).getTime() + 86400000;
+    
+    return students.map(s => {
+      const studentPayments = payments.filter(p => p.studentId === s.id && p.direction === "in" && new Date(p.date).getTime() >= fromTime && new Date(p.date).getTime() < toTime);
+      studentPayments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const lastPayment = studentPayments[0];
+      
+      return {
+        ...s,
+        lastPaymentDate: lastPayment ? lastPayment.date : null,
+        lastPaymentAmount: lastPayment ? lastPayment.amount : null,
+      };
+    });
+  }, [students, payments, dateFrom, dateTo]);
   
   return (
     <>
@@ -100,15 +126,60 @@ function FinancePage() {
           <KpiCard tone="warning" icon={AlertTriangle} label={t("finance.kpi.debt")} value={formatMoney(totalDebt + totalPending, lang)} />
         </div>
 
-        <Tabs defaultValue="payments">
-          <TabsList>
-            <TabsTrigger value="payments">{t("finance.tab.payments")}</TabsTrigger>
-                        <TabsTrigger value="debtors">
-              {t("finance.tab.debtors")}
-              {debtors.length > 0 && <Badge className="ml-2 h-4 min-w-4 px-1 text-[10px]">{debtors.length}</Badge>}
-            </TabsTrigger>
-            <TabsTrigger value="expenses">{t("finance.tab.expenses")}</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="wallets">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <TabsList>
+              <TabsTrigger value="wallets">Wallets</TabsTrigger>
+              <TabsTrigger value="payments">{t("finance.tab.payments")}</TabsTrigger>
+              <TabsTrigger value="debtors">
+                {t("finance.tab.debtors")}
+                {debtors.length > 0 && <Badge className="ml-2 h-4 min-w-4 px-1 text-[10px]">{debtors.length}</Badge>}
+              </TabsTrigger>
+              <TabsTrigger value="expenses">{t("finance.tab.expenses")}</TabsTrigger>
+            </TabsList>
+            
+            <div className="flex items-center gap-2">
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+              <span>-</span>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+            </div>
+          </div>
+
+          <TabsContent value="wallets" className="mt-4">
+            <Card className="overflow-hidden shadow-elegant">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("finance.col.student")}</TableHead>
+                    <TableHead>{t("finance.col.phone")}</TableHead>
+                    <TableHead>{t("finance.col.status")}</TableHead>
+                    <TableHead className="text-right">{t("finance.col.balance")}</TableHead>
+                    <TableHead className="text-right">Last Payment</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {wallets.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                        {t("finance.empty")}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {wallets.map((w) => (
+                    <TableRow key={w.id}>
+                      <TableCell className="font-medium">{w.fullName}</TableCell>
+                      <TableCell className="text-muted-foreground">{w.phone}</TableCell>
+                      <TableCell><Badge variant={w.status === "debtor" ? "destructive" : "outline"}>{t(`status.${w.status}`)}</Badge></TableCell>
+                      <TableCell className={`text-right font-semibold ${w.balance < 0 ? 'text-destructive' : 'text-success'}`}>{formatMoney(w.balance, lang)}</TableCell>
+                      <TableCell className="text-right text-xs text-muted-foreground">
+                        {w.lastPaymentDate ? `${formatDate(w.lastPaymentDate, lang)} (+${formatMoney(w.lastPaymentAmount || 0, lang)})` : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="payments" className="mt-4">
             <Card className="overflow-hidden shadow-elegant">

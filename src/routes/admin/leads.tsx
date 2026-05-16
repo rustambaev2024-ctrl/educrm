@@ -435,7 +435,7 @@ function LeadDialog({
   onChange: (form: LeadForm) => void;
   branches: Array<{ id: string; name: string }>;
   courses: Array<{ id: string; name: string }>;
-  labels: ReturnType<typeof labels>;
+  labels: any;
   onSubmit: () => void;
 }) {
   return (
@@ -466,7 +466,7 @@ function LeadFormFields({
   onChange: (form: LeadForm) => void;
   branches: Array<{ id: string; name: string }>;
   courses: Array<{ id: string; name: string }>;
-  labels: ReturnType<typeof labels>;
+  labels: any;
 }) {
   return (
     <div className="grid gap-4">

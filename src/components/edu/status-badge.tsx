@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
-import type { GroupStatus, InvoiceStatus, LessonStatus, StudentStatus } from "@/lib/data/types";
+import type { GroupStatus, LessonStatus, StudentStatus } from "@/lib/data/types";
 
 const STUDENT_TONE: Record<StudentStatus, string> = {
   active: "bg-success/15 text-success border-success/25",
@@ -25,13 +25,6 @@ const LESSON_TONE: Record<LessonStatus, string> = {
   rescheduled: "bg-warning/15 text-warning-foreground border-warning/30",
 };
 
-const INVOICE_TONE: Record<InvoiceStatus, string> = {
-  pending: "bg-info/15 text-info border-info/25",
-  paid: "bg-success/15 text-success border-success/25",
-  partial: "bg-warning/15 text-warning-foreground border-warning/30",
-  overdue: "bg-destructive/15 text-destructive border-destructive/25",
-};
-
 function Pill({ children, tone }: { children: ReactNode; tone: string }) {
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${tone}`}>
@@ -53,9 +46,4 @@ export function GroupStatusBadge({ status }: { status: GroupStatus }) {
 export function LessonStatusBadge({ status }: { status: LessonStatus }) {
   const { t } = useI18n();
   return <Pill tone={LESSON_TONE[status]}>{t(`lstatus.${status}`)}</Pill>;
-}
-
-export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
-  const { t } = useI18n();
-  return <Pill tone={INVOICE_TONE[status]}>{t(`finance.istatus.${status}`)}</Pill>;
 }

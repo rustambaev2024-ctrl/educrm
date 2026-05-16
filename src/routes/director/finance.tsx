@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { TrendingUp, TrendingDown, Wallet, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/edu/page-header";
 import { Card } from "@/components/ui/card";
@@ -22,11 +22,22 @@ function DirectorFinancePage() {
   const { t, lang } = useI18n();
   const { payments, students, branches } = useData();
 
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d.toISOString().split("T")[0];
+  });
+  const [dateTo, setDateTo] = useState(() => {
+    const d = new Date();
+    return d.toISOString().split("T")[0];
+  });
 
-  const monthPayments = payments.filter((p) => new Date(p.date) >= monthStart);
+  const fromTime = new Date(dateFrom).getTime();
+  const toTime = new Date(dateTo).getTime() + 86400000;
+  const monthPayments = payments.filter((p) => {
+    const pt = new Date(p.date).getTime();
+    return pt >= fromTime && pt < toTime;
+  });
   const income = monthPayments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
   const expense = monthPayments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
   const debt = students
@@ -57,10 +68,33 @@ function DirectorFinancePage() {
 
   const maxBranchValue = Math.max(...perBranch.map((b) => Math.max(b.income, b.expense)), 1);
 
+  const wallets = useMemo(() => {
+    return students.map(s => {
+      const studentPayments = monthPayments.filter(p => p.studentId === s.id && p.direction === "in");
+      studentPayments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const lastPayment = studentPayments[0];
+      
+      return {
+        ...s,
+        lastPaymentDate: lastPayment ? lastPayment.date : null,
+        lastPaymentAmount: lastPayment ? lastPayment.amount : null,
+      };
+    });
+  }, [students, monthPayments]);
+
   return (
     <>
       <PageHeader title={t("finance.title")} description={t("finance.directorSubtitle")} />
-      <div className="space-y-6 p-4 md:p-8">
+      
+      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-2 px-4 md:px-8 pt-4">
+        <div className="flex items-center gap-2">
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+          <span>-</span>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+        </div>
+      </div>
+
+      <div className="space-y-6 p-4 md:p-8 pt-4">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Kpi tone="success" icon={TrendingUp} label={t("finance.kpi.income")} value={formatMoney(income, lang)} />
           <Kpi tone="destructive" icon={TrendingDown} label={t("finance.kpi.expense")} value={formatMoney(expense, lang)} />
@@ -118,6 +152,43 @@ function DirectorFinancePage() {
             </Table>
           </Card>
         </div>
+
+        <Card className="p-6 shadow-elegant">
+          <div className="mb-4 text-sm font-semibold">Wallets</div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("finance.col.student")}</TableHead>
+                  <TableHead>{t("finance.col.phone")}</TableHead>
+                  <TableHead>{t("finance.col.status")}</TableHead>
+                  <TableHead className="text-right">{t("finance.col.balance")}</TableHead>
+                  <TableHead className="text-right">Last Payment</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {wallets.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                      {t("finance.empty")}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {wallets.map((w) => (
+                  <TableRow key={w.id}>
+                    <TableCell className="font-medium">{w.fullName}</TableCell>
+                    <TableCell className="text-muted-foreground">{w.phone}</TableCell>
+                    <TableCell><Badge variant={w.status === "debtor" ? "destructive" : "outline"}>{t(`status.${w.status}`)}</Badge></TableCell>
+                    <TableCell className={`text-right font-semibold ${w.balance < 0 ? 'text-destructive' : 'text-success'}`}>{formatMoney(w.balance, lang)}</TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">
+                      {w.lastPaymentDate ? `${formatDate(w.lastPaymentDate, lang)} (+${formatMoney(w.lastPaymentAmount || 0, lang)})` : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
 
         <Card className="overflow-hidden shadow-elegant">
           <div className="border-b border-border/60 px-5 py-3 text-sm font-semibold">{t("finance.tab.payments")}</div>

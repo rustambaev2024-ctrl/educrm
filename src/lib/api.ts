@@ -1,4 +1,4 @@
-﻿const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 if (!RAW_BASE_URL) {
   throw new Error("VITE_API_BASE_URL is required");
@@ -392,7 +392,7 @@ export const paymentApi = {
   topUp: (studentId: string, data: unknown) =>
     requestJson("/payments/", {
       method: "POST",
-      body: JSON.stringify({ student: studentId, transaction_type: "top_up", ...data }),
+      body: JSON.stringify({ student: studentId, transaction_type: "top_up", ...(data as any) }),
     }),
   debtors: (branchId?: string) => requestJson(`/payments/debtors/${branchId ? `?branch=${branchId}` : ""}`),
 };

@@ -37,6 +37,7 @@ def daily_lesson_charge():
         if lesson_price <= 0:
             continue
 
+        lesson = group.lessons.filter(datetime__date=today).first()
         students_to_charge = group.students.exclude(status__in=["frozen", "archived", "graduate", "expelled"])
         
         for student in students_to_charge:
@@ -48,6 +49,7 @@ def daily_lesson_charge():
                         payment_type="charge",
                         amount=lesson_price,
                         group=group,
+                        lesson=lesson,
                         comment=f"Daily lesson charge for {today}",
                     )
             except Exception as e:

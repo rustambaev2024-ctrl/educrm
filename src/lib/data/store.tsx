@@ -471,7 +471,7 @@ function paymentFromRaw(raw: PaymentRaw): Payment {
     groupId: mapped.groupId || undefined,
     branchId: mapped.branchId || "",
     amount: mapped.amount,
-    direction: mapped.direction,
+    direction: mapped.direction as any,
     method: toPaymentMethod(mapped.method),
     date: mapped.date,
     comment: mapped.comment,

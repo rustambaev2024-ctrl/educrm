@@ -5,6 +5,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.core.exceptions import ValidationError
 from django.db.models import Count, Sum
 from django.db.models.functions import Coalesce, TruncDate
+from django.db.models import F
 from django.utils import timezone
 
 from apps.audit.models import AuditLog
@@ -357,11 +358,13 @@ def calculate_teacher_salary(
     applied_percent = _quantize(applied_percent)
 
     payments_qs = Payment.objects.filter(
-        payment_type="top_up",
+        payment_type="charge",
         group__teacher=teacher,
         created_at__date__gte=period_start,
         created_at__date__lte=period_end,
-    )
+        lesson__attendances__student_id=F("student_id"),
+        lesson__attendances__status__in=["present", "late"],
+    ).distinct()
 
     group_ids = list(
         payments_qs.exclude(group_id__isnull=True).values_list("group_id", flat=True).distinct()
