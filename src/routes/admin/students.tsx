@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
@@ -228,10 +228,11 @@ export function StudentsPage() {
   );
 }
 
-function CreateStudentSheet({
+export function CreateStudentSheet({
   open,
   onOpenChange,
   onCreate,
+  initialData,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -245,6 +246,11 @@ function CreateStudentSheet({
     parentPhone?: string;
     parentPassword?: string;
   }) => void;
+  initialData?: {
+    fullName?: string;
+    phone?: string;
+    branchId?: string;
+  };
 }) {
   const { t } = useI18n();
   const { branches } = useData();
@@ -255,27 +261,34 @@ function CreateStudentSheet({
     const randPart = String(Math.floor(100 + Math.random() * 900));
     return timePart + randPart;
   };
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [fullName, setFullName] = useState(initialData?.fullName ?? "");
+  const [phone, setPhone] = useState(initialData?.phone ?? "");
   const [password, setPassword] = useState(genPin);
   const [birthDate, setBirthDate] = useState("");
 
-  const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
+  const [branchId, setBranchId] = useState(initialData?.branchId ?? branches[0]?.id ?? "");
   const [hasParent, setHasParent] = useState(false);
   const [parentName, setParentName] = useState("");
   const [parentPhone, setParentPhone] = useState("");
   const [parentPassword, setParentPassword] = useState(genPin);
 
   const reset = () => {
-    setFullName("");
-    setPhone("");
+    setFullName(initialData?.fullName ?? "");
+    setPhone(initialData?.phone ?? "");
     setPassword(genPin());
     setBirthDate("");
     setHasParent(false);
     setParentName("");
     setParentPhone("");
     setParentPassword(genPin());
+    setBranchId(initialData?.branchId ?? branches[0]?.id ?? "");
   };
+
+  useEffect(() => {
+    if (open) {
+      reset();
+    }
+  }, [open, initialData]);
 
   const submit = () => {
     if (!fullName.trim() || !phone.trim() || !branchId) {

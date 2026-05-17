@@ -357,10 +357,10 @@ export const studentApi = {
 
 export const leadApi = {
   ...crudApi("/leads/"),
-  convert: (id: string, password?: string) =>
+  convert: (id: string, payload?: Record<string, any>) =>
     requestJson(`/leads/${id}/convert/`, {
       method: "POST",
-      body: JSON.stringify({ password }),
+      body: JSON.stringify(payload ?? {}),
     }),
 };
 

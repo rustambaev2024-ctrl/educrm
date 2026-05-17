@@ -249,20 +249,46 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
         from apps.accounts.models import User
         import secrets
 
-        password = request.data.get("password", secrets.token_urlsafe(8))
+        data = request.data
+        password = data.get("password") or secrets.token_urlsafe(8)
+        full_name = data.get("full_name", lead.full_name)
+        phone = data.get("phone", lead.phone)
+        branch_id = data.get("branch_id", getattr(lead.branch, "id", None))
+        birth_date = data.get("date_of_birth")
 
+        # Create Student User
         user = User.objects.create_user(
-            phone=lead.phone,
-            full_name=lead.full_name,
+            phone=phone,
+            full_name=full_name,
             password=password,
             role="student",
         )
 
+        # Create Student
         student = Student.objects.create(
             user=user,
-            branch=lead.branch,
+            branch_id=branch_id,
+            date_of_birth=birth_date,
         )
 
+        # Handle Parent
+        parent_name = data.get("parent_name")
+        parent_phone = data.get("parent_phone")
+        if parent_name and parent_phone:
+            parent_password = data.get("parent_password") or secrets.token_urlsafe(8)
+            parent_user = User.objects.filter(phone=parent_phone, role="parent").first()
+            if not parent_user:
+                parent_user = User.objects.create_user(
+                    phone=parent_phone,
+                    full_name=parent_name,
+                    password=parent_password,
+                    role="parent",
+                )
+            parent_profile, _ = Parent.objects.get_or_create(user=parent_user)
+            from .models import ParentStudentLink
+            ParentStudentLink.objects.get_or_create(parent=parent_profile, student=student)
+
+        # Mark lead as won
         lead.status = "won"
         lead.save(update_fields=["status", "updated_at"])
 

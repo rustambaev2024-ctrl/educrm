@@ -46,6 +46,7 @@ import { useData } from "@/lib/data/store";
 import type { StudentLead, StudentLeadSource, StudentLeadStatus } from "@/lib/data/types";
 import { formatDate } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { CreateStudentSheet } from "./students";
 
 export const Route = createFileRoute("/admin/leads")({ component: AdminLeadsPage });
 
@@ -157,6 +158,7 @@ function AdminLeadsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [sourceFilter, setSourceFilter] = useState<FilterSource>("all");
+  const [convertSheetOpen, setConvertSheetOpen] = useState(false);
 
   const t = labels(lang);
   const selected = useMemo(() => leads.find((lead) => lead.id === selectedId) ?? null, [leads, selectedId]);
@@ -271,17 +273,24 @@ function AdminLeadsPage() {
     }
   };
 
-  const convertSelected = async () => {
+  const handleConvertSubmit = async (payload: any) => {
     if (!selected) return;
-    if (!selected.branchId) {
-      toast.error(t.branchRequired);
-      return;
-    }
     try {
-      await leadApi.convert(selected.id);
+      await leadApi.convert(selected.id, {
+        password: payload.password,
+        full_name: payload.fullName,
+        phone: payload.phone,
+        branch_id: payload.branchId,
+        date_of_birth: payload.birthDate,
+        parent_name: payload.parentName,
+        parent_phone: payload.parentPhone,
+        parent_password: payload.parentPassword,
+      });
       await updateLead(selected.id, { status: "won" });
       await reload();
       toast.success(t.converted);
+      setConvertSheetOpen(false);
+      setSelectedId(null);
     } catch (err) {
       console.error("[leads] convert failed", err);
       toast.error(t.convertError);
@@ -314,7 +323,7 @@ function AdminLeadsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} className="pl-9" />
             </div>
-            <div className="grid gap-2 sm:grid-cols-3 xl:flex xl:items-center">
+            <div className="grid gap-2 sm:grid-cols-4 xl:flex xl:items-center">
               <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as FilterStatus)}>
                 <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -335,40 +344,65 @@ function AdminLeadsPage() {
             </div>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t.colName}</TableHead>
-                <TableHead>{t.colCourse}</TableHead>
-                <TableHead>{t.colStatus}</TableHead>
-                <TableHead>{t.colSource}</TableHead>
-                <TableHead>{t.colFollowUp}</TableHead>
-                <TableHead>{t.colCreated}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">{t.empty}</TableCell></TableRow>
-              ) : filtered.map((lead) => (
-                <TableRow key={lead.id} className="cursor-pointer hover:bg-accent/40" onClick={() => setSelectedId(lead.id)}>
-                  <TableCell>
-                    <div className="font-medium">{lead.fullName}</div>
-                    <div className="text-xs text-muted-foreground">{lead.phone}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{lead.interestedCourseId ? courseById[lead.interestedCourseId]?.name ?? "-" : "-"}</div>
-                    <div className="text-xs text-muted-foreground">{lead.branchId ? branchById[lead.branchId]?.name ?? "-" : "-"}</div>
-                  </TableCell>
-                  <TableCell><LeadStatusBadge status={lead.status} labels={t.status} /></TableCell>
-                  <TableCell><Badge variant="outline">{t.source[lead.source]}</Badge></TableCell>
-                  <TableCell className={isFollowUpDue(lead) ? "font-semibold text-warning-foreground" : "text-muted-foreground"}>
-                    {lead.nextFollowUp ? formatDate(lead.nextFollowUp, lang) : "-"}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{formatDate(lead.createdAt, lang)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="flex gap-4 overflow-x-auto p-4 pb-8 min-h-[500px]">
+            {STATUS_OPTIONS.map(status => {
+              const columnLeads = filtered.filter(l => l.status === status);
+              return (
+                <div key={status} className="flex flex-col w-80 shrink-0 rounded-xl bg-muted/30 border border-border/50"
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    const id = e.dataTransfer.getData("text/plain");
+                    if (id && status !== "won") { // Use normal conversion for 'won'
+                      await updateLead(id, { status });
+                    } else if (id && status === "won") {
+                      setSelectedId(id);
+                      setConvertSheetOpen(true);
+                    }
+                  }}
+                >
+                  <div className="p-3 border-b border-border/50 font-medium flex items-center justify-between bg-muted/50 rounded-t-xl">
+                    <span className="text-sm">{t.status[status]}</span>
+                    <Badge variant="secondary" className="text-xs">{columnLeads.length}</Badge>
+                  </div>
+                  <div className="flex flex-col gap-3 p-3 flex-1 overflow-y-auto">
+                    {columnLeads.map(lead => (
+                      <div
+                        key={lead.id}
+                        draggable
+                        onDragStart={(e) => { e.dataTransfer.setData("text/plain", lead.id); }}
+                        onClick={() => setSelectedId(lead.id)}
+                        className="bg-card border border-border/50 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors"
+                      >
+                        <div className="font-medium text-sm leading-tight mb-1">{lead.fullName}</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2">
+                          <Phone className="size-3" /> {lead.phone}
+                        </div>
+                        {lead.interestedCourseId && (
+                          <div className="text-[11px] text-primary/80 bg-primary/10 px-2 py-0.5 rounded w-fit mb-2">
+                            {courseById[lead.interestedCourseId]?.name}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between mt-3 text-[11px]">
+                          <span className="text-muted-foreground">{t.source[lead.source]}</span>
+                          {isFollowUpDue(lead) ? (
+                            <span className="text-warning-foreground font-medium flex items-center gap-1">
+                              <Clock3 className="size-3" /> {lead.nextFollowUp ? formatDate(lead.nextFollowUp, lang) : "!"}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">{lead.nextFollowUp ? formatDate(lead.nextFollowUp, lang) : ""}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {columnLeads.length === 0 && (
+                      <div className="text-xs text-muted-foreground text-center py-6">{t.empty}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </Card>
       </div>
 
@@ -403,7 +437,7 @@ function AdminLeadsPage() {
               <Trash2 className="mr-1 size-4" /> {t.delete}
             </Button>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button variant="outline" onClick={convertSelected} disabled={!selected || selected.status === "won"}>
+              <Button variant="outline" onClick={() => setConvertSheetOpen(true)} disabled={!selected || selected.status === "won"}>
                 <UserPlus className="mr-1 size-4" /> {t.convert}
               </Button>
               <Button onClick={saveSelected}>{t.save}</Button>
@@ -411,6 +445,19 @@ function AdminLeadsPage() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      {selected && (
+        <CreateStudentSheet
+          open={convertSheetOpen}
+          onOpenChange={setConvertSheetOpen}
+          onCreate={handleConvertSubmit}
+          initialData={{
+            fullName: selected.fullName,
+            phone: selected.phone,
+            branchId: selected.branchId,
+          }}
+        />
+      )}
     </>
   );
 }
