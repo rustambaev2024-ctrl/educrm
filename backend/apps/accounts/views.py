@@ -59,15 +59,14 @@ class LoginView(TokenObtainPairView):
             raise ValidationError({"detail": "X-Tenant-Schema header is required"})
 
         if schema_header == get_public_schema_name():
-            # Superadmin logs in via public schema header.
-            # Since User table is tenant-specific, we find the superadmin across tenants.
+            # "public" means the frontend doesn't know the tenant yet (first login).
+            # Search across all tenants to find where this phone exists.
             tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
             for tenant in tenants.iterator():
                 with schema_context(tenant.schema_name):
-                    u = User.objects.filter(phone=phone).first()
-                    if u and u.role == "superadmin":
+                    if User.objects.filter(phone=phone).exists():
                         return tenant
-            raise ValidationError({"detail": "Invalid credentials or not a superadmin"})
+            raise ValidationError({"detail": "Invalid credentials"})
 
         try:
             requested_tenant = tenant_model.objects.get(schema_name=schema_header)

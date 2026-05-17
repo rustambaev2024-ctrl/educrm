@@ -257,11 +257,13 @@ export const authApi = {
         ? { phone: normalizePhone(phoneOrBody), password: password?.trim() }
         : { ...phoneOrBody, phone: normalizePhone(phoneOrBody.phone), password: phoneOrBody.password.trim() };
 
-    // Login must not reuse a stale tenant from localStorage. The backend resolves
-    // the correct tenant by phone for /auth/token/.
+    // Send X-Tenant-Schema so the backend can resolve the correct tenant.
+    // If no tenant is stored (first visit), send "public" to trigger superadmin
+    // lookup or prompt the user to select an institution first.
+    const schema = getTenantSchema() || "public";
     return fetch(`${API_BASE_URL}/auth/token/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Tenant-Schema": schema },
       body: JSON.stringify(body),
     }).then(async (res) => {
       if (!res.ok) {
