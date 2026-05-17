@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { CheckCircle2, Clock3, GraduationCap, MessageSquarePlus, Phone, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
@@ -159,6 +159,19 @@ function AdminLeadsPage() {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [sourceFilter, setSourceFilter] = useState<FilterSource>("all");
   const [convertSheetOpen, setConvertSheetOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollTo({ left: el.scrollLeft + e.deltaY * 2, behavior: "auto" });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   const t = labels(lang);
   const selected = useMemo(() => leads.find((lead) => lead.id === selectedId) ?? null, [leads, selectedId]);
@@ -344,7 +357,7 @@ function AdminLeadsPage() {
             </div>
           </div>
 
-          <div className="flex gap-4 overflow-x-auto p-4 pb-8 min-h-[500px]">
+          <div ref={scrollRef} className="flex gap-4 overflow-x-auto p-4 pb-8 min-h-[500px]">
             {STATUS_OPTIONS.map(status => {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
