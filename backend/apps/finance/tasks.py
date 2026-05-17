@@ -64,12 +64,21 @@ def daily_lesson_charge():
                     try:
                         with transaction.atomic():
                             get_or_create_wallet(student)
+                            
+                            # Determine category based on attendance
+                            cat = "tuition"
+                            if lesson:
+                                att = Attendance.objects.filter(lesson=lesson, student=student).first()
+                                if att and att.status == "absent":
+                                    cat = "absent_charge"
+                                    
                             apply_payment(
                                 student=student,
                                 payment_type="charge",
                                 amount=lesson_price,
                                 group=group,
                                 lesson=lesson,
+                                category=cat,
                                 comment=f"Daily lesson charge for {today}",
                             )
                             if lesson:

@@ -41,7 +41,7 @@ function calculateSalaryRow(staffMember: Staff, groups: Group[], periodPayments:
   const groupIds = new Set(teacherGroups.map((group) => group.id));
   const base = isTeacher
     ? periodPayments
-      .filter((payment) => payment.direction === "in" && payment.groupId && groupIds.has(payment.groupId))
+      .filter((payment) => payment.type === "charge" && payment.category !== "absent_charge" && payment.groupId && groupIds.has(payment.groupId))
       .reduce((sum, payment) => sum + payment.amount, 0)
     : 0;
   const percent = staffMember.salaryPercent ?? 40;
