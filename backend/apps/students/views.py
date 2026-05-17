@@ -260,8 +260,6 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
 
         student = Student.objects.create(
             user=user,
-            full_name=lead.full_name,
-            phone=lead.phone,
             branch=lead.branch,
         )
 
