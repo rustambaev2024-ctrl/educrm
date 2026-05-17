@@ -3,5 +3,5 @@ builder = "dockerfile"
 dockerfilePath = "docker/Dockerfile.celery"
 
 [deploy]
-startCommand = "sh -c 'cd backend && celery -A config beat -l warning --scheduler django_celery_beat.schedulers:DatabaseScheduler'"
+startCommand = "sh -c 'cd backend && celery -A config beat -l warning --loglevel=warning'"
 restartPolicyType = "on_failure"
