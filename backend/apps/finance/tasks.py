@@ -49,9 +49,18 @@ def daily_lesson_charge():
                     continue
 
                 lesson = group.lessons.filter(datetime__date=today).first()
+                if lesson and lesson.status == "cancelled":
+                    continue
+                    
                 students_to_charge = group.students.exclude(status__in=["frozen", "archived", "graduate", "expelled"])
 
                 for student in students_to_charge:
+                    if lesson:
+                        from apps.lessons.models import Attendance
+                        att = Attendance.objects.filter(lesson=lesson, student=student).first()
+                        if att and att.status == "excused":
+                            continue
+
                     try:
                         with transaction.atomic():
                             get_or_create_wallet(student)
