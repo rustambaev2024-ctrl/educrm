@@ -1,6 +1,7 @@
 from django.db.models import Q
 from rest_framework import mixins, permissions, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes as perm_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin
@@ -60,3 +61,23 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
         if student_id:
             scoped = scoped.filter(student_id=student_id)
         return scoped
+
+
+@api_view(["POST"])
+@perm_classes([IsAuthenticated])
+def trigger_daily_charge(request):
+    """Manual trigger for daily_lesson_charge task (director/admin only)."""
+    if request.user.role not in ("director", "admin", "branch_admin", "superadmin"):
+        return Response({"detail": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
+
+    from .tasks import daily_lesson_charge
+    try:
+        daily_lesson_charge()
+        charge_count = Payment.objects.filter(payment_type="charge").count()
+        return Response({
+            "status": "ok",
+            "message": "daily_lesson_charge executed successfully",
+            "total_charges": charge_count,
+        })
+    except Exception as e:
+        return Response({"status": "error", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
