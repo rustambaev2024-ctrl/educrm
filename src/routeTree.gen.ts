@@ -45,6 +45,7 @@ import { Route as DirectorSalariesRouteImport } from './routes/director/salaries
 import { Route as DirectorPenaltiesRouteImport } from './routes/director/penalties'
 import { Route as DirectorMessagesRouteImport } from './routes/director/messages'
 import { Route as DirectorLeadsRouteImport } from './routes/director/leads'
+import { Route as DirectorIntegrationsRouteImport } from './routes/director/integrations'
 import { Route as DirectorFinanceRouteImport } from './routes/director/finance'
 import { Route as DirectorCoursesRouteImport } from './routes/director/courses'
 import { Route as DirectorBranchesRouteImport } from './routes/director/branches'
@@ -239,6 +240,11 @@ const DirectorLeadsRoute = DirectorLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => DirectorRouteRoute,
 } as any)
+const DirectorIntegrationsRoute = DirectorIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => DirectorRouteRoute,
+} as any)
 const DirectorFinanceRoute = DirectorFinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
@@ -327,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/director/branches': typeof DirectorBranchesRoute
   '/director/courses': typeof DirectorCoursesRoute
   '/director/finance': typeof DirectorFinanceRoute
+  '/director/integrations': typeof DirectorIntegrationsRoute
   '/director/leads': typeof DirectorLeadsRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
@@ -372,6 +379,7 @@ export interface FileRoutesByTo {
   '/director/branches': typeof DirectorBranchesRoute
   '/director/courses': typeof DirectorCoursesRoute
   '/director/finance': typeof DirectorFinanceRoute
+  '/director/integrations': typeof DirectorIntegrationsRoute
   '/director/leads': typeof DirectorLeadsRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
@@ -424,6 +432,7 @@ export interface FileRoutesById {
   '/director/branches': typeof DirectorBranchesRoute
   '/director/courses': typeof DirectorCoursesRoute
   '/director/finance': typeof DirectorFinanceRoute
+  '/director/integrations': typeof DirectorIntegrationsRoute
   '/director/leads': typeof DirectorLeadsRoute
   '/director/messages': typeof DirectorMessagesRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
@@ -477,6 +486,7 @@ export interface FileRouteTypes {
     | '/director/branches'
     | '/director/courses'
     | '/director/finance'
+    | '/director/integrations'
     | '/director/leads'
     | '/director/messages'
     | '/director/penalties'
@@ -522,6 +532,7 @@ export interface FileRouteTypes {
     | '/director/branches'
     | '/director/courses'
     | '/director/finance'
+    | '/director/integrations'
     | '/director/leads'
     | '/director/messages'
     | '/director/penalties'
@@ -573,6 +584,7 @@ export interface FileRouteTypes {
     | '/director/branches'
     | '/director/courses'
     | '/director/finance'
+    | '/director/integrations'
     | '/director/leads'
     | '/director/messages'
     | '/director/penalties'
@@ -868,6 +880,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirectorLeadsRouteImport
       parentRoute: typeof DirectorRouteRoute
     }
+    '/director/integrations': {
+      id: '/director/integrations'
+      path: '/integrations'
+      fullPath: '/director/integrations'
+      preLoaderRoute: typeof DirectorIntegrationsRouteImport
+      parentRoute: typeof DirectorRouteRoute
+    }
     '/director/finance': {
       id: '/director/finance'
       path: '/finance'
@@ -996,6 +1015,7 @@ interface DirectorRouteRouteChildren {
   DirectorBranchesRoute: typeof DirectorBranchesRoute
   DirectorCoursesRoute: typeof DirectorCoursesRoute
   DirectorFinanceRoute: typeof DirectorFinanceRoute
+  DirectorIntegrationsRoute: typeof DirectorIntegrationsRoute
   DirectorLeadsRoute: typeof DirectorLeadsRoute
   DirectorMessagesRoute: typeof DirectorMessagesRoute
   DirectorPenaltiesRoute: typeof DirectorPenaltiesRoute
@@ -1011,6 +1031,7 @@ const DirectorRouteRouteChildren: DirectorRouteRouteChildren = {
   DirectorBranchesRoute: DirectorBranchesRoute,
   DirectorCoursesRoute: DirectorCoursesRoute,
   DirectorFinanceRoute: DirectorFinanceRoute,
+  DirectorIntegrationsRoute: DirectorIntegrationsRoute,
   DirectorLeadsRoute: DirectorLeadsRoute,
   DirectorMessagesRoute: DirectorMessagesRoute,
   DirectorPenaltiesRoute: DirectorPenaltiesRoute,
