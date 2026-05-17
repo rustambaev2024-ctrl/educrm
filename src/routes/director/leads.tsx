@@ -46,7 +46,7 @@ import { useData } from "@/lib/data/store";
 import type { StudentLead, StudentLeadSource, StudentLeadStatus } from "@/lib/data/types";
 import { formatDate } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
-import { CreateStudentSheet } from "./students";
+import { CreateStudentSheet } from "../admin/students";
 
 export const Route = createFileRoute("/director/leads")({ component: DirectorLeadsPage });
 
