@@ -21,6 +21,7 @@ SHARED_APPS = [
     "apps.tenants",
     "apps.superadmin",
     "django.contrib.contenttypes",
+    "django_celery_beat",
 ]
 
 TENANT_APPS = [
@@ -34,7 +35,6 @@ TENANT_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "drf_spectacular",
-    "django_celery_beat",
     "storages",
     "channels",
     "apps.accounts",
