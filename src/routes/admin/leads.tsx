@@ -349,10 +349,10 @@ function AdminLeadsPage() {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
                 new: "bg-primary/10 text-primary border-primary/20",
-                contacted: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-                trial: "bg-warning/10 text-warning-foreground border-warning/20",
-                won: "bg-success/10 text-success border-success/20",
-                lost: "bg-destructive/10 text-destructive border-destructive/20",
+                contacted: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                trial: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+                won: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                lost: "bg-destructive/10 text-red-400 border-destructive/20",
               }[status] || "bg-muted text-foreground border-border";
 
               return (
@@ -394,7 +394,7 @@ function AdminLeadsPage() {
                         <div className="flex items-center justify-between mt-4 text-xs">
                           <span className="text-muted-foreground font-medium">{t.source[lead.source]}</span>
                           {isFollowUpDue(lead) ? (
-                            <span className="text-warning-foreground font-semibold flex items-center gap-1.5 bg-warning/10 px-2 py-1 rounded-md">
+                            <span className="text-orange-400 font-semibold flex items-center gap-1.5 bg-orange-500/10 px-2 py-1 rounded-md">
                               <Clock3 className="size-3.5" /> {lead.nextFollowUp ? formatDate(lead.nextFollowUp, lang) : "!"}
                             </span>
                           ) : (
