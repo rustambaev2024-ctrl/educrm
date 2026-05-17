@@ -1,3 +1,4 @@
+import logging
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import permissions, status, viewsets
@@ -8,6 +9,8 @@ from rest_framework.response import Response
 from apps.accounts.permissions import IsBranchAdmin, IsTeacher
 from apps.finance.serializers import PaymentSerializer
 from apps.lessons.serializers import AttendanceSerializer
+
+from apps.students.meta_conversions import send_lead_event
 
 from .models import Parent, Student, StudentLead
 from .serializers import (
@@ -235,3 +238,52 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
             serializer.save(created_by=user, branch=user.staff_profile.branch)
             return
         serializer.save(created_by=user)
+
+    @action(detail=True, methods=["post"], url_path="convert")
+    def convert_to_student(self, request, pk=None):
+        lead = self.get_object()
+
+        if lead.status == "won":
+            return Response({"detail": "Lead already converted"}, status=status.HTTP_400_BAD_REQUEST)
+
+        from apps.accounts.models import User
+        import secrets
+
+        password = request.data.get("password", secrets.token_urlsafe(8))
+
+        user = User.objects.create_user(
+            phone=lead.phone,
+            full_name=lead.full_name,
+            password=password,
+            role="student",
+        )
+
+        student = Student.objects.create(
+            user=user,
+            full_name=lead.full_name,
+            phone=lead.phone,
+            branch=lead.branch,
+        )
+
+        lead.status = "won"
+        lead.save(update_fields=["status", "updated_at"])
+
+        meta_sent = False
+        try:
+            institution = request.tenant
+            if hasattr(institution, "meta_pixel_id") and institution.meta_pixel_id:
+                meta_sent = send_lead_event(
+                    pixel_id=institution.meta_pixel_id,
+                    access_token=institution.meta_access_token,
+                    phone=lead.phone,
+                    lead_id=str(lead.id),
+                )
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Meta event error: {e}")
+
+        return Response({
+            "student_id": str(student.id),
+            "password": password,
+            "meta_event_sent": meta_sent,
+        })

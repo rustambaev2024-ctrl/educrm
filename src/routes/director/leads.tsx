@@ -184,7 +184,7 @@ function DirectorLeadsPage() {
     if (!selected) return;
     if (!selected.branchId) { toast.error(t.branchRequired); return; }
     try {
-      await studentApi.create({ full_name: selected.fullName, phone: selected.phone, branch: selected.branchId });
+      await leadApi.convert(selected.id);
       await updateLead(selected.id, { status: "won" }); await reload();
       toast.success(t.converted);
     } catch { toast.error(t.convertError); }

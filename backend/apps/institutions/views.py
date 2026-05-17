@@ -5,9 +5,10 @@ from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
 from apps.students.models import Student
+from apps.tenants.models import Institution
 
 from .models import Branch, Room
-from .serializers import BranchSerializer, RoomSerializer
+from .serializers import BranchSerializer, InstitutionSettingsSerializer, RoomSerializer
 
 
 class BranchViewSet(viewsets.ModelViewSet):
@@ -68,6 +69,25 @@ class BranchViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
+    @action(detail=False, methods=["get", "patch"], url_path="meta-settings", permission_classes=[IsDirector])
+    def meta_settings(self, request):
+        institution = request.tenant
+        if request.method == "GET":
+            return Response(
+                {
+                    "meta_pixel_id": institution.meta_pixel_id,
+                    "meta_access_token": "***" if institution.meta_access_token else "",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if "meta_pixel_id" in request.data:
+            institution.meta_pixel_id = request.data["meta_pixel_id"]
+        if "meta_access_token" in request.data:
+            institution.meta_access_token = request.data["meta_access_token"]
+        institution.save(update_fields=["meta_pixel_id", "meta_access_token"])
+        return Response({"detail": "Saved"}, status=status.HTTP_200_OK)
 
 
 class RoomViewSet(viewsets.ModelViewSet):

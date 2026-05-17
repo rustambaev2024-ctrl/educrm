@@ -304,7 +304,15 @@ export const authApi = {
 
 // ─── Business API clients ─────────────────────────────────────────────────────
 
-export const branchApi = crudApi("/branches/");
+export const branchApi = {
+  ...crudApi("/branches/"),
+  metaSettings: () => requestJson<{ meta_pixel_id: string; meta_access_token: string }>("/branches/meta-settings/"),
+  updateMetaSettings: (data: { meta_pixel_id?: string; meta_access_token?: string }) =>
+    requestJson("/branches/meta-settings/", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+};
 export const roomApi = crudApi("/rooms/");
 
 export const staffApi = {
@@ -345,7 +353,14 @@ export const studentApi = {
   myWallet: () => requestJson("/student/me/wallet/"),
 };
 
-export const leadApi = crudApi("/leads/");
+export const leadApi = {
+  ...crudApi("/leads/"),
+  convert: (id: string, password?: string) =>
+    requestJson(`/leads/${id}/convert/`, {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    }),
+};
 
 export const parentApi = {
   list: () => requestJson("/parents/"),
