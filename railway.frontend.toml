@@ -1,0 +1,7 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "docker/Dockerfile.frontend"
+
+[deploy]
+startCommand = "bun run serve.ts"
+restartPolicyType = "on_failure"
