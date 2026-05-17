@@ -347,13 +347,21 @@ function AdminLeadsPage() {
           <div className="flex gap-4 overflow-x-auto p-4 pb-8 min-h-[500px]">
             {STATUS_OPTIONS.map(status => {
               const columnLeads = filtered.filter(l => l.status === status);
+              const headerCls = {
+                new: "bg-primary/10 text-primary border-primary/20",
+                contacted: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+                trial: "bg-warning/10 text-warning-foreground border-warning/20",
+                won: "bg-success/10 text-success border-success/20",
+                lost: "bg-destructive/10 text-destructive border-destructive/20",
+              }[status] || "bg-muted text-foreground border-border";
+
               return (
-                <div key={status} className="flex flex-col w-80 shrink-0 rounded-xl bg-muted/30 border border-border/50"
+                <div key={status} className="flex flex-col w-[340px] shrink-0 rounded-2xl bg-card border border-border shadow-sm overflow-hidden"
                   onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
                   onDrop={async (e) => {
                     e.preventDefault();
                     const id = e.dataTransfer.getData("text/plain");
-                    if (id && status !== "won") { // Use normal conversion for 'won'
+                    if (id && status !== "won") {
                       await updateLead(id, { status });
                     } else if (id && status === "won") {
                       setSelectedId(id);
@@ -361,42 +369,44 @@ function AdminLeadsPage() {
                     }
                   }}
                 >
-                  <div className="p-3 border-b border-border/50 font-medium flex items-center justify-between bg-muted/50 rounded-t-xl">
-                    <span className="text-sm">{t.status[status]}</span>
-                    <Badge variant="secondary" className="text-xs">{columnLeads.length}</Badge>
+                  <div className={`p-4 border-b font-semibold flex items-center justify-between ${headerCls}`}>
+                    <span className="text-[15px] tracking-tight">{t.status[status]}</span>
+                    <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-background/50 backdrop-blur-sm">{columnLeads.length}</Badge>
                   </div>
-                  <div className="flex flex-col gap-3 p-3 flex-1 overflow-y-auto">
+                  <div className="flex flex-col gap-3 p-3 flex-1 overflow-y-auto bg-muted/20">
                     {columnLeads.map(lead => (
                       <div
                         key={lead.id}
                         draggable
                         onDragStart={(e) => { e.dataTransfer.setData("text/plain", lead.id); }}
                         onClick={() => setSelectedId(lead.id)}
-                        className="bg-card border border-border/50 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors"
+                        className="bg-card border border-border/60 rounded-xl p-4 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing hover:border-primary/40 transition-all"
                       >
-                        <div className="font-medium text-sm leading-tight mb-1">{lead.fullName}</div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2">
-                          <Phone className="size-3" /> {lead.phone}
+                        <div className="font-semibold text-[15px] text-foreground leading-tight mb-1.5">{lead.fullName}</div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-2 mb-3">
+                          <Phone className="size-3.5" /> {lead.phone}
                         </div>
                         {lead.interestedCourseId && (
-                          <div className="text-[11px] text-primary/80 bg-primary/10 px-2 py-0.5 rounded w-fit mb-2">
+                          <div className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-md w-fit mb-3">
                             {courseById[lead.interestedCourseId]?.name}
                           </div>
                         )}
-                        <div className="flex items-center justify-between mt-3 text-[11px]">
-                          <span className="text-muted-foreground">{t.source[lead.source]}</span>
+                        <div className="flex items-center justify-between mt-4 text-xs">
+                          <span className="text-muted-foreground font-medium">{t.source[lead.source]}</span>
                           {isFollowUpDue(lead) ? (
-                            <span className="text-warning-foreground font-medium flex items-center gap-1">
-                              <Clock3 className="size-3" /> {lead.nextFollowUp ? formatDate(lead.nextFollowUp, lang) : "!"}
+                            <span className="text-warning-foreground font-semibold flex items-center gap-1.5 bg-warning/10 px-2 py-1 rounded-md">
+                              <Clock3 className="size-3.5" /> {lead.nextFollowUp ? formatDate(lead.nextFollowUp, lang) : "!"}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground">{lead.nextFollowUp ? formatDate(lead.nextFollowUp, lang) : ""}</span>
+                            <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                              {lead.nextFollowUp ? <><Clock3 className="size-3.5 opacity-50" /> {formatDate(lead.nextFollowUp, lang)}</> : ""}
+                            </span>
                           )}
                         </div>
                       </div>
                     ))}
                     {columnLeads.length === 0 && (
-                      <div className="text-xs text-muted-foreground text-center py-6">{t.empty}</div>
+                      <div className="text-sm text-muted-foreground/60 font-medium text-center py-8">{t.empty}</div>
                     )}
                   </div>
                 </div>
