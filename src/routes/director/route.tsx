@@ -22,6 +22,7 @@ function DirectorLayout() {
     { to: "/director/penalties", label: t("nav.penalties"), icon: Ban },
     { to: "/director/analytics", label: t("nav.analytics"), icon: BarChart3 },
     { to: "/director/integrations", label: "Integratsiyalar", icon: Settings },
+    { to: "/director/settings", label: "Sozlamalar", icon: Building },
     { to: "/director/audit", label: t("nav.audit"), icon: FileClock },
   ];
   return (

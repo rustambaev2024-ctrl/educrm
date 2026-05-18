@@ -42,6 +42,7 @@ import { Route as ParentMessagesRouteImport } from './routes/parent/messages'
 import { Route as ParentChildrenRouteImport } from './routes/parent/children'
 import { Route as DirectorStudentsRouteImport } from './routes/director/students'
 import { Route as DirectorStaffRouteImport } from './routes/director/staff'
+import { Route as DirectorSettingsRouteImport } from './routes/director/settings'
 import { Route as DirectorSalariesRouteImport } from './routes/director/salaries'
 import { Route as DirectorPenaltiesRouteImport } from './routes/director/penalties'
 import { Route as DirectorMessagesRouteImport } from './routes/director/messages'
@@ -226,6 +227,11 @@ const DirectorStaffRoute = DirectorStaffRouteImport.update({
   path: '/staff',
   getParentRoute: () => DirectorRouteRoute,
 } as any)
+const DirectorSettingsRoute = DirectorSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DirectorRouteRoute,
+} as any)
 const DirectorSalariesRoute = DirectorSalariesRouteImport.update({
   id: '/salaries',
   path: '/salaries',
@@ -345,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/director/messages': typeof DirectorMessagesRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
   '/director/salaries': typeof DirectorSalariesRoute
+  '/director/settings': typeof DirectorSettingsRoute
   '/director/staff': typeof DirectorStaffRoute
   '/director/students': typeof DirectorStudentsRoute
   '/parent/children': typeof ParentChildrenRoute
@@ -392,6 +399,7 @@ export interface FileRoutesByTo {
   '/director/messages': typeof DirectorMessagesRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
   '/director/salaries': typeof DirectorSalariesRoute
+  '/director/settings': typeof DirectorSettingsRoute
   '/director/staff': typeof DirectorStaffRoute
   '/director/students': typeof DirectorStudentsRoute
   '/parent/children': typeof ParentChildrenRoute
@@ -446,6 +454,7 @@ export interface FileRoutesById {
   '/director/messages': typeof DirectorMessagesRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
   '/director/salaries': typeof DirectorSalariesRoute
+  '/director/settings': typeof DirectorSettingsRoute
   '/director/staff': typeof DirectorStaffRoute
   '/director/students': typeof DirectorStudentsRoute
   '/parent/children': typeof ParentChildrenRoute
@@ -501,6 +510,7 @@ export interface FileRouteTypes {
     | '/director/messages'
     | '/director/penalties'
     | '/director/salaries'
+    | '/director/settings'
     | '/director/staff'
     | '/director/students'
     | '/parent/children'
@@ -548,6 +558,7 @@ export interface FileRouteTypes {
     | '/director/messages'
     | '/director/penalties'
     | '/director/salaries'
+    | '/director/settings'
     | '/director/staff'
     | '/director/students'
     | '/parent/children'
@@ -601,6 +612,7 @@ export interface FileRouteTypes {
     | '/director/messages'
     | '/director/penalties'
     | '/director/salaries'
+    | '/director/settings'
     | '/director/staff'
     | '/director/students'
     | '/parent/children'
@@ -872,6 +884,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirectorStaffRouteImport
       parentRoute: typeof DirectorRouteRoute
     }
+    '/director/settings': {
+      id: '/director/settings'
+      path: '/settings'
+      fullPath: '/director/settings'
+      preLoaderRoute: typeof DirectorSettingsRouteImport
+      parentRoute: typeof DirectorRouteRoute
+    }
     '/director/salaries': {
       id: '/director/salaries'
       path: '/salaries'
@@ -1040,6 +1059,7 @@ interface DirectorRouteRouteChildren {
   DirectorMessagesRoute: typeof DirectorMessagesRoute
   DirectorPenaltiesRoute: typeof DirectorPenaltiesRoute
   DirectorSalariesRoute: typeof DirectorSalariesRoute
+  DirectorSettingsRoute: typeof DirectorSettingsRoute
   DirectorStaffRoute: typeof DirectorStaffRoute
   DirectorStudentsRoute: typeof DirectorStudentsRoute
   DirectorIndexRoute: typeof DirectorIndexRoute
@@ -1056,6 +1076,7 @@ const DirectorRouteRouteChildren: DirectorRouteRouteChildren = {
   DirectorMessagesRoute: DirectorMessagesRoute,
   DirectorPenaltiesRoute: DirectorPenaltiesRoute,
   DirectorSalariesRoute: DirectorSalariesRoute,
+  DirectorSettingsRoute: DirectorSettingsRoute,
   DirectorStaffRoute: DirectorStaffRoute,
   DirectorStudentsRoute: DirectorStudentsRoute,
   DirectorIndexRoute: DirectorIndexRoute,

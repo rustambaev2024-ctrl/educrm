@@ -89,6 +89,47 @@ class BranchViewSet(viewsets.ModelViewSet):
         institution.save(update_fields=["meta_pixel_id", "meta_access_token"])
         return Response({"detail": "Saved"}, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["get", "patch"], url_path="settings", permission_classes=[IsDirector], parser_classes=[])
+    def institution_settings(self, request):
+        from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+        self.parser_classes = [MultiPartParser, FormParser, JSONParser]
+        
+        institution = request.tenant
+        if request.method == "GET":
+            return Response(
+                {
+                    "name": institution.name,
+                    "address": institution.address,
+                    "phone": institution.phone,
+                    "logo": request.build_absolute_uri(institution.logo.url) if institution.logo else None,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        data = request.data
+        if "name" in data:
+            institution.name = data["name"]
+        if "address" in data:
+            institution.address = data["address"]
+        if "phone" in data:
+            institution.phone = data["phone"]
+            
+        if "logo" in request.FILES:
+            institution.logo = request.FILES["logo"]
+            
+        institution.save(update_fields=["name", "address", "phone", "logo"] if "logo" in request.FILES else ["name", "address", "phone"])
+        
+        return Response(
+            {
+                "name": institution.name,
+                "address": institution.address,
+                "phone": institution.phone,
+                "logo": request.build_absolute_uri(institution.logo.url) if institution.logo else None,
+            },
+            status=status.HTTP_200_OK
+        )
+
+
 
 class RoomViewSet(viewsets.ModelViewSet):
     queryset = Room.objects.select_related("branch").all().order_by("branch__name", "name")

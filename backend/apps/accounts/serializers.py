@@ -117,10 +117,16 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class MeUpdateSerializer(serializers.ModelSerializer):
     fullName = serializers.CharField(source="full_name", required=False)
+    phone = serializers.CharField(required=False)
 
     class Meta:
         model = User
-        fields = ("fullName", "photo", "language", "theme")
+        fields = ("fullName", "phone", "photo", "language", "theme")
+
+    def validate_phone(self, value):
+        from .serializers import normalize_phone
+        return normalize_phone(value)
+
 
 
 class ChangePasswordSerializer(serializers.Serializer):

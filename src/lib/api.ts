@@ -276,6 +276,13 @@ export const authApi = {
 
   me: () => requestJson<AuthUser>("/auth/me/"),
 
+  updateMe: (data: Partial<AuthUser> | { phone?: string }) =>
+    requestJson<AuthUser>("/auth/me/", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+
   refresh: (refresh: string) =>
     requestJson<RefreshResponse>("/auth/refresh/", {
       method: "POST",
@@ -314,6 +321,16 @@ export const branchApi = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  institutionSettings: () => requestJson<{ name: string; address: string; phone: string; logo: string | null }>("/branches/settings/"),
+  updateInstitutionSettings: (data: FormData | Record<string, any>) => {
+    if (data instanceof FormData) {
+      return requestForm("/branches/settings/", data, { method: "PATCH" });
+    }
+    return requestJson("/branches/settings/", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
 };
 export const roomApi = crudApi("/rooms/");
 
