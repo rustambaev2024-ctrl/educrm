@@ -1,8 +1,7 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { GraduationCap, LogOut, Moon, Sun } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { ReactNode, useEffect, useState } from "react";
 import { Topbar } from "@/components/edu/topbar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { LangToggle } from "@/components/edu/lang-toggle";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
+import { branchApi } from "@/lib/api";
 
 export interface NavItem {
   to: string;
@@ -33,6 +33,20 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
   const { t } = useI18n();
   const { theme, toggle } = useTheme();
 
+  const [instName, setInstName] = useState(brand);
+  const [instLogo, setInstLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user || user.role === "superadmin") return;
+    branchApi
+      .institutionSettings()
+      .then((data) => {
+        if (data.name) setInstName(data.name);
+        if (data.logo) setInstLogo(data.logo);
+      })
+      .catch((e) => console.error("Failed to load institution brand", e));
+  }, [user]);
+
   const initials = user?.fullName
     .split(" ")
     .slice(0, 2)
@@ -48,12 +62,16 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
       {/* Sidebar */}
       <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-gradient-primary shadow-glow">
-            <GraduationCap className="size-5 text-primary-foreground" />
+          <div className="flex size-9 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-primary shadow-glow overflow-hidden">
+            {instLogo ? (
+              <img src={instLogo} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <GraduationCap className="size-5 text-primary-foreground" />
+            )}
           </div>
-          <div>
-            <div className="text-sm font-bold leading-tight text-sidebar-foreground">{brand}</div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-bold leading-tight text-sidebar-foreground">{instName}</div>
+            <div className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
               {user && t(`role.${user.role}`)}
             </div>
           </div>
@@ -72,7 +90,7 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
                 }`}
               >
                 <item.icon className={`size-4 ${active ? "" : "text-muted-foreground group-hover:text-sidebar-foreground"}`} />
-                <span className="flex-1">{item.label}</span>
+                <span className="flex-1 truncate">{item.label}</span>
                 {item.badge !== undefined && (
                   <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
                     active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-accent text-accent-foreground"
@@ -86,7 +104,7 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
         </nav>
         <div className="border-t border-sidebar-border p-3">
           <div className="rounded-lg bg-gradient-subtle p-3 text-xs">
-            <div className="font-medium text-foreground">EduCRM v1.0</div>
+            <div className="font-medium text-foreground">{instName} v1.0</div>
             <div className="mt-0.5 text-muted-foreground">{t("support.label")}: support@educrm.uz</div>
           </div>
         </div>
@@ -96,11 +114,15 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/60 bg-background/90 px-3 backdrop-blur-md md:hidden">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-primary shadow-glow">
-              <GraduationCap className="size-4 text-primary-foreground" />
+            <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-primary shadow-glow overflow-hidden">
+              {instLogo ? (
+                <img src={instLogo} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <GraduationCap className="size-4 text-primary-foreground" />
+              )}
             </div>
             <div className="min-w-0">
-              <div className="truncate text-sm font-bold leading-tight">{brand}</div>
+              <div className="truncate text-sm font-bold leading-tight">{instName}</div>
               <div className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
                 {user && t(`role.${user.role}`)}
               </div>
