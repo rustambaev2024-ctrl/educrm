@@ -62,9 +62,9 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
       {/* Sidebar */}
       <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5">
-          <div className="flex size-9 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-primary shadow-glow overflow-hidden">
+          <div className={`flex size-9 flex-shrink-0 items-center justify-center rounded-lg shadow-glow overflow-hidden ${instLogo ? "bg-white p-0.5" : "bg-gradient-primary"}`}>
             {instLogo ? (
-              <img src={instLogo} alt="Logo" className="w-full h-full object-cover" />
+              <img src={instLogo} alt="Logo" className="w-full h-full object-contain" />
             ) : (
               <GraduationCap className="size-5 text-primary-foreground" />
             )}
@@ -114,9 +114,9 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/60 bg-background/90 px-3 backdrop-blur-md md:hidden">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-primary shadow-glow overflow-hidden">
+            <div className={`flex size-8 flex-shrink-0 items-center justify-center rounded-lg shadow-glow overflow-hidden ${instLogo ? "bg-white p-0.5" : "bg-gradient-primary"}`}>
               {instLogo ? (
-                <img src={instLogo} alt="Logo" className="w-full h-full object-cover" />
+                <img src={instLogo} alt="Logo" className="w-full h-full object-contain" />
               ) : (
                 <GraduationCap className="size-4 text-primary-foreground" />
               )}
