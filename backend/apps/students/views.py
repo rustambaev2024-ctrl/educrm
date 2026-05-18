@@ -2,8 +2,9 @@ import logging
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin, IsTeacher
@@ -20,6 +21,71 @@ from .serializers import (
     StudentLeadSerializer,
     StudentSerializer,
 )
+
+
+logger = logging.getLogger(__name__)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def public_submit_lead(request):
+    """
+    Public endpoint — accepts lead submissions from the landing page.
+    No authentication required. Tenant is resolved via X-Tenant-Schema header.
+    """
+    data = request.data
+    full_name = (data.get("full_name") or "").strip()
+    phone = (data.get("phone") or "").strip()
+    source = data.get("source", "other")
+    notes = (data.get("notes") or "").strip()
+    interested_course_id = data.get("interested_course") or None
+
+    if not full_name or not phone:
+        return Response(
+            {"detail": "full_name and phone are required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Validate source
+    valid_sources = {"walk_in", "phone", "telegram", "instagram", "referral", "other"}
+    if source not in valid_sources:
+        source = "other"
+
+    lead_data = {
+        "full_name": full_name,
+        "phone": phone,
+        "source": source,
+        "notes": notes,
+        "status": "new",
+    }
+    if interested_course_id:
+        lead_data["interested_course_id"] = interested_course_id
+
+    # Try to assign to first branch if available
+    from apps.institutions.models import Branch
+    first_branch = Branch.objects.first()
+    if first_branch:
+        lead_data["branch"] = first_branch
+
+    lead = StudentLead.objects.create(**lead_data)
+
+    # Fire Meta "Lead" event
+    try:
+        institution = getattr(request, "tenant", None)
+        if institution and hasattr(institution, "meta_pixel_id") and institution.meta_pixel_id:
+            send_lead_event(
+                pixel_id=institution.meta_pixel_id,
+                access_token=institution.meta_access_token,
+                phone=phone,
+                lead_id=str(lead.id),
+            )
+    except Exception as e:
+        logger.error(f"Meta Lead event error on public submit: {e}")
+
+    return Response(
+        {"id": str(lead.id), "status": "ok"},
+        status=status.HTTP_201_CREATED,
+    )
 
 
 class StudentViewSet(viewsets.ModelViewSet):

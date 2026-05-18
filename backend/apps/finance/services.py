@@ -100,7 +100,10 @@ def apply_payment(
         raise ValueError("Unsupported payment type")
 
     student = Student.objects.select_for_update().select_related("user").get(id=student.id)
-    wallet = Wallet.objects.select_for_update().get(student=student)
+    wallet, _ = Wallet.objects.select_for_update().get_or_create(
+        student=student,
+        defaults={"balance": student.wallet_balance},
+    )
 
     delta = amount
     if payment_type == "charge":

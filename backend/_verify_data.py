@@ -3,7 +3,7 @@ import json
 import urllib.request
 import urllib.error
 
-BASE = "https://educrm-production.up.railway.app/api/v1"
+BASE = "https://rare-elegance-production.up.railway.app/api/v1"
 
 def api(method, path, token=None, schema="elite_academy", data=None):
     url = BASE + path
