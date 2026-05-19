@@ -27,7 +27,7 @@ while True:
 PY
 
 echo "Running shared migrations (public schema)..."
-python manage.py migrate_schemas --shared
+python manage.py migrate_schemas
 
 echo "Collecting static..."
 python manage.py collectstatic --noinput
