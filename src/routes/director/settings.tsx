@@ -181,7 +181,7 @@ function DirectorSettingsPage() {
               <Label className="text-muted-foreground w-full text-center">{t("settings.inst.logoLabel")}</Label>
               <div className="relative group cursor-pointer w-40 h-40 rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-white hover:bg-muted/50 transition-colors">
                 {logoPreview ? (
-                  <img src={logoPreview} alt="Logo" className="w-full h-full object-contain p-2" />
+                  <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
                 ) : (
                   <div className="flex flex-col items-center text-muted-foreground">
                     <Building2 className="size-10 mb-2 opacity-20" />

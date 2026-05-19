@@ -90,7 +90,7 @@ class BranchViewSet(viewsets.ModelViewSet):
         institution.save(update_fields=["meta_pixel_id", "meta_access_token"])
         return Response({"detail": "Saved"}, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=["get", "patch"], url_path="settings", permission_classes=[IsDirector], parser_classes=[MultiPartParser, FormParser, JSONParser])
+    @action(detail=False, methods=["get", "patch"], url_path="settings", permission_classes=[permissions.IsAuthenticated], parser_classes=[MultiPartParser, FormParser, JSONParser])
     def institution_settings(self, request):
         
         institution = request.tenant
@@ -104,6 +104,9 @@ class BranchViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_200_OK,
             )
+
+        if request.user.role not in ("director", "superadmin"):
+            return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
         data = request.data
         if "name" in data:

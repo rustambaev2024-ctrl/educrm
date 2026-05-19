@@ -62,7 +62,7 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
       {/* Sidebar */}
       <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5">
-          <div className={`flex size-9 flex-shrink-0 items-center justify-center rounded-lg shadow-glow overflow-hidden ${instLogo ? "bg-white p-0.5" : "bg-gradient-primary"}`}>
+          <div className={`flex size-9 flex-shrink-0 items-center justify-center rounded-lg shadow-glow overflow-hidden ${instLogo ? "bg-white p-0" : "bg-gradient-primary"}`}>
             {instLogo ? (
               <img src={instLogo} alt="Logo" className="w-full h-full object-contain" />
             ) : (
