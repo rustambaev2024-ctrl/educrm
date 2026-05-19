@@ -2,6 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from .transfers import StudentTransfer
 
 
 class Course(models.Model):
@@ -98,3 +99,4 @@ class GroupMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.student_id} -> {self.group_id}"
+
