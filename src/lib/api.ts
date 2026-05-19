@@ -477,6 +477,8 @@ export const analyticsApi = {
     requestJson(`/analytics/attendance/${params ? `?${new URLSearchParams(params)}` : ""}`),
   revenue: (params?: Record<string, string>) =>
     requestJson(`/analytics/revenue/${params ? `?${new URLSearchParams(params)}` : ""}`),
+  teacherSalary: (params?: Record<string, string>) =>
+    requestJson(`/salary/me/${params ? `?${new URLSearchParams(params)}` : ""}`),
 };
 
 export const auditApi = {

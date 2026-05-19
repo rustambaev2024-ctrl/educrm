@@ -79,6 +79,7 @@ const UZ: Dict = {
   "nav.groups": "Guruhlar",
   "nav.schedule": "Dars jadvali",
   "nav.finance": "Moliya",
+  "nav.finance.my": "Mening daromadim",
   "nav.analytics": "Analitika",
   "nav.messages": "Xabarlar",
   "nav.staff": "Xodimlar",

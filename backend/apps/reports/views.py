@@ -94,6 +94,30 @@ class SalaryCalculateView(APIView):
         return Response(report, status=status.HTTP_200_OK)
 
 
+class TeacherSalaryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(parameters=[AnalyticsFilterSerializer], responses=OpenApiTypes.OBJECT)
+    def get(self, request):
+        if request.user.role != "teacher":
+            return Response({"detail": "Not a teacher"}, status=status.HTTP_403_FORBIDDEN)
+            
+        serializer = AnalyticsFilterSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        filters = normalize_filters(serializer.validated_data)
+        
+        # The teacher's ID is the ID of their Staff profile
+        if not hasattr(request.user, "staff_profile"):
+            return Response({"detail": "Staff profile not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        report = calculate_teacher_salary(
+            teacher_id=request.user.staff_profile.id,
+            period_start=filters.date_from,
+            period_end=filters.date_to,
+        )
+        return Response(report, status=status.HTTP_200_OK)
+
+
 def _build_export_payload(user, payload: dict) -> tuple[str, dict]:
     filters = normalize_filters(payload)
     report_type = payload["report_type"]

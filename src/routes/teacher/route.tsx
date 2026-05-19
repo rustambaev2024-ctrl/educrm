@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, Layers, ClipboardCheck, BookOpen, Award } from "lucide-react";
+import { LayoutDashboard, Layers, ClipboardCheck, BookOpen, Award, Wallet } from "lucide-react";
 import { SidebarLayout, type NavItem } from "@/components/layouts/sidebar-layout";
 import { RoleGuard } from "@/components/edu/role-guard";
 import { useI18n } from "@/lib/i18n";
@@ -16,6 +16,7 @@ function TeacherLayout() {
     { to: "/teacher/attendance", label: t("nav.attendance"), icon: ClipboardCheck },
     { to: "/teacher/homework", label: t("nav.homework"), icon: BookOpen },
     { to: "/teacher/grades", label: t("nav.grades"), icon: Award },
+    { to: "/teacher/finance", label: t("nav.finance.my"), icon: Wallet },
   ];
   return (
     <RoleGuard allow="teacher">

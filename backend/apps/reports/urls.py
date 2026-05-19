@@ -11,6 +11,7 @@ from .views import (
     ExportExcelView,
     ExportPdfView,
     SalaryCalculateView,
+    TeacherSalaryView,
 )
 
 urlpatterns = [
@@ -22,6 +23,7 @@ urlpatterns = [
     path("analytics/conversion/", AnalyticsConversionView.as_view(), name="analytics-conversion"),
     path("analytics/debtors/", AnalyticsDebtorsView.as_view(), name="analytics-debtors"),
     path("salary/calculate/", SalaryCalculateView.as_view(), name="salary-calculate"),
+    path("salary/me/", TeacherSalaryView.as_view(), name="teacher-salary"),
     path("export/excel/", ExportExcelView.as_view(), name="export-excel"),
     path("export/pdf/", ExportPdfView.as_view(), name="export-pdf"),
 ]
