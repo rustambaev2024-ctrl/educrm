@@ -486,6 +486,27 @@ export const auditApi = {
     requestJson(`/audit/${params ? `?${new URLSearchParams(params)}` : ""}`),
 };
 
+export const transferApi = {
+  transfer: (data: {
+    student_id: string;
+    from_group_id: string;
+    to_group_id: string;
+    transfer_date: string;
+    reason?: string;
+    comment?: string;
+  }) =>
+    requestJson("/transfers/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  history: (params?: { student_id?: string; branch_id?: string }) =>
+    requestJson<unknown[]>(
+      `/transfers/${params ? "?" + new URLSearchParams(params as Record<string, string>) : ""}`
+    ),
+};
+
+
 export const superadminApi = {
   institutions: crudApi("/superadmin/institutions/"),
   branches: {
