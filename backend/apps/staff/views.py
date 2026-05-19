@@ -1,5 +1,6 @@
 from django.db.models import Q
-from rest_framework import viewsets
+from rest_framework import permissions, status, viewsets
+from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
 
@@ -38,7 +39,7 @@ class StaffViewSet(viewsets.ModelViewSet):
 class StaffPenaltyViewSet(viewsets.ModelViewSet):
     queryset = StaffPenalty.objects.select_related("staff__user", "branch", "created_by").all()
     serializer_class = StaffPenaltySerializer
-    permission_classes = [IsDirector]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -46,7 +47,19 @@ class StaffPenaltyViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return qs.none()
 
-        if user.role not in ("superadmin", "director"):
+        if user.role in ("superadmin", "director"):
+            pass
+        elif user.role in ("admin", "branch_admin"):
+            if hasattr(user, "staff_profile") and user.staff_profile.branch_id:
+                qs = qs.filter(branch_id=user.staff_profile.branch_id)
+            else:
+                return qs.none()
+        elif user.role == "teacher":
+            if hasattr(user, "staff_profile"):
+                qs = qs.filter(staff=user.staff_profile)
+            else:
+                return qs.none()
+        else:
             return qs.none()
 
         params = self.request.query_params
@@ -69,6 +82,21 @@ class StaffPenaltyViewSet(viewsets.ModelViewSet):
                 | Q(staff__user__phone__icontains=value)
             )
         return qs.distinct().order_by("-penalty_date", "-created_at")
+
+    def create(self, request, *args, **kwargs):
+        if request.user.role not in ("director", "superadmin"):
+            return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        if request.user.role not in ("director", "superadmin"):
+            return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if request.user.role not in ("director", "superadmin"):
+            return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         staff = serializer.validated_data["staff"]

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Ban, CalendarDays, CircleMinus, Edit3, Plus, Search, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useData } from "@/lib/data/store";
+import { penaltyApi, staffApi, branchApi } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import type { StaffPenalty, StaffPenaltyStatus } from "@/lib/data/types";
 import { formatDate, formatMoney } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -43,49 +44,119 @@ const emptyForm: FormState = {
 };
 
 function DirectorPenaltiesPage() {
-  const { lang, t } = useI18n();
-  const { staff, branches, penalties, addPenalty, updatePenalty, deletePenalty } = useData();
+  const { lang } = useI18n();
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("active");
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [branchId, setBranchId] = useState("all");
+  
+  const [penalties, setPenalties] = useState<StaffPenalty[]>([]);
+  const [staff, setStaff] = useState<Array<{ id: string; fullName: string; role: string; branchId?: string }>>([]);
+  const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [detailForm, setDetailForm] = useState<FormState>(emptyForm);
 
   const labels = pageLabels(lang);
+  const isWriteAllowed = user?.role === "director" || user?.role === "superadmin";
+
   const staffList = useMemo(() => staff.filter((item) => item.role !== "director"), [staff]);
   const staffById = useMemo(() => Object.fromEntries(staff.map((item) => [item.id, item])), [staff]);
   const branchById = useMemo(() => Object.fromEntries(branches.map((item) => [item.id, item])), [branches]);
   const selected = useMemo(() => penalties.find((item) => item.id === selectedId) ?? null, [penalties, selectedId]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return penalties.filter((penalty) => {
-      const member = staffById[penalty.staffId];
-      if (status !== "all" && penalty.status !== status) return false;
-      if (branchId !== "all" && penalty.branchId !== branchId) return false;
-      if (month && !penalty.penaltyDate.startsWith(month)) return false;
-      if (!q) return true;
-      return (
-        penalty.reason.toLowerCase().includes(q) ||
-        penalty.comment?.toLowerCase().includes(q) ||
-        member?.fullName.toLowerCase().includes(q) ||
-        member?.phone.includes(q)
-      );
-    });
-  }, [branchId, month, penalties, search, staffById, status]);
+  // Debounce search input to avoid API spamming
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Map API Penalty payload to Frontend-friendly camelCase StaffPenalty
+  const mapPenaltyToFrontend = (p: any): StaffPenalty => ({
+    id: p.id,
+    staffId: p.staff,
+    branchId: p.branch || undefined,
+    amount: Number(p.amount),
+    reason: p.reason,
+    penaltyDate: p.penalty_date,
+    status: p.status,
+    comment: p.comment || undefined,
+    createdByName: p.created_by_name || undefined,
+  });
+
+  // Load static choices (Staff & Branches)
+  useEffect(() => {
+    const loadStaticData = async () => {
+      try {
+        const [staffRes, branchesRes] = await Promise.all([
+          staffApi.list(),
+          branchApi.list(),
+        ]);
+        const staffListRaw = Array.isArray(staffRes) ? staffRes : (staffRes as any).results ?? [];
+        const branchesListRaw = Array.isArray(branchesRes) ? branchesRes : (branchesRes as any).results ?? [];
+
+        setStaff(staffListRaw.map((item: any) => ({
+          id: item.id,
+          fullName: item.full_name,
+          role: item.role,
+          branchId: item.branch || undefined,
+        })));
+        setBranches(branchesListRaw.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+        })));
+      } catch (err) {
+        console.error(err);
+        toast.error("Ma'lumotlarni yuklashda xatolik yuz berdi");
+      }
+    };
+    loadStaticData();
+  }, []);
+
+  // Fetch penalties list with query parameters
+  const loadPenalties = async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (status !== "all") params.status = status;
+      if (branchId !== "all") params.branch_id = branchId;
+      if (month) {
+        params.date_from = `${month}-01`;
+        params.date_to = `${month}-31`;
+      }
+      if (debouncedSearch.trim()) {
+        params.search = debouncedSearch.trim();
+      }
+
+      const res = await penaltyApi.list(params);
+      const listRaw = Array.isArray(res) ? res : (res as any).results ?? [];
+      setPenalties(listRaw.map(mapPenaltyToFrontend));
+    } catch (err) {
+      console.error(err);
+      toast.error("Ma'lumotlarni yuklashda xatolik yuz berdi");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPenalties();
+  }, [status, branchId, month, debouncedSearch]);
 
   const totals = useMemo(() => {
-    const active = filtered.filter((penalty) => penalty.status === "active");
+    const active = penalties.filter((penalty) => penalty.status === "active");
     return {
-      all: filtered.length,
+      all: penalties.length,
       active: active.length,
-      cancelled: filtered.filter((penalty) => penalty.status === "cancelled").length,
+      cancelled: penalties.filter((penalty) => penalty.status === "cancelled").length,
       amount: active.reduce((sum, penalty) => sum + penalty.amount, 0),
     };
-  }, [filtered]);
+  }, [penalties]);
 
   const openCreate = () => {
     const firstStaff = staffList[0];
@@ -98,24 +169,29 @@ function DirectorPenaltiesPage() {
     setDialogOpen(true);
   };
 
-  const saveNew = () => {
+  const saveNew = async () => {
     if (!form.staffId || !Number(form.amount) || !form.reason.trim()) {
       toast.error(labels.required);
       return;
     }
     const member = staffById[form.staffId];
-    addPenalty({
-      staffId: form.staffId,
-      branchId: form.branchId || member?.branchId,
-      amount: Number(form.amount),
-      reason: form.reason.trim(),
-      penaltyDate: form.penaltyDate,
-      status: form.status,
-      comment: form.comment.trim() || undefined,
-      createdByName: undefined,
-    });
-    setDialogOpen(false);
-    toast.success(labels.created);
+    try {
+      await penaltyApi.create({
+        staff: form.staffId,
+        branch: form.branchId || member?.branchId || null,
+        amount: Number(form.amount),
+        reason: form.reason.trim(),
+        penalty_date: form.penaltyDate,
+        status: form.status,
+        comment: form.comment.trim() || undefined,
+      });
+      setDialogOpen(false);
+      toast.success(labels.created);
+      loadPenalties();
+    } catch (err) {
+      console.error(err);
+      toast.error("Xatolik yuz berdi");
+    }
   };
 
   const openDetail = (penalty: StaffPenalty) => {
@@ -131,30 +207,43 @@ function DirectorPenaltiesPage() {
     });
   };
 
-  const saveDetail = () => {
+  const saveDetail = async () => {
     if (!selected) return;
     if (!detailForm.staffId || !Number(detailForm.amount) || !detailForm.reason.trim()) {
       toast.error(labels.required);
       return;
     }
     const member = staffById[detailForm.staffId];
-    updatePenalty(selected.id, {
-      staffId: detailForm.staffId,
-      branchId: detailForm.branchId || member?.branchId,
-      amount: Number(detailForm.amount),
-      reason: detailForm.reason.trim(),
-      penaltyDate: detailForm.penaltyDate,
-      status: detailForm.status,
-      comment: detailForm.comment.trim() || undefined,
-    });
-    toast.success(labels.saved);
+    try {
+      await penaltyApi.update(selected.id, {
+        staff: detailForm.staffId,
+        branch: detailForm.branchId || member?.branchId || null,
+        amount: Number(detailForm.amount),
+        reason: detailForm.reason.trim(),
+        penalty_date: detailForm.penaltyDate,
+        status: detailForm.status,
+        comment: detailForm.comment.trim() || undefined,
+      });
+      setSelectedId(null);
+      toast.success(labels.saved);
+      loadPenalties();
+    } catch (err) {
+      console.error(err);
+      toast.error("Xatolik yuz berdi");
+    }
   };
 
-  const removeSelected = () => {
+  const removeSelected = async () => {
     if (!selected) return;
-    deletePenalty(selected.id);
-    setSelectedId(null);
-    toast.success(labels.deleted);
+    try {
+      await penaltyApi.delete(selected.id);
+      setSelectedId(null);
+      toast.success(labels.deleted);
+      loadPenalties();
+    } catch (err) {
+      console.error(err);
+      toast.error("Xatolik yuz berdi");
+    }
   };
 
   return (
@@ -163,9 +252,11 @@ function DirectorPenaltiesPage() {
         title={labels.title}
         description={labels.subtitle}
         actions={
-          <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground shadow-elegant">
-            <Plus className="mr-1 size-4" /> {labels.add}
-          </Button>
+          isWriteAllowed && (
+            <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground shadow-elegant">
+              <Plus className="mr-1 size-4" /> {labels.add}
+            </Button>
+          )
         }
       />
 
@@ -201,39 +292,46 @@ function DirectorPenaltiesPage() {
             </Select>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{labels.staff}</TableHead>
-                <TableHead>{labels.reason}</TableHead>
-                <TableHead>{labels.date}</TableHead>
-                <TableHead>{labels.statusLabel}</TableHead>
-                <TableHead className="text-right">{labels.amount}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">{labels.empty}</TableCell></TableRow>
-              ) : filtered.map((penalty) => {
-                const member = staffById[penalty.staffId];
-                return (
-                  <TableRow key={penalty.id} className="cursor-pointer hover:bg-accent/40" onClick={() => openDetail(penalty)}>
-                    <TableCell>
-                      <div className="font-medium">{member?.fullName ?? "-"}</div>
-                      <div className="text-xs text-muted-foreground">{penalty.branchId ? branchById[penalty.branchId]?.name ?? "-" : "-"}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{penalty.reason}</div>
-                      {penalty.comment && <div className="line-clamp-1 text-xs text-muted-foreground">{penalty.comment}</div>}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{formatDate(penalty.penaltyDate, lang)}</TableCell>
-                    <TableCell><StatusBadge status={penalty.status} labels={labels.status} /></TableCell>
-                    <TableCell className="text-right font-semibold text-destructive">-{formatMoney(penalty.amount, lang)}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <div className="relative">
+            {loading && (
+              <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            )}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{labels.staff}</TableHead>
+                  <TableHead>{labels.reason}</TableHead>
+                  <TableHead>{labels.date}</TableHead>
+                  <TableHead>{labels.statusLabel}</TableHead>
+                  <TableHead className="text-right">{labels.amount}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {penalties.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">{labels.empty}</TableCell></TableRow>
+                ) : penalties.map((penalty) => {
+                  const member = staffById[penalty.staffId];
+                  return (
+                    <TableRow key={penalty.id} className="cursor-pointer hover:bg-accent/40" onClick={() => openDetail(penalty)}>
+                      <TableCell>
+                        <div className="font-medium">{member?.fullName ?? "-"}</div>
+                        <div className="text-xs text-muted-foreground">{penalty.branchId ? branchById[penalty.branchId]?.name ?? "-" : "-"}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{penalty.reason}</div>
+                        {penalty.comment && <div className="line-clamp-1 text-xs text-muted-foreground">{penalty.comment}</div>}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatDate(penalty.penaltyDate, lang)}</TableCell>
+                      <TableCell><StatusBadge status={penalty.status} labels={labels.status} /></TableCell>
+                      <TableCell className="text-right font-semibold text-destructive">-{formatMoney(penalty.amount, lang)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
       </div>
 
@@ -254,15 +352,23 @@ function DirectorPenaltiesPage() {
             <SheetTitle>{selected ? staffById[selected.staffId]?.fullName ?? labels.detail : labels.detail}</SheetTitle>
           </SheetHeader>
           <div className="mt-6">
-            <PenaltyForm form={detailForm} setForm={setDetailForm} staff={staffList} branches={branches} labels={labels} />
+            <PenaltyForm form={detailForm} setForm={setDetailForm} staff={staffList} branches={branches} labels={labels} disabled={!isWriteAllowed} />
           </div>
           <SheetFooter className="mt-6 gap-2 sm:justify-between sm:space-x-0">
-            <Button variant="destructive" onClick={removeSelected}>
-              <Trash2 className="mr-1 size-4" /> {labels.delete}
-            </Button>
-            <Button onClick={saveDetail}>
-              <Edit3 className="mr-1 size-4" /> {labels.save}
-            </Button>
+            {isWriteAllowed ? (
+              <>
+                <Button variant="destructive" onClick={removeSelected}>
+                  <Trash2 className="mr-1 size-4" /> {labels.delete}
+                </Button>
+                <Button onClick={saveDetail}>
+                  <Edit3 className="mr-1 size-4" /> {labels.save}
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" className="w-full" onClick={() => setSelectedId(null)}>
+                {labels.cancel}
+              </Button>
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -312,12 +418,14 @@ function PenaltyForm({
   staff,
   branches,
   labels,
+  disabled = false,
 }: {
   form: FormState;
   setForm: (form: FormState) => void;
   staff: Array<{ id: string; fullName: string; branchId?: string }>;
   branches: Array<{ id: string; name: string }>;
   labels: ReturnType<typeof pageLabels>;
+  disabled?: boolean;
 }) {
   const selectStaff = (staffId: string) => {
     const member = staff.find((item) => item.id === staffId);
@@ -328,7 +436,7 @@ function PenaltyForm({
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>{labels.staff}</Label>
-          <Select value={form.staffId} onValueChange={selectStaff}>
+          <Select value={form.staffId} onValueChange={selectStaff} disabled={disabled}>
             <SelectTrigger><SelectValue placeholder={labels.selectStaff} /></SelectTrigger>
             <SelectContent>
               {staff.map((member) => <SelectItem key={member.id} value={member.id}>{member.fullName}</SelectItem>)}
@@ -337,7 +445,7 @@ function PenaltyForm({
         </div>
         <div className="space-y-1.5">
           <Label>{labels.branch}</Label>
-          <Select value={form.branchId || "none"} onValueChange={(value) => setForm({ ...form, branchId: value === "none" ? "" : value })}>
+          <Select value={form.branchId || "none"} onValueChange={(value) => setForm({ ...form, branchId: value === "none" ? "" : value })} disabled={disabled}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="none">{labels.notSelected}</SelectItem>
@@ -349,15 +457,15 @@ function PenaltyForm({
       <div className="grid gap-3 md:grid-cols-3">
         <div className="space-y-1.5">
           <Label>{labels.amount}</Label>
-          <Input type="number" min={0} step={1000} value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} />
+          <Input type="number" min={0} step={1000} value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} disabled={disabled} />
         </div>
         <div className="space-y-1.5">
           <Label>{labels.date}</Label>
-          <Input type="date" value={form.penaltyDate} onChange={(event) => setForm({ ...form, penaltyDate: event.target.value })} />
+          <Input type="date" value={form.penaltyDate} onChange={(event) => setForm({ ...form, penaltyDate: event.target.value })} disabled={disabled} />
         </div>
         <div className="space-y-1.5">
           <Label>{labels.statusLabel}</Label>
-          <Select value={form.status} onValueChange={(value) => setForm({ ...form, status: value as StaffPenaltyStatus })}>
+          <Select value={form.status} onValueChange={(value) => setForm({ ...form, status: value as StaffPenaltyStatus })} disabled={disabled}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="active">{labels.status.active}</SelectItem>
@@ -368,11 +476,11 @@ function PenaltyForm({
       </div>
       <div className="space-y-1.5">
         <Label>{labels.reason}</Label>
-        <Input value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder={labels.reasonPlaceholder} />
+        <Input value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} placeholder={labels.reasonPlaceholder} disabled={disabled} />
       </div>
       <div className="space-y-1.5">
         <Label>{labels.comment}</Label>
-        <Textarea value={form.comment} onChange={(event) => setForm({ ...form, comment: event.target.value })} placeholder={labels.commentPlaceholder} rows={4} />
+        <Textarea value={form.comment} onChange={(event) => setForm({ ...form, comment: event.target.value })} placeholder={labels.commentPlaceholder} rows={4} disabled={disabled} />
       </div>
     </div>
   );
