@@ -11,8 +11,40 @@ export const Route = createFileRoute("/teacher/finance")({
   component: TeacherFinancePage,
 });
 
+interface StudentRow {
+  student_id: string;
+  full_name: string;
+  payments_sum: string;
+}
+
+interface GroupRow {
+  group_id: string;
+  group_name: string;
+  students: StudentRow[];
+  group_total: string;
+}
+
+interface PenaltyRow {
+  id: string;
+  amount: string;
+  reason: string;
+  penalty_date: string;
+  comment: string;
+}
+
+interface SalaryData {
+  groups: GroupRow[];
+  total_student_payments: string;
+  salary_percent: string;
+  calculated_salary: string;
+  penalties_total: string;
+  penalty_debt: string;
+  net_salary: string;
+  penalties: PenaltyRow[];
+}
+
 function TeacherFinancePage() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<SalaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
@@ -25,7 +57,7 @@ function TeacherFinancePage() {
     setLoading(true);
     try {
       const response = await analyticsApi.teacherSalary({ date_from: dateFrom, date_to: dateTo });
-      setData(response);
+      setData(response as SalaryData);
     } catch (err) {
       console.error(err);
       toast.error("Ma'lumotlarni yuklashda xatolik yuz berdi");
@@ -78,6 +110,25 @@ function TeacherFinancePage() {
           <div className="text-center py-10 text-muted-foreground">Ma'lumot topilmadi</div>
         ) : (
           <>
+            {/* Penalty Debt Card */}
+            {Number(data.penalty_debt) > 0 && (
+              <Card className="border-orange-500 bg-orange-50 dark:bg-orange-950/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-orange-600 text-sm">
+                    Jarima qoldig'i (keyingi oyga o'tadi)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {formatMoney(data.penalty_debt)}
+                  </p>
+                  <p className="text-xs text-orange-500 mt-1">
+                    Jarimalar daromaddan ko'p bo'lgani uchun qolgan qism keyingi hisob-kitobga o'tkaziladi
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Overview Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-green-500/10 to-transparent">
@@ -124,7 +175,7 @@ function TeacherFinancePage() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {data.groups?.length > 0 ? (
-                data.groups.map((group: any) => (
+                data.groups.map((group) => (
                   <Card key={group.group_id} className="shadow-sm border-border/60 overflow-hidden hover:shadow-md transition-shadow">
                     <div className="bg-muted/30 px-4 py-3 border-b flex justify-between items-center">
                       <h4 className="font-semibold">{group.group_name}</h4>
@@ -132,7 +183,7 @@ function TeacherFinancePage() {
                     </div>
                     <CardContent className="p-0">
                       <div className="max-h-[250px] overflow-y-auto p-4 space-y-3">
-                        {group.students?.map((student: any) => (
+                        {group.students?.map((student) => (
                           <div key={student.student_id} className="flex justify-between items-center text-sm border-b border-border/40 pb-2 last:border-0 last:pb-0">
                             <span>{student.full_name}</span>
                             <span className="text-muted-foreground">{formatMoney(student.payments_sum)} to'lov</span>
@@ -162,7 +213,7 @@ function TeacherFinancePage() {
                 </h3>
                 <Card className="shadow-sm border-red-500/20">
                   <div className="divide-y divide-border/50">
-                    {data.penalties.map((penalty: any) => (
+                    {data.penalties.map((penalty) => (
                       <div key={penalty.id} className="p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                         <div>
                           <div className="font-medium">{penalty.reason}</div>

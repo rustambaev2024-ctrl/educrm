@@ -28,6 +28,7 @@ import { Route as TeacherMessagesRouteImport } from './routes/teacher/messages'
 import { Route as TeacherHomeworkRouteImport } from './routes/teacher/homework'
 import { Route as TeacherGroupsRouteImport } from './routes/teacher/groups'
 import { Route as TeacherGradesRouteImport } from './routes/teacher/grades'
+import { Route as TeacherFinanceRouteImport } from './routes/teacher/finance'
 import { Route as TeacherAttendanceRouteImport } from './routes/teacher/attendance'
 import { Route as SuperadminSettingsRouteImport } from './routes/superadmin/settings'
 import { Route as SuperadminLogsRouteImport } from './routes/superadmin/logs'
@@ -155,6 +156,11 @@ const TeacherGroupsRoute = TeacherGroupsRouteImport.update({
 const TeacherGradesRoute = TeacherGradesRouteImport.update({
   id: '/grades',
   path: '/grades',
+  getParentRoute: () => TeacherRouteRoute,
+} as any)
+const TeacherFinanceRoute = TeacherFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
   getParentRoute: () => TeacherRouteRoute,
 } as any)
 const TeacherAttendanceRoute = TeacherAttendanceRouteImport.update({
@@ -366,6 +372,7 @@ export interface FileRoutesByFullPath {
   '/superadmin/logs': typeof SuperadminLogsRoute
   '/superadmin/settings': typeof SuperadminSettingsRoute
   '/teacher/attendance': typeof TeacherAttendanceRoute
+  '/teacher/finance': typeof TeacherFinanceRoute
   '/teacher/grades': typeof TeacherGradesRoute
   '/teacher/groups': typeof TeacherGroupsRoute
   '/teacher/homework': typeof TeacherHomeworkRoute
@@ -414,6 +421,7 @@ export interface FileRoutesByTo {
   '/superadmin/logs': typeof SuperadminLogsRoute
   '/superadmin/settings': typeof SuperadminSettingsRoute
   '/teacher/attendance': typeof TeacherAttendanceRoute
+  '/teacher/finance': typeof TeacherFinanceRoute
   '/teacher/grades': typeof TeacherGradesRoute
   '/teacher/groups': typeof TeacherGroupsRoute
   '/teacher/homework': typeof TeacherHomeworkRoute
@@ -469,6 +477,7 @@ export interface FileRoutesById {
   '/superadmin/logs': typeof SuperadminLogsRoute
   '/superadmin/settings': typeof SuperadminSettingsRoute
   '/teacher/attendance': typeof TeacherAttendanceRoute
+  '/teacher/finance': typeof TeacherFinanceRoute
   '/teacher/grades': typeof TeacherGradesRoute
   '/teacher/groups': typeof TeacherGroupsRoute
   '/teacher/homework': typeof TeacherHomeworkRoute
@@ -525,6 +534,7 @@ export interface FileRouteTypes {
     | '/superadmin/logs'
     | '/superadmin/settings'
     | '/teacher/attendance'
+    | '/teacher/finance'
     | '/teacher/grades'
     | '/teacher/groups'
     | '/teacher/homework'
@@ -573,6 +583,7 @@ export interface FileRouteTypes {
     | '/superadmin/logs'
     | '/superadmin/settings'
     | '/teacher/attendance'
+    | '/teacher/finance'
     | '/teacher/grades'
     | '/teacher/groups'
     | '/teacher/homework'
@@ -627,6 +638,7 @@ export interface FileRouteTypes {
     | '/superadmin/logs'
     | '/superadmin/settings'
     | '/teacher/attendance'
+    | '/teacher/finance'
     | '/teacher/grades'
     | '/teacher/groups'
     | '/teacher/homework'
@@ -784,6 +796,13 @@ declare module '@tanstack/react-router' {
       path: '/grades'
       fullPath: '/teacher/grades'
       preLoaderRoute: typeof TeacherGradesRouteImport
+      parentRoute: typeof TeacherRouteRoute
+    }
+    '/teacher/finance': {
+      id: '/teacher/finance'
+      path: '/finance'
+      fullPath: '/teacher/finance'
+      preLoaderRoute: typeof TeacherFinanceRouteImport
       parentRoute: typeof TeacherRouteRoute
     }
     '/teacher/attendance': {
@@ -1146,6 +1165,7 @@ const SuperadminRouteRouteWithChildren = SuperadminRouteRoute._addFileChildren(
 
 interface TeacherRouteRouteChildren {
   TeacherAttendanceRoute: typeof TeacherAttendanceRoute
+  TeacherFinanceRoute: typeof TeacherFinanceRoute
   TeacherGradesRoute: typeof TeacherGradesRoute
   TeacherGroupsRoute: typeof TeacherGroupsRoute
   TeacherHomeworkRoute: typeof TeacherHomeworkRoute
@@ -1155,6 +1175,7 @@ interface TeacherRouteRouteChildren {
 
 const TeacherRouteRouteChildren: TeacherRouteRouteChildren = {
   TeacherAttendanceRoute: TeacherAttendanceRoute,
+  TeacherFinanceRoute: TeacherFinanceRoute,
   TeacherGradesRoute: TeacherGradesRoute,
   TeacherGroupsRoute: TeacherGroupsRoute,
   TeacherHomeworkRoute: TeacherHomeworkRoute,

@@ -341,6 +341,8 @@ def get_debtors_report(user, filters: ReportFilters) -> dict:
     }
 
 
+from django.core.cache import cache
+
 def calculate_teacher_salary(
     *,
     teacher_id,
@@ -348,6 +350,11 @@ def calculate_teacher_salary(
     period_end: date,
     salary_percent: Decimal | None = None,
 ) -> dict:
+    cache_key = f"teacher_salary:{teacher_id}:{period_start}:{period_end}:{salary_percent}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     teacher = Staff.objects.select_related("user").filter(id=teacher_id).first()
     if teacher is None:
         raise ValidationError("Teacher not found")
@@ -366,51 +373,61 @@ def calculate_teacher_salary(
         lesson__attendance__status__in=["present", "late"],
     ).distinct()
 
-    group_ids = list(
-        payments_qs.exclude(group_id__isnull=True).values_list("group_id", flat=True).distinct()
+    students_data = (
+        payments_qs
+        .exclude(group_id__isnull=True)
+        .values(
+            "group_id",
+            "group__name",
+            "student_id",
+            "student__user__full_name",
+        )
+        .annotate(payments_sum=Coalesce(Sum("amount"), Decimal("0.00")))
+        .order_by("group_id", "-payments_sum")
     )
+
+    groups_map: dict = {}
+    for row in students_data:
+        gid = str(row["group_id"])
+        if gid not in groups_map:
+            groups_map[gid] = {
+                "group_id": gid,
+                "group_name": row["group__name"] or "Unnamed group",
+                "students": [],
+                "group_total": Decimal("0.00"),
+            }
+        amount = _quantize(row["payments_sum"])
+        groups_map[gid]["students"].append({
+            "student_id": str(row["student_id"]),
+            "full_name": row["student__user__full_name"],
+            "payments_sum": str(amount),
+        })
+        groups_map[gid]["group_total"] += amount
+
     groups_payload = []
     total_student_payments = Decimal("0.00")
-
-    for group_id in group_ids:
-        group_payments = payments_qs.filter(group_id=group_id)
-        group_name = group_payments.values_list("group__name", flat=True).first() or "Unnamed group"
-        students = group_payments.values("student_id", "student__user__full_name").annotate(
-            payments_sum=Coalesce(Sum("amount"), Decimal("0.00"))
-        )
-        students_payload = [
-            {
-                "student_id": str(row["student_id"]),
-                "full_name": row["student__user__full_name"],
-                "payments_sum": str(_quantize(row["payments_sum"])),
-            }
-            for row in students
-        ]
-        group_total = _quantize(sum((row["payments_sum"] for row in students), Decimal("0.00")))
-        total_student_payments += group_total
-        groups_payload.append(
-            {
-                "group_id": str(group_id),
-                "group_name": group_name,
-                "students": students_payload,
-                "group_total": str(group_total),
-            }
-        )
+    for group in groups_map.values():
+        group["group_total"] = str(_quantize(group["group_total"]))
+        total_student_payments += _quantize(Decimal(group["group_total"]))
+        groups_payload.append(group)
 
     total_student_payments = _quantize(total_student_payments)
     calculated_salary = _quantize(total_student_payments * (applied_percent / Decimal("100")))
+    
     penalties_qs = StaffPenalty.objects.filter(
         staff=teacher,
         status="active",
         penalty_date__gte=period_start,
         penalty_date__lte=period_end,
     ).order_by("-penalty_date", "-created_at")
+    
     total_penalties = _quantize(
         penalties_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
     )
     net_salary = _quantize(max(calculated_salary - total_penalties, Decimal("0.00")))
+    penalty_debt = _quantize(max(total_penalties - calculated_salary, Decimal("0.00")))
 
-    return {
+    result = {
         "teacher": {
             "id": str(teacher.id),
             "full_name": teacher.user.full_name,
@@ -421,6 +438,7 @@ def calculate_teacher_salary(
         "salary_percent": str(applied_percent),
         "calculated_salary": str(calculated_salary),
         "penalties_total": str(total_penalties),
+        "penalty_debt": str(penalty_debt),
         "net_salary": str(net_salary),
         "penalties": [
             {
@@ -433,6 +451,9 @@ def calculate_teacher_salary(
             for penalty in penalties_qs
         ],
     }
+    
+    cache.set(cache_key, result, timeout=300)
+    return result
 
 
 def get_audit_logs_snapshot(user, filters: ReportFilters) -> list[dict]:
