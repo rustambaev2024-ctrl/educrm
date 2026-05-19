@@ -35,6 +35,7 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
 
   const [instName, setInstName] = useState(brand);
   const [instLogo, setInstLogo] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     if (!user || user.role === "superadmin") return;
@@ -42,7 +43,10 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
       .institutionSettings()
       .then((data) => {
         if (data.name) setInstName(data.name);
-        if (data.logo) setInstLogo(data.logo);
+        if (data.logo) {
+          setInstLogo(data.logo);
+          setLogoError(false);
+        }
       })
       .catch((e) => console.error("Failed to load institution brand", e));
   }, [user]);
@@ -62,9 +66,14 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
       {/* Sidebar */}
       <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5">
-          <div className={`flex size-9 flex-shrink-0 items-center justify-center rounded-lg shadow-glow overflow-hidden ${instLogo ? "bg-white p-0" : "bg-gradient-primary"}`}>
-            {instLogo ? (
-              <img src={instLogo} alt="Logo" className="w-full h-full object-contain" />
+          <div className={`flex size-9 flex-shrink-0 items-center justify-center rounded-lg shadow-glow overflow-hidden ${instLogo && !logoError ? "bg-white p-0" : "bg-gradient-primary"}`}>
+            {instLogo && !logoError ? (
+              <img 
+                src={instLogo} 
+                alt="Logo" 
+                className="w-full h-full object-contain" 
+                onError={() => setLogoError(true)}
+              />
             ) : (
               <GraduationCap className="size-5 text-primary-foreground" />
             )}

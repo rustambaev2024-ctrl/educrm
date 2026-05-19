@@ -26,6 +26,7 @@ function DirectorSettingsPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [instLoading, setInstLoading] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   // Profile Settings State
   const [profileName, setProfileName] = useState(user?.fullName ?? "");
@@ -47,7 +48,10 @@ function DirectorSettingsPage() {
       setInstName(data.name || "");
       setInstAddress(data.address || "");
       setInstPhone(data.phone || "");
-      if (data.logo) setLogoPreview(data.logo);
+      if (data.logo) {
+        setLogoPreview(data.logo);
+        setLogoError(false);
+      }
     } catch (err) {
       console.error("Failed to load institution settings", err);
       toast.error(t("settings.msg.instError"));
@@ -61,6 +65,7 @@ function DirectorSettingsPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
+        setLogoError(false);
       };
       reader.readAsDataURL(file);
     }
@@ -78,7 +83,10 @@ function DirectorSettingsPage() {
       }
       
       const data = await branchApi.updateInstitutionSettings(formData);
-      if (data.logo) setLogoPreview(data.logo);
+      if (data.logo) {
+        setLogoPreview(data.logo);
+        setLogoError(false);
+      }
       toast.success(t("settings.msg.instSaved"));
       
       // Reload page to reflect logo changes in UI (sidebar, header)
@@ -180,8 +188,13 @@ function DirectorSettingsPage() {
             <div className="flex flex-col items-center justify-start space-y-4">
               <Label className="text-muted-foreground w-full text-center">{t("settings.inst.logoLabel")}</Label>
               <div className="relative group cursor-pointer w-40 h-40 rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-white hover:bg-muted/50 transition-colors">
-                {logoPreview ? (
-                  <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
+                {logoPreview && !logoError ? (
+                  <img 
+                    src={logoPreview} 
+                    alt="Logo" 
+                    className="w-full h-full object-contain" 
+                    onError={() => setLogoError(true)}
+                  />
                 ) : (
                   <div className="flex flex-col items-center text-muted-foreground">
                     <Building2 className="size-10 mb-2 opacity-20" />
