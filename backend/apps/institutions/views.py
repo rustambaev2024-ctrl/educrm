@@ -2,6 +2,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
 from apps.students.models import Student
@@ -89,10 +90,8 @@ class BranchViewSet(viewsets.ModelViewSet):
         institution.save(update_fields=["meta_pixel_id", "meta_access_token"])
         return Response({"detail": "Saved"}, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=["get", "patch"], url_path="settings", permission_classes=[IsDirector], parser_classes=[])
+    @action(detail=False, methods=["get", "patch"], url_path="settings", permission_classes=[IsDirector], parser_classes=[MultiPartParser, FormParser, JSONParser])
     def institution_settings(self, request):
-        from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
-        self.parser_classes = [MultiPartParser, FormParser, JSONParser]
         
         institution = request.tenant
         if request.method == "GET":
