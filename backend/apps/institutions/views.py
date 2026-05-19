@@ -17,8 +17,10 @@ class BranchViewSet(viewsets.ModelViewSet):
     serializer_class = BranchSerializer
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
+        if self.action in ("list", "retrieve", "institution_settings"):
             permission_classes = [permissions.IsAuthenticated]
+        elif self.action == "debtors":
+            permission_classes = [IsBranchAdmin]
         else:
             permission_classes = [IsDirector]
         return [permission() for permission in permission_classes]
