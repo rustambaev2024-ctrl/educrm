@@ -3,12 +3,13 @@ from django.db.models import Q
 from rest_framework import mixins, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsBranchAdmin, IsTeacher
 from apps.chat.services import add_student_to_group_chat, remove_student_from_group_chat
 from apps.students.models import Student
 
-from .models import Course, Group, GroupMembership
+from .models import Course, Group, GroupMembership, StudentTransfer
 from .serializers import (
     CourseSerializer,
     GroupAddStudentSerializer,
@@ -212,3 +213,102 @@ class GroupViewSet(
             },
             status=status.HTTP_200_OK,
         )
+
+
+class TransferInputSerializer(serializers.Serializer):
+    student_id = serializers.UUIDField()
+    from_group_id = serializers.UUIDField()
+    to_group_id = serializers.UUIDField()
+    transfer_date = serializers.DateField()
+    reason = serializers.ChoiceField(
+        choices=["schedule_change", "level_change", "branch_change", "student_request", "other"],
+        default="other",
+    )
+    comment = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class StudentTransferSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source="student.full_name", read_only=True)
+    from_group_name = serializers.CharField(source="from_group.name", read_only=True)
+    to_group_name = serializers.CharField(source="to_group.name", read_only=True)
+    from_branch_name = serializers.CharField(source="from_branch.name", read_only=True)
+    to_branch_name = serializers.CharField(source="to_branch.name", read_only=True)
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
+
+    class Meta:
+        model = StudentTransfer
+        fields = (
+            "id", "student", "student_name",
+            "from_group", "from_group_name",
+            "to_group", "to_group_name",
+            "from_branch", "from_branch_name",
+            "to_branch", "to_branch_name",
+            "transfer_date", "reason", "comment",
+            "balance_at_transfer",
+            "old_monthly_price", "new_monthly_price",
+            "created_by_name", "created_at",
+        )
+
+
+class StudentTransferView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        """Выполнить перевод ученика."""
+        if request.user.role not in ("director", "admin", "branch_admin", "superadmin"):
+            return Response({"detail": "Permission denied"}, status=403)
+
+        serializer = TransferInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            from apps.students.models import Student
+            from apps.courses.models import Group
+            from apps.courses.transfer_service import transfer_student
+
+            student = Student.objects.get(id=data["student_id"])
+            from_group = Group.objects.get(id=data["from_group_id"])
+            to_group = Group.objects.get(id=data["to_group_id"])
+
+            transfer = transfer_student(
+                student=student,
+                from_group=from_group,
+                to_group=to_group,
+                transfer_date=data["transfer_date"],
+                reason=data["reason"],
+                comment=data.get("comment", ""),
+                created_by=request.user,
+            )
+
+            return Response(
+                StudentTransferSerializer(transfer).data,
+                status=status.HTTP_201_CREATED,
+            )
+
+        except Student.DoesNotExist:
+            return Response({"detail": "Student not found"}, status=404)
+        except Group.DoesNotExist:
+            return Response({"detail": "Group not found"}, status=404)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=400)
+
+    def get(self, request):
+        """История переводов."""
+        qs = StudentTransfer.objects.select_related(
+            "student", "from_group", "to_group",
+            "from_branch", "to_branch", "created_by",
+        )
+
+        student_id = request.query_params.get("student_id")
+        if student_id:
+            qs = qs.filter(student_id=student_id)
+
+        branch_id = request.query_params.get("branch_id")
+        if branch_id:
+            qs = qs.filter(
+                Q(from_branch_id=branch_id) | Q(to_branch_id=branch_id)
+            )
+
+        return Response(StudentTransferSerializer(qs[:50], many=True).data)
+

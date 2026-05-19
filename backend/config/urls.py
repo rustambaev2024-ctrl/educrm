@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/v1/rooms/", include("apps.institutions.room_urls")),
     path("api/v1/staff/", include("apps.staff.urls")),
     path("api/v1/penalties/", include("apps.staff.penalty_urls")),
+    path("api/v1/transfers/", include("apps.courses.transfer_urls")),
     path("api/v1/students/", include("apps.students.urls")),
     path("api/v1/leads/", include("apps.students.lead_urls")),
     path("api/v1/parents/", include("apps.students.parent_urls")),
