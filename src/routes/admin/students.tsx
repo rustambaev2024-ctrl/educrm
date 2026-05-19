@@ -48,6 +48,8 @@ import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
 import { formatDate, formatMoney } from "@/lib/format";
 import type { Student, StudentStatus } from "@/lib/data/types";
+import { transferApi } from "@/lib/api";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin/students")({ component: StudentsPage });
 
@@ -410,12 +412,54 @@ function StudentDetailSheet({
   onDelete: (id: string, deleteParent: boolean) => void;
 }) {
   const { t, lang } = useI18n();
-  const { groups, parents, payments, updateStudentPasswords } = useData();
+  const { groups, parents, payments, updateStudentPasswords, reload } = useData();
   const open = student !== null;
   const [newStudentPassword, setNewStudentPassword] = useState("");
   const [newParentPassword, setNewParentPassword] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteParentToo, setDeleteParentToo] = useState(false);
+
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferForm, setTransferForm] = useState({
+    fromGroupId: "",
+    toGroupId: "",
+    transferDate: new Date().toISOString().split("T")[0],
+    reason: "other",
+    comment: "",
+  });
+  const [transfers, setTransfers] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (student) {
+      transferApi.history({ student_id: student.id })
+        .then((data) => setTransfers(Array.isArray(data) ? data : []))
+        .catch((e) => console.error("Failed to load transfers", e));
+    }
+  }, [student]);
+
+  async function handleTransfer() {
+    if (!student || !transferForm.fromGroupId || !transferForm.toGroupId) return;
+    try {
+      await transferApi.transfer({
+        student_id: student.id,
+        from_group_id: transferForm.fromGroupId,
+        to_group_id: transferForm.toGroupId,
+        transfer_date: transferForm.transferDate,
+        reason: transferForm.reason,
+        comment: transferForm.comment,
+      });
+      toast.success("O'quvchi muvaffaqiyatli ko'chirildi");
+      setTransferOpen(false);
+      await reload();
+      // Reload transfers list
+      transferApi.history({ student_id: student.id })
+        .then((data) => setTransfers(Array.isArray(data) ? data : []))
+        .catch((e) => console.error("Failed to load transfers", e));
+    } catch (err: unknown) {
+      const msg = (err as { body?: { detail?: string } })?.body?.detail;
+      toast.error(msg ?? "Xatolik yuz berdi");
+    }
+  }
 
   const handleUpdateStudentPassword = () => {
     if (!student) return;
@@ -496,6 +540,7 @@ function StudentDetailSheet({
               <TabsTrigger value="main" className="flex-1">{t("students.tab.main")}</TabsTrigger>
               <TabsTrigger value="groups" className="flex-1">{t("students.tab.groups")}</TabsTrigger>
               <TabsTrigger value="finance" className="flex-1">{t("students.tab.finance")}</TabsTrigger>
+              <TabsTrigger value="transfers" className="flex-1">Transferlar</TabsTrigger>
             </TabsList>
 
             <TabsContent value="main" className="space-y-3 pt-4">
@@ -585,6 +630,43 @@ function StudentDetailSheet({
                 });
               })()}
             </TabsContent>
+
+            <TabsContent value="transfers" className="space-y-2 pt-4">
+              {transfers.length === 0 ? (
+                <Card className="p-6 text-center text-sm text-muted-foreground">Transferlar tarixi mavjud emas</Card>
+              ) : (
+                <Card className="overflow-hidden border-border/60">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Sana</TableHead>
+                        <TableHead>Dan</TableHead>
+                        <TableHead>Ga</TableHead>
+                        <TableHead>Sabab</TableHead>
+                        <TableHead>Balans</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transfers.map((t) => (
+                        <TableRow key={t.id}>
+                          <TableCell className="text-sm">{t.transfer_date}</TableCell>
+                          <TableCell className="text-sm">{t.from_group_name ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{t.to_group_name}</TableCell>
+                          <TableCell className="text-sm">
+                            {t.reason === "schedule_change" && "Dars jadvali o'zgarishi"}
+                            {t.reason === "level_change" && "Daraja o'zgarishi"}
+                            {t.reason === "branch_change" && "Filial o'zgarishi"}
+                            {t.reason === "student_request" && "O'quvchi talabi"}
+                            {t.reason === "other" && "Boshqa"}
+                          </TableCell>
+                          <TableCell className="text-sm font-medium">{formatMoney(Number(t.balance_at_transfer), lang)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
 
@@ -596,6 +678,24 @@ function StudentDetailSheet({
             {student.status !== "archived" && (
               <Button variant="outline" onClick={() => onArchive(student.id)}>
                 {t("students.archive")}
+              </Button>
+            )}
+            {student.status !== "archived" && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setTransferForm({
+                    fromGroupId: studentGroups[0]?.id ?? "",
+                    toGroupId: "",
+                    transferDate: new Date().toISOString().split("T")[0],
+                    reason: "other",
+                    comment: "",
+                  });
+                  setTransferOpen(true);
+                }}
+                disabled={studentGroups.length === 0}
+              >
+                Ko'chirish
               </Button>
             )}
           </div>
@@ -620,6 +720,103 @@ function StudentDetailSheet({
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowDeleteConfirm(false); setDeleteParentToo(false); }}>{t("common.cancel")}</Button>
             <Button variant="destructive" onClick={() => { onDelete(student.id, deleteParentToo); onClose(); setShowDeleteConfirm(false); setDeleteParentToo(false); }}>O'chirish</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Guruhlararo ko'chirish</DialogTitle>
+            <DialogDescription>
+              O'quvchini boshqa guruhga ko'chirish. Balans o'zgarmaydi, dars narxi yangi guruh narxiga mos ravishda hisoblanadi.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Qaysi guruhdan</Label>
+              <Select
+                value={transferForm.fromGroupId}
+                onValueChange={(v) => setTransferForm((f) => ({ ...f, fromGroupId: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Guruhni tanlang" />
+                </SelectTrigger>
+                <SelectContent>
+                  {studentGroups.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.name} ({formatMoney(g.monthlyPrice, lang)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Qaysi guruhga</Label>
+              <Select
+                value={transferForm.toGroupId}
+                onValueChange={(v) => setTransferForm((f) => ({ ...f, toGroupId: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Guruhni tanlang" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups
+                    .filter((g) => g.id !== transferForm.fromGroupId && g.status === "active")
+                    .map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.name} ({formatMoney(g.monthlyPrice, lang)})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Ko'chirish sanasi</Label>
+              <Input
+                type="date"
+                value={transferForm.transferDate}
+                onChange={(e) => setTransferForm((f) => ({ ...f, transferDate: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Ko'chirish sababi</Label>
+              <Select
+                value={transferForm.reason}
+                onValueChange={(v) => setTransferForm((f) => ({ ...f, reason: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="schedule_change">Dars jadvali o'zgarishi</SelectItem>
+                  <SelectItem value="level_change">Daraja o'zgarishi</SelectItem>
+                  <SelectItem value="branch_change">Filial o'zgarishi</SelectItem>
+                  <SelectItem value="student_request">O'quvchi talabi</SelectItem>
+                  <SelectItem value="other">Boshqa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Izoh</Label>
+              <Textarea
+                placeholder="Izoh yozing..."
+                value={transferForm.comment}
+                onChange={(e) => setTransferForm((f) => ({ ...f, comment: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferOpen(false)}>
+              Bekor qilish
+            </Button>
+            <Button onClick={handleTransfer}>
+              Ko'chirish
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
