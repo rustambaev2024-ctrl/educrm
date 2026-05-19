@@ -362,8 +362,8 @@ def calculate_teacher_salary(
         group__teacher=teacher,
         created_at__date__gte=period_start,
         created_at__date__lte=period_end,
-        lesson__attendances__student_id=F("student_id"),
-        lesson__attendances__status__in=["present", "late"],
+        lesson__attendance__student_id=F("student_id"),
+        lesson__attendance__status__in=["present", "late"],
     ).distinct()
 
     group_ids = list(
