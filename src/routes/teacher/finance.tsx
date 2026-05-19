@@ -40,35 +40,39 @@ interface SalaryData {
   penalties_total: string;
   penalty_debt: string;
   net_salary: string;
+  total_paid: string;
+  remaining_balance: string;
   penalties: PenaltyRow[];
 }
 
+function formatMoney(amount: string | number) {
+  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  return new Intl.NumberFormat("uz-UZ", { style: "currency", currency: "UZS", maximumFractionDigits: 0 }).format(num);
+}
+
 function TeacherFinancePage() {
+  const today = new Date();
+  const [dateFrom, setDateFrom] = useState(() => format(startOfMonth(today), "yyyy-MM-dd"));
+  const [dateTo, setDateTo] = useState(() => format(endOfMonth(today), "yyyy-MM-dd"));
   const [data, setData] = useState<SalaryData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
-  const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
 
-  useEffect(() => {
-    loadData();
-  }, [dateFrom, dateTo]);
-
-  const loadData = async () => {
+  const fetchSalary = async () => {
     setLoading(true);
     try {
-      const response = await analyticsApi.teacherSalary({ date_from: dateFrom, date_to: dateTo });
-      setData(response as SalaryData);
+      const res = await analyticsApi.teacherSalary({ date_from: dateFrom, date_to: dateTo });
+      setData(res as unknown as SalaryData);
     } catch (err) {
       console.error(err);
-      toast.error("Ma'lumotlarni yuklashda xatolik yuz berdi");
+      toast.error("Ma'lumot yuklashda xatolik yuz berdi");
     } finally {
       setLoading(false);
     }
   };
 
-  const formatMoney = (amount: string | number) => {
-    return new Intl.NumberFormat("ru-RU").format(Number(amount)) + " UZS";
-  };
+  useEffect(() => {
+    fetchSalary();
+  }, [dateFrom, dateTo]);
 
   return (
     <>
@@ -130,7 +134,7 @@ function TeacherFinancePage() {
             )}
 
             {/* Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-green-500/10 to-transparent">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Umumiy hisoblangan</CardTitle>
@@ -138,7 +142,7 @@ function TeacherFinancePage() {
                 <CardContent>
                   <div className="flex items-center gap-2">
                     <DollarSign className="size-5 text-green-500" />
-                    <span className="text-2xl font-bold">{formatMoney(data.calculated_salary)}</span>
+                    <span className="text-xl font-bold">{formatMoney(data.calculated_salary)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">O'quvchilar to'lovidan {data.salary_percent}%</p>
                 </CardContent>
@@ -151,20 +155,46 @@ function TeacherFinancePage() {
                 <CardContent>
                   <div className="flex items-center gap-2">
                     <MinusCircle className="size-5 text-red-500" />
-                    <span className="text-2xl font-bold">{formatMoney(data.penalties_total)}</span>
+                    <span className="text-xl font-bold">{formatMoney(data.penalties_total)}</span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-elegant border-border/60 bg-primary/5 border-primary/20 lg:col-span-2">
+              <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-primary/10 to-transparent">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-primary">Sof daromad (Qo'lga tegadigan)</CardTitle>
+                  <CardTitle className="text-sm font-medium text-primary">Sof daromad</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
-                    <Wallet className="size-6 text-primary" />
-                    <span className="text-3xl font-bold text-primary">{formatMoney(data.net_salary)}</span>
+                    <Wallet className="size-5 text-primary" />
+                    <span className="text-xl font-bold text-primary">{formatMoney(data.net_salary)}</span>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-emerald-500/10 to-transparent">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-emerald-600">Faktik to'langan</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="size-5 text-emerald-600" />
+                    <span className="text-xl font-bold text-emerald-600">{formatMoney(data.total_paid)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Kassadan berilgan</p>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-elegant border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-transparent">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-orange-600">Qoldiq</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <Wallet className="size-5 text-orange-600" />
+                    <span className="text-xl font-bold text-orange-600">{formatMoney(data.remaining_balance)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">To'lanishi kerak</p>
                 </CardContent>
               </Card>
             </div>

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db.models import Count, Sum
 from django.db.models.functions import Coalesce, TruncDate
@@ -341,8 +342,6 @@ def get_debtors_report(user, filters: ReportFilters) -> dict:
     }
 
 
-from django.core.cache import cache
-
 def calculate_teacher_salary(
     *,
     teacher_id,
@@ -413,19 +412,31 @@ def calculate_teacher_salary(
 
     total_student_payments = _quantize(total_student_payments)
     calculated_salary = _quantize(total_student_payments * (applied_percent / Decimal("100")))
-    
+
     penalties_qs = StaffPenalty.objects.filter(
         staff=teacher,
         status="active",
         penalty_date__gte=period_start,
         penalty_date__lte=period_end,
     ).order_by("-penalty_date", "-created_at")
-    
+
     total_penalties = _quantize(
         penalties_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
     )
     net_salary = _quantize(max(calculated_salary - total_penalties, Decimal("0.00")))
     penalty_debt = _quantize(max(total_penalties - calculated_salary, Decimal("0.00")))
+
+    # Calculate actual payouts made to teacher during this period
+    payouts_qs = Payment.objects.filter(
+        staff=teacher,
+        payment_type="expense",
+        created_at__date__gte=period_start,
+        created_at__date__lte=period_end,
+    )
+    total_paid = _quantize(
+        payouts_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
+    )
+    remaining_balance = _quantize(max(net_salary - total_paid, Decimal("0.00")))
 
     result = {
         "teacher": {
@@ -440,6 +451,8 @@ def calculate_teacher_salary(
         "penalties_total": str(total_penalties),
         "penalty_debt": str(penalty_debt),
         "net_salary": str(net_salary),
+        "total_paid": str(total_paid),
+        "remaining_balance": str(remaining_balance),
         "penalties": [
             {
                 "id": str(penalty.id),
@@ -451,7 +464,7 @@ def calculate_teacher_salary(
             for penalty in penalties_qs
         ],
     }
-    
+
     cache.set(cache_key, result, timeout=300)
     return result
 
