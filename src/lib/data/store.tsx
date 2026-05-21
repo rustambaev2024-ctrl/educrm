@@ -138,6 +138,12 @@ interface DataStoreActions {
   archiveStudent: (id: string) => void;
   deleteStudent: (id: string, deleteParent?: boolean) => void;
   syncParentChild: (studentId: string) => Promise<void>;
+  assignParent: (studentId: string, parentData: {
+    parentId?: string;
+    parentName?: string;
+    parentPhone?: string;
+    parentPassword?: string;
+  }) => Promise<void>;
   addGroup: (input: Omit<Group, "id" | "studentIds" | "status"> & { status?: Group["status"] }) => Group;
   updateGroup: (id: string, patch: Partial<Group>) => void;
   deleteGroup: (id: string) => void;
@@ -915,6 +921,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
 
   const syncParentChild: DataStoreActions["syncParentChild"] = useCallback(async (studentId) => {
     await parentApi.linkChild(studentId);
+    await reload();
+  }, [reload]);
+
+  const assignParent: DataStoreActions["assignParent"] = useCallback(async (studentId, parentData) => {
+    await studentApi.assignParent(studentId, parentData);
     await reload();
   }, [reload]);
 
@@ -1796,6 +1807,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       archiveStudent,
       deleteStudent,
       syncParentChild,
+      assignParent,
       updateStudentPasswords,
       addGroup,
       updateGroup,
@@ -1814,7 +1826,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       addPenalty,
       updatePenalty,
       deletePenalty,
-
+ 
       loadThreadMessages,
       startDirectChat,
       sendMessage,
@@ -1842,7 +1854,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       updateStaff,
       deleteStaff,
     }),
-    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, penalties, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, deleteStudent, syncParentChild, updateStudentPasswords, addGroup, updateGroup, deleteGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, updateCourse, deleteCourse, setAttendance, getAttendanceFor, addPayment, addPenalty, updatePenalty, deletePenalty, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
+    [branches, rooms, courses, staff, parents, students, groups, lessons, attendance, payments, penalties, threads, messages, notifications, homework, submissions, grades, auditLog, institutions, isLoading, loadError, reload, addStudent, updateStudent, archiveStudent, deleteStudent, syncParentChild, assignParent, updateStudentPasswords, addGroup, updateGroup, deleteGroup, addStudentToGroup, removeStudentFromGroup, setLessonStatus, rescheduleLesson, addCourse, updateCourse, deleteCourse, setAttendance, getAttendanceFor, addPayment, addPenalty, updatePenalty, deletePenalty, loadThreadMessages, startDirectChat, sendMessage, receiveChatMessage, markThreadRead, updateParentPassword, markNotificationRead, markAllNotificationsRead, addHomework, updateSubmission, gradeSubmission, addGrade, updateGrade, deleteGrade, addInstitution, updateInstitution, deleteInstitution, addBranch, updateBranch, deleteBranch, addRoom, updateRoom, deleteRoom, addStaff, updateStaff, deleteStaff],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

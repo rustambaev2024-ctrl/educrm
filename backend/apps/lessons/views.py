@@ -144,6 +144,12 @@ class LessonViewSet(
                     attendance.save()
                 saved.append(attendance)
 
+            if lesson.status not in ("cancelled", "rescheduled"):
+                if any(r.status in ("present", "late", "absent") for r in saved):
+                    if lesson.status != "conducted":
+                        lesson.status = "conducted"
+                        lesson.save(update_fields=["status"])
+
         output = AttendanceSerializer(saved, many=True)
         return Response(output.data, status=status.HTTP_200_OK)
 

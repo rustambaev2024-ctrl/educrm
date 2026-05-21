@@ -229,6 +229,71 @@ class StudentViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @action(detail=True, methods=["post"], url_path="assign-parent")
+    @transaction.atomic
+    def assign_parent(self, request, pk=None):
+        student = self.get_object()
+        data = request.data
+        parent_id = data.get("parent_id")
+        parent_name = data.get("parent_name")
+        parent_phone = data.get("parent_phone")
+        parent_password = data.get("parent_password")
+
+        from apps.students.models import Parent, ParentStudentLink
+        from apps.accounts.models import User
+        import secrets
+
+        parent = None
+
+        if parent_id:
+            try:
+                parent = Parent.objects.get(id=parent_id)
+            except Parent.DoesNotExist:
+                return Response({"detail": "Parent not found."}, status=status.HTTP_404_NOT_FOUND)
+        elif parent_phone:
+            from apps.accounts.managers import UserManager
+            normalized_phone = UserManager.normalize_phone(parent_phone)
+            
+            # Check if user already exists
+            user = User.objects.filter(phone=normalized_phone).first()
+            if user:
+                if user.role != "parent":
+                    return Response(
+                        {"detail": f"User with phone {parent_phone} exists but has role '{user.role}' instead of parent."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                parent, _ = Parent.objects.get_or_create(user=user)
+            else:
+                if not parent_name:
+                    return Response({"detail": "parent_name is required to create a new parent."}, status=status.HTTP_400_BAD_REQUEST)
+                
+                pwd = parent_password or secrets.token_urlsafe(8)
+                user = User.objects.create_user(
+                    phone=normalized_phone,
+                    full_name=parent_name,
+                    role="parent",
+                    password=pwd
+                )
+                parent = Parent.objects.create(user=user)
+        else:
+            return Response({"detail": "Either parent_id or parent_phone is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Clear existing parent links for this student (ensure single parent mapping for this student)
+        ParentStudentLink.objects.filter(student=student).delete()
+        
+        link, created = ParentStudentLink.objects.get_or_create(parent=parent, student=student)
+        
+        return Response({
+            "status": "success",
+            "parent": {
+                "id": str(parent.id),
+                "full_name": parent.user.full_name,
+                "phone": parent.user.phone,
+            },
+            "created": created
+        }, status=status.HTTP_200_OK)
+
+
 
 class ParentViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Parent.objects.select_related("user").prefetch_related("children").all()

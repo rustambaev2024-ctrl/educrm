@@ -412,7 +412,7 @@ function StudentDetailSheet({
   onDelete: (id: string, deleteParent: boolean) => void;
 }) {
   const { t, lang } = useI18n();
-  const { groups, parents, payments, updateStudentPasswords, reload } = useData();
+  const { groups, parents, payments, updateStudentPasswords, assignParent, reload } = useData();
   const open = student !== null;
   const [newStudentPassword, setNewStudentPassword] = useState("");
   const [newParentPassword, setNewParentPassword] = useState("");
@@ -436,6 +436,63 @@ function StudentDetailSheet({
         .catch((e) => console.error("Failed to load transfers", e));
     }
   }, [student]);
+
+  const genPin = () => {
+    const timePart = String(Date.now()).slice(-3);
+    const randPart = String(Math.floor(100 + Math.random() * 900));
+    return timePart + randPart;
+  };
+
+  const [assignParentOpen, setAssignParentOpen] = useState(false);
+  const [assignType, setAssignType] = useState<"existing" | "new">("existing");
+  const [selectedParentId, setSelectedParentId] = useState("");
+  const [newParentName, setNewParentName] = useState("");
+  const [newParentPhone, setNewParentPhone] = useState("");
+  const [assignParentPassword, setAssignParentPassword] = useState(genPin());
+  const [parentSearch, setParentSearch] = useState("");
+
+  const filteredParents = useMemo(() => {
+    const q = parentSearch.trim().toLowerCase();
+    if (!q) return parents;
+    return parents.filter(
+      (p) =>
+        p.fullName.toLowerCase().includes(q) ||
+        p.phone.toLowerCase().includes(q)
+    );
+  }, [parents, parentSearch]);
+
+  const handleAssignParent = async () => {
+    if (!student) return;
+    try {
+      if (assignType === "existing") {
+        if (!selectedParentId) {
+          toast.error("Ota-onani tanlang");
+          return;
+        }
+        await assignParent(student.id, { parentId: selectedParentId });
+      } else {
+        if (!newParentName.trim() || !newParentPhone.trim()) {
+          toast.error("Barcha maydonlarni to'ldiring");
+          return;
+        }
+        await assignParent(student.id, {
+          parentName: newParentName.trim(),
+          parentPhone: newParentPhone.trim(),
+          parentPassword: assignParentPassword.trim() || undefined,
+        });
+      }
+      toast.success("Ota-ona muvaffaqiyatli biriktirildi");
+      setAssignParentOpen(false);
+      // Reset form
+      setSelectedParentId("");
+      setNewParentName("");
+      setNewParentPhone("");
+      setAssignParentPassword(genPin());
+    } catch (err: unknown) {
+      const msg = (err as { body?: { detail?: string } })?.body?.detail;
+      toast.error(msg ?? "Xatolik yuz berdi");
+    }
+  };
 
   async function handleTransfer() {
     if (!student || !transferForm.fromGroupId || !transferForm.toGroupId) return;
@@ -559,12 +616,26 @@ function StudentDetailSheet({
                   </div>
                 </div>
               </Card>
-              {parent && (
+              {parent ? (
                 <Card className="p-4">
-                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {t("students.section.parent")}
+                  <div className="flex items-center justify-between border-b border-border/50 pb-2 mb-3">
+                    <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      {t("students.section.parent")}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-primary hover:text-primary/80 px-2"
+                      onClick={() => {
+                        setAssignType("existing");
+                        setSelectedParentId(parent.id);
+                        setAssignParentOpen(true);
+                      }}
+                    >
+                      O'zgartirish
+                    </Button>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
                     <Field label={t("students.field.parentName")} value={parent.fullName} />
                     <Field label={t("students.field.parentPhone")} value={parent.phone} />
                   </div>
@@ -575,6 +646,25 @@ function StudentDetailSheet({
                       <Button variant="secondary" onClick={handleUpdateParentPassword}>Saqlash</Button>
                     </div>
                   </div>
+                </Card>
+              ) : (
+                <Card className="p-6 border-dashed border-2 flex flex-col items-center justify-center text-center space-y-3">
+                  <div className="text-sm font-medium text-muted-foreground">Ota-ona biriktirilmagan</div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+                    onClick={() => {
+                      setAssignType("existing");
+                      setSelectedParentId("");
+                      setNewParentName("");
+                      setNewParentPhone("");
+                      setAssignParentPassword(genPin());
+                      setAssignParentOpen(true);
+                    }}
+                  >
+                    Ota-ona biriktirish
+                  </Button>
                 </Card>
               )}
             </TabsContent>
@@ -816,6 +906,105 @@ function StudentDetailSheet({
             </Button>
             <Button onClick={handleTransfer}>
               Ko'chirish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Parent Dialog */}
+      <Dialog open={assignParentOpen} onOpenChange={setAssignParentOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Ota-ona biriktirish</DialogTitle>
+            <DialogDescription>
+              Ushbu o'quvchiga mavjud ota-onani biriktirishingiz yoki yangi ota-ona yaratishingiz mumkin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Tabs value={assignType} onValueChange={(v) => setAssignType(v as "existing" | "new")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="existing">Mavjud ota-ona</TabsTrigger>
+                <TabsTrigger value="new">Yangi ota-ona</TabsTrigger>
+              </TabsList>
+              <TabsContent value="existing" className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label>Ota-onani qidirish</Label>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={parentSearch}
+                      onChange={(e) => setParentSearch(e.target.value)}
+                      placeholder="Ism yoki telefon raqami..."
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                <div className="max-h-48 overflow-y-auto border rounded-lg divide-y divide-border bg-background">
+                  {filteredParents.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-muted-foreground">Ota-onalar topilmadi</div>
+                  ) : (
+                    filteredParents.slice(0, 10).map((p) => (
+                      <div
+                        key={p.id}
+                        onClick={() => setSelectedParentId(p.id)}
+                        className={`flex items-center justify-between p-2.5 text-sm cursor-pointer transition-colors ${
+                          selectedParentId === p.id
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "hover:bg-accent/40"
+                        }`}
+                      >
+                        <div>
+                          <div>{p.fullName}</div>
+                          <div className="text-[11px] text-muted-foreground">{p.phone}</div>
+                        </div>
+                        {selectedParentId === p.id && <span className="text-xs text-primary font-semibold">Tanlandi</span>}
+                      </div>
+                    ))
+                  )}
+                  {filteredParents.length > 10 && (
+                    <div className="p-2 text-center text-[10px] text-muted-foreground">
+                      Yana {filteredParents.length - 10} ta ota-ona bor. Qidiruv orqali aniqlashtiring.
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              <TabsContent value="new" className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newParentName">Ota-onaning F.I.SH. *</Label>
+                  <Input
+                    id="newParentName"
+                    placeholder="F.I.SH."
+                    value={newParentName}
+                    onChange={(e) => setNewParentName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newParentPhone">Telefon raqami *</Label>
+                  <PhoneInput
+                    id="newParentPhone"
+                    value={newParentPhone}
+                    onChange={(e) => setNewParentPhone(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="assignParentPassword">Parol</Label>
+                  <PasswordInput
+                    id="assignParentPassword"
+                    value={assignParentPassword}
+                    onChange={(e) => setAssignParentPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Avtomatik yaratilgan parol. O'zgartirishingiz mumkin.</p>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignParentOpen(false)}>
+              Bekor qilish
+            </Button>
+            <Button onClick={handleAssignParent}>
+              Saqlash
             </Button>
           </DialogFooter>
         </DialogContent>

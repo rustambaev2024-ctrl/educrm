@@ -91,6 +91,36 @@ function TeachersTab({ labels }: { labels: ReturnType<typeof pageLabels> }) {
   const [lessonsHistory, setLessonsHistory] = useState<any[]>([]);
   const [loadingLessons, setLoadingLessons] = useState(false);
 
+  const [quickPenaltyTeacher, setQuickPenaltyTeacher] = useState<any>(null);
+  const [quickPenaltyForm, setQuickPenaltyForm] = useState({ amount: "", reason: "", comment: "" });
+
+  const openQuickPenalty = (teacher: any) => {
+    setQuickPenaltyTeacher(teacher);
+    setQuickPenaltyForm({ amount: "", reason: "", comment: "" });
+  };
+
+  const handleQuickPenaltySubmit = async () => {
+    if (!quickPenaltyForm.amount || !quickPenaltyForm.reason.trim()) {
+      toast.error(labels.required);
+      return;
+    }
+    try {
+      await penaltyApi.create({
+        staff: quickPenaltyTeacher.teacher_id,
+        branch: quickPenaltyTeacher.branch_id || null,
+        amount: Number(quickPenaltyForm.amount),
+        reason: quickPenaltyForm.reason.trim(),
+        penalty_date: new Date().toISOString().slice(0, 10),
+        status: "active",
+        comment: quickPenaltyForm.comment.trim() || undefined,
+      });
+      toast.success(labels.created);
+      setQuickPenaltyTeacher(null);
+    } catch (err) {
+      toast.error("Xatolik yuz berdi");
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
@@ -183,11 +213,22 @@ function TeachersTab({ labels }: { labels: ReturnType<typeof pageLabels> }) {
                 <TableHead>{labels.attendance}</TableHead>
                 <TableHead>{labels.lates}</TableHead>
                 <TableHead className="text-right">{labels.students}</TableHead>
+                <TableHead className="text-right w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {teachersData.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">{labels.empty}</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={6} className="py-16 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <CircleMinus className="h-10 w-10 text-muted-foreground/30" />
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">{labels.emptyStateLine1}</p>
+                        <p className="text-xs">{labels.emptyStateLine2}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : teachersData.map((teacher) => (
                 <TableRow key={teacher.teacher_id} className="cursor-pointer hover:bg-accent/40" onClick={() => openTeacherDetail(teacher)}>
                   <TableCell>
@@ -203,9 +244,16 @@ function TeachersTab({ labels }: { labels: ReturnType<typeof pageLabels> }) {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1 w-32">
-                      <div className="flex justify-between text-xs">
+                      <div className="flex justify-between text-xs items-center">
                         <span className="text-muted-foreground">{teacher.conducted_lessons} / {teacher.total_lessons}</span>
-                        <span className="font-medium">{teacher.conduct_rate}%</span>
+                        <span className="font-medium flex items-center">
+                          {teacher.conduct_rate}%
+                          {teacher.conduct_rate === 0 && teacher.total_lessons > 0 ? (
+                            <Badge variant="destructive" className="ml-2 h-5 px-1.5 rounded text-[10px]">⚠️</Badge>
+                          ) : teacher.conduct_rate < 50 ? (
+                            <Badge variant="outline" className="ml-2 h-5 px-1.5 rounded text-[10px] border-amber-500 text-amber-500">⚠️</Badge>
+                          ) : null}
+                        </span>
                       </div>
                       <Progress value={teacher.conduct_rate} className="h-1.5" indicatorColor={teacher.conduct_rate < 80 ? "bg-amber-500" : "bg-emerald-500"} />
                     </div>
@@ -221,11 +269,15 @@ function TeachersTab({ labels }: { labels: ReturnType<typeof pageLabels> }) {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <div className="flex items-center justify-center rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/20 dark:text-amber-400">
-                        {teacher.late_count}
-                      </div>
+                      {teacher.late_count === 0 ? (
+                        <span className="text-muted-foreground ml-3">—</span>
+                      ) : (
+                        <div className="flex items-center justify-center rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive">
+                          {teacher.late_count}
+                        </div>
+                      )}
                       {teacher.late_count > 0 && (
-                        <div className="flex items-center text-xs text-muted-foreground">
+                        <div className="flex items-center text-xs text-destructive/80">
                           <Clock className="mr-1 h-3 w-3" />
                           {~~teacher.avg_late_minutes} min
                         </div>
@@ -238,12 +290,45 @@ function TeachersTab({ labels }: { labels: ReturnType<typeof pageLabels> }) {
                       {teacher.students_count}
                     </div>
                   </TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" onClick={() => openQuickPenalty(teacher)} className="h-8">
+                      <Ban className="mr-1 h-3.5 w-3.5 text-destructive" />
+                      <span className="text-xs text-muted-foreground">{labels.addPenalty}</span>
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       </Card>
+
+      <Dialog open={!!quickPenaltyTeacher} onOpenChange={(open) => !open && setQuickPenaltyTeacher(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{labels.addTitle}</DialogTitle>
+            <DialogDescription>{quickPenaltyTeacher?.teacher_name}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-1.5">
+              <Label>{labels.amount}</Label>
+              <Input type="number" min={0} step={1000} value={quickPenaltyForm.amount} onChange={(e) => setQuickPenaltyForm({ ...quickPenaltyForm, amount: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{labels.reason}</Label>
+              <Input value={quickPenaltyForm.reason} onChange={(e) => setQuickPenaltyForm({ ...quickPenaltyForm, reason: e.target.value })} placeholder={labels.reasonPlaceholder} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{labels.comment}</Label>
+              <Textarea value={quickPenaltyForm.comment} onChange={(e) => setQuickPenaltyForm({ ...quickPenaltyForm, comment: e.target.value })} placeholder={labels.commentPlaceholder} rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickPenaltyTeacher(null)}>{labels.cancel}</Button>
+            <Button onClick={handleQuickPenaltySubmit}>{labels.create}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Sheet open={!!selectedTeacherId} onOpenChange={(open) => !open && setSelectedTeacherId(null)}>
         <SheetContent className="w-full overflow-hidden sm:max-w-xl flex flex-col p-0">
@@ -789,6 +874,9 @@ function pageLabels(lang: "uz" | "ru") {
       delete: "Удалить",
       required: "Выберите сотрудника, сумму и причину",
       created: "Штраф сохранён",
+      addPenalty: "Назначить штраф",
+      emptyStateLine1: "Нет данных за этот месяц",
+      emptyStateLine2: "Попробуйте выбрать другой месяц или филиал",
       saved: "Штраф обновлён",
       deleted: "Штраф удалён",
       status: {
@@ -840,6 +928,9 @@ function pageLabels(lang: "uz" | "ru") {
     delete: "O'chirish",
     required: "Xodim, summa va sababni kiriting",
     created: "Jarima saqlandi",
+    addPenalty: "Jarima berish",
+    emptyStateLine1: "Bu oy uchun ma'lumot yo'q",
+    emptyStateLine2: "Boshqa oy yoki filialni tanlab ko'ring",
     saved: "Jarima yangilandi",
     deleted: "Jarima o'chirildi",
     status: {

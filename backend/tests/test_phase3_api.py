@@ -90,6 +90,9 @@ def test_attendance_bulk_creates_charge_payment_and_updates_status(api_client):
     assert student.wallet_balance < 0
     assert student.status == "debtor"
 
+    lesson.refresh_from_db()
+    assert lesson.status == "conducted"
+
 
 @pytest.mark.django_db
 def test_payments_endpoints_and_debtors_list(api_client):
