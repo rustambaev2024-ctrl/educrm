@@ -4,7 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Avg
 from django.db.models.functions import Coalesce, TruncDate
 from django.db.models import F
 from django.utils import timezone
@@ -221,12 +221,17 @@ def get_teachers_report(user, filters: ReportFilters) -> dict:
 
     rows = []
     for teacher in teachers_qs:
+        # Attendance for the teacher (pre-filtered by branch/date)
         teacher_att = attendance_qs.filter(lesson__teacher=teacher)
         total_att = teacher_att.count()
         present_att = teacher_att.filter(status__in=ATTENDANCE_PRESENT_STATUSES).count()
+
+        # Revenue for teacher's groups
         teacher_revenue = payments_qs.filter(group__teacher=teacher).aggregate(
             total=Coalesce(Sum("amount"), Decimal("0.00"))
         )["total"]
+
+        # Active students taught by this teacher
         students_count = (
             GroupMembership.objects.filter(
                 group__teacher=teacher,
@@ -237,6 +242,31 @@ def get_teachers_report(user, filters: ReportFilters) -> dict:
             .distinct()
             .count()
         )
+
+        # Lessons and lesson-level stats for the period
+        lessons_qs = Lesson.objects.filter(
+            group__branch_id__in=branch_ids,
+            teacher=teacher,
+        )
+        lessons_qs = _with_date_range(lessons_qs, "datetime", filters.date_from, filters.date_to)
+        total_lessons = lessons_qs.count()
+        conducted_lessons = lessons_qs.filter(status="conducted").count()
+        cancelled_lessons = lessons_qs.filter(status="cancelled").count()
+
+        # Attendance breakdown
+        present_count = teacher_att.filter(status__in=["present", "late"]).count()
+        absent_count = teacher_att.filter(status="absent").count()
+        late_count = teacher_att.filter(status="late").count()
+        avg_late = (
+            teacher_att
+            .filter(status="late", late_minutes__isnull=False)
+            .aggregate(avg=Avg("late_minutes"))
+            ["avg"]
+            or 0
+        )
+
+        attendance_rate_value = float(_percentage(present_att, total_att)) if total_att else 0.0
+
         rows.append(
             {
                 "teacher_id": str(teacher.id),
@@ -244,8 +274,18 @@ def get_teachers_report(user, filters: ReportFilters) -> dict:
                 "branch_id": str(teacher.branch_id) if teacher.branch_id else None,
                 "branch_name": teacher.branch.name if teacher.branch else None,
                 "students_count": students_count,
-                "attendance_rate": str(_percentage(present_att, total_att)),
+                # keep revenue as string to preserve existing formatting
                 "revenue_total": str(_quantize(teacher_revenue)),
+                # detailed fields for Nazorat page
+                "attendance_rate": round(attendance_rate_value, 1),
+                "conducted_lessons": conducted_lessons,
+                "cancelled_lessons": cancelled_lessons,
+                "total_lessons": total_lessons,
+                "present_count": present_count,
+                "absent_count": absent_count,
+                "late_count": late_count,
+                "avg_late_minutes": round(float(avg_late), 1),
+                "conduct_rate": round((conducted_lessons / total_lessons * 100) if total_lessons else 0.0, 1),
             }
         )
 

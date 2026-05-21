@@ -364,6 +364,21 @@ export const groupApi = {
 export const studentApi = {
   ...crudApi("/students/"),
   createWithFiles: (data: FormData) => requestForm("/students/", data),
+  assignParent: (studentId: string, parentData: {
+    parentId?: string;
+    parentName?: string;
+    parentPhone?: string;
+    parentPassword?: string;
+  }) =>
+    requestJson<unknown>(`/students/${studentId}/assign-parent/`, {
+      method: "POST",
+      body: JSON.stringify({
+        parent_id: parentData.parentId,
+        parent_name: parentData.parentName,
+        parent_phone: parentData.parentPhone,
+        parent_password: parentData.parentPassword,
+      }),
+    }),
   me: () => requestJson("/student/me/"),
   mySchedule: () => requestJson("/student/me/schedule/"),
   myAttendance: () => requestJson("/student/me/attendance/"),
@@ -477,6 +492,10 @@ export const analyticsApi = {
     requestJson(`/analytics/attendance/${params ? `?${new URLSearchParams(params)}` : ""}`),
   revenue: (params?: Record<string, string>) =>
     requestJson(`/analytics/revenue/${params ? `?${new URLSearchParams(params)}` : ""}`),
+  teachers: (params?: Record<string, string>) =>
+    requestJson(`/analytics/teachers/${params ? `?${new URLSearchParams(params)}` : ""}`),
+  teacherLessons: (params: { teacher_id: string; date_from?: string; date_to?: string }) =>
+    requestJson(`/analytics/teacher-lessons/?${new URLSearchParams(params as Record<string, string>)}`),
   teacherSalary: (params?: Record<string, string>) =>
     requestJson(`/salary/me/${params ? `?${new URLSearchParams(params)}` : ""}`),
 };

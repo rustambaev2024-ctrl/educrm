@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
+from apps.lessons.models import Lesson, Attendance
 
 from .exporters import export_excel, export_pdf
 from .serializers import (
@@ -59,6 +60,50 @@ class AnalyticsTeachersView(AnalyticsBaseView):
         return Response(get_teachers_report(request.user, self.get_filters(request)))
 
 
+class TeacherLessonsView(APIView):
+    """Детальные уроки учителя за период — для боковой панели."""
+    permission_classes = [IsBranchAdmin]
+
+    @extend_schema(parameters=[AnalyticsFilterSerializer], responses=OpenApiTypes.OBJECT)
+    def get(self, request):
+        teacher_id = request.query_params.get("teacher_id")
+        if not teacher_id:
+            return Response({"detail": "teacher_id required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = AnalyticsFilterSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        filters = normalize_filters(serializer.validated_data)
+
+        lessons = Lesson.objects.filter(teacher_id=teacher_id).select_related("group", "room").order_by("-datetime")
+        if filters.date_from:
+            lessons = lessons.filter(datetime__date__gte=filters.date_from)
+        if filters.date_to:
+            lessons = lessons.filter(datetime__date__lte=filters.date_to)
+
+        lessons = lessons[:50]
+
+        result = []
+        for lesson in lessons:
+            attendance_qs = Attendance.objects.filter(lesson=lesson)
+            present = attendance_qs.filter(status__in=["present", "late"]).count()
+            absent = attendance_qs.filter(status="absent").count()
+            total = attendance_qs.count()
+            result.append({
+                "id": str(lesson.id),
+                "datetime": lesson.datetime.isoformat(),
+                "group_name": lesson.group.name if lesson.group else "",
+                "room": lesson.room.name if lesson.room else "",
+                "status": lesson.status,
+                "topic": lesson.topic or "",
+                "present_count": present,
+                "absent_count": absent,
+                "total_students": total,
+                "attendance_rate": round((present / total * 100) if total else 0, 1),
+            })
+
+        return Response(result)
+
+
 class AnalyticsRoomsView(AnalyticsBaseView):
     @extend_schema(parameters=[AnalyticsFilterSerializer], responses=OpenApiTypes.OBJECT)
     def get(self, request):
@@ -101,15 +146,15 @@ class TeacherSalaryView(APIView):
     def get(self, request):
         if request.user.role != "teacher":
             return Response({"detail": "Not a teacher"}, status=status.HTTP_403_FORBIDDEN)
-            
+
         serializer = AnalyticsFilterSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         filters = normalize_filters(serializer.validated_data)
-        
+
         # The teacher's ID is the ID of their Staff profile
         if not hasattr(request.user, "staff_profile"):
             return Response({"detail": "Staff profile not found"}, status=status.HTTP_404_NOT_FOUND)
-            
+
         report = calculate_teacher_salary(
             teacher_id=request.user.staff_profile.id,
             period_start=filters.date_from,

@@ -23,7 +23,7 @@ import type { StaffPenalty, StaffPenaltyStatus } from "@/lib/data/types";
 import { formatDate, formatMoney } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
-export const Route = createFileRoute("/director/penalties")({ component: NazoratPage });
+export const Route = createFileRoute("/admin/control")({ component: NazoratPage });
 
 type FormState = {
   staffId: string;
@@ -848,3 +848,4 @@ function pageLabels(lang: "uz" | "ru") {
     },
   };
 }
+
