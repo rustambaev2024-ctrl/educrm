@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2 } from "lucide-react";
+import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { PasswordInput } from "@/components/edu/password-input";
@@ -696,8 +696,7 @@ function StudentDetailSheet({
 
             <TabsContent value="finance" className="space-y-2 pt-4">
               {(() => {
-                const stuPayments = studentPayments
-                  .filter((p) => p.direction === "in")
+                const stuPayments = [...studentPayments]
                   .sort((a, b) => b.date.localeCompare(a.date));
                 if (stuPayments.length === 0) {
                   return (
@@ -708,15 +707,33 @@ function StudentDetailSheet({
                 }
                 return stuPayments.map((p) => {
                   const grp = p.groupId ? groups.find((g) => g.id === p.groupId) : undefined;
+                  const isPositive = p.type === "top_up" || p.type === "discount";
+                  const Icon = isPositive ? Plus : Minus;
+                  const colorClass = isPositive ? "text-success" : "text-destructive";
+                  const bgClass = isPositive ? "bg-success/10" : "bg-destructive/10";
+                  const sign = isPositive ? "+" : "-";
+
+                  // Translations fallback if they don't exist in i18n
+                  const typeLabels: Record<string, string> = {
+                    top_up: "To'lov",
+                    charge: "Dars uchun yechib olinish",
+                    discount: "Chegirma",
+                    refund: "Qaytarish",
+                    expense: "Xarajat",
+                  };
+                  const typeLabel = typeLabels[p.type] || p.type;
+
                   return (
                     <Card key={p.id} className="flex items-center gap-3 p-3">
-                      <div className="flex size-9 items-center justify-center rounded-lg bg-success/10 text-success">
-                        <Plus className="size-4" />
+                      <div className={`flex size-9 items-center justify-center rounded-lg ${bgClass} ${colorClass}`}>
+                        <Icon className="size-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-success">+{formatMoney(p.amount, lang)}</div>
+                        <div className={`text-sm font-medium ${colorClass}`}>
+                          {sign}{formatMoney(p.amount, lang)}
+                        </div>
                         <div className="text-[11px] text-muted-foreground">
-                          {formatDate(p.date, lang)} · {t(`finance.method.${p.method}`)}
+                          {formatDate(p.date, lang)} · {t(`finance.method.${p.method}`)} · {typeLabel}
                           {grp ? ` · ${grp.name}` : ""}
                         </div>
                         {p.comment && <div className="text-[11px] text-muted-foreground truncate">{p.comment}</div>}
