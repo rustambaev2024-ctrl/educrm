@@ -48,7 +48,8 @@ import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
 import { formatDate, formatMoney } from "@/lib/format";
 import type { Student, StudentStatus } from "@/lib/data/types";
-import { transferApi } from "@/lib/api";
+import { transferApi, paymentApi } from "@/lib/api";
+import { mapPayments } from "@/lib/data/mappers";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin/students")({ component: StudentsPage });
@@ -428,12 +429,17 @@ function StudentDetailSheet({
     comment: "",
   });
   const [transfers, setTransfers] = useState<any[]>([]);
+  const [studentPayments, setStudentPayments] = useState<any[]>([]);
 
   useEffect(() => {
     if (student) {
       transferApi.history({ student_id: student.id })
         .then((data) => setTransfers(Array.isArray(data) ? data : []))
         .catch((e) => console.error("Failed to load transfers", e));
+
+      paymentApi.list({ student_id: student.id })
+        .then((data) => setStudentPayments(mapPayments(data as any)))
+        .catch((e) => console.error("Failed to load student payments", e));
     }
   }, [student]);
 
@@ -690,8 +696,8 @@ function StudentDetailSheet({
 
             <TabsContent value="finance" className="space-y-2 pt-4">
               {(() => {
-                const stuPayments = payments
-                  .filter((p) => p.studentId === student.id && p.direction === "in")
+                const stuPayments = studentPayments
+                  .filter((p) => p.direction === "in")
                   .sort((a, b) => b.date.localeCompare(a.date));
                 if (stuPayments.length === 0) {
                   return (
