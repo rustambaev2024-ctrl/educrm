@@ -7,12 +7,13 @@ from apps.accounts.permissions import IsBranchAdmin, IsTeacher
 from apps.courses.models import GroupMembership
 from apps.notifications.services import NotificationService
 
-from .models import Attendance, Lesson
+from .models import Attendance, Lesson, TeacherAttendance
 from .serializers import (
     AttendanceSerializer,
     BulkAttendanceSerializer,
     LessonSerializer,
     SubstituteTeacherSerializer,
+    TeacherAttendanceSerializer,
 )
 
 
@@ -152,6 +153,43 @@ class LessonViewSet(
 
         output = AttendanceSerializer(saved, many=True)
         return Response(output.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get", "post"], url_path="teacher-checkin")
+    def teacher_checkin(self, request, pk=None):
+        lesson = self.get_object()
+        if not lesson.teacher:
+            return Response(
+                {"detail": "No teacher is assigned to this lesson"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if request.method == "GET":
+            try:
+                attendance = TeacherAttendance.objects.get(lesson=lesson, teacher=lesson.teacher)
+                serializer = TeacherAttendanceSerializer(attendance)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except TeacherAttendance.DoesNotExist:
+                return Response(None, status=status.HTTP_200_OK)
+
+        # POST method
+        data = request.data
+        status_val = data.get("status", "present")
+        late_minutes = data.get("late_minutes")
+        if status_val != "late":
+            late_minutes = None
+
+        attendance, created = TeacherAttendance.objects.update_or_create(
+            lesson=lesson,
+            teacher=lesson.teacher,
+            defaults={
+                "check_in_time": data.get("check_in_time"),
+                "status": status_val,
+                "late_minutes": late_minutes,
+                "note": data.get("note", ""),
+            }
+        )
+        serializer = TeacherAttendanceSerializer(attendance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class AttendanceViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):

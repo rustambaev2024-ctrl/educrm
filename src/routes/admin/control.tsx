@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { penaltyApi, staffApi, branchApi, analyticsApi } from "@/lib/api";
+import { penaltyApi, staffApi, branchApi, analyticsApi, lessonApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { StaffPenalty, StaffPenaltyStatus } from "@/lib/data/types";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -347,27 +347,7 @@ function TeachersTab({ labels }: { labels: ReturnType<typeof pageLabels> }) {
             ) : (
                <div className="space-y-4">
                  {lessonsHistory.map((lesson) => (
-                   <Card key={lesson.id} className="p-4 shadow-sm">
-                     <div className="flex justify-between items-start mb-2">
-                       <div>
-                         <div className="font-semibold">{lesson.group_name || "-"}</div>
-                         <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                           <CalendarDays className="h-3 w-3" />
-                           {formatDate(lesson.datetime, lang)}
-                         </div>
-                       </div>
-                       <Badge variant={lesson.status === "conducted" ? "default" : "destructive"}>
-                         {lesson.status === "conducted" ? labels.status.active : labels.status.cancelled}
-                       </Badge>
-                     </div>
-                     <div className="text-sm font-medium mt-3 mb-1">{lesson.topic || "Mavzu yo'q"}</div>
-                     <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                       <span className="flex items-center gap-1.5"><UserRound className="h-3.5 w-3.5" /> {lesson.total_students} {labels.students}</span>
-                       <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                         {lesson.present_count} keldi
-                       </span>
-                     </div>
-                   </Card>
+                   <LessonCard key={lesson.id} lesson={lesson} lang={lang} labels={labels} />
                  ))}
                </div>
             )}
@@ -830,6 +810,202 @@ function StatusBadge({ status, labels }: { status: StaffPenaltyStatus; labels: R
   );
 }
 
+function LessonCard({ lesson, lang, labels }: { lesson: any; lang: "uz" | "ru"; labels: ReturnType<typeof pageLabels> }) {
+  const [checkin, setCheckin] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // Form state
+  const [checkInTime, setCheckInTime] = useState("");
+  const [statusVal, setStatusVal] = useState<"present" | "late">("present");
+  const [lateMinutes, setLateMinutes] = useState("");
+  const [note, setNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchCheckin = async () => {
+    setLoading(true);
+    try {
+      const data = await lessonApi.teacherCheckin.get(lesson.id);
+      setCheckin(data);
+      if (data) {
+        setCheckInTime(data.check_in_time ? data.check_in_time.slice(0, 5) : "");
+        setStatusVal(data.status);
+        setLateMinutes(data.late_minutes ? String(data.late_minutes) : "");
+        setNote(data.note || "");
+      } else {
+        // Set default time to current time
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, "0");
+        const mm = String(now.getMinutes()).padStart(2, "0");
+        setCheckInTime(`${hh}:${mm}`);
+        setStatusVal("present");
+        setLateMinutes("");
+        setNote("");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCheckin();
+  }, [lesson.id]);
+
+  const handleSave = async () => {
+    setSubmitting(true);
+    try {
+      const payload: any = {
+        status: statusVal,
+        note: note.trim() || undefined,
+      };
+      if (checkInTime) {
+        payload.check_in_time = `${checkInTime}:00`;
+      }
+      if (statusVal === "late") {
+        payload.late_minutes = lateMinutes ? Number(lateMinutes) : 0;
+      }
+      const data = await lessonApi.teacherCheckin.set(lesson.id, payload);
+      setCheckin(data);
+      setIsFormOpen(false);
+      toast.success(lang === "ru" ? "Статус прихода сохранен" : "Kelganlik holati saqlandi");
+    } catch (err) {
+      console.error(err);
+      toast.error(lang === "ru" ? "Ошибка сохранения прихода" : "Saqlashda xatolik yuz berdi");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "conducted":
+        return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-none text-[11px] px-2 py-0.5">{labels.status.conducted || "O'tildi"}</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive" className="text-[11px] px-2 py-0.5">{labels.status.cancelled || "Bekor qilindi"}</Badge>;
+      case "rescheduled":
+        return <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none text-[11px] px-2 py-0.5">{labels.status.rescheduled || "Ko'chirildi"}</Badge>;
+      case "scheduled":
+      default:
+        return <Badge className="bg-blue-500 hover:bg-blue-600 text-white border-none text-[11px] px-2 py-0.5">{labels.status.scheduled || "Rejalashtirilgan"}</Badge>;
+    }
+  };
+
+  // Student Attendance statistics
+  const total = lesson.total_students || 0;
+  const present = lesson.present_count || 0;
+  const attendancePercent = total > 0 ? Math.round((present / total) * 100) : 0;
+
+  return (
+    <Card className="p-4 shadow-sm border border-border/80 hover:shadow-md transition-all duration-200">
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <div className="font-semibold text-sm tracking-tight text-foreground">{lesson.group_name || "-"}</div>
+          <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/80" />
+            {formatDate(lesson.datetime, lang)}
+          </div>
+        </div>
+        {getStatusBadge(lesson.status)}
+      </div>
+
+      <div className="text-sm font-medium mt-3 mb-2 text-foreground/90">{lesson.topic || (lang === "ru" ? "Тема не указана" : "Mavzu yo'q")}</div>
+      
+      {/* Student Attendance statistics */}
+      <div className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-border/40">
+        <div className="flex justify-between text-[11px]">
+          <span className="text-muted-foreground flex items-center gap-1"><UserRound className="h-3.5 w-3.5" /> {labels.students}: {present} / {total}</span>
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">{attendancePercent}%</span>
+        </div>
+        <Progress value={attendancePercent} className="h-1" indicatorColor="bg-emerald-500" />
+      </div>
+
+      {/* Teacher arrival check-in section */}
+      <div className="mt-4 pt-3 border-t border-border/50 bg-accent/15 -mx-4 -mb-4 p-4 rounded-b-lg">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+            <UserCheck className="h-3.5 w-3.5 text-primary" />
+            {labels.teacherArrival || "O'qituvchi keldi"}
+          </span>
+          {checkin && !isFormOpen && (
+            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-accent" onClick={() => setIsFormOpen(true)}>
+              <Edit3 className="h-3 w-3 text-muted-foreground" />
+            </Button>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+          </div>
+        ) : isFormOpen ? (
+          <div className="space-y-3 mt-2 bg-background p-3 rounded-lg border border-border/80 shadow-inner">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">{labels.time || "Vaqt"}</Label>
+                <Input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} className="h-8 text-xs" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">{labels.statusLabel || "Status"}</Label>
+                <Select value={statusVal} onValueChange={(val: any) => setStatusVal(val)}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="present" className="text-xs">{labels.onTime || "O'z vaqtida"}</SelectItem>
+                    <SelectItem value="late" className="text-xs">{labels.late || "Kech qoldi"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {statusVal === "late" && (
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">{labels.lateMinutes || "Kechikish daqiqasi"}</Label>
+                <Input type="number" min={0} value={lateMinutes} onChange={(e) => setLateMinutes(e.target.value)} placeholder="10" className="h-8 text-xs" />
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">{labels.note || "Izoh"}</Label>
+              <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={labels.note || "Izoh"} className="h-8 text-xs" />
+            </div>
+
+            <div className="flex justify-end gap-1.5 pt-1">
+              <Button variant="ghost" size="sm" onClick={() => setIsFormOpen(false)} className="h-7 text-xs px-2.5">
+                {labels.cancel || "Bekor qilish"}
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={submitting} className="h-7 text-xs px-2.5">
+                {submitting && <span className="animate-spin mr-1 h-3.5 w-3.5 border-b-2 border-white rounded-full"></span>}
+                {labels.save || "Saqlash"}
+              </Button>
+            </div>
+          </div>
+        ) : checkin ? (
+          <div className="flex flex-col gap-1.5 mt-1 bg-background/50 p-2.5 rounded-lg border border-border/40">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-foreground flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                {labels.markedAt || "Belgilandi:"} <strong className="font-semibold">{checkin.check_in_time ? checkin.check_in_time.slice(0, 5) : "-"}</strong>
+              </span>
+              <Badge variant="outline" className={checkin.status === "present" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0" : "border-destructive/30 bg-destructive/10 text-destructive text-[10px] px-1.5 py-0"}>
+                {checkin.status === "present" ? (labels.onTime || "O'z vaqtida") : `${labels.late || "Kech qoldi"} (${checkin.late_minutes || 0} ${labels.min || "min"})`}
+              </Badge>
+            </div>
+            {checkin.note && (
+              <p className="text-[11px] text-muted-foreground italic border-l-2 border-primary/20 pl-2 mt-0.5">{checkin.note}</p>
+            )}
+          </div>
+        ) : (
+          <Button variant="outline" size="sm" className="w-full h-8 text-xs mt-1 border-dashed hover:border-solid border-primary/40 hover:border-primary/80 hover:bg-primary/5 transition-all text-primary" onClick={() => setIsFormOpen(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            {labels.markArrival || "Vaqtni belgilash"}
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function pageLabels(lang: "uz" | "ru") {
   if (lang === "ru") {
     return {
@@ -882,7 +1058,19 @@ function pageLabels(lang: "uz" | "ru") {
       status: {
         active: "Активный",
         cancelled: "Отменён",
+        scheduled: "Запланирован",
+        conducted: "Проведен",
+        rescheduled: "Перенесен",
       },
+      teacherArrival: "Приход учителя",
+      time: "Время",
+      onTime: "Вовремя",
+      late: "Опоздал",
+      lateMinutes: "Минуты опоздания",
+      note: "Примечание",
+      markArrival: "Отметить приход",
+      markedAt: "Отмечено в:",
+      min: "мин",
     };
   }
 
@@ -936,7 +1124,19 @@ function pageLabels(lang: "uz" | "ru") {
     status: {
       active: "Faol",
       cancelled: "Bekor qilingan",
+      scheduled: "Rejalashtirilgan",
+      conducted: "O'tildi",
+      rescheduled: "Ko'chirildi",
     },
+    teacherArrival: "O'qituvchi keldi",
+    time: "Vaqt",
+    onTime: "O'z vaqtida",
+    late: "Kech qoldi",
+    lateMinutes: "Kechikish daqiqasi",
+    note: "Izoh",
+    markArrival: "Vaqtni belgilash",
+    markedAt: "Belgilandi:",
+    min: "min",
   };
 }
 

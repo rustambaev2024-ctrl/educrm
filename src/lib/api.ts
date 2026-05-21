@@ -419,6 +419,14 @@ export const lessonApi = {
       method: "POST",
       body: JSON.stringify({ datetime }),
     }),
+  teacherCheckin: {
+    get: (lessonId: string) => requestJson<any>(`/lessons/${lessonId}/teacher-checkin/`),
+    set: (lessonId: string, data: any) =>
+      requestJson<any>(`/lessons/${lessonId}/teacher-checkin/`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
 };
 
 export const attendanceApi = {

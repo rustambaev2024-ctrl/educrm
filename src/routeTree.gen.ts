@@ -60,6 +60,7 @@ import { Route as AdminMessagesRouteImport } from './routes/admin/messages'
 import { Route as AdminLeadsRouteImport } from './routes/admin/leads'
 import { Route as AdminGroupsRouteImport } from './routes/admin/groups'
 import { Route as AdminFinanceRouteImport } from './routes/admin/finance'
+import { Route as AdminControlRouteImport } from './routes/admin/control'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminAccountsRouteImport } from './routes/admin/accounts'
 
@@ -318,6 +319,11 @@ const AdminFinanceRoute = AdminFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminControlRoute = AdminControlRouteImport.update({
+  id: '/control',
+  path: '/control',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -341,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/control': typeof AdminControlRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -390,6 +397,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/control': typeof AdminControlRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -446,6 +454,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/control': typeof AdminControlRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -503,6 +512,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/accounts'
     | '/admin/analytics'
+    | '/admin/control'
     | '/admin/finance'
     | '/admin/groups'
     | '/admin/leads'
@@ -552,6 +562,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/accounts'
     | '/admin/analytics'
+    | '/admin/control'
     | '/admin/finance'
     | '/admin/groups'
     | '/admin/leads'
@@ -607,6 +618,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/accounts'
     | '/admin/analytics'
+    | '/admin/control'
     | '/admin/finance'
     | '/admin/groups'
     | '/admin/leads'
@@ -1022,6 +1034,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFinanceRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/control': {
+      id: '/admin/control'
+      path: '/control'
+      fullPath: '/admin/control'
+      preLoaderRoute: typeof AdminControlRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/analytics': {
       id: '/admin/analytics'
       path: '/analytics'
@@ -1042,6 +1061,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteRouteChildren {
   AdminAccountsRoute: typeof AdminAccountsRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminControlRoute: typeof AdminControlRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminGroupsRoute: typeof AdminGroupsRoute
   AdminLeadsRoute: typeof AdminLeadsRoute
@@ -1054,6 +1074,7 @@ interface AdminRouteRouteChildren {
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAccountsRoute: AdminAccountsRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminControlRoute: AdminControlRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminGroupsRoute: AdminGroupsRoute,
   AdminLeadsRoute: AdminLeadsRoute,

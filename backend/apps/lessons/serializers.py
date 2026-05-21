@@ -3,7 +3,7 @@ from rest_framework import serializers
 from apps.staff.models import Staff
 from apps.students.models import Student
 
-from .models import Attendance, Lesson
+from .models import Attendance, Lesson, TeacherAttendance
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -89,3 +89,19 @@ class AttendanceRecordInputSerializer(serializers.Serializer):
 
 class BulkAttendanceSerializer(serializers.Serializer):
     records = AttendanceRecordInputSerializer(many=True)
+
+
+class TeacherAttendanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TeacherAttendance
+        fields = (
+            "id",
+            "lesson",
+            "teacher",
+            "check_in_time",
+            "status",
+            "late_minutes",
+            "note",
+            "created_at",
+        )
+        read_only_fields = ("id", "lesson", "teacher", "created_at")

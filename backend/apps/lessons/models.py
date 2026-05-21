@@ -103,3 +103,26 @@ class Attendance(models.Model):
 
     def __str__(self) -> str:
         return f"{self.lesson_id}:{self.student_id}={self.status}"
+
+
+class TeacherAttendance(models.Model):
+    STATUS_CHOICES = [
+        ("present", "Present"),
+        ("late", "Late"),
+        ("absent", "Absent"),
+    ]
+
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="teacher_attendance")
+    teacher = models.ForeignKey("staff.Staff", on_delete=models.CASCADE, related_name="teacher_attendance")
+    check_in_time = models.TimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="present")
+    late_minutes = models.IntegerField(null=True, blank=True)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "lessons_teacher_attendance"
+        unique_together = ("lesson", "teacher")
+
+    def __str__(self):
+        return f"{self.teacher} - {self.lesson} - {self.status}"
