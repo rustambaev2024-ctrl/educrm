@@ -1,4 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+
+function getLocalDateString() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
 import { Ban, CalendarDays, CircleMinus, Edit3, Plus, Search, Trash2, UserRound, Clock, UserCheck, CheckCircle2, XCircle, Award, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
@@ -141,7 +149,7 @@ export function NazoratPage() {
 
 function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
   const { user } = useAuth();
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [date, setDate] = useState(() => getLocalDateString());
   const [branchId, setBranchId] = useState("all");
   const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
   const [teachersData, setTeachersData] = useState<any[]>([]);
@@ -724,7 +732,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
       ...emptyForm,
       staffId: firstStaff?.id ?? "",
       branchId: firstStaff?.branchId ?? branches[0]?.id ?? "",
-      date: new Date().toISOString().slice(0, 10),
+        date: getLocalDateString(),
     });
     setDialogOpen(true);
   };
