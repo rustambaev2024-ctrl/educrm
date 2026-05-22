@@ -82,3 +82,34 @@ class StaffPenalty(models.Model):
 
     def __str__(self):
         return f"{self.staff} - {self.amount}"
+
+
+class StaffBonus(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name="bonuses")
+    branch = models.ForeignKey(
+        "institutions.Branch", 
+        on_delete=models.SET_NULL,
+        null=True, 
+        blank=True, 
+        related_name="staff_bonuses"
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    reason = models.CharField(max_length=255)
+    bonus_date = models.DateField()
+    comment = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL,
+        null=True, 
+        blank=True,
+        related_name="created_staff_bonuses"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "staff_bonus"
+        ordering = ["-bonus_date", "-created_at"]
+
+    def __str__(self):
+        return f"{self.staff} + {self.amount}"

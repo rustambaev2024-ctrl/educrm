@@ -344,6 +344,7 @@ export const staffApi = {
 };
 
 export const penaltyApi = crudApi("/penalties/");
+export const bonusApi = crudApi("/staff/bonuses/");
 
 export const courseApi = crudApi("/courses/");
 

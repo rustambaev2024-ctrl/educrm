@@ -3,8 +3,7 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 
-from .models import Staff, StaffPenalty
-
+from .models import Staff, StaffPenalty, StaffBonus
 
 def normalize_phone(value: str) -> str:
     """Keep phone uniqueness stable for inputs with spaces/dashes."""
@@ -141,4 +140,47 @@ class StaffPenaltySerializer(serializers.ModelSerializer):
         branch = attrs.get("branch") or getattr(self.instance, "branch", None)
         if staff and branch and staff.branch_id and staff.branch_id != branch.id:
             raise serializers.ValidationError({"branch": "Penalty branch must match staff branch."})
+        return attrs
+
+
+class StaffBonusSerializer(serializers.ModelSerializer):
+    staff_name = serializers.CharField(source="staff.user.full_name", read_only=True)
+    branch_name = serializers.CharField(source="branch.name", read_only=True)
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
+
+    class Meta:
+        model = StaffBonus
+        fields = (
+            "id",
+            "staff",
+            "staff_name",
+            "branch",
+            "branch_name",
+            "amount",
+            "reason",
+            "bonus_date",
+            "comment",
+            "created_by",
+            "created_by_name",
+            "created_at",
+        )
+        read_only_fields = (
+            "id",
+            "staff_name",
+            "branch_name",
+            "created_by",
+            "created_by_name",
+            "created_at",
+        )
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Amount must be greater than zero.")
+        return value
+
+    def validate(self, attrs):
+        staff = attrs.get("staff") or getattr(self.instance, "staff", None)
+        branch = attrs.get("branch") or getattr(self.instance, "branch", None)
+        if staff and branch and staff.branch_id and staff.branch_id != branch.id:
+            raise serializers.ValidationError({"branch": "Bonus branch must match staff branch."})
         return attrs

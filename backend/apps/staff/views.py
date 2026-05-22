@@ -4,8 +4,8 @@ from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
 
-from .models import Staff, StaffPenalty
-from .serializers import StaffPenaltySerializer, StaffSerializer
+from .models import Staff, StaffPenalty, StaffBonus
+from .serializers import StaffPenaltySerializer, StaffSerializer, StaffBonusSerializer
 
 
 class StaffViewSet(viewsets.ModelViewSet):
@@ -95,6 +95,72 @@ class StaffPenaltyViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         if request.user.role not in ("director", "superadmin"):
+            return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        staff = serializer.validated_data["staff"]
+        branch = serializer.validated_data.get("branch") or staff.branch
+        serializer.save(created_by=self.request.user, branch=branch)
+
+
+class StaffBonusViewSet(viewsets.ModelViewSet):
+    queryset = StaffBonus.objects.select_related("staff__user", "branch", "created_by").all()
+    serializer_class = StaffBonusSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        if not user.is_authenticated:
+            return qs.none()
+
+        if user.role in ("superadmin", "director"):
+            pass
+        elif user.role in ("admin", "branch_admin"):
+            if hasattr(user, "staff_profile") and user.staff_profile.branch_id:
+                qs = qs.filter(branch_id=user.staff_profile.branch_id)
+            else:
+                return qs.none()
+        elif user.role == "teacher":
+            if hasattr(user, "staff_profile"):
+                qs = qs.filter(staff=user.staff_profile)
+            else:
+                return qs.none()
+        else:
+            return qs.none()
+
+        params = self.request.query_params
+        if params.get("staff_id"):
+            qs = qs.filter(staff_id=params["staff_id"])
+        if params.get("branch_id"):
+            qs = qs.filter(branch_id=params["branch_id"])
+        if params.get("date_from"):
+            qs = qs.filter(bonus_date__gte=params["date_from"])
+        if params.get("date_to"):
+            qs = qs.filter(bonus_date__lte=params["date_to"])
+        if params.get("search"):
+            value = params["search"].strip()
+            qs = qs.filter(
+                Q(reason__icontains=value)
+                | Q(comment__icontains=value)
+                | Q(staff__user__full_name__icontains=value)
+                | Q(staff__user__phone__icontains=value)
+            )
+        return qs.distinct().order_by("-bonus_date", "-created_at")
+
+    def create(self, request, *args, **kwargs):
+        if request.user.role not in ("director", "superadmin", "admin"):
+            return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        if request.user.role not in ("director", "superadmin", "admin"):
+            return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if request.user.role not in ("director", "superadmin", "admin"):
             return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
