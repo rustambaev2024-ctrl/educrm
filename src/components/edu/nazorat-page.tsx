@@ -150,6 +150,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
   const [lessonsHistory, setLessonsHistory] = useState<any[]>([]);
   const [loadingLessons, setLoadingLessons] = useState(false);
+  const [currentCheckin, setCurrentCheckin] = useState<any>(null);
 
   const [checkinForm, setCheckinForm] = useState({ time: "", status: "present", lateMinutes: "" });
 
@@ -187,28 +188,43 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
   const openTeacherDetail = async (teacher: any) => {
     setSelectedTeacherId(teacher.teacher_id);
     setLoadingLessons(true);
+    setCurrentCheckin(null);
     try {
       const params: any = { teacher_id: teacher.teacher_id, date_from: date, date_to: date };
       const res = await analyticsApi.teacherLessons(params);
       const lessons = Array.isArray(res) ? res : (res as any).results || [];
       setLessonsHistory(lessons);
 
-      // Try to load existing check-in from the first lesson
+      // Load existing check-in from the first lesson and update teachersData with it
       if (lessons.length > 0) {
           const firstLesson = lessons[0];
           try {
               const checkinData = await lessonApi.teacherCheckin.get(firstLesson.id);
+              setCurrentCheckin(checkinData);
+              
+              // Update teachersData with real checkin status
+              setTeachersData(prev => prev.map(t => 
+                t.teacher_id === teacher.teacher_id 
+                  ? { ...t, checkin_status: checkinData?.status, checkin_time: checkinData?.check_in_time }
+                  : t
+              ));
+              
+              // Pre-fill form with existing checkin data
               if (checkinData && checkinData.status) {
                   setCheckinForm({
-                      time: checkinData.time || "",
+                      time: checkinData.check_in_time?.slice(0, 5) || "",
                       status: checkinData.status,
                       lateMinutes: checkinData.late_minutes?.toString() || ""
                   });
               } else {
-                  setCheckinForm({ time: "", status: "present", lateMinutes: "" });
+                  const now = new Date();
+                  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                  setCheckinForm({ time: currentTime, status: "present", lateMinutes: "" });
               }
           } catch (err) {
-              setCheckinForm({ time: "", status: "present", lateMinutes: "" });
+              const now = new Date();
+              const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+              setCheckinForm({ time: currentTime, status: "present", lateMinutes: "" });
           }
       }
     } catch (err) {
@@ -222,13 +238,29 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
       if (!lessonsHistory.length) return;
       const firstLesson = lessonsHistory[0];
       try {
-          await lessonApi.teacherCheckin.set(firstLesson.id, {
+          const newCheckinData = {
               status: checkinForm.status,
               late_minutes: checkinForm.status === "late" ? Number(checkinForm.lateMinutes) : 0,
               notes: ""
-          });
+          };
+          await lessonApi.teacherCheckin.set(firstLesson.id, newCheckinData);
+          
+          // Update currentCheckin and teachersData with new status
+          const updatedCheckinData = { 
+              ...currentCheckin,
+              status: checkinForm.status,
+              late_minutes: newCheckinData.late_minutes,
+              check_in_time: checkinForm.time
+          };
+          setCurrentCheckin(updatedCheckinData);
+          
+          setTeachersData(prev => prev.map(t => 
+            t.teacher_id === selectedTeacherId 
+              ? { ...t, checkin_status: checkinForm.status, checkin_time: checkinForm.time }
+              : t
+          ));
+          
           toast.success(labels.saved);
-          loadTeachers(); // Refresh list to update badge
       } catch (err) {
           toast.error("Xatolik");
       }
@@ -267,22 +299,26 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
               </div>
             </div>
           ) : teachersData.map((teacher) => {
-            // Determine checkin status for the UI badge based on data
+            // Determine teacher's actual check-in status from TeacherAttendance
             let badgeVariant: "default" | "destructive" | "outline" | "secondary" = "secondary";
             let badgeText = labels.teacher_waiting;
             let badgeClass = "bg-muted text-muted-foreground";
 
-            if (teacher.absent_count > 0) {
+            // Use real checkin_status from TeacherAttendance model
+            if (teacher.checkin_status === "absent") {
                badgeVariant = "destructive";
                badgeText = labels.teacher_absent;
                badgeClass = "bg-destructive text-destructive-foreground";
-            } else if (teacher.late_count > 0) {
+            } else if (teacher.checkin_status === "late") {
                badgeVariant = "outline";
-               badgeText = `${labels.teacher_late} — ${~~teacher.avg_late_minutes} ${labels.minutes}`;
+               const lateMinutes = teacher.checkin_time ? 
+                 Math.round((new Date(`2000-01-01 ${checkinForm.time}`).getTime() - new Date(`2000-01-01 ${teacher.checkin_time}`).getTime()) / 60000) : 0;
+               badgeText = `${labels.teacher_late} — ${Math.abs(lateMinutes)} ${labels.minutes}`;
                badgeClass = "border-amber-500 text-amber-500 bg-amber-500/10";
-            } else if (teacher.present_count > 0) {
+            } else if (teacher.checkin_status === "present") {
                badgeVariant = "default";
-               badgeText = `${labels.teacher_arrived}`;
+               const timeDisplay = teacher.checkin_time?.slice(0, 5) || "";
+               badgeText = `${labels.teacher_arrived}${timeDisplay ? ` ${timeDisplay}` : ""}`;
                badgeClass = "bg-emerald-500 hover:bg-emerald-600";
             }
 
@@ -333,6 +369,9 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
                                 <SelectItem value="absent">{labels.checkinStatuses.absent}</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <Input type="time" value={checkinForm.time} onChange={e => setCheckinForm({...checkinForm, time: e.target.value})} />
                     </div>
                     {checkinForm.status === "late" && (
                         <div className="space-y-1.5">
