@@ -13,9 +13,8 @@ from apps.audit.models import AuditLog
 from apps.courses.models import GroupMembership
 from apps.finance.models import Payment
 from apps.institutions.models import Branch, Room
-from apps.lessons.models import Attendance, Lesson
+from apps.lessons.models import Attendance, Lesson, TeacherAttendance
 from apps.staff.models import Staff, StaffPenalty
-from apps.staff.models import TeacherAttendance
 from apps.students.models import Lead, Student
 
 
