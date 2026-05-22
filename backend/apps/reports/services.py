@@ -1,201 +1,3 @@
-# DAILY REPORT FUNCTION
-from datetime import date as date_type, timedelta
-def get_daily_report(user, report_date: date_type, branch_id=None) -> dict:
-    from decimal import Decimal
-    branch_ids = _branch_ids_for_user(user, branch_id)
-    yesterday = report_date - timedelta(days=1)
-
-    # 1. ФИНАНСЫ
-    payments_today = Payment.objects.filter(
-        branch_id__in=branch_ids,
-        created_at__date=report_date,
-    )
-    payments_yesterday = Payment.objects.filter(
-        branch_id__in=branch_ids,
-        created_at__date=yesterday,
-    )
-    income_today = payments_today.filter(payment_type="top_up").aggregate(
-        total=Coalesce(Sum("amount"), Decimal("0"))
-    )["total"]
-    income_yesterday = payments_yesterday.filter(payment_type="top_up").aggregate(
-        total=Coalesce(Sum("amount"), Decimal("0"))
-    )["total"]
-    charges_today = payments_today.filter(payment_type="charge").aggregate(
-        total=Coalesce(Sum("amount"), Decimal("0"))
-    )["total"]
-    top_payments = list(
-        payments_today.filter(payment_type="top_up")
-        .select_related("student__user")
-        .order_by("-amount")[:5]
-        .values("amount", "payment_method", "created_at", "student__user__full_name")
-    )
-    new_debtors_today = Student.objects.filter(
-        branch_id__in=branch_ids,
-        wallet_balance__lt=0,
-        updated_at__date=report_date,
-    ).count()
-    total_debt = Student.objects.filter(
-        branch_id__in=branch_ids,
-        wallet_balance__lt=0,
-    ).aggregate(total=Coalesce(Sum("wallet_balance"), Decimal("0")))["total"]
-
-    # 2. УРОКИ
-    lessons_today = Lesson.objects.filter(
-        group__branch_id__in=branch_ids,
-        datetime__date=report_date,
-    ).select_related("group", "teacher__user")
-    lessons_yesterday = Lesson.objects.filter(
-        group__branch_id__in=branch_ids,
-        datetime__date=yesterday,
-    )
-    total_lessons = lessons_today.count()
-    conducted = lessons_today.filter(status="conducted").count()
-    cancelled = lessons_today.filter(status="cancelled").count()
-    conducted_yesterday = lessons_yesterday.filter(status="conducted").count()
-    lessons_no_attendance = []
-    for lesson in lessons_today.filter(status="conducted"):
-        if not lesson.attendance.exists():
-            lessons_no_attendance.append({
-                "group_name": lesson.group.name,
-                "teacher_name": lesson.teacher.user.full_name if lesson.teacher else "-",
-                "time": lesson.datetime.strftime("%H:%M"),
-            })
-    cancelled_lessons = []
-    for lesson in lessons_today.filter(status="cancelled"):
-        cancelled_lessons.append({
-            "group_name": lesson.group.name,
-            "teacher_name": lesson.teacher.user.full_name if lesson.teacher else "-",
-            "time": lesson.datetime.strftime("%H:%M"),
-            "reason": lesson.cancel_reason or "",
-        })
-
-    # 3. ПОСЕЩАЕМОСТЬ УЧЕНИКОВ
-    attendance_today = Attendance.objects.filter(
-        lesson__group__branch_id__in=branch_ids,
-        lesson__datetime__date=report_date,
-    ).select_related("student__user", "lesson__group", "lesson__teacher__user")
-    attendance_yesterday = Attendance.objects.filter(
-        lesson__group__branch_id__in=branch_ids,
-        lesson__datetime__date=yesterday,
-    )
-    total_students = attendance_today.count()
-    present_students = attendance_today.filter(status__in=["present", "late"]).count()
-    absent_students = attendance_today.filter(status="absent").count()
-    late_students = attendance_today.filter(status="late").count()
-    att_rate_today = round(present_students / total_students * 100, 1) if total_students else 0
-    total_students_y = attendance_yesterday.count()
-    present_students_y = attendance_yesterday.filter(status__in=["present", "late"]).count()
-    att_rate_yesterday = round(present_students_y / total_students_y * 100, 1) if total_students_y else 0
-    absent_list = []
-    for att in attendance_today.filter(status="absent").select_related(
-        "student__user", "lesson__group", "lesson__teacher__user"
-    )[:20]:
-        absent_list.append({
-            "student_name": att.student.user.full_name,
-            "group_name": att.lesson.group.name,
-            "teacher_name": att.lesson.teacher.user.full_name if att.lesson.teacher else "-",
-        })
-
-    # 4. УЧИТЕЛЯ (TeacherAttendance)
-    teacher_att_today = TeacherAttendance.objects.filter(
-        lesson__datetime__date=report_date,
-        lesson__group__branch_id__in=branch_ids,
-    ).select_related("teacher__user", "lesson__group")
-    teachers_present = teacher_att_today.filter(status="present").count()
-    teachers_late = teacher_att_today.filter(status="late").count()
-    teachers_absent = teacher_att_today.filter(status="absent").count()
-    teachers_scheduled_ids = lessons_today.exclude(
-        teacher=None
-    ).values_list("teacher_id", flat=True).distinct()
-    teachers_total = len(set(teachers_scheduled_ids))
-    teacher_list = []
-    for ta in teacher_att_today.order_by("status"):
-        teacher_list.append({
-            "teacher_name": ta.teacher.user.full_name,
-            "status": ta.status,
-            "check_in_time": ta.check_in_time.strftime("%H:%M") if ta.check_in_time else None,
-            "late_minutes": ta.late_minutes,
-        })
-
-    # 5. ЛИДЫ
-    from apps.students.models import Lead
-    leads_today = Lead.objects.filter(
-        branch_id__in=branch_ids,
-        created_at__date=report_date,
-    )
-    leads_yesterday = Lead.objects.filter(
-        branch_id__in=branch_ids,
-        created_at__date=yesterday,
-    )
-    new_leads_count = leads_today.count()
-    new_leads_yesterday = leads_yesterday.count()
-    leads_list = list(
-        leads_today.order_by("-created_at")[:10]
-        .values("full_name", "phone", "source", "status", "created_at")
-    )
-
-    return {
-        "date": str(report_date),
-        "yesterday": str(yesterday),
-        "finance": {
-            "income_today": str(_quantize(income_today)),
-            "income_yesterday": str(_quantize(income_yesterday)),
-            "income_delta": str(_quantize(income_today - income_yesterday)),
-            "charges_today": str(_quantize(charges_today)),
-            "new_debtors_today": new_debtors_today,
-            "total_debt": str(_quantize(abs(total_debt))),
-            "top_payments": [
-                {
-                    "student_name": p["student__user__full_name"],
-                    "amount": str(p["amount"]),
-                    "method": p["payment_method"],
-                    "time": p["created_at"].strftime("%H:%M"),
-                }
-                for p in top_payments
-            ],
-            "payments_count": payments_today.filter(payment_type="top_up").count(),
-        },
-        "lessons": {
-            "total": total_lessons,
-            "conducted": conducted,
-            "cancelled": cancelled,
-            "conducted_yesterday": conducted_yesterday,
-            "no_attendance_count": len(lessons_no_attendance),
-            "no_attendance_list": lessons_no_attendance,
-            "cancelled_list": cancelled_lessons,
-        },
-        "students": {
-            "total": total_students,
-            "present": present_students,
-            "absent": absent_students,
-            "late": late_students,
-            "attendance_rate": att_rate_today,
-            "attendance_rate_yesterday": att_rate_yesterday,
-            "absent_list": absent_list,
-        },
-        "teachers": {
-            "total": teachers_total,
-            "present": teachers_present,
-            "late": teachers_late,
-            "absent": teachers_absent,
-            "no_data": teachers_total - teachers_present - teachers_late - teachers_absent,
-            "list": teacher_list,
-        },
-        "leads": {
-            "today": new_leads_count,
-            "yesterday": new_leads_yesterday,
-            "delta": new_leads_count - new_leads_yesterday,
-            "list": [
-                {
-                    "name": l["full_name"],
-                    "source": l["source"] or "-",
-                    "status": l["status"],
-                    "time": l["created_at"].strftime("%H:%M"),
-                }
-                for l in leads_list
-            ],
-        },
-    }
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
@@ -735,14 +537,11 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
         payments_today.filter(payment_type="top_up")
         .select_related("student__user")
         .order_by("-amount")[:5]
-        .values("amount", "payment_method", "created_at", "student__user__full_name")
+        .values("amount", "method", "created_at", "student__user__full_name")
     )
 
-    new_debtors_today = Student.objects.filter(
-        branch_id__in=branch_ids,
-        wallet_balance__lt=0,
-        updated_at__date=report_date,
-    ).count()
+    # Student model has no updated_at field, so we cannot calculate "new" debtors for today
+    new_debtors_today = 0
     total_debt = Student.objects.filter(
         branch_id__in=branch_ids,
         wallet_balance__lt=0,
@@ -856,7 +655,7 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
                 {
                     "student_name": p["student__user__full_name"],
                     "amount": str(p["amount"]),
-                    "method": p["payment_method"],
+                    "method": p["method"] or "-",
                     "time": p["created_at"].strftime("%H:%M"),
                 }
                 for p in top_payments
