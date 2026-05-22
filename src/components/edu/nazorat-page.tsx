@@ -305,21 +305,26 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
             let badgeClass = "bg-muted text-muted-foreground";
 
             // Use real checkin_status from TeacherAttendance model
-            if (teacher.checkin_status === "absent") {
-               badgeVariant = "destructive";
-               badgeText = labels.teacher_absent;
-               badgeClass = "bg-destructive text-destructive-foreground";
-            } else if (teacher.checkin_status === "late") {
-               badgeVariant = "outline";
-               const lateMinutes = teacher.checkin_time ? 
-                 Math.round((new Date(`2000-01-01 ${checkinForm.time}`).getTime() - new Date(`2000-01-01 ${teacher.checkin_time}`).getTime()) / 60000) : 0;
-               badgeText = `${labels.teacher_late} — ${Math.abs(lateMinutes)} ${labels.minutes}`;
-               badgeClass = "border-amber-500 text-amber-500 bg-amber-500/10";
-            } else if (teacher.checkin_status === "present") {
-               badgeVariant = "default";
-               const timeDisplay = teacher.checkin_time?.slice(0, 5) || "";
-               badgeText = `${labels.teacher_arrived}${timeDisplay ? ` ${timeDisplay}` : ""}`;
-               badgeClass = "bg-emerald-500 hover:bg-emerald-600";
+            const checkinStatus = teacher.checkin_status;
+            if (!checkinStatus) {
+              badgeVariant = "secondary";
+              badgeText = labels.teacher_waiting;
+              badgeClass = "bg-muted text-muted-foreground";
+            } else if (checkinStatus === "present") {
+              badgeVariant = "default";
+              const timeDisplay = teacher.checkin_time?.slice(0, 5) || "";
+              badgeText = `${labels.teacher_arrived}${timeDisplay ? ` ${timeDisplay}` : ""}`;
+              badgeClass = "bg-emerald-500 hover:bg-emerald-600";
+            } else if (checkinStatus === "late") {
+              badgeVariant = "outline";
+              const lateMinutes = teacher.checkin_time ? 
+                Math.round((new Date(`2000-01-01 ${checkinForm.time}`).getTime() - new Date(`2000-01-01 ${teacher.checkin_time}`).getTime()) / 60000) : 0;
+              badgeText = `${labels.teacher_late} — ${Math.abs(lateMinutes)} ${labels.minutes}`;
+              badgeClass = "border-amber-500 text-amber-500 bg-amber-500/10";
+            } else if (checkinStatus === "absent") {
+              badgeVariant = "destructive";
+              badgeText = labels.teacher_absent;
+              badgeClass = "bg-destructive text-destructive-foreground";
             }
 
             return (
@@ -353,35 +358,39 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
 
       <Sheet open={!!selectedTeacherId} onOpenChange={(open) => !open && setSelectedTeacherId(null)}>
         <SheetContent className="w-full overflow-hidden sm:max-w-xl flex flex-col p-0">
-          <SheetHeader className="p-6 pb-4 border-b bg-muted/30">
-            <div className="flex justify-between items-start">
-                <SheetTitle className="text-xl">{selectedTeacher?.teacher_name || labels.detail}</SheetTitle>
+            <SheetHeader className="p-6 pb-4 border-b bg-muted/30">
+            <div className="flex justify-between items-start gap-4">
+              <SheetTitle className="text-xl">{selectedTeacher?.teacher_name || labels.detail}</SheetTitle>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => {/* TODO: open penalty dialog */}}>{labels.addPenalty}</Button>
+                <Button size="sm" variant="outline" onClick={() => {/* TODO: open bonus dialog */}}>{labels.addBonus}</Button>
+              </div>
             </div>
             <div className="mt-4 bg-card rounded-lg border p-4 shadow-sm">
-                <h4 className="text-sm font-medium mb-3">{labels.teacherCheckinTime}</h4>
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="space-y-1.5">
-                        <Select value={checkinForm.status} onValueChange={(val) => setCheckinForm({...checkinForm, status: val})}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="present">{labels.checkinStatuses.present}</SelectItem>
-                                <SelectItem value="late">{labels.checkinStatuses.late}</SelectItem>
-                                <SelectItem value="absent">{labels.checkinStatuses.absent}</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                        <Input type="time" value={checkinForm.time} onChange={e => setCheckinForm({...checkinForm, time: e.target.value})} />
-                    </div>
-                    {checkinForm.status === "late" && (
-                        <div className="space-y-1.5">
-                            <Input type="number" placeholder={labels.lateMinutes} value={checkinForm.lateMinutes} onChange={e => setCheckinForm({...checkinForm, lateMinutes: e.target.value})} />
-                        </div>
-                    )}
+              <h4 className="text-sm font-medium mb-3">{labels.teacherCheckinTime}</h4>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="space-y-1.5">
+                  <Input type="time" value={checkinForm.time} onChange={e => setCheckinForm({...checkinForm, time: e.target.value})} />
                 </div>
-                <Button className="w-full" onClick={handleCheckinSubmit}>{labels.save}</Button>
+                <div className="space-y-1.5">
+                  <Select value={checkinForm.status} onValueChange={(val) => setCheckinForm({...checkinForm, status: val})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="present">{labels.checkinStatuses.present}</SelectItem>
+                      <SelectItem value="late">{labels.checkinStatuses.late}</SelectItem>
+                      <SelectItem value="absent">{labels.checkinStatuses.absent}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {checkinForm.status === "late" && (
+                  <div className="space-y-1.5 col-span-2">
+                    <Input type="number" placeholder={labels.lateMinutes} value={checkinForm.lateMinutes} onChange={e => setCheckinForm({...checkinForm, lateMinutes: e.target.value})} />
+                  </div>
+                )}
+              </div>
+              <Button className="w-full" onClick={handleCheckinSubmit}>{labels.save}</Button>
             </div>
-          </SheetHeader>
+            </SheetHeader>
           <div className="flex-1 overflow-y-auto p-6 bg-muted/10">
             {loadingLessons ? (
                <div className="flex justify-center p-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
@@ -390,30 +399,40 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
             ) : (
                <div className="space-y-4">
                  {lessonsHistory.map((lesson) => {
-                    const noAttendanceAlert = lesson.status === "conducted" && lesson.present_count === 0 && lesson.total_students > 0;
-                    
-                    let statusBg = "bg-blue-500";
-                    if (lesson.status === "conducted") statusBg = "bg-emerald-500";
-                    else if (lesson.status === "cancelled") statusBg = "bg-destructive";
-                    else if (lesson.status === "rescheduled") statusBg = "bg-amber-500";
+                  const noAttendanceAlert = lesson.status === "conducted" && lesson.present_count === 0 && lesson.total_students > 0;
+                  let statusBg = "bg-blue-500";
+                  if (lesson.status === "conducted") statusBg = "bg-emerald-500";
+                  else if (lesson.status === "cancelled") statusBg = "bg-destructive";
+                  else if (lesson.status === "rescheduled") statusBg = "bg-amber-500";
 
-                    return (
-                        <Card key={lesson.id} className="p-4 shadow-sm border-l-4" style={{ borderLeftColor: `var(--${statusBg.split('-')[1]}-500, currentColor)`}}>
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="font-semibold text-lg">{lesson.start_time?.slice(0,5)} <span className="text-base font-normal text-muted-foreground ml-2">{lesson.group_name}</span></div>
-                                <Badge className={`${statusBg} border-none`}>{labels.lessonStatuses[lesson.status as keyof typeof labels.lessonStatuses] || lesson.status}</Badge>
-                            </div>
-                            {lesson.topic && <div className="text-sm text-muted-foreground mb-3">{lesson.topic}</div>}
-                            <div className="flex items-center text-sm font-medium gap-2">
-                                👥 {lesson.present_count}/{lesson.total_students} {(lesson.total_students > 0 ? (lesson.present_count / lesson.total_students * 100).toFixed(0) : 0)}%
-                            </div>
-                            {noAttendanceAlert && (
-                                <div className="mt-3 bg-amber-500/15 text-amber-600 px-3 py-2 rounded-md text-sm font-medium flex items-center">
-                                    {labels.lesson_no_attendance_alert}
-                                </div>
-                            )}
-                        </Card>
-                    );
+                  // Форматирование времени и даты
+                  const lessonTime = lesson.datetime ? new Date(lesson.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (lesson.start_time?.slice(0,5) || "");
+                  const lessonDate = lesson.datetime ? formatDate(lesson.datetime, lang) : "";
+                  const topic = lesson.topic || <span className="text-muted-foreground">Mavzu yo'q</span>;
+
+                  return (
+                    <Card key={lesson.id} className="p-4 shadow-sm border-l-4" style={{ borderLeftColor: `var(--${statusBg.split('-')[1]}-500, currentColor)`}}>
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <div className="font-semibold text-lg flex items-center gap-2">
+                          <span>{lessonTime}</span>
+                          <span className="text-base font-normal text-muted-foreground ml-2">{lesson.group_name}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">{lessonDate}</div>
+                        </div>
+                        <Badge className={`${statusBg} border-none`}>{labels.lessonStatuses[lesson.status as keyof typeof labels.lessonStatuses] || lesson.status}</Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground mb-3">{topic}</div>
+                      <div className="flex items-center text-sm font-medium gap-2">
+                        👥 {lesson.present_count}/{lesson.total_students} {(lesson.total_students > 0 ? (lesson.present_count / lesson.total_students * 100).toFixed(0) : 0)}%
+                      </div>
+                      {noAttendanceAlert && (
+                        <div className="mt-3 bg-amber-500/15 text-amber-600 px-3 py-2 rounded-md text-sm font-medium flex items-center">
+                          {labels.lesson_no_attendance_alert}
+                        </div>
+                      )}
+                    </Card>
+                  );
                  })}
                </div>
             )}
