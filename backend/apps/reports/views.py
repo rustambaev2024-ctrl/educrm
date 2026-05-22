@@ -1,3 +1,5 @@
+from datetime import date as date_type, datetime
+
 from django.http import HttpResponse
 from drf_spectacular.utils import OpenApiResponse, OpenApiTypes, extend_schema
 from rest_framework import permissions, status
@@ -18,6 +20,7 @@ from .services import (
     get_attendance_report,
     get_audit_logs_snapshot,
     get_conversion_report,
+    get_daily_report,
     get_debtors_report,
     get_overview,
     get_revenue_report,
@@ -221,3 +224,22 @@ class ExportPdfView(APIView):
         response = HttpResponse(file_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{report_type}_report.pdf"'
         return response
+
+
+class DailyReportView(AnalyticsBaseView):
+    @extend_schema(
+        parameters=[
+            {"name": "date", "in": "query", "schema": {"type": "string", "format": "date"}},
+            {"name": "branch_id", "in": "query", "schema": {"type": "string"}},
+        ],
+        responses=OpenApiTypes.OBJECT,
+    )
+    def get(self, request):
+        date_str = request.query_params.get("date", str(date_type.today()))
+        branch_id = request.query_params.get("branch_id")
+        try:
+            report_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return Response({"error": "Invalid date format. Use YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST)
+        data = get_daily_report(request.user, report_date, branch_id)
+        return Response(data)

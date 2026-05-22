@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, GraduationCap, Layers, Calendar, Wallet, BarChart3, KeyRound, MessageSquarePlus, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Layers, Calendar, Wallet, BarChart3, KeyRound, MessageSquarePlus, ShieldCheck, ClipboardList } from "lucide-react";
 import { SidebarLayout, type NavItem } from "@/components/layouts/sidebar-layout";
 import { RoleGuard } from "@/components/edu/role-guard";
 import { useI18n } from "@/lib/i18n";
@@ -19,6 +19,7 @@ function AdminLayout() {
     { to: "/admin/schedule", label: t("nav.schedule"), icon: Calendar },
     { to: "/admin/finance", label: t("nav.finance"), icon: Wallet },
     { to: "/admin/analytics", label: t("nav.analytics"), icon: BarChart3 },
+    { to: "/admin/daily-report", label: "Kunlik hisobot", icon: ClipboardList },
     { to: "/admin/control", label: "Nazorat", icon: ShieldCheck },
   ];
   return (

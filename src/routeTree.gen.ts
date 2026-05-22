@@ -50,6 +50,7 @@ import { Route as DirectorMessagesRouteImport } from './routes/director/messages
 import { Route as DirectorLeadsRouteImport } from './routes/director/leads'
 import { Route as DirectorIntegrationsRouteImport } from './routes/director/integrations'
 import { Route as DirectorFinanceRouteImport } from './routes/director/finance'
+import { Route as DirectorDailyReportRouteImport } from './routes/director/daily-report'
 import { Route as DirectorCoursesRouteImport } from './routes/director/courses'
 import { Route as DirectorBranchesRouteImport } from './routes/director/branches'
 import { Route as DirectorAuditRouteImport } from './routes/director/audit'
@@ -60,6 +61,7 @@ import { Route as AdminMessagesRouteImport } from './routes/admin/messages'
 import { Route as AdminLeadsRouteImport } from './routes/admin/leads'
 import { Route as AdminGroupsRouteImport } from './routes/admin/groups'
 import { Route as AdminFinanceRouteImport } from './routes/admin/finance'
+import { Route as AdminDailyReportRouteImport } from './routes/admin/daily-report'
 import { Route as AdminControlRouteImport } from './routes/admin/control'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminAccountsRouteImport } from './routes/admin/accounts'
@@ -269,6 +271,11 @@ const DirectorFinanceRoute = DirectorFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => DirectorRouteRoute,
 } as any)
+const DirectorDailyReportRoute = DirectorDailyReportRouteImport.update({
+  id: '/daily-report',
+  path: '/daily-report',
+  getParentRoute: () => DirectorRouteRoute,
+} as any)
 const DirectorCoursesRoute = DirectorCoursesRouteImport.update({
   id: '/courses',
   path: '/courses',
@@ -319,6 +326,11 @@ const AdminFinanceRoute = AdminFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminDailyReportRoute = AdminDailyReportRouteImport.update({
+  id: '/daily-report',
+  path: '/daily-report',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminControlRoute = AdminControlRouteImport.update({
   id: '/control',
   path: '/control',
@@ -348,6 +360,7 @@ export interface FileRoutesByFullPath {
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/control': typeof AdminControlRoute
+  '/admin/daily-report': typeof AdminDailyReportRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -358,6 +371,7 @@ export interface FileRoutesByFullPath {
   '/director/audit': typeof DirectorAuditRoute
   '/director/branches': typeof DirectorBranchesRoute
   '/director/courses': typeof DirectorCoursesRoute
+  '/director/daily-report': typeof DirectorDailyReportRoute
   '/director/finance': typeof DirectorFinanceRoute
   '/director/integrations': typeof DirectorIntegrationsRoute
   '/director/leads': typeof DirectorLeadsRoute
@@ -398,6 +412,7 @@ export interface FileRoutesByTo {
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/control': typeof AdminControlRoute
+  '/admin/daily-report': typeof AdminDailyReportRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -408,6 +423,7 @@ export interface FileRoutesByTo {
   '/director/audit': typeof DirectorAuditRoute
   '/director/branches': typeof DirectorBranchesRoute
   '/director/courses': typeof DirectorCoursesRoute
+  '/director/daily-report': typeof DirectorDailyReportRoute
   '/director/finance': typeof DirectorFinanceRoute
   '/director/integrations': typeof DirectorIntegrationsRoute
   '/director/leads': typeof DirectorLeadsRoute
@@ -455,6 +471,7 @@ export interface FileRoutesById {
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/control': typeof AdminControlRoute
+  '/admin/daily-report': typeof AdminDailyReportRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -465,6 +482,7 @@ export interface FileRoutesById {
   '/director/audit': typeof DirectorAuditRoute
   '/director/branches': typeof DirectorBranchesRoute
   '/director/courses': typeof DirectorCoursesRoute
+  '/director/daily-report': typeof DirectorDailyReportRoute
   '/director/finance': typeof DirectorFinanceRoute
   '/director/integrations': typeof DirectorIntegrationsRoute
   '/director/leads': typeof DirectorLeadsRoute
@@ -513,6 +531,7 @@ export interface FileRouteTypes {
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/control'
+    | '/admin/daily-report'
     | '/admin/finance'
     | '/admin/groups'
     | '/admin/leads'
@@ -523,6 +542,7 @@ export interface FileRouteTypes {
     | '/director/audit'
     | '/director/branches'
     | '/director/courses'
+    | '/director/daily-report'
     | '/director/finance'
     | '/director/integrations'
     | '/director/leads'
@@ -563,6 +583,7 @@ export interface FileRouteTypes {
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/control'
+    | '/admin/daily-report'
     | '/admin/finance'
     | '/admin/groups'
     | '/admin/leads'
@@ -573,6 +594,7 @@ export interface FileRouteTypes {
     | '/director/audit'
     | '/director/branches'
     | '/director/courses'
+    | '/director/daily-report'
     | '/director/finance'
     | '/director/integrations'
     | '/director/leads'
@@ -619,6 +641,7 @@ export interface FileRouteTypes {
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/control'
+    | '/admin/daily-report'
     | '/admin/finance'
     | '/admin/groups'
     | '/admin/leads'
@@ -629,6 +652,7 @@ export interface FileRouteTypes {
     | '/director/audit'
     | '/director/branches'
     | '/director/courses'
+    | '/director/daily-report'
     | '/director/finance'
     | '/director/integrations'
     | '/director/leads'
@@ -964,6 +988,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirectorFinanceRouteImport
       parentRoute: typeof DirectorRouteRoute
     }
+    '/director/daily-report': {
+      id: '/director/daily-report'
+      path: '/daily-report'
+      fullPath: '/director/daily-report'
+      preLoaderRoute: typeof DirectorDailyReportRouteImport
+      parentRoute: typeof DirectorRouteRoute
+    }
     '/director/courses': {
       id: '/director/courses'
       path: '/courses'
@@ -1034,6 +1065,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFinanceRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/daily-report': {
+      id: '/admin/daily-report'
+      path: '/daily-report'
+      fullPath: '/admin/daily-report'
+      preLoaderRoute: typeof AdminDailyReportRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/control': {
       id: '/admin/control'
       path: '/control'
@@ -1062,6 +1100,7 @@ interface AdminRouteRouteChildren {
   AdminAccountsRoute: typeof AdminAccountsRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminControlRoute: typeof AdminControlRoute
+  AdminDailyReportRoute: typeof AdminDailyReportRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminGroupsRoute: typeof AdminGroupsRoute
   AdminLeadsRoute: typeof AdminLeadsRoute
@@ -1075,6 +1114,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAccountsRoute: AdminAccountsRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminControlRoute: AdminControlRoute,
+  AdminDailyReportRoute: AdminDailyReportRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminGroupsRoute: AdminGroupsRoute,
   AdminLeadsRoute: AdminLeadsRoute,
@@ -1093,6 +1133,7 @@ interface DirectorRouteRouteChildren {
   DirectorAuditRoute: typeof DirectorAuditRoute
   DirectorBranchesRoute: typeof DirectorBranchesRoute
   DirectorCoursesRoute: typeof DirectorCoursesRoute
+  DirectorDailyReportRoute: typeof DirectorDailyReportRoute
   DirectorFinanceRoute: typeof DirectorFinanceRoute
   DirectorIntegrationsRoute: typeof DirectorIntegrationsRoute
   DirectorLeadsRoute: typeof DirectorLeadsRoute
@@ -1110,6 +1151,7 @@ const DirectorRouteRouteChildren: DirectorRouteRouteChildren = {
   DirectorAuditRoute: DirectorAuditRoute,
   DirectorBranchesRoute: DirectorBranchesRoute,
   DirectorCoursesRoute: DirectorCoursesRoute,
+  DirectorDailyReportRoute: DirectorDailyReportRoute,
   DirectorFinanceRoute: DirectorFinanceRoute,
   DirectorIntegrationsRoute: DirectorIntegrationsRoute,
   DirectorLeadsRoute: DirectorLeadsRoute,

@@ -8,6 +8,7 @@ from .views import (
     AnalyticsRevenueView,
     AnalyticsRoomsView,
     AnalyticsTeachersView,
+    DailyReportView,
     TeacherLessonsView,
     ExportExcelView,
     ExportPdfView,
@@ -28,5 +29,6 @@ urlpatterns = [
     path("salary/me/", TeacherSalaryView.as_view(), name="teacher-salary"),
     path("export/excel/", ExportExcelView.as_view(), name="export-excel"),
     path("export/pdf/", ExportPdfView.as_view(), name="export-pdf"),
+    path("analytics/daily-report/", DailyReportView.as_view(), name="daily-report"),
 ]
 
