@@ -15,7 +15,7 @@ from apps.finance.models import Payment
 from apps.institutions.models import Branch, Room
 from apps.lessons.models import Attendance, Lesson, TeacherAttendance
 from apps.staff.models import Staff, StaffPenalty
-from apps.students.models import Lead, Student
+from apps.students.models import Student
 
 
 ATTENDANCE_PRESENT_STATUSES = ("present", "late", "online")
@@ -509,7 +509,7 @@ def calculate_teacher_salary(
     return result
 
 
-def get_daily_report(user, report_date: date_type, branch_id: str | None = None) -> dict:
+def get_daily_report(user, report_date: date, branch_id: str | None = None) -> dict:
     """Ежедневный отчёт 'Kunlik hisobot'."""
     branch_ids = _branch_ids_for_user(user, branch_id)
     yesterday = report_date - timedelta(days=1)
@@ -639,22 +639,10 @@ def get_daily_report(user, report_date: date_type, branch_id: str | None = None)
             "late_minutes": ta.late_minutes,
         })
 
-    # 5. ЛИДЫ
-    leads_today = Lead.objects.filter(
-        branch_id__in=branch_ids,
-        created_at__date=report_date,
-    )
-    leads_yesterday = Lead.objects.filter(
-        branch_id__in=branch_ids,
-        created_at__date=yesterday,
-    )
-    new_leads_count = leads_today.count()
-    new_leads_yesterday = leads_yesterday.count()
-
-    leads_list = list(
-        leads_today.order_by("-created_at")[:10]
-        .values("full_name", "phone", "source", "status", "created_at")
-    )
+    # 5. ЛИДЫ (заглушка, так как модель Lead не существует)
+    new_leads_count = 0
+    new_leads_yesterday = 0
+    leads_list = []
 
     return {
         "date": str(report_date),
@@ -704,18 +692,10 @@ def get_daily_report(user, report_date: date_type, branch_id: str | None = None)
             "list": teacher_list,
         },
         "leads": {
-            "today": new_leads_count,
-            "yesterday": new_leads_yesterday,
-            "delta": new_leads_count - new_leads_yesterday,
-            "list": [
-                {
-                    "name": l["full_name"],
-                    "source": l["source"] or "-",
-                    "status": l["status"],
-                    "time": l["created_at"].strftime("%H:%M"),
-                }
-                for l in leads_list
-            ],
+            "today": 0,
+            "yesterday": 0,
+            "delta": 0,
+            "list": [],
         },
     }
 
