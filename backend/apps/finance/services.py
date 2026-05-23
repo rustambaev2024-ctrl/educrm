@@ -96,7 +96,7 @@ def apply_payment(
     amount = Decimal(amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     if amount <= 0:
         raise ValueError("Amount must be greater than zero")
-    if payment_type not in {"top_up", "charge", "discount", "refund"}:
+    if payment_type not in {"top_up", "charge", "discount", "refund", "manual_charge", "manual_top_up"}:
         raise ValueError("Unsupported payment type")
 
     student = Student.objects.select_for_update().select_related("user").get(id=student.id)
@@ -106,7 +106,7 @@ def apply_payment(
     )
 
     delta = amount
-    if payment_type == "charge":
+    if payment_type in ("charge", "manual_charge"):
         delta = -amount
 
     balance_before = wallet.balance
@@ -148,7 +148,7 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
     If it was a top_up -> subtract from wallet (correction).
     """
     if payment.payment_type == "refund":
-         raise ValueError("Cannot reverse a refund payment")
+        raise ValueError("Cannot reverse a refund payment")
     
     comment = f"Reversal of payment {payment.id}"
     
@@ -181,7 +181,7 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
             lesson=payment.lesson,
             created_by=created_by,
             comment=comment,
-            category="other" # correction
+            category="other"  # correction
         )
     else:
         raise ValueError(f"Reversal for {payment.payment_type} not implemented")
