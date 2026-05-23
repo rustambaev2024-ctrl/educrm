@@ -414,6 +414,8 @@ const UZ: Dict = {
   "studentHome.myGroups": "Mening guruhlarim",
   "studentHome.active": "faol",
   "studentHome.noGroups": "Siz hali faol guruhga biriktirilmagansiz.",
+  "studentHome.lastPayments": "So'nggi",
+  "studentHome.noPayments": "To'lovlar tarixi yo'q",
 
   // Parent
   "parent.title": "Mening farzandlarim",
@@ -1043,6 +1045,8 @@ const RU: Dict = {
   "studentHome.myGroups": "Мои группы",
   "studentHome.active": "активно",
   "studentHome.noGroups": "Вы ещё не добавлены в активную группу.",
+  "studentHome.lastPayments": "Последние",
+  "studentHome.noPayments": "История платежей пуста",
 
   // Parent
   "parent.title": "Мои дети",

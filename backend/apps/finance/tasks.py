@@ -8,6 +8,7 @@ from django_tenants.utils import get_public_schema_name, get_tenant_model, schem
 from apps.courses.models import Group
 from apps.students.models import Student
 
+from .models import Payment
 from .services import (
     apply_payment,
     calculate_lesson_price,
@@ -51,27 +52,50 @@ def daily_lesson_charge():
                 lesson = group.lessons.filter(datetime__date=today).first()
                 if lesson and lesson.status == "cancelled":
                     continue
-                    
-                students_to_charge = group.students.exclude(status__in=["frozen", "archived", "graduate", "expelled"])
+
+                # БИЗНЕС-ПРАВИЛО: списание происходит со всех студентов группы
+                # независимо от посещаемости. Исключение: статус excused.
+                students_to_charge = group.students.exclude(
+                    status__in=["frozen", "archived", "graduate", "expelled"]
+                )
 
                 for student in students_to_charge:
+                    from apps.lessons.models import Attendance
+
+                    # --- Защита от двойного списания ---
+                    # 1. Проверяем is_charged в Attendance
                     if lesson:
-                        from apps.lessons.models import Attendance
-                        att = Attendance.objects.filter(lesson=lesson, student=student).first()
+                        att = Attendance.objects.filter(
+                            lesson=lesson, student=student
+                        ).first()
+                        if att and att.is_charged:
+                            continue  # уже списано за этот урок
                         if att and att.status == "excused":
-                            continue
+                            continue  # освобождён
+
+                    # 2. Проверяем наличие Payment за сегодня для этой группы
+                    already_charged = Payment.objects.filter(
+                        student=student,
+                        group=group,
+                        payment_type="charge",
+                        created_at__date=today,
+                    ).exists()
+                    if already_charged:
+                        continue  # пропустить — уже списано сегодня
 
                     try:
                         with transaction.atomic():
                             get_or_create_wallet(student)
-                            
+
                             # Determine category based on attendance
                             cat = "tuition"
                             if lesson:
-                                att = Attendance.objects.filter(lesson=lesson, student=student).first()
+                                att = Attendance.objects.filter(
+                                    lesson=lesson, student=student
+                                ).first()
                                 if att and att.status == "absent":
                                     cat = "absent_charge"
-                                    
+
                             apply_payment(
                                 student=student,
                                 payment_type="charge",
@@ -82,10 +106,14 @@ def daily_lesson_charge():
                                 comment=f"Daily lesson charge for {today}",
                             )
                             if lesson:
-                                from apps.lessons.models import Attendance
-                                Attendance.objects.filter(lesson=lesson, student=student).update(is_charged=True)
+                                Attendance.objects.filter(
+                                    lesson=lesson, student=student
+                                ).update(is_charged=True)
                     except Exception as e:
-                        logger.error(f"Failed to charge student {student.id} for group {group.id}: {e}")
+                        logger.error(
+                            f"Failed to charge student {student.id} "
+                            f"for group {group.id}: {e}"
+                        )
 
             logger.info(f"daily_lesson_charge completed for schema '{schema}'")
 

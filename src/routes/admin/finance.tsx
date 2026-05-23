@@ -242,7 +242,7 @@ function FinancePage() {
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.studentId ? studentById[p.studentId]?.fullName : "—"}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="capitalize">{p.type}</Badge>
+                        <PaymentTypeBadge type={p.type} />
                       </TableCell>
                       <TableCell className={`text-right font-semibold ${p.direction === 'in' ? 'text-success' : p.direction === 'out' ? 'text-destructive' : 'text-amber-600'}`}>
                         {p.direction === 'in' ? '+' : p.direction === 'out' ? '-' : '•'} {formatMoney(p.amount, lang)}
@@ -558,3 +558,17 @@ function ExpenseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
 
 // silence unused — `Receipt` only used for icon palette consistency
 void Receipt;
+
+function PaymentTypeBadge({ type }: { type: string }) {
+  const map: Record<string, { label: string; className: string }> = {
+    top_up: { label: "To'lov", className: "bg-success/15 text-success border-success/30" },
+    charge: { label: "Dars", className: "bg-info/15 text-info border-info/30" },
+    manual_charge: { label: "Qo'lda yechish", className: "bg-destructive/15 text-destructive border-destructive/30" },
+    manual_top_up: { label: "Qo'lda kirim", className: "bg-success/15 text-success border-success/30" },
+    refund: { label: "Qaytarish", className: "bg-warning/15 text-warning border-warning/30" },
+    discount: { label: "Chegirma", className: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
+    expense: { label: "Xarajat", className: "bg-destructive/15 text-destructive border-destructive/30" },
+  };
+  const info = map[type] ?? { label: type, className: "bg-muted text-muted-foreground" };
+  return <Badge variant="outline" className={`text-[10px] ${info.className}`}>{info.label}</Badge>;
+}

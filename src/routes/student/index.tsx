@@ -29,7 +29,7 @@ function StudentHome() {
   const studentId = useCurrentStudentId();
   const { user } = useAuth();
   const { t } = useI18n();
-  const { students, groups, courses, lessons, rooms, homework, submissions } = useData();
+  const { students, groups, courses, lessons, rooms, homework, submissions, payments } = useData();
 
   const student = useMemo(
     () => students.find((item) => item.id === studentId),
@@ -185,6 +185,50 @@ function StudentHome() {
               );
             })
           )}
+        </div>
+      </Card>
+      <Card className="p-4 shadow-elegant">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold">{t("studentHome.balance")}</h3>
+          <Badge variant="outline" className="text-[10px]">
+            {t("studentHome.lastPayments")}
+          </Badge>
+        </div>
+        <div className="space-y-1.5">
+          {(() => {
+            const myPayments = payments
+              .filter((p) => p.studentId === studentId)
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .slice(0, 10);
+            if (myPayments.length === 0) {
+              return (
+                <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+                  {t("studentHome.noPayments")}
+                </div>
+              );
+            }
+            return myPayments.map((p) => {
+              const isIncome = p.direction === "in";
+              return (
+                <div key={p.id} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`flex size-7 items-center justify-center rounded-md text-xs font-bold ${isIncome ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                      {isIncome ? "+" : "−"}
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium">
+                        {p.type === "top_up" || p.type === "manual_top_up" ? "To'lov" : p.type === "charge" || p.type === "manual_charge" ? "Dars uchun" : p.type === "discount" ? "Chegirma" : p.type === "refund" ? "Qaytarish" : p.type}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">{p.date.slice(0, 10)}</div>
+                    </div>
+                  </div>
+                  <div className={`text-sm font-bold ${isIncome ? "text-success" : "text-destructive"}`}>
+                    {isIncome ? "+" : "−"}{money(p.amount)}
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </div>
       </Card>
     </div>
