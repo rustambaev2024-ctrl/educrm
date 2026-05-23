@@ -31,10 +31,18 @@ function SchedulePage() {
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => startOfWeek(new Date()));
   const [selected, setSelected] = useState<Lesson | null>(null);
 
-  const days = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(weekAnchor, i)),
-    [weekAnchor],
-  );
+
+  // Генерация массива дней недели с обнулением времени (локальная дата)
+  const getWeekDays = (startOfWeek: Date): Date[] => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      d.setHours(0, 0, 0, 0); // сбросить время
+      return d;
+    });
+  };
+
+  const days = useMemo(() => getWeekDays(weekAnchor), [weekAnchor]);
 
   const lessonsByDay = useMemo(() => {
     const map = new Map<string, Lesson[]>();
