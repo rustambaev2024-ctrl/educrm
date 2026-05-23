@@ -37,7 +37,7 @@ function initialsOf(name: string) {
 function TeacherHomework() {
   const { t, lang } = useI18n();
   const teacherId = useCurrentTeacherId();
-  const { groups, homework, submissions, students, addHomework, gradeSubmission } = useData();
+  const { groups, homework, submissions, students, addHomework, gradeSubmission, isLoading } = useData();
 
   const myGroups = useMemo(() => groups.filter((g) => g.teacherId === teacherId), [groups, teacherId]);
   const myGroupIds = useMemo(() => new Set(myGroups.map((g) => g.id)), [myGroups]);
@@ -74,6 +74,14 @@ function TeacherHomework() {
     setCreateOpen(false);
     setForm({ title: "", description: "", groupId: "", dueDate: "" });
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   const renderList = (list: Homework[]) => {
     if (list.length === 0) {

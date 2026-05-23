@@ -16,7 +16,7 @@ export const Route = createFileRoute("/teacher/groups")({ component: TeacherGrou
 
 function TeacherGroupsPage() {
   const { t, lang } = useI18n();
-  const { groups, courses, rooms } = useData();
+  const { groups, courses, rooms, isLoading } = useData();
   const teacherId = useCurrentTeacherId();
   const [search, setSearch] = useState("");
 
@@ -29,6 +29,14 @@ function TeacherGroupsPage() {
 
   const courseById = useMemo(() => Object.fromEntries(courses.map((c) => [c.id, c])), [courses]);
   const roomById = useMemo(() => Object.fromEntries(rooms.map((r) => [r.id, r])), [rooms]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

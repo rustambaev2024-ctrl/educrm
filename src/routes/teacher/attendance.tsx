@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { groupApi } from "@/lib/api";
+import { groupApi, attendanceApi } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentTeacherId } from "@/lib/data/identity";
@@ -153,14 +153,31 @@ function AttendancePage() {
     setMarks(Object.fromEntries(groupStudents.map((s) => [s.id, "present" as const])));
   };
 
-  const handleSave = () => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
     if (!lesson) return;
     const records = groupStudents.map((s) => ({
       studentId: s.id,
       status: marks[s.id] ?? "absent",
     }));
-    setAttendance(lesson.id, records);
-    toast.success(t("att.saved"));
+    setIsSaving(true);
+    try {
+      await attendanceApi.bulkMark(
+        lesson.id,
+        records.map((r) => ({
+          student_id: r.studentId,
+          status: r.status,
+        })),
+      );
+      setAttendance(lesson.id, records);
+      toast.success(t("att.saved"));
+    } catch (err) {
+      console.error("[attendance] save failed:", err);
+      toast.error(lang === "uz" ? "Davomatni saqlashda xatolik" : "Ошибка сохранения посещаемости");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const summary = useMemo(() => {
@@ -209,8 +226,8 @@ function AttendancePage() {
                   <Button variant="outline" size="sm" onClick={markAllPresent}>
                     {t("att.markAll")}
                   </Button>
-                  <Button size="sm" onClick={handleSave}>
-                    <Save className="mr-1 size-4" /> {t("att.saveAll")}
+                  <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                    <Save className="mr-1 size-4" /> {isSaving ? "..." : t("att.saveAll")}
                   </Button>
                 </div>
               )}
