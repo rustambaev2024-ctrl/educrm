@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2 } from "lucide-react";
+import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { PasswordInput } from "@/components/edu/password-input";
@@ -415,6 +415,11 @@ function StudentDetailSheet({
   const { t, lang } = useI18n();
   const { groups, parents, payments, updateStudentPasswords, assignParent, reload } = useData();
   const open = student !== null;
+
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [chargeOpen, setChargeOpen] = useState(false);
+  const [topUpForm, setTopUpForm] = useState({ amount: "", method: "cash", comment: "" });
+  const [chargeForm, setChargeForm] = useState({ amount: "", method: "cash", comment: "" });
   const [newStudentPassword, setNewStudentPassword] = useState("");
   const [newParentPassword, setNewParentPassword] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -499,6 +504,60 @@ function StudentDetailSheet({
       toast.error(msg ?? "Xatolik yuz berdi");
     }
   };
+
+  async function handleTopUp() {
+    if (!student) return;
+    if (!topUpForm.amount || Number(topUpForm.amount) <= 0) {
+      toast.error("Summani kiriting");
+      return;
+    }
+    try {
+      await paymentApi.create({
+        student_id: student.id,
+        payment_type: "manual_top_up",
+        amount: topUpForm.amount,
+        method: topUpForm.method,
+        comment: topUpForm.comment,
+      });
+      toast.success("Balans to'ldirildi");
+      setTopUpOpen(false);
+      setTopUpForm({ amount: "", method: "cash", comment: "" });
+      paymentApi.list({ student_id: student.id })
+        .then((data) => setStudentPayments(mapPayments(data as any)))
+        .catch((e) => console.error("Failed to load student payments", e));
+      reload();
+    } catch (err: any) {
+      const msg = err?.body?.detail || "Xatolik yuz berdi";
+      toast.error(msg);
+    }
+  }
+
+  async function handleCharge() {
+    if (!student) return;
+    if (!chargeForm.amount || Number(chargeForm.amount) <= 0) {
+      toast.error("Summani kiriting");
+      return;
+    }
+    try {
+      await paymentApi.create({
+        student_id: student.id,
+        payment_type: "manual_charge",
+        amount: chargeForm.amount,
+        method: chargeForm.method,
+        comment: chargeForm.comment,
+      });
+      toast.success("Balansdan yechib olindi");
+      setChargeOpen(false);
+      setChargeForm({ amount: "", method: "cash", comment: "" });
+      paymentApi.list({ student_id: student.id })
+        .then((data) => setStudentPayments(mapPayments(data as any)))
+        .catch((e) => console.error("Failed to load student payments", e));
+      reload();
+    } catch (err: any) {
+      const msg = err?.body?.detail || "Xatolik yuz berdi";
+      toast.error(msg);
+    }
+  }
 
   async function handleTransfer() {
     if (!student || !transferForm.fromGroupId || !transferForm.toGroupId) return;
@@ -594,6 +653,14 @@ function StudentDetailSheet({
               <div className="text-xs text-muted-foreground">{t("students.col.balance")}</div>
               <div className={`text-xl font-semibold tabular-nums ${student.balance < 0 ? "text-destructive" : "text-foreground"}`}>
                 {formatMoney(student.balance, lang)}
+              </div>
+              <div className="flex gap-2 mt-2 justify-end">
+                <Button variant="outline" size="sm" className="text-success border-success/20 hover:bg-success hover:text-success-foreground" onClick={() => setTopUpOpen(true)}>
+                  <ArrowDownCircle className="size-3.5 mr-1" /> To'ldirish
+                </Button>
+                <Button variant="outline" size="sm" className="text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" onClick={() => setChargeOpen(true)}>
+                  <ArrowUpCircle className="size-3.5 mr-1" /> Yechish
+                </Button>
               </div>
             </div>
           </div>
@@ -707,7 +774,7 @@ function StudentDetailSheet({
                 }
                 return stuPayments.map((p) => {
                   const grp = p.groupId ? groups.find((g) => g.id === p.groupId) : undefined;
-                  const isPositive = p.type === "top_up" || p.type === "discount";
+                  const isPositive = p.type === "top_up" || p.type === "discount" || p.type === "manual_top_up";
                   const Icon = isPositive ? Plus : Minus;
                   const colorClass = isPositive ? "text-success" : "text-destructive";
                   const bgClass = isPositive ? "bg-success/10" : "bg-destructive/10";
@@ -720,6 +787,8 @@ function StudentDetailSheet({
                     discount: "Chegirma",
                     refund: "Qaytarish",
                     expense: "Xarajat",
+                    manual_top_up: "Qo'lda to'ldirish",
+                    manual_charge: "Qo'lda yechish",
                   };
                   const typeLabel = typeLabels[p.type] || p.type;
 
@@ -1029,6 +1098,80 @@ function StudentDetailSheet({
             <Button onClick={handleAssignParent}>
               Saqlash
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Top Up Dialog */}
+      <Dialog open={topUpOpen} onOpenChange={setTopUpOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Balansni to'ldirish</DialogTitle>
+            <DialogDescription>O'quvchi balansiga qo'lda pul qo'shish</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Summa</Label>
+              <Input type="number" placeholder="0" value={topUpForm.amount} onChange={(e) => setTopUpForm(f => ({ ...f, amount: e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <Label>To'lov usuli</Label>
+              <Select value={topUpForm.method} onValueChange={(v) => setTopUpForm(f => ({ ...f, method: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Naqd</SelectItem>
+                  <SelectItem value="card">Karta</SelectItem>
+                  <SelectItem value="transfer">O'tkazma</SelectItem>
+                  <SelectItem value="click">Click</SelectItem>
+                  <SelectItem value="payme">Payme</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Izoh</Label>
+              <Textarea placeholder="Izoh..." value={topUpForm.comment} onChange={(e) => setTopUpForm(f => ({ ...f, comment: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTopUpOpen(false)}>Bekor qilish</Button>
+            <Button onClick={handleTopUp}>To'ldirish</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Charge Dialog */}
+      <Dialog open={chargeOpen} onOpenChange={setChargeOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Balansdan yechib olish</DialogTitle>
+            <DialogDescription>O'quvchi balansidan qo'lda pul yechish</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Summa</Label>
+              <Input type="number" placeholder="0" value={chargeForm.amount} onChange={(e) => setChargeForm(f => ({ ...f, amount: e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <Label>To'lov usuli</Label>
+              <Select value={chargeForm.method} onValueChange={(v) => setChargeForm(f => ({ ...f, method: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Naqd</SelectItem>
+                  <SelectItem value="card">Karta</SelectItem>
+                  <SelectItem value="transfer">O'tkazma</SelectItem>
+                  <SelectItem value="click">Click</SelectItem>
+                  <SelectItem value="payme">Payme</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Izoh</Label>
+              <Textarea placeholder="Izoh..." value={chargeForm.comment} onChange={(e) => setChargeForm(f => ({ ...f, comment: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChargeOpen(false)}>Bekor qilish</Button>
+            <Button variant="destructive" onClick={handleCharge}>Yechish</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

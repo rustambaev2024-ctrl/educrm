@@ -29,6 +29,8 @@ class Payment(models.Model):
         ("discount", "Discount"),
         ("refund", "Refund"),
         ("expense", "Expense"),
+        ("manual_charge", "Manual Charge"),
+        ("manual_top_up", "Manual Top Up"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

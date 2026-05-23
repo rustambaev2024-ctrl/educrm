@@ -44,7 +44,10 @@ class PaymentSerializer(serializers.ModelSerializer):
 
 class PaymentCreateSerializer(serializers.Serializer):
     student_id = serializers.UUIDField(required=False)
-    payment_type = serializers.ChoiceField(choices=["top_up", "discount", "refund", "charge", "expense"])
+    payment_type = serializers.ChoiceField(choices=[
+        "top_up", "discount", "refund", "charge", "expense",
+        "manual_charge", "manual_top_up"
+    ])
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     branch_id = serializers.UUIDField(required=False)
     group_id = serializers.UUIDField(required=False)
