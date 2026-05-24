@@ -30,7 +30,7 @@ function makePassword() {
 }
 
 function AccountsPage() {
-  const { staff, students, parents, branches, updateStaff, updateStudentPasswords, updateParentPassword } = useData();
+  const { staff, students, parents, branches, updateStaff, updateStudentPasswords, updateParentPassword, isLoading } = useData();
   const { lang } = useI18n();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"all" | AccountType>("all");
@@ -111,6 +111,14 @@ function AccountsPage() {
     if (row.type === "parent") updateParentPassword(row.id, password);
     toast.success(t("saved"));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

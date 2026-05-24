@@ -27,7 +27,7 @@ export const Route = createFileRoute("/admin/schedule")({ component: SchedulePag
 
 function SchedulePage() {
   const { t, lang } = useI18n();
-  const { lessons, groups, rooms, staff, courses } = useData();
+  const { lessons, groups, rooms, staff, courses, isLoading } = useData();
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => startOfWeek(new Date()));
   const [selected, setSelected] = useState<Lesson | null>(null);
 
@@ -63,6 +63,14 @@ function SchedulePage() {
   const today = new Date();
   const weekStartLabel = formatDate(weekAnchor.toISOString(), lang);
   const weekEndLabel = formatDate(addDays(weekAnchor, 6).toISOString(), lang);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

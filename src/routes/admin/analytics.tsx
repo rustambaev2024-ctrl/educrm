@@ -16,7 +16,7 @@ const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--cha
 
 function AdminAnalytics() {
   const { t, lang } = useI18n();
-  const { students, groups, lessons, payments, attendance, courses } = useData();
+  const { students, groups, lessons, payments, attendance, courses, isLoading } = useData();
 
   const totalIncome = payments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
   const completedLessons = lessons.filter((l) => l.status === "completed").length;
@@ -53,6 +53,14 @@ function AdminAnalytics() {
       return { name: c.name, value: studentSet.size };
     });
   }, [courses, groups]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

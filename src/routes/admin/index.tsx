@@ -15,7 +15,7 @@ export const Route = createFileRoute("/admin/")({ component: AdminHome });
 
 function AdminHome() {
   const { t, lang } = useI18n();
-  const { students, groups, lessons, payments, staff, rooms, courses, branches } = useData();
+  const { students, groups, lessons, payments, staff, rooms, courses, branches, isLoading } = useData();
 
   const today = new Date();
   const weekAgo = new Date();
@@ -46,6 +46,14 @@ function AdminHome() {
   const courseById = useMemo(() => Object.fromEntries(courses.map((c) => [c.id, c])), [courses]);
   const studentById = useMemo(() => Object.fromEntries(students.map((s) => [s.id, s])), [students]);
   const branchName = branches[0]?.name ?? "";
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

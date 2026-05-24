@@ -49,7 +49,7 @@ const METHODS: PaymentMethod[] = ["cash", "card", "transfer", "click", "payme"];
 
 function FinancePage() {
   const { t, lang } = useI18n();
-  const { payments, students, groups, reversePayment } = useData();
+  const { payments, students, groups, reversePayment, isLoading } = useData();
   const [payOpen, setPayOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
@@ -99,6 +99,14 @@ function FinancePage() {
       };
     });
   }, [students, payments, dateFrom, dateTo]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
   
   return (
     <>

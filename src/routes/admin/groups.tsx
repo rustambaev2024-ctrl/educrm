@@ -17,6 +17,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -36,7 +46,7 @@ const DAYS: DayOfWeek[] = [1, 2, 3, 4, 5, 6, 7];
 
 function GroupsPage() {
   const { t, lang } = useI18n();
-  const { groups, courses, staff, rooms } = useData();
+  const { groups, courses, staff, rooms, isLoading } = useData();
 
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -51,6 +61,14 @@ function GroupsPage() {
 
   const selected = useMemo(() => groups.find((g) => g.id === selectedId) ?? null, [groups, selectedId]);
   const editGroup = useMemo(() => groups.find((g) => g.id === editId) ?? null, [groups, editId]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -276,6 +294,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
   const { t, lang } = useI18n();
   const { students, courses, staff, rooms, addStudentToGroup, removeStudentFromGroup, lessons, deleteGroup, updateGroup } = useData();
   const [studentSearch, setStudentSearch] = useState("");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const open = group !== null;
   if (!group) return <Sheet open={open} onOpenChange={(v) => !v && onClose()}><SheetContent /></Sheet>;
 
@@ -308,14 +327,11 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
       toast.warning("Avval guruhdagi o'quvchilarni olib tashlang.");
       return;
     }
-    if (confirm("Guruhni butunlay o'chirishni xohlaysizmi?")) {
-      deleteGroup(group.id);
-      toast.success("Guruh o'chirildi");
-      onClose();
-    }
+    setConfirmDeleteOpen(true);
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
         <SheetHeader>
@@ -488,6 +504,21 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
         </div>
       </SheetContent>
     </Sheet>
+    <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Guruhni o'chirish</AlertDialogTitle>
+          <AlertDialogDescription>Guruhni butunlay o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+          <AlertDialogAction onClick={() => { deleteGroup(group.id); toast.success("Guruh o'chirildi"); onClose(); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            O'chirish
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
