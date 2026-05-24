@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { parentApi } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -23,8 +24,8 @@ function ParentHome() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
   const parentId = useCurrentParentId();
-  const { parents, students, lessons, groups, rooms, homework, submissions, attendance, syncParentChild, isLoading } = useData();
-  const [studentId, setStudentId] = useState("");
+  const { parents, students, lessons, groups, rooms, homework, submissions, attendance, reload, isLoading } = useData();
+  const [linkCode, setLinkCode] = useState("");
   const [syncing, setSyncing] = useState(false);
 
   const me = useMemo(() => parents.find((p) => p.id === parentId), [parents, parentId]);
@@ -60,26 +61,29 @@ function ParentHome() {
         <div>
           <div className="font-semibold">Farzandni ulash</div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Admin bergan o'quvchi ID raqamini kiriting. Ulangandan keyin bola shu kabinetda ko'rinadi.
+            Admin bergan 6 xonali kodni kiriting. Kod 24 soat amal qiladi.
           </p>
         </div>
         <div className="flex gap-2">
           <Input
-            value={studentId}
-            onChange={(event) => setStudentId(event.target.value)}
-            placeholder="O'quvchi ID"
-            className="font-mono text-xs"
+            value={linkCode}
+            onChange={(event) => setLinkCode(event.target.value.replace(/\D/g, ""))}
+            placeholder="123456"
+            maxLength={6}
+            inputMode="numeric"
+            className="font-mono text-lg tracking-widest text-center"
           />
           <Button
-            disabled={syncing || !studentId.trim()}
+            disabled={syncing || linkCode.length !== 6}
             onClick={async () => {
               setSyncing(true);
               try {
-                await syncParentChild(studentId.trim());
-                setStudentId("");
+                await parentApi.linkChild(linkCode);
+                setLinkCode("");
+                await reload();
                 toast.success("Farzand kabinetga ulandi");
               } catch {
-                toast.error("O'quvchi topilmadi yoki ulab bo'lmadi");
+                toast.error("Kod noto'g'ri yoki muddati o'tgan");
               } finally {
                 setSyncing(false);
               }

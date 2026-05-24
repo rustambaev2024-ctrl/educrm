@@ -380,6 +380,11 @@ export const studentApi = {
         parent_password: parentData.parentPassword,
       }),
     }),
+  generateLinkCode: (studentId: string) =>
+    requestJson<{ code: string; expires_at: string; student_name: string }>(
+      `/students/${studentId}/generate-link-code/`,
+      { method: "POST" },
+    ),
   me: () => requestJson("/student/me/"),
   mySchedule: () => requestJson("/student/me/schedule/"),
   myAttendance: () => requestJson("/student/me/attendance/"),
@@ -401,10 +406,10 @@ export const parentApi = {
   list: () => requestJson("/parents/"),
   me: () => requestJson("/parent/me/"),
   children: () => requestJson("/parent/me/children/"),
-  linkChild: (studentId: string) =>
+  linkChild: (code: string) =>
     requestJson("/parent/me/children/link/", {
       method: "POST",
-      body: JSON.stringify({ student_id: studentId }),
+      body: JSON.stringify({ code }),
     }),
 };
 

@@ -13,7 +13,7 @@ from apps.lessons.serializers import AttendanceSerializer
 
 from apps.students.meta_conversions import send_lead_event
 
-from .models import Parent, Student, StudentLead
+from .models import Parent, ParentLinkCode, Student, StudentLead
 from .serializers import (
     CertificateSerializer,
     ParentSerializer,
@@ -293,6 +293,17 @@ class StudentViewSet(viewsets.ModelViewSet):
             "created": created
         }, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=["post"], url_path="generate-link-code")
+    def generate_link_code(self, request, pk=None):
+        student = self.get_object()
+        if request.user.role not in ("admin", "branch_admin", "director", "superadmin"):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        code_obj = ParentLinkCode.generate_for_student(student)
+        return Response({
+            "code": code_obj.code,
+            "expires_at": code_obj.expires_at.isoformat(),
+            "student_name": student.user.full_name,
+        })
 
 
 class ParentViewSet(viewsets.ReadOnlyModelViewSet):

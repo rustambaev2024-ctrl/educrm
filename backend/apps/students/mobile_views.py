@@ -416,18 +416,43 @@ class ParentMeChildrenView(APIView):
 class ParentLinkChildView(APIView):
     permission_classes = [IsParent]
 
-    @extend_schema(request=ParentChildLinkSerializer, responses=OpenApiTypes.OBJECT)
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def post(self, request):
-        serializer = ParentChildLinkSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        student = Student.objects.get(id=serializer.validated_data["student_id"])
+        code = (request.data.get("code") or "").strip()
+        if not code or len(code) != 6:
+            return Response(
+                {"detail": "6 xonali kod kiriting"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from django.utils import timezone
+        from .models import ParentLinkCode
+
+        try:
+            link_code = ParentLinkCode.objects.select_related("student__user").get(
+                code=code,
+                is_used=False,
+                expires_at__gt=timezone.now(),
+            )
+        except ParentLinkCode.DoesNotExist:
+            return Response(
+                {"detail": "Kod noto'g'ri yoki muddati o'tgan"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        student = link_code.student
         parent, _ = Parent.objects.get_or_create(user=request.user)
         link, created = ParentStudentLink.objects.get_or_create(parent=parent, student=student)
+
+        link_code.is_used = True
+        link_code.save(update_fields=["is_used"])
+
         return Response(
             {
-                "linked": created,
+                "detail": "Muvaffaqiyatli ulandi",
+                "student_name": student.user.full_name,
                 "student_id": str(student.id),
-                "linked_at": link.linked_at.isoformat(),
+                "created": created,
             },
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )

@@ -186,3 +186,40 @@ class StudentLead(models.Model):
 
     def __str__(self) -> str:
         return f"{self.full_name} ({self.phone})"
+
+
+class ParentLinkCode(models.Model):
+    student = models.OneToOneField(
+        Student,
+        on_delete=models.CASCADE,
+        related_name="parent_link_code",
+    )
+    code = models.CharField(max_length=6, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "students_parent_link_code"
+
+    @classmethod
+    def generate_for_student(cls, student):
+        import random
+        import string
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        code = "".join(random.choices(string.digits, k=6))
+        obj, _ = cls.objects.update_or_create(
+            student=student,
+            defaults={
+                "code": code,
+                "expires_at": timezone.now() + timedelta(hours=24),
+                "is_used": False,
+            },
+        )
+        return obj
+
+    def __str__(self):
+        return f"{self.student} - {self.code}"
