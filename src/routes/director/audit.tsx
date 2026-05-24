@@ -38,7 +38,7 @@ const TONES: Record<AuditAction, string> = {
 
 function AuditPage() {
   const { t, lang } = useI18n();
-  const { auditLog } = useData();
+  const { auditLog, isLoading } = useData();
   const [search, setSearch] = useState("");
   const [action, setAction] = useState<"all" | AuditAction>("all");
 
@@ -52,6 +52,14 @@ function AuditPage() {
       })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [auditLog, action, search, t]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

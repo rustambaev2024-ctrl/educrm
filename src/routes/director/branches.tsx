@@ -25,7 +25,7 @@ export const Route = createFileRoute("/director/branches")({ component: Branches
 
 function BranchesPage() {
   const { t } = useI18n();
-  const { branches, rooms, staff, students, groups, addRoom, updateRoom, deleteRoom } = useData();
+  const { branches, rooms, staff, students, groups, addRoom, updateRoom, deleteRoom, isLoading } = useData();
   const [openRoom, setOpenRoom] = useState(false);
   const [draggedRoomId, setDraggedRoomId] = useState<string | null>(null);
 
@@ -48,6 +48,14 @@ function BranchesPage() {
     toast.success("Kabinet boshqa filialga ko'chirildi");
     setDraggedRoomId(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

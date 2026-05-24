@@ -74,7 +74,7 @@ function calculateSalaryRow(staffMember: Staff, groups: Group[], periodPayments:
 
 function DirectorSalaries() {
   const { t, lang } = useI18n();
-  const { staff, groups, payments, penalties, branches, addPayment } = useData();
+  const { staff, groups, payments, penalties, branches, addPayment, isLoading } = useData();
   const activeStaff = useMemo(() => staff.filter((item) => item.role !== "director"), [staff]);
   const [staffId, setStaffId] = useState(() => activeStaff[0]?.id ?? "");
   const [period, setPeriod] = useState(() => new Date().toISOString().slice(0, 7));
@@ -133,6 +133,14 @@ function DirectorSalaries() {
   const salaryHistory = payments
     .filter((payment) => payment.direction === "out" && payment.category === "salary")
     .sort((a, b) => b.date.localeCompare(a.date));
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   const savePayout = () => {
     if (!selected) return;

@@ -49,7 +49,7 @@ const empty: FormState = { fullName: "", phone: "", password: "", role: "teacher
 
 function StaffPage() {
   const { t, lang } = useI18n();
-  const { staff, branches, groups, payments, addStaff, updateStaff, deleteStaff } = useData();
+  const { staff, branches, groups, payments, addStaff, updateStaff, deleteStaff, isLoading } = useData();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"all" | "teachers" | "admins">("all");
   const [open, setOpen] = useState(false);
@@ -138,6 +138,14 @@ function StaffPage() {
     deleteStaff(s.id);
     toast.success(t("staff.deleted"));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

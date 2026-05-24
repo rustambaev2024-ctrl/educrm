@@ -31,7 +31,7 @@ import { useData } from "@/lib/data/store";
 export const Route = createFileRoute("/director/courses")({ component: DirectorCoursesPage });
 
 function DirectorCoursesPage() {
-  const { courses, groups, addCourse, updateCourse, deleteCourse } = useData();
+  const { courses, groups, addCourse, updateCourse, deleteCourse, isLoading } = useData();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
@@ -116,6 +116,14 @@ function DirectorCoursesPage() {
     toast.success("Kurs o'chirildi");
     setDeleteCourseId(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

@@ -18,7 +18,7 @@ const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--cha
 
 function AnalyticsPage() {
   const { t, lang } = useI18n();
-  const { students, groups, courses, branches, payments, attendance, staff } = useData();
+  const { students, groups, courses, branches, payments, attendance, staff, isLoading } = useData();
 
   // Monthly revenue for last 6 months
   const monthly = useMemo(() => {
@@ -69,6 +69,14 @@ function AnalyticsPage() {
   const totalExpense = payments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
   const overdueAmount = students.filter((s) => s.status === "debtor").reduce((s, st) => s + Math.abs(st.balance), 0);
   const attPct = attendancePercentage(attendance);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

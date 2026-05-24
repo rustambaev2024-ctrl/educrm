@@ -21,7 +21,7 @@ export const Route = createFileRoute("/director/")({ component: DirectorHome });
 function DirectorHome() {
   const { t, lang } = useI18n();
   const {
-    students, groups, staff, courses, branches, payments, lessons, attendance, auditLog,
+    students, groups, staff, courses, branches, payments, lessons, attendance, auditLog, isLoading,
   } = useData();
 
   const monthStart = useMemo(() => {
@@ -99,6 +99,14 @@ function DirectorHome() {
 
   const recentAudit = auditLog.slice(0, 6);
   const branchById = useMemo(() => Object.fromEntries(branches.map((b) => [b.id, b])), [branches]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
