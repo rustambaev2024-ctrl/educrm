@@ -31,17 +31,17 @@ const TONES: Record<AuditAction, string> = {
 
 function SaLogs() {
   const { t, lang } = useI18n();
-  const { auditLog, institutions } = useData();
+  const { auditLog, isLoading } = useData();
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<"all" | "director" | "admin" | "teacher">("all");
 
-  // Synthesize platform-level events by mixing audit log with institution names
+  // Use institution name from audit entry if available, otherwise show schema
   const platformEvents = useMemo(() => {
-    return auditLog.map((a, i) => ({
+    return auditLog.map((a) => ({
       ...a,
-      institutionName: institutions[i % institutions.length]?.name ?? "EduCentre Tashkent",
+      institutionName: (a as any).institutionName ?? "—",
     }));
-  }, [auditLog, institutions]);
+  }, [auditLog]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -53,6 +53,14 @@ function SaLogs() {
       })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [platformEvents, role, search, t]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

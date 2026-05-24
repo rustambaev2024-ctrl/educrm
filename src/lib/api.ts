@@ -565,6 +565,14 @@ export const superadminApi = {
   unfreeze: (id: string) => requestJson(`/superadmin/institutions/${id}/unfreeze/`, { method: "POST" }),
   logs: (params?: Record<string, string>) =>
     requestJson(`/superadmin/logs/${params ? `?${new URLSearchParams(params)}` : ""}`),
+  settings: {
+    get: () => requestJson("/superadmin/settings/"),
+    update: (data: Record<string, unknown>) =>
+      requestJson("/superadmin/settings/1/", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+  },
 };
 
 

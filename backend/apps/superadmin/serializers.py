@@ -177,3 +177,20 @@ class InstitutionActionLogSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = fields
+
+
+class PlatformSettingsSerializer(serializers.Serializer):
+    platform_name = serializers.CharField(max_length=255, required=False)
+    support_email = serializers.EmailField(required=False, allow_blank=True)
+    support_phone = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    default_language = serializers.CharField(max_length=10, required=False)
+    primary_color = serializers.CharField(max_length=7, required=False)
+    session_timeout = serializers.IntegerField(required=False, min_value=5, max_value=480)
+    require_2fa = serializers.BooleanField(required=False)
+    strong_password = serializers.BooleanField(required=False)
+
+    def update(self, instance, validated_data):
+        for key, value in validated_data.items():
+            setattr(instance, key, value)
+        instance.save()
+        return instance

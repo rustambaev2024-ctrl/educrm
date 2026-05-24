@@ -9,19 +9,21 @@ from apps.institutions.models import Branch
 from apps.institutions.serializers import BranchSerializer
 from apps.tenants.models import Institution
 
-from .models import InstitutionActionLog
+from .models import InstitutionActionLog, PlatformSettings
 from .serializers import (
     InstitutionActionLogSerializer,
     InstitutionNoticeSerializer,
     InstitutionSerializer,
+    PlatformSettingsSerializer,
 )
-from .services import create_institution_with_bootstrap, create_notice, set_institution_status
+from .services import create_institution_with_bootstrap, create_notice, set_institution_status, write_institution_log
 
 
 class SuperadminInstitutionViewSet(
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
@@ -91,6 +93,17 @@ class SuperadminInstitutionViewSet(
                     {"detail": str(e)},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
+    def partial_update(self, request, *args, **kwargs):
+        with schema_context("public"):
+            institution = self.get_object()
+            allowed = {"name", "address", "phone", "status", "subscription_end"}
+            data = {k: v for k, v in request.data.items() if k in allowed}
+            for key, value in data.items():
+                setattr(institution, key, value)
+            institution.save()
+            write_institution_log(institution, "update", user=request.user, message="Institution updated")
+            return Response(self.get_serializer(institution).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["patch"], url_path="freeze")
     def freeze(self, request, pk=None):
@@ -206,3 +219,21 @@ class SuperadminLogViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 | Q(actor_phone__icontains=search)
             )
         return queryset.order_by("-created_at")
+
+
+class PlatformSettingsView(viewsets.ViewSet):
+    permission_classes = [IsSuperAdmin]
+
+    def list(self, request):
+        with schema_context("public"):
+            settings = PlatformSettings.get()
+            serializer = PlatformSettingsSerializer(settings)
+            return Response(serializer.data)
+
+    def partial_update(self, request, pk=None):
+        with schema_context("public"):
+            settings = PlatformSettings.get()
+            serializer = PlatformSettingsSerializer(settings, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.update(settings, serializer.validated_data)
+            return Response(PlatformSettingsSerializer(settings).data)

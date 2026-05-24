@@ -13,7 +13,7 @@ export const Route = createFileRoute("/superadmin/analytics")({ component: SaAna
 
 function SaAnalytics() {
   const { t, lang } = useI18n();
-  const { institutions } = useData();
+  const { institutions, isLoading } = useData();
 
   const active = institutions.filter((i) => i.status === "active");
   const mrr = active.reduce((s, i) => s + i.monthlyRevenue, 0);
@@ -34,6 +34,14 @@ function SaAnalytics() {
     () => [...active].sort((a, b) => b.monthlyRevenue - a.monthlyRevenue).slice(0, 8).map((i) => ({ name: i.name, value: Math.round(i.monthlyRevenue / 1_000_000) })),
     [active],
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

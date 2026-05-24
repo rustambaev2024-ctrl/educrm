@@ -65,3 +65,26 @@ class InstitutionNotice(models.Model):
         db_table = "superadmin_institution_notice"
         ordering = ["-created_at"]
 
+
+class PlatformSettings(models.Model):
+    platform_name = models.CharField(max_length=255, default="EduCRM")
+    support_email = models.EmailField(blank=True, default="support@educrm.uz")
+    support_phone = models.CharField(max_length=50, blank=True, default="+998 71 200 00 00")
+    default_language = models.CharField(max_length=10, default="uz")
+    primary_color = models.CharField(max_length=7, default="#6366f1")
+    session_timeout = models.IntegerField(default=30)
+    require_2fa = models.BooleanField(default=False)
+    strong_password = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "superadmin_platform_settings"
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(id=1)
+        return obj
+
+    def __str__(self):
+        return self.platform_name
+

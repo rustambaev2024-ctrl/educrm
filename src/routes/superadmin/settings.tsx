@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Save, Settings as SettingsIcon, ShieldCheck, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { superadminApi } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/superadmin/settings")({ component: SaSettings });
@@ -17,26 +18,67 @@ export const Route = createFileRoute("/superadmin/settings")({ component: SaSett
 function SaSettings() {
   const { t } = useI18n();
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [platformName, setPlatformName] = useState("EduCRM");
-  const [supportEmail, setSupportEmail] = useState("support@educrm.uz");
-  const [supportPhone, setSupportPhone] = useState("+998 71 200 00 00");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportPhone, setSupportPhone] = useState("");
   const [defaultLang, setDefaultLang] = useState("uz");
   const [defaultTheme, setDefaultTheme] = useState("system");
 
-  const [twoFactor, setTwoFactor] = useState(true);
+  const [twoFactor, setTwoFactor] = useState(false);
   const [strongPwd, setStrongPwd] = useState(true);
-  const [sessionTimeout, setSessionTimeout] = useState(60);
+  const [sessionTimeout, setSessionTimeout] = useState(30);
 
-  const [primaryColor, setPrimaryColor] = useState("#3B82F6");
+  const [primaryColor, setPrimaryColor] = useState("#6366f1");
 
-  const save = () => {
+  useEffect(() => {
+    superadminApi.settings.get()
+      .then((data: any) => {
+        if (data) {
+          setPlatformName(data.platform_name ?? "EduCRM");
+          setSupportEmail(data.support_email ?? "");
+          setSupportPhone(data.support_phone ?? "");
+          setDefaultLang(data.default_language ?? "uz");
+          setPrimaryColor(data.primary_color ?? "#6366f1");
+          setSessionTimeout(data.session_timeout ?? 30);
+          setTwoFactor(data.require_2fa ?? false);
+          setStrongPwd(data.strong_password ?? true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      await superadminApi.settings.update({
+        platform_name: platformName,
+        support_email: supportEmail,
+        support_phone: supportPhone,
+        default_language: defaultLang,
+        primary_color: primaryColor,
+        session_timeout: sessionTimeout,
+        require_2fa: twoFactor,
+        strong_password: strongPwd,
+      });
       toast.success(t("sa.settings.saved"));
-    }, 400);
+    } catch (err) {
+      console.error(err);
+      toast.error("Sozlamalarni saqlashda xatolik");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

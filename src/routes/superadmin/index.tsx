@@ -73,7 +73,7 @@ function makeSchemaSlug(value: string) {
 
 function SuperadminHome() {
   const { t, lang } = useI18n();
-  const { institutions, branches, addInstitution, updateInstitution, deleteInstitution, addBranch, deleteBranch } = useData();
+  const { institutions, branches, addInstitution, updateInstitution, deleteInstitution, addBranch, deleteBranch, isLoading } = useData();
   const [search, setSearch] = useState("");
   const [statusF, setStatusF] = useState<"all" | InstitutionStatus>("all");
 
@@ -83,6 +83,9 @@ function SuperadminHome() {
 
   const [branchInst, setBranchInst] = useState<Institution | null>(null);
   const [branchForm, setBranchForm] = useState({ name: "", address: "" });
+  const [deleteTarget, setDeleteTarget] = useState<Institution | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const activeBranchInst = useMemo(() => {
     if (!branchInst) return null;
     return (
@@ -166,8 +169,12 @@ function SuperadminHome() {
   };
 
   const handleDelete = (i: Institution) => {
+    setDeleting(true);
     deleteInstitution(i.id);
     toast.success(t("sa.deleted"));
+    setDeleteTarget(null);
+    setDeleteConfirmText("");
+    setDeleting(false);
   };
 
   const submitBranch = () => {
@@ -190,6 +197,14 @@ function SuperadminHome() {
   };
 
   const branchesOf = (id: string) => branches.filter((b) => b.institutionId === id);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -275,19 +290,32 @@ function SuperadminHome() {
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="ghost" className="text-destructive" title={t("sa.delete")}>
+                            <Button size="icon" variant="ghost" className="text-destructive" title={t("sa.delete")} onClick={() => { setDeleteTarget(i); setDeleteConfirmText(""); }}>
                               <Trash2 className="size-4" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>{t("sa.delete")}</AlertDialogTitle>
-                              <AlertDialogDescription>{t("common.confirmDelete")} — {i.name}</AlertDialogDescription>
+                              <AlertDialogDescription>
+                                {t("common.confirmDelete")} — <strong>{i.name}</strong>
+                                <br /><br />
+                                <span className="text-xs">Tasdiqlash uchun &quot;{i.name}&quot; deb yozing:</span>
+                              </AlertDialogDescription>
                             </AlertDialogHeader>
+                            <Input
+                              placeholder={`"${i.name}" deb yozing`}
+                              value={deleteTarget?.id === i.id ? deleteConfirmText : ""}
+                              onChange={(e) => { setDeleteTarget(i); setDeleteConfirmText(e.target.value); }}
+                            />
                             <AlertDialogFooter>
-                              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(i)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                {t("common.delete")}
+                              <AlertDialogCancel onClick={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}>{t("common.cancel")}</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(i)}
+                                disabled={deleteConfirmText !== i.name || deleting}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                              >
+                                {deleting ? "..." : t("common.delete")}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
