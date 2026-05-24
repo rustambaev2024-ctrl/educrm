@@ -26,7 +26,7 @@ function scoreTone(pct: number) {
 function ParentChildren() {
   const { t, lang } = useI18n();
   const parentId = useCurrentParentId();
-  const { parents, students, lessons, groups, rooms, grades, attendance, homework, submissions, staff } = useData();
+  const { parents, students, lessons, groups, rooms, grades, attendance, homework, submissions, staff, isLoading } = useData();
 
   const me = useMemo(() => parents.find((p) => p.id === parentId), [parents, parentId]);
   const children = useMemo(
@@ -39,6 +39,14 @@ function ParentChildren() {
   const groupById = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
   const roomById = useMemo(() => Object.fromEntries(rooms.map((r) => [r.id, r])), [rooms]);
   const teacherById = useMemo(() => Object.fromEntries(staff.map((s) => [s.id, s])), [staff]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   if (!child) {
     return (

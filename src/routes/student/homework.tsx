@@ -28,7 +28,7 @@ function dueState(dueIso: string) {
 function StudentHomeworkPage() {
   const { t, lang } = useI18n();
   const studentId = useCurrentStudentId();
-  const { homework, submissions, groups, staff, updateSubmission } = useData();
+  const { homework, submissions, groups, staff, updateSubmission, isLoading } = useData();
 
   const myGroups = useMemo(
     () => (studentId ? groups.filter((g) => g.studentIds.includes(studentId)) : []),
@@ -61,6 +61,14 @@ function StudentHomeworkPage() {
 
   const [active, setActive] = useState<Homework | null>(null);
   const [comment, setComment] = useState("");
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   const submit = () => {
     if (!active || !studentId) return;

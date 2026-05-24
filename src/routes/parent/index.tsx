@@ -23,7 +23,7 @@ function ParentHome() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
   const parentId = useCurrentParentId();
-  const { parents, students, lessons, groups, rooms, homework, submissions, attendance, syncParentChild } = useData();
+  const { parents, students, lessons, groups, rooms, homework, submissions, attendance, syncParentChild, isLoading } = useData();
   const [studentId, setStudentId] = useState("");
   const [syncing, setSyncing] = useState(false);
 
@@ -35,6 +35,14 @@ function ParentHome() {
 
   const groupById = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
   const roomById = useMemo(() => Object.fromEntries(rooms.map((r) => [r.id, r])), [rooms]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-5">

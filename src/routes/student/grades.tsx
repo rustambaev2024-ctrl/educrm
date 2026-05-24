@@ -20,7 +20,7 @@ function scoreTone(pct: number) {
 function StudentGradesPage() {
   const { t, lang } = useI18n();
   const studentId = useCurrentStudentId();
-  const { grades, groups, courses } = useData();
+  const { grades, groups, courses, isLoading } = useData();
 
   const groupById = useMemo(() => Object.fromEntries(groups.map((group) => [group.id, group])), [groups]);
   const courseById = useMemo(() => Object.fromEntries(courses.map((course) => [course.id, course])), [courses]);
@@ -31,6 +31,14 @@ function StudentGradesPage() {
   const average = myGrades.length
     ? Math.round((myGrades.reduce((sum, grade) => sum + (grade.score / grade.maxScore) * 10, 0) / myGrades.length) * 10) / 10
     : 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-5 pb-24">

@@ -29,7 +29,7 @@ function StudentHome() {
   const studentId = useCurrentStudentId();
   const { user } = useAuth();
   const { t } = useI18n();
-  const { students, groups, courses, lessons, rooms, homework, submissions, payments } = useData();
+  const { students, groups, courses, lessons, rooms, homework, submissions, payments, isLoading } = useData();
 
   const student = useMemo(
     () => students.find((item) => item.id === studentId),
@@ -80,6 +80,14 @@ function StudentHome() {
       );
     }).length;
   }, [lessons, myGroupIds]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   if (!student) {
     return (

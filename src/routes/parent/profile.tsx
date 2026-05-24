@@ -24,7 +24,7 @@ function ParentProfile() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const parentId = useCurrentParentId();
-  const { parents, students } = useData();
+  const { parents, students, isLoading } = useData();
 
   const me = useMemo(() => parents.find((p) => p.id === parentId), [parents, parentId]);
   const children = useMemo(
@@ -33,6 +33,14 @@ function ParentProfile() {
   );
 
   const name = me?.fullName ?? user?.fullName ?? "—";
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-md space-y-4 px-4 py-5">

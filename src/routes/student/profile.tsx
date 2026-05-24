@@ -36,7 +36,7 @@ function StudentProfile() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const studentId = useCurrentStudentId();
-  const { students, branches, parents, grades, attendance, lessons, payments, homework, submissions } = useData();
+  const { students, branches, parents, grades, attendance, lessons, payments, homework, submissions, isLoading } = useData();
 
   const stu = useMemo(() => students.find((s) => s.id === studentId), [students, studentId]);
   const branch = useMemo(() => branches.find((b) => b.id === stu?.branchId), [branches, stu]);
@@ -76,6 +76,14 @@ function StudentProfile() {
       .sort((a, b) => a.datetime.localeCompare(b.datetime))
       .slice(0, 5);
   }, [lessons, stu]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   if (!stu) {
     return <div className="p-8 text-center text-sm text-muted-foreground">{t("students.notFound")}</div>;
