@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2, ArrowDownCircle, ArrowUpCircle, Key, Copy } from "lucide-react";
+import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2, ArrowDownCircle, ArrowUpCircle, Key, Copy, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { PasswordInput } from "@/components/edu/password-input";
@@ -49,7 +49,7 @@ import { useData } from "@/lib/data/store";
 import { formatDate, formatMoney } from "@/lib/format";
 import type { Student, StudentStatus } from "@/lib/data/types";
 import { transferApi, paymentApi, studentApi } from "@/lib/api";
-import { mapPayments } from "@/lib/data/mappers";
+import { mapPayments, mapStudents } from "@/lib/data/mappers";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin/students")({ component: StudentsPage });
@@ -75,22 +75,58 @@ export function StudentsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return students.filter((s) => {
-      if (statusFilter !== "all" && s.status !== statusFilter) return false;
-      if (!q) return true;
-      return (
-        s.fullName.toLowerCase().includes(q) ||
-        s.phone.toLowerCase().includes(q) ||
-        s.id.toLowerCase().includes(q)
-      );
-    });
-  }, [students, search, statusFilter]);
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageStudents, setPageStudents] = useState<Student[]>([]);
+  const [pageLoading, setPageLoading] = useState(false);
+  const PAGE_SIZE = 50;
 
-  const selected = useMemo(() => students.find((s) => s.id === selectedId) ?? null, [students, selectedId]);
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  if (isLoading) {
+  // Reset page on filter change
+  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
+
+  // Load students from API with pagination
+  useEffect(() => {
+    const loadStudents = async () => {
+      setPageLoading(true);
+      try {
+        const params: Record<string, string> = {
+          page: String(page),
+          page_size: String(PAGE_SIZE),
+        };
+        if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+        if (statusFilter !== "all") params.status = statusFilter;
+        const res = await studentApi.list(params) as any;
+        const list = Array.isArray(res) ? res : (res.results ?? []);
+        const count = res.count ?? list.length;
+        setPageStudents(mapStudents(list) as Student[]);
+        setTotalCount(count);
+      } catch {
+        toast.error("Ma'lumotlarni yuklashda xatolik");
+      } finally {
+        setPageLoading(false);
+      }
+    };
+    loadStudents();
+  }, [page, debouncedSearch, statusFilter]);
+
+  const filtered = pageStudents;
+
+  const selected = useMemo(() => {
+    // Look in both pageStudents and store students for detail view
+    return pageStudents.find((s) => s.id === selectedId)
+      ?? students.find((s) => s.id === selectedId)
+      ?? null;
+  }, [students, pageStudents, selectedId]);
+
+  if (isLoading && !pageStudents.length) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -124,7 +160,7 @@ export function StudentsPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{filtered.length} {t("students.count")}</span>
+              <span className="text-xs text-muted-foreground">{totalCount} {t("students.count")}</span>
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
                 <SelectTrigger className="w-44">
                   <SelectValue />
@@ -207,6 +243,34 @@ export function StudentsPage() {
               </TableBody>
             </Table>
           )}
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+            <span className="text-sm text-muted-foreground">
+              {lang === "ru" ? `Всего: ${totalCount}` : `Jami: ${totalCount}`}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1 || pageLoading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {page} / {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= Math.ceil(totalCount / PAGE_SIZE) || pageLoading}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </Card>
       </div>
 
