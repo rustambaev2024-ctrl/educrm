@@ -97,6 +97,10 @@ class Payment(models.Model):
         indexes = [
             models.Index(fields=["student", "created_at"]),
             models.Index(fields=["payment_type"]),
+            models.Index(fields=["branch"], name="payment_branch_idx"),
+            models.Index(fields=["group"], name="payment_group_idx"),
+            models.Index(fields=["payment_type", "created_at"], name="payment_type_date_idx"),
+            models.Index(fields=["student", "payment_type"], name="payment_student_type_idx"),
         ]
 
     def __str__(self) -> str:

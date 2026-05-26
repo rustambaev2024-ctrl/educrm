@@ -41,6 +41,12 @@ class Student(models.Model):
     class Meta:
         db_table = "students_student"
         ordering = ["-registered_at"]
+        indexes = [
+            models.Index(fields=["status"], name="student_status_idx"),
+            models.Index(fields=["branch"], name="student_branch_idx"),
+            models.Index(fields=["wallet_balance"], name="student_wallet_idx"),
+            models.Index(fields=["branch", "status"], name="student_branch_status_idx"),
+        ]
 
     def __str__(self) -> str:
         return self.user.full_name

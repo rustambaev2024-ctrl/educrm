@@ -201,95 +201,115 @@ def get_revenue_report(user, filters: ReportFilters) -> dict:
 
 def get_teachers_report(user, filters: ReportFilters) -> dict:
     branch_ids = _branch_ids_for_user(user, filters.branch_id)
+
+    from django.db.models import Avg, Count, Q
+    from django.db.models.functions import Coalesce
+
     teachers_qs = Staff.objects.select_related("user", "branch").filter(
         user__role="teacher",
         branch_id__in=branch_ids,
+    ).annotate(
+        total_lessons=Count(
+            "lessons",
+            filter=Q(
+                lessons__datetime__date__gte=filters.date_from,
+                lessons__datetime__date__lte=filters.date_to,
+                lessons__group__branch_id__in=branch_ids,
+            ),
+            distinct=True,
+        ),
+        conducted_lessons=Count(
+            "lessons",
+            filter=Q(
+                lessons__status="conducted",
+                lessons__datetime__date__gte=filters.date_from,
+                lessons__datetime__date__lte=filters.date_to,
+                lessons__group__branch_id__in=branch_ids,
+            ),
+            distinct=True,
+        ),
+        cancelled_lessons=Count(
+            "lessons",
+            filter=Q(
+                lessons__status="cancelled",
+                lessons__datetime__date__gte=filters.date_from,
+                lessons__datetime__date__lte=filters.date_to,
+                lessons__group__branch_id__in=branch_ids,
+            ),
+            distinct=True,
+        ),
+        present_count=Count(
+            "lessons__attendance",
+            filter=Q(
+                lessons__attendance__status__in=["present", "late"],
+                lessons__datetime__date__gte=filters.date_from,
+                lessons__datetime__date__lte=filters.date_to,
+            ),
+            distinct=True,
+        ),
+        absent_count=Count(
+            "lessons__attendance",
+            filter=Q(
+                lessons__attendance__status="absent",
+                lessons__datetime__date__gte=filters.date_from,
+                lessons__datetime__date__lte=filters.date_to,
+            ),
+            distinct=True,
+        ),
+        late_count=Count(
+            "lessons__attendance",
+            filter=Q(
+                lessons__attendance__status="late",
+                lessons__datetime__date__gte=filters.date_from,
+                lessons__datetime__date__lte=filters.date_to,
+            ),
+            distinct=True,
+        ),
+        _avg_late=Avg(
+            "lessons__attendance__late_minutes",
+            filter=Q(
+                lessons__attendance__status="late",
+                lessons__datetime__date__gte=filters.date_from,
+                lessons__datetime__date__lte=filters.date_to,
+            ),
+        ),
+        students_count=Count(
+            "lessons__group__memberships__student",
+            filter=Q(
+                lessons__group__memberships__left_at__isnull=True,
+                lessons__group__branch_id__in=branch_ids,
+            ),
+            distinct=True,
+        ),
     )
-
-    attendance_qs = Attendance.objects.filter(lesson__group__branch_id__in=branch_ids)
-    attendance_qs = _with_date_range(
-        attendance_qs,
-        "lesson__datetime",
-        filters.date_from,
-        filters.date_to,
-    )
-    payments_qs = Payment.objects.filter(
-        branch_id__in=branch_ids,
-        payment_type="top_up",
-    )
-    payments_qs = _with_date_range(payments_qs, "created_at", filters.date_from, filters.date_to)
 
     rows = []
     for teacher in teachers_qs:
-        # Attendance for the teacher (pre-filtered by branch/date)
-        teacher_att = attendance_qs.filter(lesson__teacher=teacher)
-        total_att = teacher_att.count()
-        present_att = teacher_att.filter(status__in=ATTENDANCE_PRESENT_STATUSES).count()
+        total = teacher.total_lessons or 0
+        conducted = teacher.conducted_lessons or 0
+        present = teacher.present_count or 0
+        absent = teacher.absent_count or 0
+        total_att = present + absent
 
-        # Revenue for teacher's groups
-        teacher_revenue = payments_qs.filter(group__teacher=teacher).aggregate(
-            total=Coalesce(Sum("amount"), Decimal("0.00"))
-        )["total"]
+        rows.append({
+            "teacher_id": str(teacher.id),
+            "teacher_name": teacher.user.full_name,
+            "branch_id": str(teacher.branch_id) if teacher.branch_id else None,
+            "branch_name": teacher.branch.name if teacher.branch else None,
+            "students_count": teacher.students_count or 0,
+            "revenue_total": "0",
+            "attendance_rate": round(present / total_att * 100, 1) if total_att else 0.0,
+            "conducted_lessons": conducted,
+            "cancelled_lessons": teacher.cancelled_lessons or 0,
+            "total_lessons": total,
+            "present_count": present,
+            "absent_count": absent,
+            "late_count": teacher.late_count or 0,
+            "avg_late_minutes": round(float(teacher._avg_late or 0), 1),
+            "conduct_rate": round(conducted / total * 100, 1) if total else 0.0,
+        })
 
-        # Active students taught by this teacher
-        students_count = (
-            GroupMembership.objects.filter(
-                group__teacher=teacher,
-                group__branch_id__in=branch_ids,
-                left_at__isnull=True,
-            )
-            .values("student_id")
-            .distinct()
-            .count()
-        )
-
-        # Lessons and lesson-level stats for the period
-        lessons_qs = Lesson.objects.filter(
-            group__branch_id__in=branch_ids,
-            teacher=teacher,
-        )
-        lessons_qs = _with_date_range(lessons_qs, "datetime", filters.date_from, filters.date_to)
-        total_lessons = lessons_qs.count()
-        conducted_lessons = lessons_qs.filter(status="conducted").count()
-        cancelled_lessons = lessons_qs.filter(status="cancelled").count()
-
-        # Attendance breakdown
-        present_count = teacher_att.filter(status__in=["present", "late"]).count()
-        absent_count = teacher_att.filter(status="absent").count()
-        late_count = teacher_att.filter(status="late").count()
-        avg_late = (
-            teacher_att
-            .filter(status="late", late_minutes__isnull=False)
-            .aggregate(avg=Avg("late_minutes"))
-            ["avg"]
-            or 0
-        )
-
-        attendance_rate_value = float(_percentage(present_att, total_att)) if total_att else 0.0
-
-        rows.append(
-            {
-                "teacher_id": str(teacher.id),
-                "teacher_name": teacher.user.full_name,
-                "branch_id": str(teacher.branch_id) if teacher.branch_id else None,
-                "branch_name": teacher.branch.name if teacher.branch else None,
-                "students_count": students_count,
-                # keep revenue as string to preserve existing formatting
-                "revenue_total": str(_quantize(teacher_revenue)),
-                # detailed fields for Nazorat page
-                "attendance_rate": round(attendance_rate_value, 1),
-                "conducted_lessons": conducted_lessons,
-                "cancelled_lessons": cancelled_lessons,
-                "total_lessons": total_lessons,
-                "present_count": present_count,
-                "absent_count": absent_count,
-                "late_count": late_count,
-                "avg_late_minutes": round(float(avg_late), 1),
-                "conduct_rate": round((conducted_lessons / total_lessons * 100) if total_lessons else 0.0, 1),
-            }
-        )
-
-    rows.sort(key=lambda row: Decimal(row["revenue_total"]), reverse=True)
+    rows.sort(key=lambda r: r["conduct_rate"], reverse=True)
     return {
         "period": {"date_from": str(filters.date_from), "date_to": str(filters.date_to)},
         "results": rows,

@@ -96,6 +96,7 @@ DATABASES = {
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "educrm"),
         "HOST": os.getenv("POSTGRES_HOST", "localhost"),
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "CONN_MAX_AGE": 600,
     }
 }
 DATABASE_ROUTERS = ("django_tenants.routers.TenantSyncRouter",)
@@ -134,6 +135,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+        "KEY_PREFIX": "educrm",
+        "TIMEOUT": 300,
+    }
+}
 
 CHANNEL_LAYERS = {
     "default": {

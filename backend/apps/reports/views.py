@@ -60,7 +60,17 @@ class AnalyticsRevenueView(AnalyticsBaseView):
 class AnalyticsTeachersView(AnalyticsBaseView):
     @extend_schema(parameters=[AnalyticsFilterSerializer], responses=OpenApiTypes.OBJECT)
     def get(self, request):
-        return Response(get_teachers_report(request.user, self.get_filters(request)))
+        from django.core.cache import cache
+        filters = self.get_filters(request)
+        tenant = getattr(request, "tenant", None)
+        schema = tenant.schema_name if tenant else "public"
+        cache_key = f"teachers_report:{schema}:{filters.date_from}:{filters.date_to}:{filters.branch_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached)
+        data = get_teachers_report(request.user, filters)
+        cache.set(cache_key, data, 300)
+        return Response(data)
 
 
 class TeacherLessonsView(APIView):
@@ -235,11 +245,21 @@ class DailyReportView(AnalyticsBaseView):
         responses=OpenApiTypes.OBJECT,
     )
     def get(self, request):
+        from django.core.cache import cache
         date_str = request.query_params.get("date", str(date_type.today()))
         branch_id = request.query_params.get("branch_id")
         try:
             report_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
             return Response({"error": "Invalid date format. Use YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST)
+        tenant = getattr(request, "tenant", None)
+        schema = tenant.schema_name if tenant else "public"
+        cache_key = f"daily_report:{schema}:{date_str}:{branch_id or 'all'}"
+        today_str = str(date_type.today())
+        ttl = 300 if date_str == today_str else 3600
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached)
         data = get_daily_report(request.user, report_date, branch_id)
+        cache.set(cache_key, data, ttl)
         return Response(data)

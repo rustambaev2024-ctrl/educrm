@@ -112,20 +112,22 @@ class LessonViewSet(
         serializer.is_valid(raise_exception=True)
         records = serializer.validated_data["records"]
 
+        # OPTIMIZATION: single query instead of N queries
+        student_ids = [r["student_id"] for r in records]
+        active_members = set(
+            GroupMembership.objects.filter(
+                group=lesson.group,
+                student_id__in=student_ids,
+                left_at__isnull=True,
+            ).values_list("student_id", flat=True)
+        )
+
         saved = []
         with transaction.atomic():
             for record in records:
                 student_id = record["student_id"]
-                in_group = GroupMembership.objects.filter(
-                    group=lesson.group,
-                    student_id=student_id,
-                    left_at__isnull=True,
-                ).exists()
-                if not in_group:
-                    return Response(
-                        {"detail": f"Student {student_id} is not active in this group"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                if student_id not in active_members:
+                    continue
 
                 attendance, created = Attendance.objects.get_or_create(
                     lesson=lesson,
