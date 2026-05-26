@@ -4,6 +4,7 @@ from django.db.models import Q
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -88,10 +89,17 @@ def public_submit_lead(request):
     )
 
 
+class StudentPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = "page_size"
+    max_page_size = 200
+
+
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.select_related("user", "branch").all()
     serializer_class = StudentSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    pagination_class = StudentPagination
 
     def get_permissions(self):
         if self.action in ("list", "retrieve", "attendance_history", "payments_history"):

@@ -6,6 +6,7 @@ from django.db import transaction
 from django_tenants.utils import get_public_schema_name, get_tenant_model, schema_context
 
 from apps.courses.models import Group
+from apps.lessons.models import Attendance
 from apps.students.models import Student
 
 from .models import Payment
@@ -55,47 +56,56 @@ def daily_lesson_charge():
 
                 # БИЗНЕС-ПРАВИЛО: списание происходит со всех студентов группы
                 # независимо от посещаемости. Исключение: статус excused.
-                students_to_charge = group.students.exclude(
-                    status__in=["frozen", "archived", "graduate", "expelled"]
+                students_to_charge = list(
+                    group.students.exclude(
+                        status__in=["frozen", "archived", "graduate", "expelled"]
+                    ).select_related("user")
                 )
+                if not students_to_charge:
+                    continue
 
-                for student in students_to_charge:
-                    from apps.lessons.models import Attendance
+                student_ids = [s.id for s in students_to_charge]
 
-                    # --- Защита от двойного списания ---
-                    # 1. Проверяем is_charged в Attendance
-                    if lesson:
-                        att = Attendance.objects.filter(
-                            lesson=lesson, student=student
-                        ).first()
-                        if att and att.is_charged:
-                            continue  # уже списано за этот урок
-                        if att and att.status == "excused":
-                            continue  # освобождён
+                # ОПТИМИЗАЦИЯ 1: один запрос для всех attendance этой группы
+                if lesson:
+                    attendance_map = {
+                        att.student_id: att
+                        for att in Attendance.objects.filter(
+                            lesson=lesson, student_id__in=student_ids
+                        )
+                    }
+                else:
+                    attendance_map = {}
 
-                    # 2. Проверяем наличие Payment за сегодня для этой группы
-                    already_charged = Payment.objects.filter(
-                        student=student,
+                # ОПТИМИЗАЦИЯ 2: один запрос для проверки уже списанных
+                already_charged_ids = set(
+                    Payment.objects.filter(
+                        student_id__in=student_ids,
                         group=group,
                         payment_type="charge",
                         created_at__date=today,
-                    ).exists()
-                    if already_charged:
-                        continue  # пропустить — уже списано сегодня
+                    ).values_list("student_id", flat=True)
+                )
 
+                # Фильтруем студентов для списания
+                students_to_process = []
+                for student in students_to_charge:
+                    if student.id in already_charged_ids:
+                        continue
+                    att = attendance_map.get(student.id)
+                    if att and att.is_charged:
+                        continue
+                    if att and att.status == "excused":
+                        continue
+                    students_to_process.append((student, att))
+
+                # ОПТИМИЗАЦИЯ 3: обрабатываем только нужных
+                charged_attendance_ids = []
+                for student, att in students_to_process:
                     try:
                         with transaction.atomic():
                             get_or_create_wallet(student)
-
-                            # Determine category based on attendance
-                            cat = "tuition"
-                            if lesson:
-                                att = Attendance.objects.filter(
-                                    lesson=lesson, student=student
-                                ).first()
-                                if att and att.status == "absent":
-                                    cat = "absent_charge"
-
+                            cat = "absent_charge" if (att and att.status == "absent") else "tuition"
                             apply_payment(
                                 student=student,
                                 payment_type="charge",
@@ -105,15 +115,14 @@ def daily_lesson_charge():
                                 category=cat,
                                 comment=f"Daily lesson charge for {today}",
                             )
-                            if lesson:
-                                Attendance.objects.filter(
-                                    lesson=lesson, student=student
-                                ).update(is_charged=True)
+                            if att:
+                                charged_attendance_ids.append(att.id)
                     except Exception as e:
-                        logger.error(
-                            f"Failed to charge student {student.id} "
-                            f"for group {group.id}: {e}"
-                        )
+                        logger.error(f"Charge failed for student {student.id}: {e}")
+
+                # ОПТИМИЗАЦИЯ 4: bulk update is_charged одним запросом
+                if charged_attendance_ids:
+                    Attendance.objects.filter(id__in=charged_attendance_ids).update(is_charged=True)
 
             logger.info(f"daily_lesson_charge completed for schema '{schema}'")
 
