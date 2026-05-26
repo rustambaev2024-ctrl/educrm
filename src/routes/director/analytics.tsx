@@ -99,10 +99,10 @@ function AnalyticsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-              <Tooltip formatter={(value, name) => [value, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+              <Tooltip formatter={(value: any, name: string) => [`${Number(value).toFixed(1)} mln`, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
               <ChartLegend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="income" stroke="var(--chart-1)" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyRevenue")} />
-              <Line type="monotone" dataKey="expense" stroke="var(--chart-3)" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyExpense")} />
+              <Line type="monotone" dataKey="income" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyRevenue")} />
+              <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyExpense")} />
             </LineChart>
           </ResponsiveContainer>
         </Card>
@@ -135,7 +135,7 @@ function AnalyticsPage() {
                   {byStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <ChartLegend wrapperStyle={{ fontSize: 11 }} />
+                <ChartLegend wrapperStyle={{ fontSize: 11 }} formatter={(value: string, entry: any) => `${value}: ${entry?.payload?.value ?? 0}`} />
               </PieChart>
             </ResponsiveContainer>
           </Card>
@@ -151,7 +151,7 @@ function AnalyticsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
               <XAxis type="number" domain={[0, 100]} stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={140} />
-              <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+              <Tooltip formatter={(value: any) => [`${value}%`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
               <Bar dataKey="value" fill="var(--chart-2)" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>

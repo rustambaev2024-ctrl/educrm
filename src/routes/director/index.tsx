@@ -4,7 +4,7 @@ import {
   Users, Wallet, TrendingUp, AlertCircle, Activity, BookOpen, ArrowRight, Building2, Award, Clock,
 } from "lucide-react";
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Legend as RechartsLegend, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { PageHeader } from "@/components/edu/page-header";
 import { StatCard } from "@/components/edu/stat-card";
@@ -135,20 +135,21 @@ function DirectorHome() {
               <AreaChart data={revenueSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="dr-in" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="dr-out" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip formatter={(value, name) => [value, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <Area type="monotone" dataKey="income" name={t("finance.kpi.income")} stroke="var(--chart-1)" fill="url(#dr-in)" strokeWidth={2} />
-                <Area type="monotone" dataKey="expense" name={t("finance.kpi.expense")} stroke="var(--chart-3)" fill="url(#dr-out)" strokeWidth={2} />
+                <Tooltip formatter={(value: any, name: string) => [`${Number(value).toFixed(1)} mln`, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                <Area type="monotone" dataKey="income" name={t("finance.kpi.income")} stroke="#22c55e" fill="url(#dr-in)" strokeWidth={2} />
+                <Area type="monotone" dataKey="expense" name={t("finance.kpi.expense")} stroke="#ef4444" fill="url(#dr-out)" strokeWidth={2} />
+                <RechartsLegend formatter={(value: string) => value === "income" ? "Daromad" : value === "expense" ? "Xarajat" : value} wrapperStyle={{ fontSize: 12 }} />
               </AreaChart>
             </ResponsiveContainer>
           </Card>
