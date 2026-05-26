@@ -491,7 +491,7 @@ function StudentDetailSheet({
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [chargeOpen, setChargeOpen] = useState(false);
   const [topUpForm, setTopUpForm] = useState({ amount: "", method: "cash", comment: "" });
-  const [chargeForm, setChargeForm] = useState({ amount: "", method: "cash", comment: "" });
+  const [chargeForm, setChargeForm] = useState({ amount: "", comment: "", reason: "" });
   const [newStudentPassword, setNewStudentPassword] = useState("");
   const [newParentPassword, setNewParentPassword] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -627,17 +627,20 @@ function StudentDetailSheet({
       toast.error("Summani kiriting");
       return;
     }
+    if (!chargeForm.reason.trim()) {
+      toast.error("Sababni kiriting");
+      return;
+    }
     try {
       await paymentApi.create({
         student_id: student.id,
         payment_type: "manual_charge",
         amount: chargeForm.amount,
-        method: chargeForm.method,
-        comment: chargeForm.comment,
+        comment: `${chargeForm.reason.trim()}${chargeForm.comment.trim() ? ` — ${chargeForm.comment.trim()}` : ""}`,
       });
       toast.success("Balansdan yechib olindi");
       setChargeOpen(false);
-      setChargeForm({ amount: "", method: "cash", comment: "" });
+      setChargeForm({ amount: "", comment: "", reason: "" });
       paymentApi.list({ student_id: student.id })
         .then((data) => setStudentPayments(mapPayments(data as any)))
         .catch((e) => console.error("Failed to load student payments", e));
@@ -1204,8 +1207,8 @@ function StudentDetailSheet({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Summa</Label>
-              <Input type="number" placeholder="0" value={topUpForm.amount} onChange={(e) => setTopUpForm(f => ({ ...f, amount: e.target.value }))} />
+              <Label>Summa *</Label>
+              <Input type="number" placeholder="0" autoComplete="off" value={topUpForm.amount} onChange={(e) => setTopUpForm(f => ({ ...f, amount: e.target.value }))} />
             </div>
             <div className="grid gap-2">
               <Label>To'lov usuli</Label>
@@ -1222,7 +1225,7 @@ function StudentDetailSheet({
             </div>
             <div className="grid gap-2">
               <Label>Izoh</Label>
-              <Textarea placeholder="Izoh..." value={topUpForm.comment} onChange={(e) => setTopUpForm(f => ({ ...f, comment: e.target.value }))} />
+              <Textarea placeholder="Ixtiyoriy" value={topUpForm.comment} onChange={(e) => setTopUpForm(f => ({ ...f, comment: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
@@ -1241,25 +1244,16 @@ function StudentDetailSheet({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Summa</Label>
-              <Input type="number" placeholder="0" value={chargeForm.amount} onChange={(e) => setChargeForm(f => ({ ...f, amount: e.target.value }))} />
+              <Label>Summa *</Label>
+              <Input type="number" placeholder="0" autoComplete="off" value={chargeForm.amount} onChange={(e) => setChargeForm(f => ({ ...f, amount: e.target.value }))} />
             </div>
             <div className="grid gap-2">
-              <Label>To'lov usuli</Label>
-              <Select value={chargeForm.method} onValueChange={(v) => setChargeForm(f => ({ ...f, method: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Naqd</SelectItem>
-                  <SelectItem value="card">Karta</SelectItem>
-                  <SelectItem value="transfer">O'tkazma</SelectItem>
-                  <SelectItem value="click">Click</SelectItem>
-                  <SelectItem value="payme">Payme</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Sabab *</Label>
+              <Input placeholder="Kitob uchun, Jarima..." autoComplete="off" value={chargeForm.reason} onChange={(e) => setChargeForm(f => ({ ...f, reason: e.target.value }))} />
             </div>
             <div className="grid gap-2">
               <Label>Izoh</Label>
-              <Textarea placeholder="Izoh..." value={chargeForm.comment} onChange={(e) => setChargeForm(f => ({ ...f, comment: e.target.value }))} />
+              <Textarea placeholder="Ixtiyoriy" value={chargeForm.comment} onChange={(e) => setChargeForm(f => ({ ...f, comment: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
