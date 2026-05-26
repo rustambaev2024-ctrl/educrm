@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calendar, BookOpen, Award, Wallet, Star, Clock, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,7 +26,7 @@ function scoreTone(pct: number) {
 function ParentChildren() {
   const { t, lang } = useI18n();
   const parentId = useCurrentParentId();
-  const { parents, students, lessons, groups, rooms, grades, attendance, homework, submissions, staff, isLoading } = useData();
+  const { parents, students, lessons, groups, rooms, grades, attendance, homework, submissions, staff, payments, isLoading } = useData();
 
   const me = useMemo(() => parents.find((p) => p.id === parentId), [parents, parentId]);
   const children = useMemo(
@@ -121,10 +121,11 @@ function ParentChildren() {
       </Card>
 
       <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">{t("profile.tab.overview")}</TabsTrigger>
           <TabsTrigger value="grades">{t("profile.tab.grades")}</TabsTrigger>
           <TabsTrigger value="attendance">{t("profile.tab.attendance")}</TabsTrigger>
+          <TabsTrigger value="payments">To'lovlar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-3 space-y-3">
@@ -236,6 +237,35 @@ function ParentChildren() {
               <div className="rounded-md bg-destructive/10 p-2"><div className="font-bold text-destructive">{att.filter((a) => a.status === "absent").length}</div><div className="text-muted-foreground">{t("att.absent")}</div></div>
             </div>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="payments" className="mt-3 space-y-2">
+          {(() => {
+            const childPayments = payments
+              .filter((p) => p.studentId === child.id)
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .slice(0, 20);
+            if (childPayments.length === 0) {
+              return <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">To'lovlar tarixi yo'q</Card>;
+            }
+            return childPayments.map((p) => {
+              const isIncome = p.direction === "in";
+              return (
+                <Card key={p.id} className="flex items-center gap-3 p-3 shadow-elegant">
+                  <div className={`flex size-8 items-center justify-center rounded-lg text-xs font-bold ${isIncome ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                    {isIncome ? "+" : "−"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium">{isIncome ? "To'lov" : "Dars uchun"}</div>
+                    <div className="text-[10px] text-muted-foreground">{formatDate(p.date, lang)}</div>
+                  </div>
+                  <div className={`text-sm font-bold ${isIncome ? "text-success" : "text-destructive"}`}>
+                    {isIncome ? "+" : "−"}{formatMoney(p.amount, lang)}
+                  </div>
+                </Card>
+              );
+            });
+          })()}
         </TabsContent>
       </Tabs>
     </div>

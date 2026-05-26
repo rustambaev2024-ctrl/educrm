@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2, ArrowDownCircle, ArrowUpCircle, Key, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { PasswordInput } from "@/components/edu/password-input";
@@ -48,7 +48,7 @@ import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
 import { formatDate, formatMoney } from "@/lib/format";
 import type { Student, StudentStatus } from "@/lib/data/types";
-import { transferApi, paymentApi } from "@/lib/api";
+import { transferApi, paymentApi, studentApi } from "@/lib/api";
 import { mapPayments } from "@/lib/data/mappers";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -443,6 +443,9 @@ function StudentDetailSheet({
   });
   const [transfers, setTransfers] = useState<any[]>([]);
   const [studentPayments, setStudentPayments] = useState<any[]>([]);
+  const [linkCodeOpen, setLinkCodeOpen] = useState(false);
+  const [linkCode, setLinkCode] = useState<string | null>(null);
+  const [linkCodeLoading, setLinkCodeLoading] = useState(false);
 
   useEffect(() => {
     if (student) {
@@ -455,6 +458,20 @@ function StudentDetailSheet({
         .catch((e) => console.error("Failed to load student payments", e));
     }
   }, [student]);
+
+  const handleGenerateLinkCode = async () => {
+    if (!student) return;
+    setLinkCodeLoading(true);
+    try {
+      const res = await studentApi.generateLinkCode(student.id) as any;
+      setLinkCode(res.code);
+      setLinkCodeOpen(true);
+    } catch {
+      toast.error(lang === "ru" ? "Ошибка" : "Xatolik");
+    } finally {
+      setLinkCodeLoading(false);
+    }
+  };
 
   const genPin = () => {
     const timePart = String(Date.now()).slice(-3);
@@ -862,6 +879,10 @@ function StudentDetailSheet({
 
         <SheetFooter className="flex flex-col sm:flex-row gap-2 justify-between w-full">
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleGenerateLinkCode} disabled={linkCodeLoading}>
+              <Key className="mr-1 h-3.5 w-3.5" />
+              {lang === "ru" ? "Код для родителя" : "Ota-ona kodi"}
+            </Button>
             <Button variant="outline" className="text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive/20" onClick={() => setShowDeleteConfirm(true)}>
               O'quvchini o'chirish
             </Button>
@@ -1183,11 +1204,27 @@ function StudentDetailSheet({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={linkCodeOpen} onOpenChange={setLinkCodeOpen}>
+        <DialogContent className="max-w-xs text-center">
+          <DialogHeader>
+            <DialogTitle>{lang === "ru" ? "Код для родителя" : "Ota-ona kodi"}</DialogTitle>
+          </DialogHeader>
+          <div className="py-6">
+            <div className="text-5xl font-bold tracking-widest text-primary">{linkCode}</div>
+            <p className="text-xs text-muted-foreground mt-3">
+              {lang === "ru" ? "Код действует 24 часа" : "Kod 24 soat amal qiladi"}
+            </p>
+          </div>
+          <Button onClick={() => { navigator.clipboard.writeText(linkCode ?? ""); toast.success("Nusxalandi"); }}>
+            <Copy className="mr-1 h-4 w-4" />
+            {lang === "ru" ? "Скопировать" : "Nusxalash"}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
-
-function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
