@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LessonStatusBadge } from "@/components/edu/status-badge";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
@@ -30,6 +31,10 @@ function SchedulePage() {
   const { lessons, groups, rooms, staff, courses, isLoading } = useData();
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => startOfWeek(new Date()));
   const [selected, setSelected] = useState<Lesson | null>(null);
+  const [filterGroup, setFilterGroup] = useState("all");
+  const [filterTeacher, setFilterTeacher] = useState("all");
+
+  const teachers = useMemo(() => staff.filter((s) => s.role === "teacher"), [staff]);
 
 
   // Генерация массива дней недели с обнулением времени (локальная дата)
@@ -44,16 +49,27 @@ function SchedulePage() {
 
   const days = useMemo(() => getWeekDays(weekAnchor), [weekAnchor]);
 
+  const filteredLessons = useMemo(() => {
+    return lessons.filter((l) => {
+      if (filterGroup !== "all" && l.groupId !== filterGroup) return false;
+      if (filterTeacher !== "all") {
+        const g = groups.find((gr) => gr.id === l.groupId);
+        if (g && g.teacherId !== filterTeacher) return false;
+      }
+      return true;
+    });
+  }, [lessons, groups, filterGroup, filterTeacher]);
+
   const lessonsByDay = useMemo(() => {
     const map = new Map<string, Lesson[]>();
     for (const day of days) {
-      const list = lessons
+      const list = filteredLessons
         .filter((l) => sameDay(new Date(l.datetime), day))
         .sort((a, b) => a.datetime.localeCompare(b.datetime));
       map.set(day.toDateString(), list);
     }
     return map;
-  }, [days, lessons]);
+  }, [days, filteredLessons]);
 
   const groupById = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
   const roomById = useMemo(() => Object.fromEntries(rooms.map((r) => [r.id, r])), [rooms]);
@@ -107,11 +123,29 @@ function SchedulePage() {
         }
       />
       <div className="space-y-4 p-4 md:p-8">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="size-4" />
-          <span>
-            {t("schedule.weekRange")}: {weekStartLabel} - {weekEndLabel}
-          </span>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Calendar className="size-4" />
+            <span>{t("schedule.weekRange")}: {weekStartLabel} - {weekEndLabel}</span>
+          </div>
+          <Select value={filterGroup} onValueChange={setFilterGroup}>
+            <SelectTrigger className="w-44 h-9">
+              <SelectValue placeholder={lang === "uz" ? "Barcha guruhlar" : "Все группы"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "uz" ? "Barcha guruhlar" : "Все группы"}</SelectItem>
+              {groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterTeacher} onValueChange={setFilterTeacher}>
+            <SelectTrigger className="w-44 h-9">
+              <SelectValue placeholder={lang === "uz" ? "Barcha o'qituvchilar" : "Все учителя"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{lang === "uz" ? "Barcha o'qituvchilar" : "Все учителя"}</SelectItem>
+              {teachers.map((tch) => <SelectItem key={tch.id} value={tch.id}>{tch.fullName}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
@@ -132,7 +166,7 @@ function SchedulePage() {
                         {dayLabel(((day.getDay() + 6) % 7) + 1, lang, true)}
                       </div>
                       <div
-                        className={`text-xl font-bold leading-none ${isToday ? "text-primary" : ""}`}
+                        className={`flex h-8 w-8 items-center justify-center rounded-full text-xl font-bold leading-none ${isToday ? "bg-primary text-primary-foreground" : ""}`}
                       >
                         {day.getDate()}
                       </div>
@@ -267,7 +301,7 @@ function LessonDetailDialog({
               <div className="grid gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 sm:grid-cols-2">
                 <Field
                   icon={Clock}
-                  label={t("common.today")}
+                  label={lang === "uz" ? "Vaqt" : "Время"}
                   value={`${formatTime(lesson.datetime)} - ${lesson.durationMinutes} ${lang === "uz" ? "daqiqa" : "min"}`}
                 />
                 <Field icon={MapPin} label={t("groups.field.room")} value={room?.name ?? "-"} />
@@ -311,7 +345,7 @@ function LessonDetailDialog({
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="newTime" className="text-xs">
-                        {t("common.today")}
+                        {lang === "uz" ? "Vaqt" : "Время"}
                       </Label>
                       <Input
                         id="newTime"
@@ -338,6 +372,7 @@ function LessonDetailDialog({
                   <Button
                     variant="outline"
                     className="text-destructive hover:text-destructive"
+                    disabled={!reason.trim()}
                     onClick={() => {
                       setLessonStatus(lesson.id, "cancelled", reason || undefined);
                       toast.success(t("schedule.cancelled"));
