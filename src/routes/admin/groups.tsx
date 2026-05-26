@@ -211,7 +211,7 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
         <div className="space-y-4 px-4 py-6">
           <div className="space-y-2">
             <Label>{t("groups.field.name")} *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="English General A2 — Morning" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Masalan: Matematika — Ertalab" autoComplete="off" />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
@@ -246,15 +246,15 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
             </div>
             <div className="space-y-2">
               <Label>{t("groups.field.capacity")} *</Label>
-              <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
+              <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} autoComplete="off" />
             </div>
             <div className="space-y-2">
               <Label>{t("groups.field.startDate")} *</Label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} autoComplete="off" />
             </div>
             <div className="space-y-2">
               <Label>{t("groups.field.price")} *</Label>
-              <Input type="number" min={0} step={10000} value={monthlyPrice} onChange={(e) => setMonthlyPrice(Number(e.target.value))} />
+              <Input type="number" min={0} step={10000} value={monthlyPrice} onChange={(e) => setMonthlyPrice(Number(e.target.value))} autoComplete="off" />
               <div className="text-[11px] text-muted-foreground">{formatMoney(monthlyPrice, lang)}</div>
             </div>
           </div>
@@ -589,7 +589,7 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
         <div className="space-y-4 px-4 py-6">
           <div className="space-y-2">
             <Label>{t("groups.field.name")} *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
@@ -633,15 +633,15 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
             </div>
             <div className="space-y-2">
               <Label>{t("groups.field.capacity")} *</Label>
-              <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
+              <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} autoComplete="off" />
             </div>
             <div className="space-y-2">
               <Label>{t("groups.field.startDate")} *</Label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} autoComplete="off" />
             </div>
             <div className="space-y-2">
               <Label>{t("groups.field.price")} *</Label>
-              <Input type="number" min={0} step={10000} value={monthlyPrice} onChange={(e) => setMonthlyPrice(Number(e.target.value))} />
+              <Input type="number" min={0} step={10000} value={monthlyPrice} onChange={(e) => setMonthlyPrice(Number(e.target.value))} autoComplete="off" />
               <div className="text-[11px] text-muted-foreground">{formatMoney(monthlyPrice, lang)}</div>
             </div>
           </div>

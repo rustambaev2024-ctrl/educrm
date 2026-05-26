@@ -137,14 +137,14 @@ function FinancePage() {
         <Tabs defaultValue="wallets">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <TabsList>
-              <TabsTrigger value="wallets">Wallets</TabsTrigger>
+              <TabsTrigger value="wallets">{lang === "uz" ? "Hamyonlar" : "Кошельки"}</TabsTrigger>
               <TabsTrigger value="payments">{t("finance.tab.payments")}</TabsTrigger>
               <TabsTrigger value="debtors">
                 {t("finance.tab.debtors")}
                 {debtors.length > 0 && <Badge className="ml-2 h-4 min-w-4 px-1 text-[10px]">{debtors.length}</Badge>}
               </TabsTrigger>
               <TabsTrigger value="expenses">{t("finance.tab.expenses")}</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
+              <TabsTrigger value="history">{lang === "uz" ? "Tarix" : "История"}</TabsTrigger>
             </TabsList>
             
             <div className="flex items-center gap-2">
@@ -163,7 +163,7 @@ function FinancePage() {
                     <TableHead>{t("finance.col.phone")}</TableHead>
                     <TableHead>{t("finance.col.status")}</TableHead>
                     <TableHead className="text-right">{t("finance.col.balance")}</TableHead>
-                    <TableHead className="text-right">Last Payment</TableHead>
+                    <TableHead className="text-right">{lang === "uz" ? "Oxirgi to'lov" : "Последний платёж"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -238,7 +238,7 @@ function FinancePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("finance.col.student")}</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead>{lang === "uz" ? "Tur" : "Тип"}</TableHead>
                     <TableHead className="text-right">{t("finance.col.amount")}</TableHead>
                     <TableHead>{t("finance.col.date")}</TableHead>
                     <TableHead>{t("finance.col.comment")}</TableHead>

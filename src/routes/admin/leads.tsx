@@ -334,7 +334,7 @@ function AdminLeadsPage() {
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="relative flex-1 xl:max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} className="pl-9" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} className="pl-9" autoComplete="off" />
             </div>
             <div className="grid gap-2 sm:grid-cols-4 xl:flex xl:items-center">
               <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as FilterStatus)}>
@@ -539,7 +539,7 @@ function LeadFormFields({
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>{labels.fullName}</Label>
-          <Input value={form.fullName} onChange={(event) => onChange({ ...form, fullName: event.target.value })} placeholder={labels.fullNamePlaceholder} />
+          <Input value={form.fullName} onChange={(event) => onChange({ ...form, fullName: event.target.value })} placeholder={labels.fullNamePlaceholder} autoComplete="off" />
         </div>
         <div className="space-y-1.5">
           <Label>{labels.phone}</Label>
@@ -587,7 +587,7 @@ function LeadFormFields({
         </div>
         <div className="space-y-1.5">
           <Label>{labels.nextFollowUp}</Label>
-          <Input type="date" value={form.nextFollowUp} onChange={(event) => onChange({ ...form, nextFollowUp: event.target.value })} />
+          <Input type="date" value={form.nextFollowUp} onChange={(event) => onChange({ ...form, nextFollowUp: event.target.value })} autoComplete="off" />
         </div>
       </div>
 

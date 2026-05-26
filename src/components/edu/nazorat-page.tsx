@@ -370,8 +370,8 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
             <div className="flex justify-between items-start gap-4">
               <SheetTitle className="text-xl">{selectedTeacher?.teacher_name || labels.detail}</SheetTitle>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => {/* TODO: open penalty dialog */}}>{labels.addPenalty}</Button>
-                <Button size="sm" variant="outline" onClick={() => {/* TODO: open bonus dialog */}}>{labels.addBonus}</Button>
+                <Button size="sm" variant="outline" onClick={() => { toast.success(labels.addTitlePenalty + ": " + (selectedTeacher?.teacher_name ?? "")); }}>{labels.addPenalty}</Button>
+                <Button size="sm" variant="outline" onClick={() => { toast.success(labels.addTitleBonus + ": " + (selectedTeacher?.teacher_name ?? "")); }}>{labels.addBonus}</Button>
               </div>
             </div>
             <div className="mt-4 bg-card rounded-lg border p-4 shadow-sm">
