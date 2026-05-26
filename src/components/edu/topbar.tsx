@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -14,13 +15,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NotificationsPopover } from "@/components/edu/notifications-popover";
 import { LangToggle } from "@/components/edu/lang-toggle";
+import { GlobalSearch } from "@/components/edu/global-search";
 import { useI18n } from "@/lib/i18n";
 
 export function Topbar({ title, showSearch = true }: { title?: string; showSearch?: boolean }) {
   const { theme, toggle } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
 
   const initials = user?.fullName
     .split(" ")
@@ -33,13 +47,14 @@ export function Topbar({ title, showSearch = true }: { title?: string; showSearc
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-md md:px-6">
       {title && <h1 className="hidden text-lg font-semibold md:block">{title}</h1>}
       {showSearch && (
-        <div className="relative hidden max-w-sm flex-1 md:block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            placeholder={t("topbar.searchPlaceholder")}
-            className="h-10 w-full rounded-lg border border-input bg-secondary/50 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary focus:bg-background"
-          />
-        </div>
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="hidden md:flex items-center gap-2 h-10 px-4 rounded-lg border border-input bg-background text-sm text-muted-foreground hover:bg-accent transition-colors max-w-sm flex-1"
+        >
+          <Search className="h-4 w-4" />
+          <span className="flex-1 text-left">{lang === "uz" ? "Qidirish..." : "Поиск..."}</span>
+          <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">⌘K</kbd>
+        </button>
       )}
       <div className="ml-auto flex items-center gap-2">
         <LangToggle />
@@ -84,6 +99,7 @@ export function Topbar({ title, showSearch = true }: { title?: string; showSearc
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   );
 }

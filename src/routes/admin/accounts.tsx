@@ -177,8 +177,9 @@ function AccountsPage() {
                           type={visible[key] ? "text" : "password"}
                           value={drafts[key] ?? ""}
                           onChange={(e) => setDrafts((prev) => ({ ...prev, [key]: e.target.value }))}
-                          placeholder="edu123456"
+                          placeholder={lang === "uz" ? "Yangi parol" : "Новый пароль"}
                           className="pr-9"
+                          autoComplete="new-password"
                         />
                         <button
                           type="button"
@@ -191,7 +192,7 @@ function AccountsPage() {
                       <Button variant="outline" size="icon" onClick={() => setDrafts((prev) => ({ ...prev, [key]: makePassword() }))}>
                         <RefreshCw className="size-4" />
                       </Button>
-                      <Button size="icon" onClick={() => savePassword(row)} disabled={!drafts[key]?.trim()}>
+                      <Button size="icon" onClick={() => savePassword(row)} disabled={!drafts[key]?.trim() || (drafts[key]?.trim().length ?? 0) < 6}>
                         <Save className="size-4" />
                       </Button>
                     </div>
