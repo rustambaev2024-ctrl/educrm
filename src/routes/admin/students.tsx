@@ -1225,6 +1225,8 @@ function StudentDetailSheet({
     </Sheet>
   );
 }
+
+function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
