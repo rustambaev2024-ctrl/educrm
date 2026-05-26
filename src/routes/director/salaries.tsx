@@ -173,7 +173,7 @@ function DirectorSalaries() {
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>{lang === "uz" ? "Hisob-kitob oyi" : "Месяц расчёта"}</Label>
-                <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} />
+                <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} autoComplete="off" />
               </div>
               <div className="space-y-1.5">
                 <Label>{lang === "uz" ? "Tanlangan xodim" : "Выбранный сотрудник"}</Label>
@@ -352,7 +352,7 @@ function DirectorSalaries() {
                   {lang === "uz" ? "Qoldiqni qo'yish" : "Весь остаток"}
                 </Button>
               </div>
-              <Input type="number" min={0} step={1000} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(calculation.remaining || calculation.due)} />
+              <Input type="number" min={0} step={1000} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={String(calculation.remaining || calculation.due)} autoComplete="off" />
             </div>
             <div className="space-y-1.5">
               <Label>{lang === "uz" ? "Usul" : "Способ"}</Label>

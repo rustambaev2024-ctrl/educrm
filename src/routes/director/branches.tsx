@@ -263,7 +263,7 @@ function CreateRoomDialog({
         <div className="grid gap-4">
           <div>
             <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Kabinet nomi *</Label>
-            <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Masalan: 101-xona" autoFocus />
+            <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Masalan: 101-xona" autoFocus autoComplete="off" />
           </div>
           <div>
             <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Filial *</Label>
@@ -278,7 +278,7 @@ function CreateRoomDialog({
           </div>
           <div>
             <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">O'rinlar soni *</Label>
-            <Input type="number" min={1} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} />
+            <Input type="number" min={1} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} autoComplete="off" />
           </div>
         </div>
         <DialogFooter>

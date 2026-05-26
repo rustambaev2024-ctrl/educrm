@@ -163,7 +163,7 @@ function StaffPage() {
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center md:justify-between">
             <div className="relative max-w-sm flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("common.search")} className="pl-9" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("common.search")} className="pl-9" autoComplete="off" />
             </div>
             <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
               <TabsList>
@@ -264,7 +264,7 @@ function StaffPage() {
           </DialogHeader>
           <div className="grid gap-4">
             <Field label={t("staff.field.name")}>
-              <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
+              <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} autoComplete="off" />
             </Field>
             <Field label={t("staff.field.phone")}>
               <PhoneInput value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
@@ -312,6 +312,7 @@ function StaffPage() {
                   value={form.salaryPercent}
                   onChange={(e) => setForm({ ...form, salaryPercent: e.target.value })}
                   placeholder="40"
+                  autoComplete="off"
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
                   {lang === "uz" ? "Kurs oylik narxidan foiz" : "Процент от месячной стоимости курса"}
@@ -326,6 +327,7 @@ function StaffPage() {
                   value={form.fixedSalary}
                   onChange={(e) => setForm({ ...form, fixedSalary: e.target.value })}
                   placeholder="2000000"
+                  autoComplete="off"
                 />
               </Field>
             ) : null}

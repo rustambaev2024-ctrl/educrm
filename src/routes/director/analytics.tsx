@@ -159,7 +159,7 @@ function AnalyticsPage() {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <SmallStat icon={BookOpen} label={t("nav.staff")} value={`${staff.length}`} />
-          <SmallStat icon={AlertCircle} label="Overdue" value={formatMoney(overdueAmount, lang)} tone="text-destructive" />
+          <SmallStat icon={AlertCircle} label={lang === "uz" ? "Muddati o'tgan" : "Просрочено"} value={formatMoney(overdueAmount, lang)} tone="text-destructive" />
           <SmallStat icon={Wallet} label={t("director.profit")} value={formatMoney(totalRevenue - totalExpense, lang)} tone={totalRevenue - totalExpense >= 0 ? "text-success" : "text-destructive"} />
         </div>
       </div>
