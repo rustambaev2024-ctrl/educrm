@@ -4,7 +4,7 @@ import {
   Users, Wallet, TrendingUp, AlertCircle, Activity, BookOpen, ArrowRight, Building2, Award, Clock,
 } from "lucide-react";
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Legend as RechartsLegend, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { PageHeader } from "@/components/edu/page-header";
 import { StatCard } from "@/components/edu/stat-card";
@@ -127,8 +127,8 @@ function DirectorHome() {
                 <p className="text-xs text-muted-foreground">{t("admin.weekRange")} · mln UZS</p>
               </div>
               <div className="flex items-center gap-3 text-xs">
-                <Legend color="var(--chart-1)" label={t("director.monthlyRevenue")} />
-                <Legend color="var(--chart-3)" label={t("director.monthlyExpense")} />
+                <Legend color="#22c55e" label={t("director.monthlyRevenue")} />
+                <Legend color="#ef4444" label={t("director.monthlyExpense")} />
               </div>
             </div>
             <ResponsiveContainer width="100%" height={260}>
@@ -149,7 +149,6 @@ function DirectorHome() {
                 <Tooltip formatter={(value: any, name: string) => [`${Number(value).toFixed(1)} mln`, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
                 <Area type="monotone" dataKey="income" name={t("finance.kpi.income")} stroke="#22c55e" fill="url(#dr-in)" strokeWidth={2} />
                 <Area type="monotone" dataKey="expense" name={t("finance.kpi.expense")} stroke="#ef4444" fill="url(#dr-out)" strokeWidth={2} />
-                <RechartsLegend formatter={(value: string) => value === "income" ? "Daromad" : value === "expense" ? "Xarajat" : value} wrapperStyle={{ fontSize: 12 }} />
               </AreaChart>
             </ResponsiveContainer>
           </Card>

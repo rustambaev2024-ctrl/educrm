@@ -712,10 +712,7 @@ function StudentDetailSheet({
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-left">{student.fullName}</SheetTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}><X className="size-4" /></Button>
-          </div>
+          <SheetTitle className="text-left">{student.fullName}</SheetTitle>
           <SheetDescription className="text-left">ID: {student.id}</SheetDescription>
         </SheetHeader>
 
