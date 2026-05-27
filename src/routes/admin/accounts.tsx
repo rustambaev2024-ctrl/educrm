@@ -1,6 +1,6 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Eye, EyeOff, KeyRound, RefreshCw, Save, Search, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Info, KeyRound, RefreshCw, Save, Search, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -124,13 +124,17 @@ function AccountsPage() {
     <>
       <PageHeader title={t("title")} description={t("description")} />
       <div className="space-y-4 p-4 md:p-8">
+        <Card className="p-4 border-blue-500/20 bg-blue-500/5">
+          <div className="flex gap-3">
+            <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-muted-foreground">{t("note")}</p>
+          </div>
+        </Card>
         <div className="grid gap-3 md:grid-cols-3">
           <AccessStat label={t("teachers")} value={rows.filter((r) => r.type === "teacher").length} />
           <AccessStat label={t("students")} value={rows.filter((r) => r.type === "student").length} />
           <AccessStat label={t("parents")} value={rows.filter((r) => r.type === "parent").length} />
         </div>
-
-        <Card className="border-info/30 bg-info/5 p-3 text-sm text-muted-foreground">{t("note")}</Card>
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="relative flex-1 md:max-w-sm">
@@ -139,10 +143,10 @@ function AccountsPage() {
           </div>
           <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
             <TabsList className="grid grid-cols-4">
-              <TabsTrigger value="all">{t("all")}</TabsTrigger>
-              <TabsTrigger value="teacher">{t("teachers")}</TabsTrigger>
-              <TabsTrigger value="student">{t("students")}</TabsTrigger>
-              <TabsTrigger value="parent">{t("parents")}</TabsTrigger>
+              <TabsTrigger value="all">{t("all")} ({rows.length})</TabsTrigger>
+              <TabsTrigger value="teacher">{t("teachers")} ({rows.filter((r) => r.type === "teacher").length})</TabsTrigger>
+              <TabsTrigger value="student">{t("students")} ({rows.filter((r) => r.type === "student").length})</TabsTrigger>
+              <TabsTrigger value="parent">{t("parents")} ({rows.filter((r) => r.type === "parent").length})</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
