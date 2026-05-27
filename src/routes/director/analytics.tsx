@@ -83,10 +83,10 @@ function AnalyticsPage() {
       <PageHeader title={t("nav.analytics")} description={t("director.subtitle")} />
       <div className="space-y-6 p-4 md:p-8">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} tone="primary" />
-          <StatCard label={t("director.activeGroups")} value={`${groups.length}`} icon={Layers} tone="info" />
-          <StatCard label={t("director.monthlyRevenue")} value={formatMoney(totalRevenue, lang)} icon={Wallet} tone="success" />
-          <StatCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={TrendingUp} tone="info" />
+          <StatCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} tone="primary" hint={lang === "uz" ? "Barcha o'quvchilar" : "Все студенты"} />
+          <StatCard label={t("director.activeGroups")} value={`${groups.length}`} icon={Layers} tone="info" hint={lang === "uz" ? "Faol guruhlar" : "Активные группы"} />
+          <StatCard label={t("director.monthlyRevenue")} value={formatMoney(totalRevenue, lang)} icon={Wallet} tone="success" hint={lang === "uz" ? "Jami tushum" : "Общий доход"} />
+          <StatCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={TrendingUp} tone="info" hint={lang === "uz" ? "O'rtacha davomat" : "Средняя посещаемость"} />
         </div>
 
         <Card className="p-6 shadow-elegant">
@@ -111,7 +111,7 @@ function AnalyticsPage() {
           <Card className="p-6 shadow-elegant">
             <div className="mb-4">
               <h3 className="text-base font-semibold">{t("director.byBranch")}</h3>
-              <p className="text-xs text-muted-foreground">mln UZS</p>
+              <p className="text-xs text-muted-foreground">{lang === "uz" ? "Filial daromadi" : "Доход по филиалам"} · mln UZS</p>
             </div>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={byBranch}>
@@ -127,7 +127,7 @@ function AnalyticsPage() {
           <Card className="p-6 shadow-elegant">
             <div className="mb-4">
               <h3 className="text-base font-semibold">{t("students.col.status")}</h3>
-              <p className="text-xs text-muted-foreground">{students.length}</p>
+              <p className="text-xs text-muted-foreground">{lang === "uz" ? "O'quvchilar holati" : "Статус студентов"} · {students.length}</p>
             </div>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
@@ -144,7 +144,7 @@ function AnalyticsPage() {
         <Card className="p-6 shadow-elegant">
           <div className="mb-4">
             <h3 className="text-base font-semibold">{t("director.byCourse")} — {t("groups.field.capacity")}</h3>
-            <p className="text-xs text-muted-foreground">%</p>
+            <p className="text-xs text-muted-foreground">{lang === "uz" ? "Guruh to'ldirilganligi" : "Заполненность групп"} %</p>
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={courseOccupancy} layout="vertical" margin={{ left: 20 }}>

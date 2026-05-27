@@ -67,10 +67,10 @@ function AdminAnalytics() {
       <PageHeader title={t("nav.analytics")} description={t("admin.subtitle")} />
       <div className="space-y-6 p-4 md:p-8">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} tone="primary" />
-          <StatCard label={t("admin.activeGroups")} value={`${groups.length}`} icon={Layers} tone="info" />
-          <StatCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={CalendarCheck} tone="success" />
-          <StatCard label={t("director.monthlyRevenue")} value={formatMoney(totalIncome, lang)} icon={Wallet} tone="info" />
+          <StatCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} tone="primary" hint={lang === "uz" ? "Faol va muzlatilganlar" : "Активные и замороженные"} />
+          <StatCard label={t("admin.activeGroups")} value={`${groups.length}`} icon={Layers} tone="info" hint={lang === "uz" ? "Faol o'quv guruhlari" : "Активные учебные группы"} />
+          <StatCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={CalendarCheck} tone="success" hint={lang === "uz" ? "O'rtacha joriy oy" : "Среднее за текущий месяц"} />
+          <StatCard label={t("director.monthlyRevenue")} value={formatMoney(totalIncome, lang)} icon={Wallet} tone="info" hint={lang === "uz" ? "Joriy oy to'lovlari" : "Платежи за текущий месяц"} />
         </div>
 
         <Card className="p-6 shadow-elegant">
@@ -96,7 +96,7 @@ function AdminAnalytics() {
           <Card className="p-6 shadow-elegant">
             <div className="mb-4">
               <h3 className="text-base font-semibold">{t("students.col.status")}</h3>
-              <p className="text-xs text-muted-foreground">{students.length}</p>
+              <p className="text-xs text-muted-foreground">{lang === "uz" ? "O'quvchilar holati" : "Статус студентов"} · {students.length}</p>
             </div>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
@@ -112,7 +112,7 @@ function AdminAnalytics() {
           <Card className="p-6 shadow-elegant">
             <div className="mb-4">
               <h3 className="text-base font-semibold">{t("director.byCourse")}</h3>
-              <p className="text-xs text-muted-foreground">{t("students.count")}</p>
+              <p className="text-xs text-muted-foreground">{lang === "uz" ? "Guruhlardagi o'quvchilar" : "Студенты по курсам"}</p>
             </div>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={byCourse} layout="vertical" margin={{ left: 10 }}>
