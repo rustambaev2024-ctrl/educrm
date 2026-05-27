@@ -512,6 +512,8 @@ export const analyticsApi = {
     requestJson(`/analytics/teacher-lessons/?${new URLSearchParams(params as Record<string, string>)}`),
   teacherSalary: (params?: Record<string, string>) =>
     requestJson(`/salary/me/${params ? `?${new URLSearchParams(params)}` : ""}`),
+  staffSalary: (staffId: string, params: Record<string, string>) =>
+    requestJson(`/salary/calculate/?teacher_id=${staffId}&${new URLSearchParams(params)}`),
   dailyReport: (params: { date: string }) =>
     requestJson(`/analytics/daily-report/?${new URLSearchParams(params)}`),
 };

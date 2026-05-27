@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2, ArrowDownCircle, ArrowUpCircle, Key, Copy, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2, ArrowDownCircle, ArrowUpCircle, Key, Copy, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { PasswordInput } from "@/components/edu/password-input";
@@ -510,6 +510,8 @@ function StudentDetailSheet({
   const [linkCodeOpen, setLinkCodeOpen] = useState(false);
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [linkCodeLoading, setLinkCodeLoading] = useState(false);
+  const [editStudentMode, setEditStudentMode] = useState(false);
+  const [editStudentForm, setEditStudentForm] = useState({ fullName: "", phone: "", birthDate: "" });
 
   useEffect(() => {
     if (student) {
@@ -764,12 +766,72 @@ function StudentDetailSheet({
 
             <TabsContent value="main" className="space-y-3 pt-4">
               <Card className="p-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <Field label={t("students.col.registered")} value={formatDate(student.registeredAt, lang)} />
-                  <Field label={t("students.col.status")} value={t(`status.${student.status}`)} />
-                  <Field label={t("students.field.phone")} value={student.phone} />
-                  <Field label={t("students.field.birthDate")} value={student.birthDate ? formatDate(student.birthDate, lang) : "—"} />
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {lang === "uz" ? "Asosiy ma'lumotlar" : "Основные данные"}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      if (!editStudentMode) {
+                        setEditStudentForm({
+                          fullName: student.fullName ?? "",
+                          phone: student.phone ?? "",
+                          birthDate: student.birthDate ?? "",
+                        });
+                      }
+                      setEditStudentMode(!editStudentMode);
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    {editStudentMode ? (lang === "uz" ? "Bekor" : "Отмена") : (lang === "uz" ? "O'zgartirish" : "Изменить")}
+                  </Button>
                 </div>
+                {editStudentMode ? (
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{lang === "uz" ? "F.I.Sh." : "ФИО"}</Label>
+                      <Input value={editStudentForm.fullName} onChange={(e) => setEditStudentForm({ ...editStudentForm, fullName: e.target.value })} autoComplete="off" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{lang === "uz" ? "Telefon" : "Телефон"}</Label>
+                      <Input value={editStudentForm.phone} onChange={(e) => setEditStudentForm({ ...editStudentForm, phone: e.target.value })} autoComplete="off" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{lang === "uz" ? "Tug'ilgan sana" : "Дата рождения"}</Label>
+                      <Input type="date" value={editStudentForm.birthDate} onChange={(e) => setEditStudentForm({ ...editStudentForm, birthDate: e.target.value })} className="mt-1" />
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          await studentApi.update(student.id, {
+                            full_name: editStudentForm.fullName,
+                            phone: editStudentForm.phone,
+                            date_of_birth: editStudentForm.birthDate || null,
+                          });
+                          toast.success(lang === "uz" ? "Saqlandi" : "Сохранено");
+                          setEditStudentMode(false);
+                          reload();
+                        } catch {
+                          toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+                        }
+                      }}
+                    >
+                      {lang === "uz" ? "Saqlash" : "Сохранить"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <Field label={t("students.col.registered")} value={formatDate(student.registeredAt, lang)} />
+                    <Field label={t("students.col.status")} value={t(`status.${student.status}`)} />
+                    <Field label={t("students.field.phone")} value={student.phone} />
+                    <Field label={t("students.field.birthDate")} value={student.birthDate ? formatDate(student.birthDate, lang) : "—"} />
+                  </div>
+                )}
                 <div className="mt-4 border-t border-border pt-4">
                   <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">Parolni o'zgartirish</div>
                   <div className="flex gap-2 max-w-sm">
