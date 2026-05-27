@@ -46,20 +46,22 @@ function relativeTime(iso: string, lang: "uz" | "ru") {
   if (date.toDateString() === today.toDateString()) return formatTime(iso);
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) return "Kecha";
+  if (date.toDateString() === yesterday.toDateString()) return lang === "uz" ? "Kecha" : "Вчера";
   return date.toLocaleDateString(lang === "uz" ? "uz-Latn" : "ru-RU", {
     day: "2-digit",
     month: "short",
   });
 }
 
-function roleLabel(role: Contact["role"] | string) {
-  if (role === "director") return "Direktor";
-  if (role === "admin") return "Admin";
-  if (role === "teacher") return "O'qituvchi";
-  if (role === "student") return "O'quvchi";
-  if (role === "parent") return "Ota-ona";
-  return "Foydalanuvchi";
+function roleLabel(role: Contact["role"] | string, lang: "uz" | "ru" = "uz") {
+  const labels: Record<string, Record<string, string>> = {
+    director: { uz: "Direktor", ru: "Директор" },
+    admin: { uz: "Admin", ru: "Администратор" },
+    teacher: { uz: "O'qituvchi", ru: "Учитель" },
+    student: { uz: "O'quvchi", ru: "Студент" },
+    parent: { uz: "Ota-ona", ru: "Родитель" },
+  };
+  return labels[role]?.[lang] ?? (lang === "uz" ? "Foydalanuvchi" : "Пользователь");
 }
 
 function chatTone(scope: ChatThread["scope"]) {
@@ -70,10 +72,8 @@ function chatTone(scope: ChatThread["scope"]) {
 
 export function MessengerPanel({
   threadFilter,
-  mobileMode = false,
 }: {
   threadFilter?: (thread: ChatThread) => boolean;
-  mobileMode?: boolean;
 }) {
   const { t, lang } = useI18n();
   const { user } = useAuth();
@@ -158,8 +158,13 @@ export function MessengerPanel({
   );
 
   useEffect(() => {
-    if (!mobileMode && !selectedId && visibleThreads.length > 0) setSelectedId(visibleThreads[0].id);
-  }, [mobileMode, selectedId, visibleThreads]);
+    if (!selectedId && visibleThreads.length > 0) {
+      // Only auto-select on desktop (window width check)
+      if (typeof window !== "undefined" && window.innerWidth >= 768) {
+        setSelectedId(visibleThreads[0].id);
+      }
+    }
+  }, [selectedId, visibleThreads]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -202,8 +207,8 @@ export function MessengerPanel({
       <div className="space-y-3 border-b border-border/60 bg-background/80 p-3 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-lg font-bold tracking-tight">Xabarlar</div>
-            <div className="text-xs text-muted-foreground">Tezkor aloqa markazi</div>
+            <div className="text-lg font-bold tracking-tight">{lang === "uz" ? "Xabarlar" : "Сообщения"}</div>
+            <div className="text-xs text-muted-foreground">{lang === "uz" ? "Tezkor aloqa markazi" : "Быстрая связь"}</div>
           </div>
           <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/15 text-primary">
             <MessageCircle className="size-5" />
@@ -214,14 +219,14 @@ export function MessengerPanel({
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Chat, ism yoki telefon"
+            placeholder={lang === "uz" ? "Chat, ism yoki telefon" : "Чат, имя или телефон"}
             className="h-11 rounded-2xl border-border/60 bg-muted/60 pl-9"
           />
         </div>
         <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
           <TabsList className="grid w-full grid-cols-2 rounded-2xl">
-            <TabsTrigger value="chats">Chatlar</TabsTrigger>
-            <TabsTrigger value="people">Kontaktlar</TabsTrigger>
+            <TabsTrigger value="chats">{lang === "uz" ? "Chatlar" : "Чаты"}</TabsTrigger>
+            <TabsTrigger value="people">{lang === "uz" ? "Kontaktlar" : "Контакты"}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -229,7 +234,7 @@ export function MessengerPanel({
       <ScrollArea className="min-h-0 flex-1">
         {tab === "chats" ? (
           <div className="space-y-1 p-2">
-            {visibleThreads.length === 0 && <EmptyList text="Hozircha faol chatlar yo'q" />}
+            {visibleThreads.length === 0 && <EmptyList text={lang === "uz" ? "Hozircha faol chatlar yo'q" : "Пока нет активных чатов"} />}
             {visibleThreads.map((thread) => {
               const active = selectedId === thread.id;
               const lastMessage =
@@ -263,7 +268,7 @@ export function MessengerPanel({
           </div>
         ) : (
           <div className="space-y-1 p-2">
-            {contacts.length === 0 && <EmptyList text="Kontaktlar topilmadi" />}
+            {contacts.length === 0 && <EmptyList text={lang === "uz" ? "Kontaktlar topilmadi" : "Контакты не найдены"} />}
             {contacts.map((contact) => (
               <button
                 key={contact.userId}
@@ -277,7 +282,7 @@ export function MessengerPanel({
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{contact.name}</div>
                   <div className="truncate text-xs text-muted-foreground">
-                    {roleLabel(contact.role)} · {contact.phone}
+                    {roleLabel(contact.role, lang)} · {contact.phone}
                   </div>
                 </div>
                 <MessageSquarePlus className="size-4 text-muted-foreground" />
@@ -292,17 +297,15 @@ export function MessengerPanel({
   const conversation = selected ? (
     <div className="flex h-full min-h-0 flex-col bg-[radial-gradient(circle_at_15%_10%,hsl(var(--primary)/0.10),transparent_28%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)/0.45))]">
       <div className="flex items-center gap-3 border-b border-border/60 bg-card/90 px-3 py-3 backdrop-blur-xl md:px-5">
-        {mobileMode && (
-          <Button variant="ghost" size="icon" onClick={() => setSelectedId(null)} className="rounded-full">
-            <ArrowLeft className="size-4" />
-          </Button>
-        )}
+        <Button variant="ghost" size="icon" onClick={() => setSelectedId(null)} className="rounded-full md:hidden">
+          <ArrowLeft className="size-4" />
+        </Button>
         <div className={`flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br ${chatTone(selected.scope)} text-sm font-bold text-white`}>
           {selected.scope === "group" ? <Users className="size-5" /> : initialsOf(selected.title)}
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">{selected.title}</div>
-          <div className="text-xs text-muted-foreground">{selected.scope === "group" ? "Guruh suhbati" : "Shaxsiy suhbat"}</div>
+          <div className="text-xs text-muted-foreground">{selected.scope === "group" ? (lang === "uz" ? "Guruh suhbati" : "Групповой чат") : (lang === "uz" ? "Shaxsiy suhbat" : "Личный чат")}</div>
         </div>
       </div>
 
@@ -313,8 +316,8 @@ export function MessengerPanel({
               <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
                 <Send className="size-5" />
               </div>
-              <div className="font-semibold">Suhbatni boshlang</div>
-              <div className="mt-1 text-sm text-muted-foreground">Yuborilgan birinchi xabar shu yerda ko'rinadi.</div>
+              <div className="font-semibold">{lang === "uz" ? "Suhbatni boshlang" : "Начните общение"}</div>
+              <div className="mt-1 text-sm text-muted-foreground">{lang === "uz" ? "Yuborilgan birinchi xabar shu yerda ko'rinadi." : "Первое сообщение появится здесь."}</div>
             </Card>
           </div>
         )}
@@ -327,7 +330,7 @@ export function MessengerPanel({
                 <div className="whitespace-pre-wrap break-words">{message.isDeleted ? "Xabar o'chirilgan" : message.text}</div>
                 <div className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                   <span>{formatTime(message.createdAt)}</span>
-                  {message.isEdited && <span>edited</span>}
+                  {message.isEdited && <span>{lang === "uz" ? "tahrirlangan" : "изменено"}</span>}
                   {mine && <CheckCheck className="size-3" />}
                 </div>
               </div>
@@ -347,7 +350,7 @@ export function MessengerPanel({
                 handleSend();
               }
             }}
-            placeholder="Xabar yozing..."
+            placeholder={lang === "uz" ? "Xabar yozing..." : "Напишите сообщение..."}
             className="min-h-11 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
           />
           <Button onClick={handleSend} disabled={!draft.trim()} size="icon" className="size-11 rounded-2xl">
@@ -362,20 +365,20 @@ export function MessengerPanel({
         <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-3xl bg-primary/15 text-primary">
           <MessageCircle className="size-8" />
         </div>
-        <div className="text-lg font-bold">Chatni tanlang</div>
-        <div className="mt-2 text-sm text-muted-foreground">Mavjud suhbatni oching yoki Kontaktlar bo'limidan yangisini boshlang.</div>
+        <div className="text-lg font-bold">{lang === "uz" ? "Chatni tanlang" : "Выберите чат"}</div>
+        <div className="mt-2 text-sm text-muted-foreground">{lang === "uz" ? "Mavjud suhbatni oching yoki Kontaktlar bo'limidan yangisini boshlang." : "Откройте существующий чат или начните новый из раздела Контакты."}</div>
       </Card>
     </div>
   );
 
-  if (mobileMode) {
-    return <div className="h-[calc(100vh-8.25rem)] overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-elegant">{selected ? conversation : sidebar}</div>;
-  }
-
   return (
-    <div className="grid h-[calc(100vh-9rem)] grid-cols-[380px_minmax(0,1fr)] overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-elegant">
-      {sidebar}
-      {conversation}
+    <div className="grid h-[calc(100vh-9rem)] grid-cols-1 md:grid-cols-[380px_minmax(0,1fr)] overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-elegant">
+      <div className={`flex flex-col overflow-hidden border-r border-border/60 ${selectedId ? "hidden md:flex" : "flex"}`}>
+        {sidebar}
+      </div>
+      <div className={`flex flex-col overflow-hidden ${!selectedId ? "hidden md:flex" : "flex"}`}>
+        {conversation}
+      </div>
     </div>
   );
 }
