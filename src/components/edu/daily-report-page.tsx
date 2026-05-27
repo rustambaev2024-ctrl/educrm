@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Download, FileText, AlertTriangle, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Calendar, Download, FileText, AlertTriangle, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Minus, DollarSign, BookOpen, Users, UserCheck, Target, TrendingUp, GraduationCap, UserPlus, AlertCircle } from "lucide-react";
 import * as XLSX from "xlsx";
 import { analyticsApi } from "@/lib/api";
 import { formatMoney, formatDate } from "@/lib/format";
@@ -249,19 +249,19 @@ export function DailyReportPage() {
 
   const getDeltaIcon = (deltaStr: string) => {
     const delta = parseFloat(deltaStr);
-    if (delta > 0) return <ArrowUp className="h-4 w-4 text-green-500" />;
-    if (delta < 0) return <ArrowDown className="h-4 w-4 text-red-500" />;
-    return <Minus className="h-4 w-4 text-gray-400" />;
+    if (delta > 0) return <ArrowUp className="h-4 w-4 text-emerald-500" />;
+    if (delta < 0) return <ArrowDown className="h-4 w-4 text-destructive" />;
+    return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "present":
-        return "bg-green-500";
+        return "bg-emerald-500/100";
       case "late":
-        return "bg-yellow-500";
+        return "bg-amber-500/100";
       case "absent":
-        return "bg-red-500";
+        return "bg-destructive/100";
       default:
         return "bg-gray-400";
     }
@@ -273,8 +273,27 @@ export function DailyReportPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">{lang === "uz" ? "Yuklanmoqda..." : "Загрузка..."}</div>
+      <div className="space-y-6 p-4 md:p-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-7 w-48 rounded-lg bg-muted animate-pulse" />
+            <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-9 w-20 rounded-lg bg-muted animate-pulse" />
+            <div className="h-9 w-20 rounded-lg bg-muted animate-pulse" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -282,7 +301,7 @@ export function DailyReportPage() {
   if (error || !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-red-500">{error || (lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка")}</div>
+        <div className="text-destructive">{error || (lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка")}</div>
       </div>
     );
   }
@@ -324,7 +343,7 @@ export function DailyReportPage() {
             <div className="text-2xl font-bold">{formatMoney(parseFloat(data.finance.income_today), lang as Lang)}</div>
             <div className="flex items-center gap-1 text-sm">
               {getDeltaIcon(data.finance.income_delta)}
-              <span className={parseFloat(data.finance.income_delta) >= 0 ? "text-green-500" : "text-red-500"}>
+              <span className={parseFloat(data.finance.income_delta) >= 0 ? "text-emerald-500" : "text-destructive"}>
                 {formatMoney(Math.abs(parseFloat(data.finance.income_delta)), lang as Lang)}
               </span>
             </div>
@@ -368,13 +387,13 @@ export function DailyReportPage() {
             <div className="text-2xl font-bold">{data.leads.today}</div>
             <div className="flex items-center gap-1 text-sm">
               {data.leads.delta > 0 ? (
-                <ArrowUp className="h-4 w-4 text-green-500" />
+                <ArrowUp className="h-4 w-4 text-emerald-500" />
               ) : data.leads.delta < 0 ? (
-                <ArrowDown className="h-4 w-4 text-red-500" />
+                <ArrowDown className="h-4 w-4 text-destructive" />
               ) : (
-                <Minus className="h-4 w-4 text-gray-400" />
+                <Minus className="h-4 w-4 text-muted-foreground" />
               )}
-              <span className={data.leads.delta >= 0 ? "text-green-500" : "text-red-500"}>
+              <span className={data.leads.delta >= 0 ? "text-emerald-500" : "text-destructive"}>
                 {Math.abs(data.leads.delta)}
               </span>
             </div>
@@ -388,7 +407,7 @@ export function DailyReportPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.finance.new_debtors_today}</div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               {lang === "uz" ? "Jami qarz:" : "Общий долг:"} {formatMoney(parseFloat(data.finance.total_debt), lang as Lang)}
             </div>
           </CardContent>
@@ -397,15 +416,15 @@ export function DailyReportPage() {
 
       {/* Warning Alert */}
       {data.lessons.no_attendance_count > 0 && (
-        <Card className="border-yellow-500 bg-yellow-50 print:bg-white print:border-gray-200">
+        <Card className="border-amber-500/50 bg-amber-500/10 print:bg-white print:border-gray-200">
           <CardContent className="p-4">
             <button
               className="flex items-center justify-between w-full cursor-pointer"
               onClick={() => setShowNoAttendance(!showNoAttendance)}
             >
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                <span className="font-medium text-yellow-800">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                <span className="font-medium text-amber-700 dark:text-amber-300">
                   {labels.lessons.noAttendanceWarning(data.lessons.no_attendance_count)}
                 </span>
               </div>
@@ -414,7 +433,7 @@ export function DailyReportPage() {
             {showNoAttendance && (
               <div className="mt-4 ml-7 space-y-2">
                 {data.lessons.no_attendance_list.map((lesson, idx) => (
-                  <div key={idx} className="text-sm text-yellow-700">
+                  <div key={idx} className="text-sm text-amber-700 dark:text-amber-300">
                     <strong>{lesson.group_name}</strong> — {lesson.teacher_name} ({lesson.time})
                   </div>
                 ))}
@@ -430,7 +449,7 @@ export function DailyReportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <span className="text-lg">💰</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15"><DollarSign className="h-4 w-4 text-emerald-500" /></div>
               {labels.finance.title}
             </CardTitle>
           </CardHeader>
@@ -448,7 +467,7 @@ export function DailyReportPage() {
                           {payment.method} · {payment.time}
                         </div>
                       </div>
-                      <div className="font-semibold text-green-600">
+                      <div className="font-semibold text-emerald-600">
                         {formatMoney(parseFloat(payment.amount), lang as Lang)}
                       </div>
                     </div>
@@ -459,15 +478,15 @@ export function DailyReportPage() {
 
             {/* Summary */}
             <div className="grid grid-cols-2 gap-4 pt-4">
-              <div className="p-3 bg-green-50 rounded">
+              <div className="p-3 bg-emerald-500/10 rounded">
                 <div className="text-sm text-muted-foreground">{labels.finance.income}</div>
-                <div className="text-lg font-bold text-green-600">
+                <div className="text-lg font-bold text-emerald-600">
                   {formatMoney(parseFloat(data.finance.income_today), lang as Lang)}
                 </div>
               </div>
-              <div className="p-3 bg-red-50 rounded">
+              <div className="p-3 bg-destructive/10 rounded">
                 <div className="text-sm text-muted-foreground">{labels.finance.charges}</div>
-                <div className="text-lg font-bold text-red-600">
+                <div className="text-lg font-bold text-destructive">
                   {formatMoney(parseFloat(data.finance.charges_today), lang as Lang)}
                 </div>
               </div>
@@ -479,7 +498,7 @@ export function DailyReportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <span className="text-lg">📚</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/15"><BookOpen className="h-4 w-4 text-blue-500" /></div>
               {labels.lessons.title}
             </CardTitle>
           </CardHeader>
@@ -487,11 +506,11 @@ export function DailyReportPage() {
             {/* Status Summary */}
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <div className="w-3 h-3 rounded-full bg-emerald-500/100" />
                 <span className="text-sm">{labels.lessons.conducted}: {data.lessons.conducted}</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-destructive/100" />
                 <span className="text-sm">{labels.lessons.cancelled}: {data.lessons.cancelled}</span>
               </div>
             </div>
@@ -499,16 +518,16 @@ export function DailyReportPage() {
             {/* Cancelled Lessons */}
             {data.lessons.cancelled_list.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium mb-2 text-red-600">{labels.lessons.cancelled}</h4>
+                <h4 className="text-sm font-medium mb-2 text-destructive">{labels.lessons.cancelled}</h4>
                 <div className="space-y-2">
                   {data.lessons.cancelled_list.map((lesson, idx) => (
-                    <div key={idx} className="text-sm py-2 border-b border-red-100">
+                    <div key={idx} className="text-sm py-2 border-b border-destructive/20">
                       <div className="font-medium">{lesson.group_name}</div>
                       <div className="text-muted-foreground text-xs">
                         {lesson.teacher_name} · {lesson.time}
                       </div>
                       {lesson.reason && (
-                        <div className="text-red-500 text-xs mt-1">{lesson.reason}</div>
+                        <div className="text-destructive text-xs mt-1">{lesson.reason}</div>
                       )}
                     </div>
                   ))}
@@ -531,7 +550,7 @@ export function DailyReportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <span className="text-lg">👥</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/15"><Users className="h-4 w-4 text-violet-500" /></div>
               {labels.students.title}
             </CardTitle>
           </CardHeader>
@@ -549,16 +568,16 @@ export function DailyReportPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-green-50 rounded">
-                <div className="text-2xl font-bold text-green-600">{data.students.present}</div>
+              <div className="text-center p-3 bg-emerald-500/10 rounded">
+                <div className="text-2xl font-bold text-emerald-600">{data.students.present}</div>
                 <div className="text-xs text-muted-foreground">{labels.students.present}</div>
               </div>
-              <div className="text-center p-3 bg-red-50 rounded">
-                <div className="text-2xl font-bold text-red-600">{data.students.absent}</div>
+              <div className="text-center p-3 bg-destructive/10 rounded">
+                <div className="text-2xl font-bold text-destructive">{data.students.absent}</div>
                 <div className="text-xs text-muted-foreground">{labels.students.absent}</div>
               </div>
-              <div className="text-center p-3 bg-yellow-50 rounded">
-                <div className="text-2xl font-bold text-yellow-600">{data.students.late}</div>
+              <div className="text-center p-3 bg-amber-500/10 rounded">
+                <div className="text-2xl font-bold text-amber-600">{data.students.late}</div>
                 <div className="text-xs text-muted-foreground">{labels.students.late}</div>
               </div>
             </div>
@@ -566,7 +585,7 @@ export function DailyReportPage() {
             {/* Absent List */}
             {data.students.absent_list.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium mb-2 text-red-600">{labels.students.absent}</h4>
+                <h4 className="text-sm font-medium mb-2 text-destructive">{labels.students.absent}</h4>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {data.students.absent_list.map((student, idx) => (
                     <div key={idx} className="text-sm py-2 border-b">
@@ -586,27 +605,27 @@ export function DailyReportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <span className="text-lg">👨‍🏫</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/15"><UserCheck className="h-4 w-4 text-orange-500" /></div>
               {labels.teachers.title}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Stats */}
             <div className="grid grid-cols-4 gap-2">
-              <div className="text-center p-2 bg-green-50 rounded">
-                <div className="font-bold text-green-600">{data.teachers.present}</div>
+              <div className="text-center p-2 bg-emerald-500/10 rounded">
+                <div className="font-bold text-emerald-600">{data.teachers.present}</div>
                 <div className="text-xs text-muted-foreground">{labels.teachers.present}</div>
               </div>
-              <div className="text-center p-2 bg-yellow-50 rounded">
-                <div className="font-bold text-yellow-600">{data.teachers.late}</div>
+              <div className="text-center p-2 bg-amber-500/10 rounded">
+                <div className="font-bold text-amber-600">{data.teachers.late}</div>
                 <div className="text-xs text-muted-foreground">{labels.teachers.late}</div>
               </div>
-              <div className="text-center p-2 bg-red-50 rounded">
-                <div className="font-bold text-red-600">{data.teachers.absent}</div>
+              <div className="text-center p-2 bg-destructive/10 rounded">
+                <div className="font-bold text-destructive">{data.teachers.absent}</div>
                 <div className="text-xs text-muted-foreground">{labels.teachers.absent}</div>
               </div>
-              <div className="text-center p-2 bg-gray-50 rounded">
-                <div className="font-bold text-gray-600">{data.teachers.no_data}</div>
+              <div className="text-center p-2 bg-muted/50 rounded">
+                <div className="font-bold text-muted-foreground">{data.teachers.no_data}</div>
                 <div className="text-xs text-muted-foreground">{labels.teachers.noData}</div>
               </div>
             </div>
@@ -638,7 +657,7 @@ export function DailyReportPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span className="text-lg">🎯</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15"><Target className="h-4 w-4 text-rose-500" /></div>
             {labels.leads.title}
           </CardTitle>
         </CardHeader>
