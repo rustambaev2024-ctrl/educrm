@@ -516,6 +516,8 @@ export const analyticsApi = {
     requestJson(`/salary/calculate/?teacher_id=${staffId}&${new URLSearchParams(params)}`),
   dailyReport: (params: { date: string }) =>
     requestJson(`/analytics/daily-report/?${new URLSearchParams(params)}`),
+  groupReport: (groupId: string, params?: Record<string, string>) =>
+    requestJson(`/analytics/group-report/${groupId}/${params ? `?${new URLSearchParams(params)}` : ""}`),
 };
 
 export const auditApi = {

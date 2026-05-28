@@ -738,3 +738,140 @@ def get_audit_logs_snapshot(user, filters: ReportFilters) -> list[dict]:
         }
         for log in logs_qs.order_by("-timestamp")[:5000]
     ]
+
+
+def get_group_report(group_id, date_from=None, date_to=None):
+    """Detailed report for a single group."""
+    import calendar as cal
+    from apps.courses.models import Group, GroupMembership
+    from apps.grades.models import Grade
+
+    try:
+        group = Group.objects.select_related("course", "teacher__user", "branch", "room").get(id=group_id)
+    except Group.DoesNotExist:
+        return None
+
+    today = date.today()
+    if not date_from:
+        date_from = date(today.year, today.month, 1)
+    if not date_to:
+        date_to = today
+
+    members = GroupMembership.objects.filter(group=group, left_at__isnull=True).select_related("student__user")
+    student_ids = [m.student_id for m in members]
+
+    lessons_qs = Lesson.objects.filter(
+        group=group, datetime__date__gte=date_from, datetime__date__lte=date_to
+    ).order_by("-datetime")
+    total_lessons = lessons_qs.count()
+    conducted = lessons_qs.filter(status="conducted").count()
+    cancelled = lessons_qs.filter(status="cancelled").count()
+
+    attendance_qs = Attendance.objects.filter(
+        lesson__group=group, lesson__datetime__date__gte=date_from, lesson__datetime__date__lte=date_to
+    )
+    total_att = attendance_qs.count()
+    present_att = attendance_qs.filter(status__in=["present", "late"]).count()
+    attendance_rate = round(present_att / total_att * 100, 1) if total_att else 0
+
+    # Monthly attendance (last 6 months)
+    monthly_attendance = []
+    for i in range(5, -1, -1):
+        m_date = date(today.year, today.month, 1) - timedelta(days=i * 30)
+        m_start = date(m_date.year, m_date.month, 1)
+        m_end = date(m_start.year, m_start.month, cal.monthrange(m_start.year, m_start.month)[1])
+        m_att = Attendance.objects.filter(
+            lesson__group=group, lesson__datetime__date__gte=m_start, lesson__datetime__date__lte=m_end
+        )
+        m_total = m_att.count()
+        m_present = m_att.filter(status__in=["present", "late"]).count()
+        monthly_attendance.append({
+            "month": m_start.strftime("%b"),
+            "rate": round(m_present / m_total * 100, 1) if m_total else 0,
+        })
+
+    # Finance
+    payments_qs = Payment.objects.filter(
+        group=group, created_at__date__gte=date_from, created_at__date__lte=date_to
+    )
+    income = float(payments_qs.filter(payment_type="top_up").aggregate(
+        t=Coalesce(Sum("amount"), Decimal("0"))
+    )["t"])
+    charges = float(payments_qs.filter(payment_type="charge").aggregate(
+        t=Coalesce(Sum("amount"), Decimal("0"))
+    )["t"])
+
+    # Debtors
+    debtors = Student.objects.filter(id__in=student_ids, wallet_balance__lt=0).select_related("user")
+    debtors_list = [
+        {"student_id": str(d.id), "student_name": d.user.full_name, "balance": float(d.wallet_balance)}
+        for d in debtors
+    ]
+
+    # Recent lessons
+    recent_lessons = []
+    for lesson in lessons_qs[:10]:
+        att = Attendance.objects.filter(lesson=lesson)
+        present = att.filter(status__in=["present", "late"]).count()
+        total = att.count() or len(student_ids)
+        recent_lessons.append({
+            "id": str(lesson.id),
+            "date": lesson.datetime.strftime("%d %b"),
+            "topic": lesson.topic or "",
+            "status": lesson.status,
+            "present": present,
+            "total": total,
+        })
+
+    # Students with attendance
+    students_data = []
+    for member in members:
+        student = member.student
+        s_att = attendance_qs.filter(student=student)
+        s_total = s_att.count()
+        s_present = s_att.filter(status__in=["present", "late"]).count()
+        s_rate = round(s_present / s_total * 100, 1) if s_total else 0
+        last_grade = Grade.objects.filter(student=student, group=group).order_by("-graded_at").first()
+        students_data.append({
+            "student_id": str(student.id),
+            "student_name": student.user.full_name,
+            "phone": student.user.phone or "",
+            "balance": float(student.wallet_balance),
+            "attendance_rate": s_rate,
+            "last_grade": float(last_grade.score) if last_grade else None,
+        })
+
+    avg_grade = Grade.objects.filter(group=group).aggregate(avg=Avg("score"))["avg"]
+
+    return {
+        "group": {
+            "id": str(group.id),
+            "name": group.name,
+            "status": group.status,
+            "teacher_name": group.teacher.user.full_name if group.teacher else None,
+            "course_name": group.course.name if group.course else None,
+            "room_name": group.room.name if group.room else None,
+            "monthly_price": float(group.monthly_price or 0),
+            "capacity": group.capacity,
+        },
+        "period": {"date_from": str(date_from), "date_to": str(date_to)},
+        "kpi": {
+            "students_count": len(student_ids),
+            "debtors_count": len(debtors_list),
+            "attendance_rate": attendance_rate,
+            "total_lessons": total_lessons,
+            "conducted_lessons": conducted,
+            "cancelled_lessons": cancelled,
+            "avg_grade": round(float(avg_grade), 1) if avg_grade else None,
+            "monthly_income": float(group.monthly_price or 0) * len(student_ids),
+        },
+        "monthly_attendance": monthly_attendance,
+        "debtors": debtors_list,
+        "recent_lessons": recent_lessons,
+        "students": students_data,
+        "finance": {
+            "income": income,
+            "charges": charges,
+            "total_debt": sum(d["balance"] for d in debtors_list),
+        },
+    }

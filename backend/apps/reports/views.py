@@ -263,3 +263,30 @@ class DailyReportView(AnalyticsBaseView):
         data = get_daily_report(request.user, report_date, branch_id)
         cache.set(cache_key, data, ttl)
         return Response(data)
+
+
+class GroupReportView(APIView):
+    permission_classes = [IsBranchAdmin]
+
+    def get(self, request, group_id):
+        from django.core.cache import cache
+        from .services import get_group_report
+
+        date_from_str = request.query_params.get("date_from")
+        date_to_str = request.query_params.get("date_to")
+        date_from = datetime.strptime(date_from_str, "%Y-%m-%d").date() if date_from_str else None
+        date_to = datetime.strptime(date_to_str, "%Y-%m-%d").date() if date_to_str else None
+
+        tenant = getattr(request, "tenant", None)
+        schema = tenant.schema_name if tenant else "public"
+        cache_key = f"group_report:{schema}:{group_id}:{date_from}:{date_to}"
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached)
+
+        data = get_group_report(str(group_id), date_from, date_to)
+        if not data:
+            return Response({"detail": "Group not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        cache.set(cache_key, data, 300)
+        return Response(data)

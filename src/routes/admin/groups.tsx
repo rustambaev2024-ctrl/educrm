@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Plus, Search, Users, Clock, MapPin, X, UserPlus, UserMinus, Edit, Trash } from "lucide-react";
+import { CheckCircle2, Plus, Search, Users, Clock, MapPin, X, UserPlus, UserMinus, Edit, Trash, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { GroupStatusBadge } from "@/components/edu/status-badge";
@@ -39,6 +39,7 @@ import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
 import { dayLabel, formatDate, formatMoney } from "@/lib/format";
 import type { DayOfWeek, Group, ScheduleSlot, StudentStatus } from "@/lib/data/types";
+import { GroupReportSheet } from "@/components/edu/group-report-sheet";
 
 export const Route = createFileRoute("/admin/groups")({ component: GroupsPage });
 
@@ -52,6 +53,7 @@ function GroupsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [reportGroupId, setReportGroupId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -147,6 +149,7 @@ function GroupsPage() {
       <CreateGroupSheet open={createOpen} onOpenChange={setCreateOpen} />
       {editGroup && <EditGroupSheet group={editGroup} onClose={() => setEditId(null)} />}
       <GroupDetailSheet group={selected} onClose={() => setSelectedId(null)} onEdit={() => { setEditId(selectedId); setSelectedId(null); }} />
+      <GroupReportSheet groupId={reportGroupId} onClose={() => setReportGroupId(null)} />
     </>
   );
 }

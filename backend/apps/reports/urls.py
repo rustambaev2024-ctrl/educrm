@@ -9,6 +9,7 @@ from .views import (
     AnalyticsRoomsView,
     AnalyticsTeachersView,
     DailyReportView,
+    GroupReportView,
     TeacherLessonsView,
     ExportExcelView,
     ExportPdfView,
@@ -30,5 +31,6 @@ urlpatterns = [
     path("export/excel/", ExportExcelView.as_view(), name="export-excel"),
     path("export/pdf/", ExportPdfView.as_view(), name="export-pdf"),
     path("analytics/daily-report/", DailyReportView.as_view(), name="daily-report"),
+    path("analytics/group-report/<uuid:group_id>/", GroupReportView.as_view(), name="group-report"),
 ]
 
