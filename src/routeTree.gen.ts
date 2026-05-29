@@ -46,6 +46,7 @@ import { Route as DirectorStaffRouteImport } from './routes/director/staff'
 import { Route as DirectorSettingsRouteImport } from './routes/director/settings'
 import { Route as DirectorSalariesRouteImport } from './routes/director/salaries'
 import { Route as DirectorPenaltiesRouteImport } from './routes/director/penalties'
+import { Route as DirectorNotificationsRouteImport } from './routes/director/notifications'
 import { Route as DirectorMessagesRouteImport } from './routes/director/messages'
 import { Route as DirectorLeadsRouteImport } from './routes/director/leads'
 import { Route as DirectorIntegrationsRouteImport } from './routes/director/integrations'
@@ -57,6 +58,7 @@ import { Route as DirectorAuditRouteImport } from './routes/director/audit'
 import { Route as DirectorAnalyticsRouteImport } from './routes/director/analytics'
 import { Route as AdminStudentsRouteImport } from './routes/admin/students'
 import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
+import { Route as AdminNotificationsRouteImport } from './routes/admin/notifications'
 import { Route as AdminMessagesRouteImport } from './routes/admin/messages'
 import { Route as AdminLeadsRouteImport } from './routes/admin/leads'
 import { Route as AdminGroupsRouteImport } from './routes/admin/groups'
@@ -251,6 +253,11 @@ const DirectorPenaltiesRoute = DirectorPenaltiesRouteImport.update({
   path: '/penalties',
   getParentRoute: () => DirectorRouteRoute,
 } as any)
+const DirectorNotificationsRoute = DirectorNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => DirectorRouteRoute,
+} as any)
 const DirectorMessagesRoute = DirectorMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
@@ -304,6 +311,11 @@ const AdminStudentsRoute = AdminStudentsRouteImport.update({
 const AdminScheduleRoute = AdminScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminMessagesRoute = AdminMessagesRouteImport.update({
@@ -365,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/messages': typeof AdminMessagesRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/students': typeof AdminStudentsRoute
   '/director/analytics': typeof DirectorAnalyticsRoute
@@ -376,6 +389,7 @@ export interface FileRoutesByFullPath {
   '/director/integrations': typeof DirectorIntegrationsRoute
   '/director/leads': typeof DirectorLeadsRoute
   '/director/messages': typeof DirectorMessagesRoute
+  '/director/notifications': typeof DirectorNotificationsRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
   '/director/salaries': typeof DirectorSalariesRoute
   '/director/settings': typeof DirectorSettingsRoute
@@ -417,6 +431,7 @@ export interface FileRoutesByTo {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/messages': typeof AdminMessagesRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/students': typeof AdminStudentsRoute
   '/director/analytics': typeof DirectorAnalyticsRoute
@@ -428,6 +443,7 @@ export interface FileRoutesByTo {
   '/director/integrations': typeof DirectorIntegrationsRoute
   '/director/leads': typeof DirectorLeadsRoute
   '/director/messages': typeof DirectorMessagesRoute
+  '/director/notifications': typeof DirectorNotificationsRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
   '/director/salaries': typeof DirectorSalariesRoute
   '/director/settings': typeof DirectorSettingsRoute
@@ -476,6 +492,7 @@ export interface FileRoutesById {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/messages': typeof AdminMessagesRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/students': typeof AdminStudentsRoute
   '/director/analytics': typeof DirectorAnalyticsRoute
@@ -487,6 +504,7 @@ export interface FileRoutesById {
   '/director/integrations': typeof DirectorIntegrationsRoute
   '/director/leads': typeof DirectorLeadsRoute
   '/director/messages': typeof DirectorMessagesRoute
+  '/director/notifications': typeof DirectorNotificationsRoute
   '/director/penalties': typeof DirectorPenaltiesRoute
   '/director/salaries': typeof DirectorSalariesRoute
   '/director/settings': typeof DirectorSettingsRoute
@@ -536,6 +554,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/leads'
     | '/admin/messages'
+    | '/admin/notifications'
     | '/admin/schedule'
     | '/admin/students'
     | '/director/analytics'
@@ -547,6 +566,7 @@ export interface FileRouteTypes {
     | '/director/integrations'
     | '/director/leads'
     | '/director/messages'
+    | '/director/notifications'
     | '/director/penalties'
     | '/director/salaries'
     | '/director/settings'
@@ -588,6 +608,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/leads'
     | '/admin/messages'
+    | '/admin/notifications'
     | '/admin/schedule'
     | '/admin/students'
     | '/director/analytics'
@@ -599,6 +620,7 @@ export interface FileRouteTypes {
     | '/director/integrations'
     | '/director/leads'
     | '/director/messages'
+    | '/director/notifications'
     | '/director/penalties'
     | '/director/salaries'
     | '/director/settings'
@@ -646,6 +668,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/leads'
     | '/admin/messages'
+    | '/admin/notifications'
     | '/admin/schedule'
     | '/admin/students'
     | '/director/analytics'
@@ -657,6 +680,7 @@ export interface FileRouteTypes {
     | '/director/integrations'
     | '/director/leads'
     | '/director/messages'
+    | '/director/notifications'
     | '/director/penalties'
     | '/director/salaries'
     | '/director/settings'
@@ -960,6 +984,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirectorPenaltiesRouteImport
       parentRoute: typeof DirectorRouteRoute
     }
+    '/director/notifications': {
+      id: '/director/notifications'
+      path: '/notifications'
+      fullPath: '/director/notifications'
+      preLoaderRoute: typeof DirectorNotificationsRouteImport
+      parentRoute: typeof DirectorRouteRoute
+    }
     '/director/messages': {
       id: '/director/messages'
       path: '/messages'
@@ -1037,6 +1068,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScheduleRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/notifications': {
+      id: '/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AdminNotificationsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/messages': {
       id: '/admin/messages'
       path: '/messages'
@@ -1105,6 +1143,7 @@ interface AdminRouteRouteChildren {
   AdminGroupsRoute: typeof AdminGroupsRoute
   AdminLeadsRoute: typeof AdminLeadsRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
+  AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -1119,6 +1158,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminGroupsRoute: AdminGroupsRoute,
   AdminLeadsRoute: AdminLeadsRoute,
   AdminMessagesRoute: AdminMessagesRoute,
+  AdminNotificationsRoute: AdminNotificationsRoute,
   AdminScheduleRoute: AdminScheduleRoute,
   AdminStudentsRoute: AdminStudentsRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -1138,6 +1178,7 @@ interface DirectorRouteRouteChildren {
   DirectorIntegrationsRoute: typeof DirectorIntegrationsRoute
   DirectorLeadsRoute: typeof DirectorLeadsRoute
   DirectorMessagesRoute: typeof DirectorMessagesRoute
+  DirectorNotificationsRoute: typeof DirectorNotificationsRoute
   DirectorPenaltiesRoute: typeof DirectorPenaltiesRoute
   DirectorSalariesRoute: typeof DirectorSalariesRoute
   DirectorSettingsRoute: typeof DirectorSettingsRoute
@@ -1156,6 +1197,7 @@ const DirectorRouteRouteChildren: DirectorRouteRouteChildren = {
   DirectorIntegrationsRoute: DirectorIntegrationsRoute,
   DirectorLeadsRoute: DirectorLeadsRoute,
   DirectorMessagesRoute: DirectorMessagesRoute,
+  DirectorNotificationsRoute: DirectorNotificationsRoute,
   DirectorPenaltiesRoute: DirectorPenaltiesRoute,
   DirectorSalariesRoute: DirectorSalariesRoute,
   DirectorSettingsRoute: DirectorSettingsRoute,

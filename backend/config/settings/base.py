@@ -224,5 +224,24 @@ LOGGING = {
     },
 }
 
+from celery.schedules import crontab
 
+CELERY_BEAT_SCHEDULE = {
+    "lead-follow-up-reminder": {
+        "task": "apps.notifications.tasks.lead_follow_up_reminder",
+        "schedule": crontab(hour=9, minute=0),
+    },
+    "debtor-reminder": {
+        "task": "apps.notifications.tasks.debtor_reminder",
+        "schedule": crontab(hour=10, minute=0, day_of_week=1),
+    },
+    "lesson-reminder": {
+        "task": "apps.notifications.tasks.lesson_reminder",
+        "schedule": crontab(minute="*/30"),
+    },
+    "homework-deadline-reminder": {
+        "task": "apps.notifications.tasks.homework_deadline_reminder",
+        "schedule": crontab(hour=18, minute=0),
+    },
+}
 

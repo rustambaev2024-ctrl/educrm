@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, Building, Users, Wallet, BarChart3, FileClock, BookOpen, BadgeDollarSign, GraduationCap, ShieldCheck, MessageSquarePlus, Settings, ClipboardList, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Building, Users, Wallet, BarChart3, FileClock, BookOpen, BadgeDollarSign, GraduationCap, ShieldCheck, MessageSquarePlus, Settings, ClipboardList, MessageSquare, Bell } from "lucide-react";
 import { SidebarLayout, type NavItem } from "@/components/layouts/sidebar-layout";
 import { RoleGuard } from "@/components/edu/role-guard";
 import { useI18n } from "@/lib/i18n";
@@ -24,6 +24,7 @@ function DirectorLayout() {
     { to: "/director/daily-report", label: "Kunlik hisobot", icon: ClipboardList },
     { to: "/director/integrations", label: "Integratsiyalar", icon: Settings },
     { to: "/director/settings", label: "Sozlamalar", icon: Building },
+    { to: "/director/notifications", label: "Bildirishnomalar", icon: Bell },
     { to: "/director/audit", label: t("nav.audit"), icon: FileClock },
     { to: "/director/messages", label: t("nav.messages"), icon: MessageSquare },
   ];
