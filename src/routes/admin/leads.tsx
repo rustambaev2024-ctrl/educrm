@@ -369,7 +369,7 @@ function AdminLeadsPage() {
               }[status] || "bg-muted text-foreground border-border";
 
               return (
-                <div key={status} className="flex flex-col w-[340px] shrink-0 rounded-2xl bg-card border border-border shadow-sm overflow-hidden"
+                <div key={status} className="flex flex-col w-72 shrink-0 rounded-2xl bg-card border border-border shadow-sm overflow-hidden"
                   onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
                   onDrop={async (e) => {
                     e.preventDefault();
