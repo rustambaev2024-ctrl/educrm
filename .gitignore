@@ -81,3 +81,6 @@ Thumbs.db
 
 # Local automation artifacts
 output/
+
+# Claude Code local settings
+.claude/settings.json

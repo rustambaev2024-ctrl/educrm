@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+env/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+
+# Django
+backend/staticfiles/
+backend/media/
+*.sqlite3
+
+# Migrations (читать можно, но не индексировать)
+**/migrations/0*.py
+
+# Git
+.git/
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+*.cache
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files (безопасность)
+.env
+.env.*
+!.env.example
+
+# Large generated files
+src/routeTree.gen.ts
+package-lock.json
+
+# Railway / Docker
+railway.json
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Coverage
+coverage/
+.coverage
+htmlcov/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
