@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { BookOpen, Layers, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,25 +127,24 @@ function DirectorCoursesPage() {
   }
 
   return (
-    <>
-      <PageHeader
-        title="Kurslar"
-        description="Muassasa bo'yicha barcha o'quv yo'nalishlarini direktor yaratadi va boshqaradi"
-        actions={
-          <Button onClick={openCreate} className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant">
-            <Plus className="size-4" /> Kurs qo'shish
-          </Button>
-        }
-      />
-
-      <div className="space-y-5 p-4 md:p-8">
-        <div className="grid gap-4 md:grid-cols-3">
-          <MetricCard label="Jami kurslar" value={courses.length} icon={BookOpen} />
-          <MetricCard label="Faol guruhlar" value={groups.length} icon={Layers} />
-          <MetricCard
+    <PageShell
+      title="Kurslar"
+      subtitle="Muassasa bo'yicha barcha o'quv yo'nalishlarini direktor yaratadi va boshqaradi"
+      actions={
+        <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={openCreate}>
+          <Plus className="size-3.5" /> Kurs qo'shish
+        </Button>
+      }
+    >
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <KpiCard label="Jami kurslar" value={courses.length} icon={BookOpen} iconColor="blue" />
+          <KpiCard label="Faol guruhlar" value={groups.length} icon={Layers} iconColor="green" />
+          <KpiCard
             label="Kursga bog'langan o'quvchilar"
             value={groups.reduce((sum, group) => sum + group.studentIds.length, 0)}
             icon={Plus}
+            iconColor="violet"
           />
         </div>
 
@@ -275,20 +275,6 @@ function DirectorCoursesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
-  );
-}
-
-function MetricCard({ label, value, icon: Icon }: { label: string; value: number; icon: typeof BookOpen }) {
-  return (
-    <Card className="flex items-center justify-between p-5 shadow-elegant">
-      <div>
-        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="mt-2 text-3xl font-bold tabular-nums">{value}</div>
-      </div>
-      <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-        <Icon className="size-5" />
-      </div>
-    </Card>
+    </PageShell>
   );
 }

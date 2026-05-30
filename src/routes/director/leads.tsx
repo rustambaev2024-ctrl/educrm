@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { CheckCircle2, Clock3, GraduationCap, MessageSquarePlus, Phone, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { PhoneInput } from "@/components/edu/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -319,23 +320,21 @@ function DirectorLeadsPage() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t.title}
-        description={t.subtitle}
-        actions={
-          <Button onClick={openCreate} className="bg-gradient-primary text-primary-foreground shadow-elegant">
-            <Plus className="mr-1 size-4" /> {t.add}
-          </Button>
-        }
-      />
-
-      <div className="space-y-5 p-4 md:p-8">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Kpi icon={MessageSquarePlus} label={t.kpiAll} value={String(leads.length)} />
-          <Kpi icon={Clock3} label={t.kpiNew} value={String(leads.filter((lead) => lead.status === "new").length)} />
-          <Kpi icon={Phone} label={t.kpiFollowUp} value={String(dueFollowUps)} tone={dueFollowUps > 0 ? "warning" : "default"} />
-          <Kpi icon={CheckCircle2} label={t.kpiWon} value={String(leads.filter((lead) => lead.status === "won").length)} tone="success" />
+    <PageShell
+      title={t.title}
+      subtitle={t.subtitle}
+      actions={
+        <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={openCreate}>
+          <Plus className="size-3.5" /> {t.add}
+        </Button>
+      }
+    >
+      <div className="space-y-5">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <KpiCard icon={MessageSquarePlus} label={t.kpiAll} value={leads.length} iconColor="blue" />
+          <KpiCard icon={Clock3} label={t.kpiNew} value={leads.filter((lead) => lead.status === "new").length} iconColor="violet" />
+          <KpiCard icon={Phone} label={t.kpiFollowUp} value={dueFollowUps} iconColor={dueFollowUps > 0 ? "amber" : "blue"} />
+          <KpiCard icon={CheckCircle2} label={t.kpiWon} value={leads.filter((lead) => lead.status === "won").length} iconColor="green" />
         </div>
 
         <Card className="overflow-hidden shadow-elegant">
@@ -489,7 +488,7 @@ function DirectorLeadsPage() {
           }}
         />
       )}
-    </>
+    </PageShell>
   );
 }
 
@@ -604,22 +603,6 @@ function LeadFormFields({
         <Textarea value={form.notes} onChange={(event) => onChange({ ...form, notes: event.target.value })} placeholder={labels.notesPlaceholder} rows={4} />
       </div>
     </div>
-  );
-}
-
-function Kpi({ icon: Icon, label, value, tone = "default" }: { icon: typeof GraduationCap; label: string; value: string; tone?: "default" | "warning" | "success" }) {
-  const toneClass = {
-    default: "bg-primary/15 text-primary",
-    warning: "bg-warning/15 text-warning-foreground",
-    success: "bg-success/15 text-success",
-  }[tone];
-
-  return (
-    <Card className="p-4 shadow-elegant">
-      <div className={`flex size-9 items-center justify-center rounded-lg ${toneClass}`}><Icon className="size-4" /></div>
-      <div className="mt-3 text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-bold">{value}</div>
-    </Card>
   );
 }
 

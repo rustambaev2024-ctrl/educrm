@@ -4,8 +4,8 @@ import { Users, BookOpen, Layers, Wallet, AlertCircle, TrendingUp } from "lucide
 import {
   Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Line, LineChart, PieChart, Pie, Cell, Legend as ChartLegend,
 } from "recharts";
-import { PageHeader } from "@/components/edu/page-header";
-import { StatCard } from "@/components/edu/stat-card";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { useData } from "@/lib/data/store";
 import { attendancePercentage } from "@/lib/data/metrics";
@@ -79,14 +79,13 @@ function AnalyticsPage() {
   }
 
   return (
-    <>
-      <PageHeader title={t("nav.analytics")} description={t("director.subtitle")} />
-      <div className="space-y-6 p-4 md:p-8">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} tone="primary" hint={lang === "uz" ? "Barcha o'quvchilar" : "Все студенты"} />
-          <StatCard label={t("director.activeGroups")} value={`${groups.length}`} icon={Layers} tone="info" hint={lang === "uz" ? "Faol guruhlar" : "Активные группы"} />
-          <StatCard label={t("director.monthlyRevenue")} value={formatMoney(totalRevenue, lang)} icon={Wallet} tone="success" hint={lang === "uz" ? "Jami tushum" : "Общий доход"} />
-          <StatCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={TrendingUp} tone="info" hint={lang === "uz" ? "O'rtacha davomat" : "Средняя посещаемость"} />
+    <PageShell title={t("nav.analytics")} subtitle={t("director.subtitle")}>
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} iconColor="blue" subtitle={lang === "uz" ? "Barcha o'quvchilar" : "Все студенты"} />
+          <KpiCard label={t("director.activeGroups")} value={`${groups.length}`} icon={Layers} iconColor="violet" subtitle={lang === "uz" ? "Faol guruhlar" : "Активные группы"} />
+          <KpiCard label={t("director.monthlyRevenue")} value={formatMoney(totalRevenue, lang)} icon={Wallet} iconColor="green" subtitle={lang === "uz" ? "Jami tushum" : "Общий доход"} />
+          <KpiCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={TrendingUp} iconColor="amber" subtitle={lang === "uz" ? "O'rtacha davomat" : "Средняя посещаемость"} />
         </div>
 
         <Card className="p-6 shadow-elegant">
@@ -163,7 +162,7 @@ function AnalyticsPage() {
           <SmallStat icon={Wallet} label={t("director.profit")} value={formatMoney(totalRevenue - totalExpense, lang)} tone={totalRevenue - totalExpense >= 0 ? "text-success" : "text-destructive"} />
         </div>
       </div>
-    </>
+    </PageShell>
   );
 }
 

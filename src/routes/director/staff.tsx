@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search, Phone, Briefcase, Plus, Pencil, Trash2 } from "lucide-react";
+import { Search, Phone, Briefcase, Plus, Pencil, Trash2, GraduationCap, UserCog } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { PasswordInput } from "@/components/edu/password-input";
 import { PhoneInput } from "@/components/edu/phone-input";
 import { Card } from "@/components/ui/card";
@@ -148,17 +149,21 @@ function StaffPage() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t("staff.title")}
-        description={t("staff.subtitle")}
-        actions={
-          <Button onClick={openCreate} className="gap-2">
-            <Plus className="size-4" /> {t("staff.add")}
-          </Button>
-        }
-      />
-      <div className="space-y-4 p-4 md:p-8">
+    <PageShell
+      title={t("staff.title")}
+      subtitle={t("staff.subtitle")}
+      actions={
+        <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={openCreate}>
+          <Plus className="size-3.5" /> {t("staff.add")}
+        </Button>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          <KpiCard label={t("staff.title")} value={staff.length} icon={Briefcase} iconColor="blue" />
+          <KpiCard label={lang === "uz" ? "O'qituvchilar" : "Учителя"} value={staff.filter((s) => s.role === "teacher").length} icon={GraduationCap} iconColor="green" />
+          <KpiCard label={lang === "uz" ? "Adminlar" : "Админы"} value={staff.filter((s) => s.role === "admin" || s.role === "director").length} icon={UserCog} iconColor="violet" />
+        </div>
         <Card className="overflow-hidden shadow-elegant">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center md:justify-between">
             <div className="relative max-w-sm flex-1">
@@ -338,7 +343,7 @@ function StaffPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </PageShell>
   );
 }
 

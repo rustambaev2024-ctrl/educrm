@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { branchApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
@@ -62,12 +62,8 @@ function DirectorIntegrationsPage() {
   };
 
   return (
-    <>
-      <PageHeader
-        title={t.title}
-        description={t.subtitle}
-      />
-      <div className="max-w-4xl p-4 md:p-8 space-y-6">
+    <PageShell title={t.title} subtitle={t.subtitle}>
+      <div className="max-w-4xl space-y-6">
         <div className="grid gap-6 md:grid-cols-3">
           {/* Main settings form */}
           <div className="md:col-span-2 space-y-6">
@@ -183,7 +179,7 @@ function DirectorIntegrationsPage() {
           </div>
         </div>
       </div>
-    </>
+    </PageShell>
   );
 }
 

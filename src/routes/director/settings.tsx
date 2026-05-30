@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Building2, Save, Upload, User, KeyRound } from "lucide-react";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -133,13 +133,8 @@ function DirectorSettingsPage() {
   };
 
   return (
-    <>
-      <PageHeader 
-        title={t("settings.page.title")} 
-        description={t("settings.page.desc")} 
-      />
-
-      <div className="p-4 md:p-8 space-y-6 max-w-5xl mx-auto">
+    <PageShell title={t("settings.page.title")} subtitle={t("settings.page.desc")}>
+      <div className="space-y-6 max-w-5xl mx-auto">
         
         {/* Institution Brand Settings */}
         <Card className="shadow-elegant border-border/60">
@@ -297,7 +292,7 @@ function DirectorSettingsPage() {
         </div>
 
       </div>
-    </>
+    </PageShell>
   );
 }
 

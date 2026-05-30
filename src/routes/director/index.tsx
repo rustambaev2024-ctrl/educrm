@@ -6,8 +6,8 @@ import {
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { PageHeader } from "@/components/edu/page-header";
-import { StatCard } from "@/components/edu/stat-card";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -109,14 +109,13 @@ function DirectorHome() {
   }
 
   return (
-    <>
-      <PageHeader title={t("director.title")} description={t("director.subtitle")} />
-      <div className="space-y-6 p-4 md:p-8">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label={t("director.activeStudents")} value={`${activeStudents}`} icon={Users} tone="primary" />
-          <StatCard label={t("director.monthlyRevenue")} value={formatMoney(monthly.income, lang)} icon={Wallet} tone="success" />
-          <StatCard label={t("director.profit")} value={formatMoney(monthly.profit, lang)} icon={TrendingUp} tone={monthly.profit >= 0 ? "info" : "danger"} />
-          <StatCard label={t("director.debtors")} value={`${debtors}`} hint={t("students.count")} icon={AlertCircle} tone="warning" />
+    <PageShell title={t("director.title")} subtitle={t("director.subtitle")}>
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard label={t("director.activeStudents")} value={`${activeStudents}`} icon={Users} iconColor="blue" />
+          <KpiCard label={t("director.monthlyRevenue")} value={formatMoney(monthly.income, lang)} icon={Wallet} iconColor="green" />
+          <KpiCard label={t("director.profit")} value={formatMoney(monthly.profit, lang)} icon={TrendingUp} iconColor={monthly.profit >= 0 ? "violet" : "red"} />
+          <KpiCard label={t("director.debtors")} value={`${debtors}`} subtitle={t("students.count")} icon={AlertCircle} iconColor="amber" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -244,7 +243,7 @@ function DirectorHome() {
           <QuickLink to="/director/analytics" icon={BookOpen} label={t("director.activeGroups")} hint={`${activeGroups}`} />
         </div>
       </div>
-    </>
+    </PageShell>
   );
 }
 

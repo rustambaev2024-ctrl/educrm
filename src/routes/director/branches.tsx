@@ -1,8 +1,9 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Building2, DoorOpen, GripVertical, Layers, MapPin, Plus, Trash2, Users } from "lucide-react";
+import { Building2, DoorOpen, GripVertical, Layers, MapPin, Plus, Trash2, Users, Briefcase } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import type { Branch, Room } from "@/lib/data/types";
 export const Route = createFileRoute("/director/branches")({ component: BranchesPage });
 
 function BranchesPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { branches, rooms, staff, students, groups, addRoom, updateRoom, deleteRoom, isLoading } = useData();
   const [openRoom, setOpenRoom] = useState(false);
   const [draggedRoomId, setDraggedRoomId] = useState<string | null>(null);
@@ -58,18 +59,22 @@ function BranchesPage() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t("branches.title")}
-        description="Filiallar, kabinetlar va ularning yuklamasini boshqarish"
-        actions={
-          <Button onClick={() => setOpenRoom(true)} className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant">
-            <Plus className="size-4" /> Kabinet qo'shish
-          </Button>
-        }
-      />
-
-      <div className="space-y-6 p-4 md:p-8">
+    <PageShell
+      title={t("branches.title")}
+      subtitle="Filiallar, kabinetlar va ularning yuklamasini boshqarish"
+      actions={
+        <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={() => setOpenRoom(true)}>
+          <Plus className="size-3.5" /> Kabinet qo'shish
+        </Button>
+      }
+    >
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard label={t("branches.title")} value={branches.length} icon={Building2} iconColor="blue" />
+          <KpiCard label={lang === "uz" ? "Xonalar" : "Кабинеты"} value={rooms.length} icon={DoorOpen} iconColor="green" />
+          <KpiCard label={t("branches.col.students")} value={students.length} icon={Users} iconColor="violet" />
+          <KpiCard label={t("nav.staff")} value={staff.length} icon={Briefcase} iconColor="amber" />
+        </div>
         {stats.length === 0 ? (
           <Card className="p-12 text-center text-sm text-muted-foreground">Avval filial yarating. Keyin kabinet qo'shish mumkin bo'ladi.</Card>
         ) : (
@@ -142,7 +147,7 @@ function BranchesPage() {
       </div>
 
       <CreateRoomDialog open={openRoom} onOpenChange={setOpenRoom} branches={branches} onCreate={addRoom} />
-    </>
+    </PageShell>
   );
 }
 

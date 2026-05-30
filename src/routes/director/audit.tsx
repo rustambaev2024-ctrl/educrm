@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Activity, Search, Plus, Pencil, Trash2, Archive, LogIn, Wallet, X, RefreshCw } from "lucide-react";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -62,9 +62,8 @@ function AuditPage() {
   }
 
   return (
-    <>
-      <PageHeader title={t("audit.title")} description={t("audit.subtitle")} />
-      <div className="space-y-4 p-4 md:p-8">
+    <PageShell title={t("audit.title")} subtitle={t("audit.subtitle")}>
+      <div className="space-y-4">
         <Card className="overflow-hidden shadow-elegant">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center">
             <div className="relative max-w-sm flex-1">
@@ -110,6 +109,6 @@ function AuditPage() {
           )}
         </Card>
       </div>
-    </>
+    </PageShell>
   );
 }

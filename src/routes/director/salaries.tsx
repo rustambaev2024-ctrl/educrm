@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BadgeDollarSign, Briefcase, CreditCard, Loader2, Percent, ReceiptText, UserRound, WalletCards } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -230,30 +231,26 @@ function DirectorSalaries() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={lang === "uz" ? "Ish haqi hisob-kitobi" : "Расчёт зарплат"}
-        description={lang === "uz" ? "Foizli o'qituvchilar va oylik xodimlar uchun to'lovlar" : "Выплаты учителям по проценту и сотрудникам по фиксированной ставке"}
-      />
-
-      <div className="space-y-5 p-4 md:p-8">
-        <div className="flex items-end gap-4">
-          <div className="w-48 space-y-1.5">
-            <Label>{lang === "uz" ? "Hisob-kitob oyi" : "Месяц расчёта"}</Label>
-            <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} autoComplete="off" />
-          </div>
+    <PageShell
+      title={lang === "uz" ? "Ish haqi hisob-kitobi" : "Расчёт зарплат"}
+      subtitle={lang === "uz" ? "Foizli o'qituvchilar va oylik xodimlar uchun to'lovlar" : "Выплаты учителям по проценту и сотрудникам по фиксированной ставке"}
+      actions={
+        <div className="flex items-center gap-3">
           {isFetchingSalary && (
-            <div className="flex items-center gap-1.5 pb-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
               {lang === "uz" ? "Hisoblanmoqda..." : "Расчёт..."}
             </div>
           )}
+          <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} autoComplete="off" className="h-8 w-40" />
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <SalaryKpi icon={BadgeDollarSign} label={lang === "uz" ? "Jami hisoblangan" : "Всего начислено"} value={formatMoney(totals.grossDue, lang)} />
-          <SalaryKpi icon={CreditCard} label={lang === "uz" ? "Jami to'langan" : "Всего выплачено"} value={formatMoney(totals.paid, lang)} tone="success" />
-          <SalaryKpi icon={WalletCards} label={lang === "uz" ? "Jami qoldiq" : "Всего к выплате"} value={formatMoney(totals.remaining, lang)} tone={totals.remaining > 0 ? "warning" : "default"} />
+      }
+    >
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <KpiCard icon={BadgeDollarSign} label={lang === "uz" ? "Jami hisoblangan" : "Всего начислено"} value={formatMoney(totals.grossDue, lang)} iconColor="blue" />
+          <KpiCard icon={CreditCard} label={lang === "uz" ? "Jami to'langan" : "Всего выплачено"} value={formatMoney(totals.paid, lang)} iconColor="green" />
+          <KpiCard icon={WalletCards} label={lang === "uz" ? "Jami qoldiq" : "Всего к выплате"} value={formatMoney(totals.remaining, lang)} iconColor={totals.remaining > 0 ? "amber" : "blue"} />
         </div>
 
         <Card className="overflow-hidden shadow-elegant">
@@ -453,22 +450,7 @@ function DirectorSalaries() {
           )}
         </SheetContent>
       </Sheet>
-    </>
-  );
-}
-
-function SalaryKpi({ icon: Icon, label, value, tone = "default" }: { icon: typeof BadgeDollarSign; label: string; value: string; tone?: "default" | "warning" | "success" }) {
-  const toneClass = {
-    default: "bg-primary/15 text-primary",
-    warning: "bg-warning/15 text-warning-foreground",
-    success: "bg-emerald-500/10 text-emerald-600",
-  }[tone];
-  return (
-    <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
-      <div className={`flex size-10 items-center justify-center rounded-lg ${toneClass}`}><Icon className="size-5" /></div>
-      <div className="mt-3 text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-bold">{value}</div>
-    </div>
+    </PageShell>
   );
 }
 

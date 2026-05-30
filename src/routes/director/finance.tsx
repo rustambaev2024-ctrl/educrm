@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { TrendingUp, TrendingDown, Wallet, AlertTriangle, RotateCcw } from "lucide-react";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,23 +93,23 @@ function DirectorFinancePage() {
   }
 
   return (
-    <>
-      <PageHeader title={t("finance.title")} description={t("finance.directorSubtitle")} />
-      
-      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-2 px-4 md:px-8 pt-4">
+    <PageShell
+      title={t("finance.title")}
+      subtitle={t("finance.directorSubtitle")}
+      actions={
         <div className="flex items-center gap-2">
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
           <span>-</span>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
         </div>
-      </div>
-
-      <div className="space-y-6 p-4 md:p-8 pt-4">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi tone="success" icon={TrendingUp} label={t("finance.kpi.income")} value={formatMoney(income, lang)} />
-          <Kpi tone="destructive" icon={TrendingDown} label={t("finance.kpi.expense")} value={formatMoney(expense, lang)} />
-          <Kpi tone="primary" icon={Wallet} label={t("finance.kpi.profit")} value={formatMoney(income - expense, lang)} />
-          <Kpi tone="warning" icon={AlertTriangle} label={t("finance.kpi.debt")} value={formatMoney(debt, lang)} />
+      }
+    >
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard iconColor="green" icon={TrendingUp} label={t("finance.kpi.income")} value={formatMoney(income, lang)} />
+          <KpiCard iconColor="red" icon={TrendingDown} label={t("finance.kpi.expense")} value={formatMoney(expense, lang)} />
+          <KpiCard iconColor="violet" icon={Wallet} label={t("finance.kpi.profit")} value={formatMoney(income - expense, lang)} />
+          <KpiCard iconColor="amber" icon={AlertTriangle} label={t("finance.kpi.debt")} value={formatMoney(debt, lang)} />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -241,30 +242,7 @@ function DirectorFinancePage() {
           </Table>
         </Card>
       </div>
-    </>
-  );
-}
-
-function Kpi({ tone, icon: Icon, label, value }: {
-  tone: "success" | "destructive" | "primary" | "warning";
-  icon: typeof TrendingUp;
-  label: string;
-  value: string;
-}) {
-  const tones = {
-    success: "bg-success/15 text-success",
-    destructive: "bg-destructive/15 text-destructive",
-    primary: "bg-gradient-primary text-primary-foreground",
-    warning: "bg-warning/15 text-warning-foreground",
-  };
-  return (
-    <Card className="p-5 shadow-elegant">
-      <div className={`flex size-9 items-center justify-center rounded-lg ${tones[tone]}`}>
-        <Icon className="size-4" />
-      </div>
-      <div className="mt-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-bold">{value}</div>
-    </Card>
+    </PageShell>
   );
 }
 
