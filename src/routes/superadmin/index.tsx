@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Building2, Users, Activity, AlertTriangle, Search, Plus, Pencil, Trash2, MapPin, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { PasswordInput } from "@/components/edu/password-input";
 import { PhoneInput } from "@/components/edu/phone-input";
-import { StatCard } from "@/components/edu/stat-card";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -107,13 +107,12 @@ function SuperadminHome() {
 
   const totals = useMemo(() => {
     const active = institutions.filter((i) => i.status === "active");
-    const totalStudents = active.reduce((s, i) => s + i.studentsCount, 0);
-    const mrr = active.reduce((s, i) => s + i.monthlyRevenue, 0);
+    const frozen = institutions.filter((i) => i.status === "frozen").length;
     const expiringSoon = institutions.filter((i) => {
       const days = (new Date(i.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
       return days >= 0 && days <= 30 && i.status === "active";
     }).length;
-    return { active: active.length, totalStudents, mrr, expiringSoon };
+    return { active: active.length, frozen, expiringSoon };
   }, [institutions]);
 
   const openCreate = () => {
@@ -207,22 +206,21 @@ function SuperadminHome() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t("sa.institutions.title")}
-        description={t("sa.institutions.subtitle")}
-        actions={
-          <Button onClick={openCreate} className="gap-2">
-            <Plus className="size-4" /> {t("sa.add")}
-          </Button>
-        }
-      />
-      <div className="space-y-6 p-4 md:p-8">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label={t("sa.kpi.totalInst")} value={`${institutions.length}`} icon={Building2} tone="primary" />
-          <StatCard label={t("sa.kpi.totalStudents")} value={totals.totalStudents.toLocaleString("ru-RU")} icon={Users} tone="success" />
-          <StatCard label={t("sa.kpi.mrr")} value={formatMoney(totals.mrr, lang)} icon={Activity} tone="info" />
-          <StatCard label={t("sa.kpi.expiring")} value={`${totals.expiringSoon}`} icon={AlertTriangle} tone="warning" />
+    <PageShell
+      title={t("sa.institutions.title")}
+      subtitle={t("sa.institutions.subtitle")}
+      actions={
+        <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={openCreate}>
+          <Plus className="size-3.5" /> {t("sa.add")}
+        </Button>
+      }
+    >
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard label={lang === "uz" ? "Jami tashkilotlar" : "Всего организаций"} value={institutions.length} icon={Building2} iconColor="blue" />
+          <KpiCard label={lang === "uz" ? "Faol" : "Активные"} value={totals.active} icon={Activity} iconColor="green" />
+          <KpiCard label={lang === "uz" ? "Muzlatilgan" : "Замороженные"} value={totals.frozen} icon={Users} iconColor="violet" />
+          <KpiCard label={lang === "uz" ? "Muddati tugaydi" : "Истекает срок"} value={totals.expiringSoon} icon={AlertTriangle} iconColor="amber" />
         </div>
 
         <Card className="overflow-hidden p-0 shadow-elegant">
@@ -466,7 +464,7 @@ function SuperadminHome() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </PageShell>
   );
 }
 

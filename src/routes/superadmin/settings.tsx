@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Save, Settings as SettingsIcon, ShieldCheck, Palette } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,17 +81,16 @@ function SaSettings() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t("sa.settings.title")}
-        description={t("sa.settings.subtitle")}
-        actions={
-          <Button onClick={save} disabled={saving} className="bg-gradient-primary text-primary-foreground shadow-elegant">
-            <Save className="mr-1 size-4" /> {t("common.save")}
-          </Button>
-        }
-      />
-      <div className="p-4 md:p-8">
+    <PageShell
+      title={t("sa.settings.title")}
+      subtitle={t("sa.settings.subtitle")}
+      actions={
+        <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={save} disabled={saving}>
+          <Save className="size-3.5" /> {t("common.save")}
+        </Button>
+      }
+    >
+      <div>
         <Tabs defaultValue="general">
           <TabsList className="mb-6">
             <TabsTrigger value="general"><SettingsIcon className="mr-1 size-3.5" />{t("sa.settings.general")}</TabsTrigger>
@@ -168,7 +167,7 @@ function SaSettings() {
           </TabsContent>
         </Tabs>
       </div>
-    </>
+    </PageShell>
   );
 }
 

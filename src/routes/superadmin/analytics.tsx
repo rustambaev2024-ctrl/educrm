@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { Building2, Users, Briefcase, Activity, TrendingUp, CalendarClock } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { PageHeader } from "@/components/edu/page-header";
-import { StatCard } from "@/components/edu/stat-card";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
@@ -44,14 +44,13 @@ function SaAnalytics() {
   }
 
   return (
-    <>
-      <PageHeader title={t("sa.analytics.title")} description={t("sa.analytics.subtitle")} />
-      <div className="space-y-6 p-4 md:p-8">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label={t("sa.kpi.activeInst")} value={`${active.length}`} icon={Building2} tone="primary" />
-          <StatCard label={t("sa.kpi.totalStudents")} value={totalStudents.toLocaleString("ru-RU")} icon={Users} tone="success" />
-          <StatCard label={t("sa.kpi.totalStaff")} value={`${totalStaff}`} icon={Briefcase} tone="info" />
-          <StatCard label={t("sa.kpi.expiring")} value={`${expiringSoon}`} icon={CalendarClock} tone="warning" />
+    <PageShell title={t("sa.analytics.title")} subtitle={t("sa.analytics.subtitle")}>
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard label={t("sa.kpi.activeInst")} value={active.length} icon={Building2} iconColor="blue" />
+          <KpiCard label={t("sa.kpi.totalStudents")} value={totalStudents.toLocaleString("ru-RU")} icon={Users} iconColor="green" />
+          <KpiCard label={t("sa.kpi.totalStaff")} value={totalStaff} icon={Briefcase} iconColor="violet" />
+          <KpiCard label={t("sa.kpi.expiring")} value={expiringSoon} icon={CalendarClock} iconColor="amber" />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -113,6 +112,6 @@ function SaAnalytics() {
           </Card>
         </div>
       </div>
-    </>
+    </PageShell>
   );
 }
