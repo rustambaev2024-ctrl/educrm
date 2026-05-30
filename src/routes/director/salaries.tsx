@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { BadgeDollarSign, Briefcase, CreditCard, Percent, ReceiptText, UserRound, WalletCards } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { BadgeDollarSign, Briefcase, CreditCard, Loader2, Percent, ReceiptText, UserRound, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/edu/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { analyticsApi } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -35,33 +36,38 @@ type SalaryRow = {
   paid: number;
   remaining: number;
   overpaid: number;
+  fromApi: boolean;
 };
 
-function calculateSalaryRow(staffMember: Staff, groups: Group[], periodPayments: Payment[], periodPenalties: StaffPenalty[]): SalaryRow {
+function calcLocalRow(
+  staffMember: Staff,
+  groups: Group[],
+  periodPayments: Payment[],
+  periodPenalties: StaffPenalty[],
+): SalaryRow {
   const isTeacher = staffMember.role === "teacher";
-  const teacherGroups = groups.filter((group) => group.teacherId === staffMember.id);
-  const groupIds = new Set(teacherGroups.map((group) => group.id));
+  const teacherGroups = groups.filter((g) => g.teacherId === staffMember.id);
+  const groupIds = new Set(teacherGroups.map((g) => g.id));
   const base = isTeacher
     ? periodPayments
-      .filter((payment) => payment.type === "charge" && payment.category !== "absent_charge" && payment.groupId && groupIds.has(payment.groupId))
-      .reduce((sum, payment) => sum + payment.amount, 0)
+        .filter((p) => p.type === "charge" && p.category !== "absent_charge" && p.groupId && groupIds.has(p.groupId))
+        .reduce((sum, p) => sum + p.amount, 0)
     : 0;
   const percent = staffMember.salaryPercent ?? 40;
   const fixedSalary = staffMember.fixedSalary ?? 0;
   const grossDue = isTeacher ? Math.round((base * percent) / 100) : fixedSalary;
   const penalties = periodPenalties
-    .filter((penalty) => penalty.staffId === staffMember.id && penalty.status === "active")
-    .reduce((sum, penalty) => sum + penalty.amount, 0);
+    .filter((p) => p.staffId === staffMember.id && p.status === "active")
+    .reduce((sum, p) => sum + p.amount, 0);
   const due = Math.max(grossDue - penalties, 0);
   const paid = periodPayments
-    .filter((payment) => payment.direction === "out" && payment.category === "salary" && payment.staffId === staffMember.id)
-    .reduce((sum, payment) => sum + payment.amount, 0);
-
+    .filter((p) => p.direction === "out" && p.category === "salary" && p.staffId === staffMember.id)
+    .reduce((sum, p) => sum + p.amount, 0);
   return {
     staff: staffMember,
     isTeacher,
     groupCount: teacherGroups.length,
-    studentCount: teacherGroups.reduce((sum, group) => sum + group.studentIds.length, 0),
+    studentCount: teacherGroups.reduce((sum, g) => sum + g.studentIds.length, 0),
     base,
     percent,
     fixedSalary,
@@ -71,17 +77,20 @@ function calculateSalaryRow(staffMember: Staff, groups: Group[], periodPayments:
     paid,
     remaining: Math.max(due - paid, 0),
     overpaid: Math.max(paid - due, 0),
+    fromApi: false,
   };
 }
 
 function DirectorSalaries() {
   const { t, lang } = useI18n();
   const { staff, groups, payments, penalties, branches, addPayment, isLoading } = useData();
-  const activeStaff = useMemo(() => staff.filter((item) => item.role !== "director"), [staff]);
+  const activeStaff = useMemo(() => staff.filter((s) => s.role !== "director"), [staff]);
   const [period, setPeriod] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
+  const [salaryApiData, setSalaryApiData] = useState<Record<string, any>>({});
+  const [isFetchingSalary, setIsFetchingSalary] = useState(false);
   const [payRow, setPayRow] = useState<SalaryRow | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState<PaymentMethod>("cash");
@@ -95,24 +104,78 @@ function DirectorSalaries() {
   }, [period]);
 
   const periodPayments = useMemo(
-    () => payments.filter((payment) => {
-      const ts = new Date(payment.date).getTime();
+    () => payments.filter((p) => {
+      const ts = new Date(p.date).getTime();
       return ts >= monthRange.start.getTime() && ts < monthRange.end.getTime();
     }),
     [monthRange, payments],
   );
 
   const periodPenalties = useMemo(
-    () => penalties.filter((penalty) => {
-      const ts = new Date(`${penalty.penaltyDate}T00:00:00`).getTime();
+    () => penalties.filter((p) => {
+      const ts = new Date(`${p.penaltyDate}T00:00:00`).getTime();
       return ts >= monthRange.start.getTime() && ts < monthRange.end.getTime();
     }),
     [monthRange, penalties],
   );
 
+  const fetchSalaryData = useCallback((currentPeriod: string, staffList: Staff[]) => {
+    const teachers = staffList.filter((s) => s.role === "teacher");
+    if (!teachers.length) return;
+    const [year, mon] = currentPeriod.split("-");
+    const lastDay = new Date(Number(year), Number(mon), 0).getDate();
+    const dateFrom = `${currentPeriod}-01`;
+    const dateTo = `${currentPeriod}-${String(lastDay).padStart(2, "0")}`;
+    setIsFetchingSalary(true);
+    Promise.all(
+      teachers.map((teacher) =>
+        (analyticsApi.staffSalary(teacher.id, { date_from: dateFrom, date_to: dateTo }) as Promise<any>)
+          .then((data: any) => ({ id: teacher.id, data }))
+          .catch(() => ({ id: teacher.id, data: null })),
+      ),
+    ).then((results) => {
+      const map: Record<string, any> = {};
+      results.forEach((r) => { map[r.id] = r.data; });
+      setSalaryApiData(map);
+      setIsFetchingSalary(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    fetchSalaryData(period, activeStaff);
+  }, [period, activeStaff, fetchSalaryData]);
+
   const salaryRows = useMemo(
-    () => activeStaff.map((item) => calculateSalaryRow(item, groups, periodPayments, periodPenalties)),
-    [activeStaff, groups, periodPayments, periodPenalties],
+    () => activeStaff.map((staffMember) => {
+      const isTeacher = staffMember.role === "teacher";
+      const sd = isTeacher ? salaryApiData[staffMember.id] : null;
+      if (isTeacher && sd) {
+        const grossDue = Number(sd.calculated_salary ?? 0);
+        const penalties = Number(sd.penalties_total ?? 0);
+        const due = Number(sd.net_salary ?? 0);
+        const paid = Number(sd.total_paid ?? 0);
+        const remaining = Number(sd.remaining_balance ?? 0);
+        const teacherGroups = groups.filter((g) => g.teacherId === staffMember.id);
+        return {
+          staff: staffMember,
+          isTeacher: true,
+          groupCount: sd.groups?.length ?? teacherGroups.length,
+          studentCount: teacherGroups.reduce((sum, g) => sum + g.studentIds.length, 0),
+          base: Number(sd.total_student_payments ?? 0),
+          percent: Number(sd.salary_percent ?? staffMember.salaryPercent ?? 40),
+          fixedSalary: 0,
+          grossDue,
+          penalties,
+          due,
+          paid,
+          remaining,
+          overpaid: Math.max(paid - due, 0),
+          fromApi: true,
+        } as SalaryRow;
+      }
+      return calcLocalRow(staffMember, groups, periodPayments, periodPenalties);
+    }),
+    [activeStaff, groups, periodPayments, periodPenalties, salaryApiData],
   );
 
   const totals = useMemo(
@@ -128,7 +191,7 @@ function DirectorSalaries() {
   );
 
   const salaryHistory = payments
-    .filter((payment) => payment.direction === "out" && payment.category === "salary")
+    .filter((p) => p.direction === "out" && p.category === "salary")
     .sort((a, b) => b.date.localeCompare(a.date));
 
   const openPayDialog = (row: SalaryRow) => {
@@ -155,6 +218,7 @@ function DirectorSalaries() {
     toast.success(lang === "uz" ? "Ish haqi to'lovi saqlandi" : "Выплата зарплаты сохранена");
     setPayRow(null);
     setPayAmount("");
+    fetchSalaryData(period, activeStaff);
   };
 
   if (isLoading) {
@@ -173,9 +237,17 @@ function DirectorSalaries() {
       />
 
       <div className="space-y-5 p-4 md:p-8">
-        <div className="w-48 space-y-1.5">
-          <Label>{lang === "uz" ? "Hisob-kitob oyi" : "Месяц расчёта"}</Label>
-          <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} autoComplete="off" />
+        <div className="flex items-end gap-4">
+          <div className="w-48 space-y-1.5">
+            <Label>{lang === "uz" ? "Hisob-kitob oyi" : "Месяц расчёта"}</Label>
+            <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} autoComplete="off" />
+          </div>
+          {isFetchingSalary && (
+            <div className="flex items-center gap-1.5 pb-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              {lang === "uz" ? "Hisoblanmoqda..." : "Расчёт..."}
+            </div>
+          )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -202,7 +274,12 @@ function DirectorSalaries() {
               ) : salaryRows.map((row) => (
                 <TableRow key={row.staff.id} className="cursor-pointer hover:bg-muted/40" onClick={() => setDetailRow(row)}>
                   <TableCell>
-                    <div className="font-medium">{row.staff.fullName}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium">{row.staff.fullName}</span>
+                      {row.fromApi && (
+                        <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600">API</span>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {t(`role.${row.staff.role}`)} · {row.isTeacher ? `${row.percent}%` : (lang === "uz" ? "Oylik" : "Оклад")}
                     </div>
@@ -246,7 +323,7 @@ function DirectorSalaries() {
               {salaryHistory.length === 0 ? (
                 <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">{t("common.empty")}</TableCell></TableRow>
               ) : salaryHistory.map((payment) => {
-                const staffMember = staff.find((item) => item.id === payment.staffId);
+                const staffMember = staff.find((s) => s.id === payment.staffId);
                 return (
                   <TableRow key={payment.id}>
                     <TableCell className="font-medium">{staffMember?.fullName ?? payment.comment ?? "-"}</TableCell>
