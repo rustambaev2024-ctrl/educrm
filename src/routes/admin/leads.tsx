@@ -166,13 +166,6 @@ function AdminLeadsPage() {
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       if (e.deltaY === 0) return;
-      // If inside a scrollable column — let the column scroll vertically first
-      const colBody = (e.target as Element).closest("[data-col-scroll]") as HTMLElement | null;
-      if (colBody) {
-        const canDown = colBody.scrollTop + colBody.clientHeight < colBody.scrollHeight - 1;
-        const canUp = colBody.scrollTop > 0;
-        if ((e.deltaY > 0 && canDown) || (e.deltaY < 0 && canUp)) return;
-      }
       e.preventDefault();
       el.scrollTo({ left: el.scrollLeft + e.deltaY * 2, behavior: "auto" });
     };
@@ -393,7 +386,7 @@ function AdminLeadsPage() {
                     <span className="text-[15px] tracking-tight">{t.status[status]}</span>
                     <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-background/50 backdrop-blur-sm">{columnLeads.length}</Badge>
                   </div>
-                  <div data-col-scroll className="flex flex-col gap-3 p-3 flex-1 overflow-y-auto bg-muted/20">
+                  <div className="flex flex-col gap-3 p-3 flex-1 overflow-y-auto bg-muted/20">
                     {columnLeads.map(lead => (
                       <div
                         key={lead.id}
