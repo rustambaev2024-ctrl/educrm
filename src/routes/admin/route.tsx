@@ -124,6 +124,22 @@ function AdminLayout() {
     if (leaf) navigate({ to: leaf.to });
   };
 
+  const handleNavigate = (railId: string, sidebarId: string) => {
+    const g = groups.find((x) => x.rail.id === railId);
+    const leaf = g?.sidebar.find((x) => x.id === sidebarId);
+    if (leaf) navigate({ to: leaf.to });
+  };
+
+  const railSidebars = Object.fromEntries(
+    groups.map((g) => [
+      g.rail.id,
+      {
+        title: g.rail.label,
+        items: g.sidebar.map((leaf) => ({ id: leaf.id, icon: leaf.icon, label: leaf.label, section: leaf.section })),
+      },
+    ]),
+  );
+
   const activeLeaf = activeGroup.sidebar.find((l) => l.id === activeSidebarId);
   const breadcrumb = [
     { label: activeGroup.rail.label },
@@ -140,6 +156,8 @@ function AdminLayout() {
         sidebarItems={sidebarItems}
         activeSidebarId={activeSidebarId}
         onSidebarChange={handleSidebarChange}
+        railSidebars={railSidebars}
+        onNavigate={handleNavigate}
         breadcrumb={breadcrumb}
       >
         <Outlet />
