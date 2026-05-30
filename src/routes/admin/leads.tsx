@@ -166,6 +166,13 @@ function AdminLeadsPage() {
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       if (e.deltaY === 0) return;
+      // If inside a scrollable column — let the column scroll vertically first
+      const colBody = (e.target as Element).closest("[data-col-scroll]") as HTMLElement | null;
+      if (colBody) {
+        const canDown = colBody.scrollTop + colBody.clientHeight < colBody.scrollHeight - 1;
+        const canUp = colBody.scrollTop > 0;
+        if ((e.deltaY > 0 && canDown) || (e.deltaY < 0 && canUp)) return;
+      }
       e.preventDefault();
       el.scrollTo({ left: el.scrollLeft + e.deltaY * 2, behavior: "auto" });
     };
@@ -330,7 +337,7 @@ function AdminLeadsPage() {
           <Kpi icon={CheckCircle2} label={t.kpiWon} value={String(leads.filter((lead) => lead.status === "won").length)} tone="success" />
         </div>
 
-        <Card className="overflow-hidden shadow-elegant">
+        <Card className="shadow-elegant">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="relative flex-1 xl:max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -357,7 +364,7 @@ function AdminLeadsPage() {
             </div>
           </div>
 
-          <div ref={scrollRef} className="flex gap-4 overflow-x-auto p-4 pb-8 min-h-[500px]">
+          <div ref={scrollRef} className="flex gap-4 overflow-x-auto overflow-y-hidden p-4 pb-6 min-h-[520px]">
             {STATUS_OPTIONS.map(status => {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
@@ -386,7 +393,7 @@ function AdminLeadsPage() {
                     <span className="text-[15px] tracking-tight">{t.status[status]}</span>
                     <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-background/50 backdrop-blur-sm">{columnLeads.length}</Badge>
                   </div>
-                  <div className="flex flex-col gap-3 p-3 flex-1 overflow-y-auto bg-muted/20">
+                  <div data-col-scroll className="flex flex-col gap-3 p-3 flex-1 overflow-y-auto bg-muted/20">
                     {columnLeads.map(lead => (
                       <div
                         key={lead.id}
