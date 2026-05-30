@@ -296,15 +296,15 @@ export function EnterpriseLayout({
             onMouseEnter={handleFlyoutEnter}
             onMouseLeave={handleFlyoutLeave}
           >
-            <div className="w-[220px] overflow-hidden rounded-lg rounded-l-none border border-border bg-card shadow-lg">
-              <div className="border-b border-border px-4 py-2.5">
-                <div className="text-[14px] font-medium text-foreground">{data.title}</div>
+            <div className="w-[260px] overflow-hidden rounded-lg rounded-l-none border border-border bg-card shadow-lg">
+              <div className="border-b border-border px-4 py-3">
+                <div className="text-[15px] font-medium text-foreground">{data.title}</div>
               </div>
-              <nav className="max-h-[70vh] space-y-3 overflow-y-auto p-2">
+              <nav className="max-h-[70vh] space-y-3 overflow-y-auto p-3">
                 {sections.map((section, idx) => (
                   <div key={idx} className="space-y-0.5">
                     {section.name && (
-                      <div className="px-2 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                      <div className="px-2 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                         {section.name}
                       </div>
                     )}
@@ -323,16 +323,16 @@ export function EnterpriseLayout({
                             }
                             closeFlyout();
                           }}
-                          className={`flex w-full items-center gap-2.5 rounded-md border-l-2 px-2.5 py-1.5 text-[13px] transition-colors ${
+                          className={`flex w-full items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-[14px] transition-colors ${
                             active
                               ? "border-blue-600 bg-blue-50 font-medium text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
                               : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                           }`}
                         >
-                          <item.icon className="size-4 shrink-0" />
+                          <item.icon className="size-5 shrink-0" />
                           <span className="flex-1 truncate text-left">{item.label}</span>
                           {item.badge !== undefined && item.badge > 0 && (
-                            <span className="rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
                               {item.badge}
                             </span>
                           )}
