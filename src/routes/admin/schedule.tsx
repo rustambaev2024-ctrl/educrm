@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, MapPin, Users, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,40 +89,27 @@ function SchedulePage() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t("schedule.title")}
-        description={t("schedule.subtitle")}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}
-            >
-              <ChevronLeft className="size-4" />
-              <span className="hidden sm:inline">{t("schedule.prev")}</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setWeekAnchor(startOfWeek(new Date()))}
-            >
-              <Calendar className="mr-1 size-4" />
-              {t("schedule.today")}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}
-            >
-              <span className="hidden sm:inline">{t("schedule.next")}</span>
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        }
-      />
-      <div className="space-y-4 p-4 md:p-8">
+    <PageShell
+      title={t("schedule.title")}
+      subtitle={t("schedule.subtitle")}
+      actions={
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}>
+            <ChevronLeft className="size-4" />
+            <span className="hidden sm:inline">{t("schedule.prev")}</span>
+          </Button>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setWeekAnchor(startOfWeek(new Date()))}>
+            <Calendar className="mr-1 size-4" />
+            {t("schedule.today")}
+          </Button>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}>
+            <span className="hidden sm:inline">{t("schedule.next")}</span>
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Calendar className="size-4" />
@@ -245,7 +232,7 @@ function SchedulePage() {
         onClose={() => setSelected(null)}
         helpers={{ groupById, roomById, teacherById, courseById }}
       />
-    </>
+    </PageShell>
   );
 }
 

@@ -1,8 +1,9 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Eye, EyeOff, Info, KeyRound, RefreshCw, Save, Search, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Info, KeyRound, RefreshCw, Save, Search, ShieldCheck, GraduationCap, Users, UserCog } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -121,19 +122,18 @@ function AccountsPage() {
   }
 
   return (
-    <>
-      <PageHeader title={t("title")} description={t("description")} />
-      <div className="space-y-4 p-4 md:p-8">
+    <PageShell title={t("title")} subtitle={t("description")}>
+      <div className="space-y-4">
         <Card className="p-4 border-blue-500/20 bg-blue-500/5">
           <div className="flex gap-3">
             <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-muted-foreground">{t("note")}</p>
           </div>
         </Card>
-        <div className="grid gap-3 md:grid-cols-3">
-          <AccessStat label={t("teachers")} value={rows.filter((r) => r.type === "teacher").length} />
-          <AccessStat label={t("students")} value={rows.filter((r) => r.type === "student").length} />
-          <AccessStat label={t("parents")} value={rows.filter((r) => r.type === "parent").length} />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <KpiCard label={t("teachers")} value={rows.filter((r) => r.type === "teacher").length} icon={GraduationCap} iconColor="blue" />
+          <KpiCard label={t("students")} value={rows.filter((r) => r.type === "student").length} icon={Users} iconColor="green" />
+          <KpiCard label={t("parents")} value={rows.filter((r) => r.type === "parent").length} icon={UserCog} iconColor="violet" />
         </div>
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -207,22 +207,9 @@ function AccountsPage() {
           </div>
         )}
       </div>
-    </>
-  );
-}
-
-function AccessStat({ label, value }: { label: string; value: number }) {
-  return (
-    <Card className="flex items-center gap-3 p-4">
-      <div className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-        <ShieldCheck className="size-5" />
-      </div>
-      <div>
-        <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="text-2xl font-semibold tabular-nums">{value}</div>
-      </div>
-    </Card>
+    </PageShell>
   );
 }
 
 void KeyRound;
+void ShieldCheck;

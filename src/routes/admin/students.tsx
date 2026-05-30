@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2, ArrowDownCircle, ArrowUpCircle, Key, Copy, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import { Plus, Minus, Search, Phone, Calendar as CalendarIcon, X, Archive, Trash2, ArrowDownCircle, ArrowUpCircle, Key, Copy, ChevronLeft, ChevronRight, Pencil, Users, UserCheck, AlertCircle, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { PasswordInput } from "@/components/edu/password-input";
 import { PhoneInput } from "@/components/edu/phone-input";
 import { StudentStatusBadge } from "@/components/edu/status-badge";
@@ -119,6 +120,21 @@ export function StudentsPage() {
 
   const filtered = pageStudents;
 
+  // KPI из полного store-списка (не из пагинированной страницы).
+  const kpis = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    let active = 0;
+    let debtor = 0;
+    let fresh = 0;
+    for (const s of students) {
+      if (s.status === "active") active++;
+      if (s.status === "debtor") debtor++;
+      if (s.registeredAt && new Date(s.registeredAt) >= monthStart) fresh++;
+    }
+    return { total: students.length, active, debtor, fresh };
+  }, [students]);
+
   const selected = useMemo(() => {
     // Look in both pageStudents and store students for detail view
     return pageStudents.find((s) => s.id === selectedId)
@@ -135,17 +151,22 @@ export function StudentsPage() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t("students.title")}
-        description={t("students.subtitle")}
-        actions={
-          <Button onClick={() => setCreateOpen(true)} className="bg-gradient-primary text-primary-foreground shadow-elegant">
-            <Plus className="mr-1 size-4" /> {t("students.add")}
-          </Button>
-        }
-      />
-      <div className="p-4 md:p-8">
+    <PageShell
+      title={t("students.title")}
+      subtitle={t("students.subtitle")}
+      actions={
+        <Button size="sm" onClick={() => setCreateOpen(true)} className="h-8 gap-1.5 px-3 text-[12px]">
+          <Plus className="size-3.5" /> {t("students.add")}
+        </Button>
+      }
+    >
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard label={t("students.title")} value={kpis.total} icon={Users} iconColor="blue" />
+        <KpiCard label={t("status.active")} value={kpis.active} icon={UserCheck} iconColor="green" />
+        <KpiCard label={t("status.debtor")} value={kpis.debtor} icon={AlertCircle} iconColor="red" />
+        <KpiCard label={lang === "uz" ? "Yangi (bu oy)" : "Новые (мес.)"} value={kpis.fresh} icon={UserPlus} iconColor="violet" />
+      </div>
+      <div>
         <Card className="overflow-hidden shadow-elegant">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center md:justify-between">
             <div className="relative flex-1 md:max-w-sm">
@@ -299,7 +320,7 @@ export function StudentsPage() {
           setSelectedId(null);
         }}
       />
-    </>
+    </PageShell>
   );
 }
 

@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Plus, TrendingUp, TrendingDown, Wallet, AlertTriangle, Receipt, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,29 +110,27 @@ function FinancePage() {
   }
   
   return (
-    <>
-      <PageHeader
-        title={t("finance.title")}
-        description={t("finance.subtitle")}
-        actions={
-          <>
-            <Button variant="outline" onClick={() => setExpenseOpen(true)}>
-              <TrendingDown className="mr-1 size-4" /> {t("finance.addExpense")}
-            </Button>
-            <Button onClick={() => setPayOpen(true)}>
-              <Plus className="mr-1 size-4" /> {t("finance.addPayment")}
-            </Button>
-          </>
-        }
-      />
-
-      <div className="space-y-6 p-4 md:p-8">
+    <PageShell
+      title={t("finance.title")}
+      subtitle={t("finance.subtitle")}
+      actions={
+        <>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setExpenseOpen(true)}>
+            <TrendingDown className="mr-1 size-4" /> {t("finance.addExpense")}
+          </Button>
+          <Button size="sm" className="h-8" onClick={() => setPayOpen(true)}>
+            <Plus className="mr-1 size-4" /> {t("finance.addPayment")}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6">
         {/* KPIs */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard tone="success" icon={TrendingUp} label={t("finance.kpi.income")} value={formatMoney(monthIncome, lang)} />
-          <KpiCard tone="destructive" icon={TrendingDown} label={t("finance.kpi.expense")} value={formatMoney(monthExpense, lang)} />
-          <KpiCard tone="primary" icon={Wallet} label={t("finance.kpi.profit")} value={formatMoney(monthIncome - monthExpense, lang)} />
-          <KpiCard tone="warning" icon={AlertTriangle} label={t("finance.kpi.debt")} value={formatMoney(totalDebt + totalPending, lang)} />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard iconColor="green" icon={TrendingUp} label={t("finance.kpi.income")} value={formatMoney(monthIncome, lang)} />
+          <KpiCard iconColor="red" icon={TrendingDown} label={t("finance.kpi.expense")} value={formatMoney(monthExpense, lang)} />
+          <KpiCard iconColor="violet" icon={Wallet} label={t("finance.kpi.profit")} value={formatMoney(monthIncome - monthExpense, lang)} />
+          <KpiCard iconColor="amber" icon={AlertTriangle} label={t("finance.kpi.debt")} value={formatMoney(totalDebt + totalPending, lang)} />
         </div>
 
         <Tabs defaultValue="wallets">
@@ -340,30 +339,7 @@ function FinancePage() {
 
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} />
       <ExpenseDialog open={expenseOpen} onOpenChange={setExpenseOpen} />
-    </>
-  );
-}
-
-function KpiCard({ tone, icon: Icon, label, value }: {
-  tone: "success" | "destructive" | "primary" | "warning";
-  icon: typeof TrendingUp;
-  label: string;
-  value: string;
-}) {
-  const tones = {
-    success: "bg-success/15 text-success",
-    destructive: "bg-destructive/15 text-destructive",
-    primary: "bg-gradient-primary text-primary-foreground",
-    warning: "bg-warning/15 text-warning-foreground",
-  };
-  return (
-    <Card className="p-5 shadow-elegant">
-      <div className={`flex size-9 items-center justify-center rounded-lg ${tones[tone]}`}>
-        <Icon className="size-4" />
-      </div>
-      <div className="mt-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-bold">{value}</div>
-    </Card>
+    </PageShell>
   );
 }
 

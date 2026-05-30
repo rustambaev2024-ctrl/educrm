@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { Users, Wallet, CalendarCheck, Layers } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell, Legend as ChartLegend } from "recharts";
-import { PageHeader } from "@/components/edu/page-header";
-import { StatCard } from "@/components/edu/stat-card";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { useData } from "@/lib/data/store";
 import { attendancePercentage } from "@/lib/data/metrics";
@@ -63,14 +63,13 @@ function AdminAnalytics() {
   }
 
   return (
-    <>
-      <PageHeader title={t("nav.analytics")} description={t("admin.subtitle")} />
-      <div className="space-y-6 p-4 md:p-8">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} tone="primary" hint={lang === "uz" ? "Faol va muzlatilganlar" : "Активные и замороженные"} />
-          <StatCard label={t("admin.activeGroups")} value={`${groups.length}`} icon={Layers} tone="info" hint={lang === "uz" ? "Faol o'quv guruhlari" : "Активные учебные группы"} />
-          <StatCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={CalendarCheck} tone="success" hint={lang === "uz" ? "O'rtacha joriy oy" : "Среднее за текущий месяц"} />
-          <StatCard label={t("director.monthlyRevenue")} value={formatMoney(totalIncome, lang)} icon={Wallet} tone="info" hint={lang === "uz" ? "Joriy oy to'lovlari" : "Платежи за текущий месяц"} />
+    <PageShell title={t("nav.analytics")} subtitle={t("admin.subtitle")}>
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} iconColor="blue" subtitle={lang === "uz" ? "Faol va muzlatilganlar" : "Активные и замороженные"} />
+          <KpiCard label={t("admin.activeGroups")} value={`${groups.length}`} icon={Layers} iconColor="violet" subtitle={lang === "uz" ? "Faol o'quv guruhlari" : "Активные учебные группы"} />
+          <KpiCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={CalendarCheck} iconColor="green" subtitle={lang === "uz" ? "O'rtacha joriy oy" : "Среднее за текущий месяц"} />
+          <KpiCard label={t("director.monthlyRevenue")} value={formatMoney(totalIncome, lang)} icon={Wallet} iconColor="amber" subtitle={lang === "uz" ? "Joriy oy to'lovlari" : "Платежи за текущий месяц"} />
         </div>
 
         <Card className="p-6 shadow-elegant">
@@ -138,6 +137,6 @@ function AdminAnalytics() {
           </div>
         </Card>
       </div>
-    </>
+    </PageShell>
   );
 }

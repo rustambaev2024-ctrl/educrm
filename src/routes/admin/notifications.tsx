@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Bell, CheckCheck } from "lucide-react";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -60,12 +60,11 @@ function NotificationsPage() {
   });
 
   return (
-    <>
-      <PageHeader
-        title={lang === "uz" ? "Bildirishnomalar" : "Уведомления"}
-        description={lang === "uz" ? "Barcha xabar va ogohlantirishlar" : "Все уведомления и напоминания"}
-      />
-      <div className="p-4 md:p-8 space-y-4">
+    <PageShell
+      title={lang === "uz" ? "Bildirishnomalar" : "Уведомления"}
+      subtitle={lang === "uz" ? "Barcha xabar va ogohlantirishlar" : "Все уведомления и напоминания"}
+    >
+      <div className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="flex rounded-lg border p-1 gap-1">
@@ -143,6 +142,6 @@ function NotificationsPage() {
           </div>
         )}
       </div>
-    </>
+    </PageShell>
   );
 }

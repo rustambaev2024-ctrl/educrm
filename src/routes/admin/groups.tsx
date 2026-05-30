@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Plus, Search, Users, Clock, MapPin, X, UserPlus, UserMinus, Edit, Trash, BarChart3 } from "lucide-react";
+import { CheckCircle2, Plus, Search, Users, Clock, MapPin, X, UserPlus, UserMinus, Edit, Trash, BarChart3, Layers, Percent } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { GroupStatusBadge } from "@/components/edu/status-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,17 @@ function GroupsPage() {
   const selected = useMemo(() => groups.find((g) => g.id === selectedId) ?? null, [groups, selectedId]);
   const editGroup = useMemo(() => groups.find((g) => g.id === editId) ?? null, [groups, editId]);
 
+  const kpis = useMemo(() => {
+    const active = groups.filter((g) => g.status === "active");
+    const studentSet = new Set<string>();
+    groups.forEach((g) => g.studentIds.forEach((id) => studentSet.add(id)));
+    const fillable = groups.filter((g) => g.capacity > 0);
+    const avgFill = fillable.length
+      ? Math.round(fillable.reduce((s, g) => s + g.studentIds.length / g.capacity, 0) / fillable.length * 100)
+      : 0;
+    return { total: groups.length, active: active.length, students: studentSet.size, avgFill };
+  }, [groups]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -73,17 +85,22 @@ function GroupsPage() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t("groups.title")}
-        description={t("groups.subtitle")}
-        actions={
-          <Button onClick={() => setCreateOpen(true)} className="bg-gradient-primary text-primary-foreground shadow-elegant">
-            <Plus className="mr-1 size-4" /> {t("groups.add")}
-          </Button>
-        }
-      />
-      <div className="space-y-4 p-4 md:p-8">
+    <PageShell
+      title={t("groups.title")}
+      subtitle={t("groups.subtitle")}
+      actions={
+        <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={() => setCreateOpen(true)}>
+          <Plus className="size-3.5" /> {t("groups.add")}
+        </Button>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard label={t("groups.title")} value={kpis.total} icon={Layers} iconColor="blue" />
+          <KpiCard label={t("status.active")} value={kpis.active} icon={CheckCircle2} iconColor="green" />
+          <KpiCard label={lang === "uz" ? "Talabalar" : "Ученики"} value={kpis.students} icon={Users} iconColor="violet" />
+          <KpiCard label={lang === "uz" ? "O'rtacha to'ldirilganlik" : "Средняя заполненность"} value={`${kpis.avgFill}%`} icon={Percent} iconColor="amber" />
+        </div>
         <div className="relative max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -163,7 +180,7 @@ function GroupsPage() {
       {editGroup && <EditGroupSheet group={editGroup} onClose={() => setEditId(null)} />}
       <GroupDetailSheet group={selected} onClose={() => setSelectedId(null)} onEdit={() => { setEditId(selectedId); setSelectedId(null); }} />
       <GroupReportSheet groupId={reportGroupId} onClose={() => setReportGroupId(null)} />
-    </>
+    </PageShell>
   );
 }
 
