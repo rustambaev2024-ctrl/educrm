@@ -598,4 +598,44 @@ export const superadminApi = {
   },
 };
 
+// ─── Quiz API ─────────────────────────────────────────────────────────────────
+
+export const quizApi = {
+  list: (params?: Record<string, string>) =>
+    requestJson(`/quizzes/${params ? `?${new URLSearchParams(params)}` : ""}`),
+
+  get: (id: string) => requestJson(`/quizzes/${id}/`),
+
+  create: (data: Record<string, unknown>) =>
+    requestJson("/quizzes/", { method: "POST", body: JSON.stringify(data) }),
+
+  update: (id: string, data: Record<string, unknown>) =>
+    requestJson(`/quizzes/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  delete: (id: string) => requestJson(`/quizzes/${id}/`, { method: "DELETE" }),
+
+  addQuestion: (quizId: string, data: Record<string, unknown>) =>
+    requestJson(`/quizzes/${quizId}/questions/`, { method: "POST", body: JSON.stringify(data) }),
+
+  createSession: (quizId: string) =>
+    requestJson(`/quizzes/${quizId}/sessions/`, { method: "POST" }),
+
+  listSessions: (quizId: string) => requestJson(`/quizzes/${quizId}/sessions/`),
+
+  sessions: {
+    list: (params?: Record<string, string>) =>
+      requestJson(`/quiz-sessions/${params ? `?${new URLSearchParams(params)}` : ""}`),
+
+    get: (id: string) => requestJson(`/quiz-sessions/${id}/`),
+
+    byCode: (code: string) => requestJson(`/quiz-sessions/by-code/${code}/`),
+
+    join: (sessionId: string, data: Record<string, unknown>) =>
+      requestJson(`/quiz-sessions/${sessionId}/join/`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+};
+
 
