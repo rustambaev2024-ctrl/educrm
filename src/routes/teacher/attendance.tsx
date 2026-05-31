@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Check, X, Clock, Wifi, FileText, ClipboardCheck, Save } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -188,9 +188,8 @@ function AttendancePage() {
   }, [marks]);
 
   return (
-    <>
-      <PageHeader title={t("att.title")} description={t("att.subtitle")} />
-      <div className="space-y-4 p-4 md:p-8">
+    <PageShell title={t("att.title")} subtitle={t("att.subtitle")}>
+      <div className="space-y-4">
         {myLessons.length === 0 ? (
           <Card className="flex flex-col items-center gap-3 p-12 text-center shadow-elegant">
             <div className="flex size-12 items-center justify-center rounded-xl bg-accent text-primary">
@@ -324,6 +323,6 @@ function AttendancePage() {
           </>
         )}
       </div>
-    </>
+    </PageShell>
   );
 }

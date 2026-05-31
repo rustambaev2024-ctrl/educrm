@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Calendar, DollarSign, Users, Wallet, MinusCircle } from "lucide-react";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { analyticsApi } from "@/lib/api";
 import { startOfMonth, endOfMonth, format } from "date-fns";
@@ -75,13 +75,11 @@ function TeacherFinancePage() {
   }, [dateFrom, dateTo]);
 
   return (
-    <>
-      <PageHeader 
-        title="Mening daromadim" 
-        description="Guruhlar bo'yicha hisoblangan daromad va jarimalar statistikasi" 
-      />
-
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <PageShell
+      title="Mening daromadim"
+      subtitle="Guruhlar bo'yicha hisoblangan daromad va jarimalar statistikasi"
+    >
+      <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Date Filters */}
         <Card className="shadow-sm">
@@ -262,6 +260,6 @@ function TeacherFinancePage() {
           </>
         )}
       </div>
-    </>
+    </PageShell>
   );
 }

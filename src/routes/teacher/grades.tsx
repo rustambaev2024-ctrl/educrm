@@ -1,8 +1,9 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Award, Trash2 } from "lucide-react";
+import { Award, Trash2, Users, BookOpen } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,10 @@ function TeacherGrades() {
     return Math.round((groupGrades.reduce((s, g) => s + (g.score / g.maxScore) * 10, 0) / groupGrades.length) * 10) / 10;
   }, [groupGrades]);
 
+  const topStudentsCount = useMemo(() => {
+    return Object.values(avgByStudent).filter((v) => v.cnt > 0 && (v.sum / v.cnt) >= 8).length;
+  }, [avgByStudent]);
+
   const [open, setOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [form, setForm] = useState({ kind: "lesson" as GradeKind, score: "", comment: "" });
@@ -101,38 +106,24 @@ function TeacherGrades() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t("grades.title")}
-        description={t("grades.subtitle")}
-        actions={
-          <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {myGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        }
-      />
-      <div className="space-y-4 p-4 md:p-8">
-        <div className="grid gap-3 md:grid-cols-3">
-          <Card className="p-4 shadow-elegant">
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("grades.average")}</div>
-            <div className="mt-1 flex items-center gap-2">
-              <div className="text-3xl font-bold">{overallAvg}</div>
-              <span className="text-sm text-muted-foreground">/ 10</span>
-            </div>
-          </Card>
-          <Card className="p-4 shadow-elegant">
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("groups.field.students")}</div>
-            <div className="mt-1 text-3xl font-bold">{selectedGroup?.studentIds.length ?? 0}</div>
-          </Card>
-          <Card className="p-4 shadow-elegant">
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("grades.title")}</div>
-            <div className="mt-1 text-3xl font-bold">{groupGrades.length}</div>
-          </Card>
+    <PageShell
+      title={t("grades.title")}
+      subtitle={t("grades.subtitle")}
+      actions={
+        <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+          <SelectTrigger className="h-8 w-[200px] text-[12px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {myGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          <KpiCard label={t("grades.title")} value={groupGrades.length} icon={BookOpen} iconColor="blue" />
+          <KpiCard label={t("grades.average")} value={`${overallAvg} / 10`} icon={Award} iconColor="green" />
+          <KpiCard label={lang === "uz" ? "A'lochi o'quvchilar" : "Отличники"} value={topStudentsCount} icon={Users} iconColor="violet" />
         </div>
-
         <Card className="overflow-hidden p-0 shadow-elegant">
           <div className="border-b border-border/60 px-4 py-3 text-sm font-semibold">
             {t("grades.average")} - {t("groups.field.students")}. {t("grades.add")}: {lang === "uz" ? "o'quvchini bosing" : "нажмите на ученика"}
@@ -253,6 +244,6 @@ function TeacherGrades() {
           </div>
         </SheetContent>
       </Sheet>
-    </>
+    </PageShell>
   );
 }

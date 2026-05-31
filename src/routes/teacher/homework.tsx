@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plus, BookOpen, Calendar, Users, ChevronRight, Star } from "lucide-react";
+import { Plus, BookOpen, Calendar, Users, ChevronRight, Star, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,13 @@ function TeacherHomework() {
   const now = Date.now();
   const active = myHomework.filter((h) => new Date(h.dueDate).getTime() >= now - 86400000 * 3);
   const archived = myHomework.filter((h) => new Date(h.dueDate).getTime() < now - 86400000 * 3);
+
+  const kpis = useMemo(() => {
+    const myHwIds = new Set(myHomework.map((h) => h.id));
+    const submitted = submissions.filter((s) => myHwIds.has(s.homeworkId)).length;
+    const overdue = myHomework.filter((h) => new Date(h.dueDate).getTime() < now).length;
+    return { total: myHomework.length, submitted, overdue };
+  }, [myHomework, submissions, now]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [reviewing, setReviewing] = useState<Homework | null>(null);
@@ -130,17 +138,21 @@ function TeacherHomework() {
   };
 
   return (
-    <>
-      <PageHeader
-        title={t("hw.title")}
-        description={t("hw.subtitle")}
-        actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-1 size-4" /> {t("hw.add")}
-          </Button>
-        }
-      />
-      <div className="space-y-4 p-4 md:p-8">
+    <PageShell
+      title={t("hw.title")}
+      subtitle={t("hw.subtitle")}
+      actions={
+        <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={() => setCreateOpen(true)}>
+          <Plus className="size-3.5" /> {t("hw.add")}
+        </Button>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          <KpiCard label={lang === "uz" ? "Jami vazifalar" : "Всего заданий"} value={kpis.total} icon={BookOpen} iconColor="blue" />
+          <KpiCard label={lang === "uz" ? "Topshirilgan" : "Сдано"} value={kpis.submitted} icon={CheckCircle2} iconColor="green" />
+          <KpiCard label={lang === "uz" ? "Muddati o'tgan" : "Просрочено"} value={kpis.overdue} icon={AlertCircle} iconColor="red" />
+        </div>
         <Tabs defaultValue="active">
           <TabsList>
             <TabsTrigger value="active">{t("hw.tab.active")} ({active.length})</TabsTrigger>
@@ -205,7 +217,7 @@ function TeacherHomework() {
           )}
         </SheetContent>
       </Sheet>
-    </>
+    </PageShell>
   );
 }
 

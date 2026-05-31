@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Users, MapPin, Calendar, ChevronRight, Layers } from "lucide-react";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,12 +39,11 @@ function TeacherGroupsPage() {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t("teacher.myGroups")}
-        description={`${myGroups.length} ${t("students.count")}`}
-      />
-      <div className="space-y-4 p-4 md:p-8">
+    <PageShell
+      title={t("teacher.myGroups")}
+      subtitle={`${myGroups.length} ${t("students.count")}`}
+    >
+      <div className="space-y-4">
         <Input
           placeholder={t("groups.search")}
           value={search}
@@ -105,6 +104,6 @@ function TeacherGroupsPage() {
           </div>
         )}
       </div>
-    </>
+    </PageShell>
   );
 }

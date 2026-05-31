@@ -1,5 +1,5 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { MessengerPanel } from "@/components/edu/messenger-panel";
 import { useI18n } from "@/lib/i18n";
 
@@ -8,12 +8,11 @@ export const Route = createFileRoute("/teacher/messages")({ component: MessagesP
 function MessagesPage() {
   const { lang } = useI18n();
   return (
-    <>
-      <PageHeader
-        title={lang === "uz" ? "Xabarlar" : "Сообщения"}
-        description={lang === "uz" ? "Guruhli va shaxsiy chatlar" : "Групповые и личные чаты"}
-      />
+    <PageShell
+      title={lang === "uz" ? "Xabarlar" : "Сообщения"}
+      subtitle={lang === "uz" ? "Guruhli va shaxsiy chatlar" : "Групповые и личные чаты"}
+    >
       <MessengerPanel />
-    </>
+    </PageShell>
   );
 }

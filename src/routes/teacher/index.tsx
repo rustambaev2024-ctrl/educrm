@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Clock, MapPin, Users, ChevronRight, ClipboardCheck, Calendar, Layers } from "lucide-react";
+import { Clock, MapPin, Users, ChevronRight, ClipboardCheck, Calendar, Layers, TrendingUp, Star } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,14 @@ import { LessonStatusBadge } from "@/components/edu/status-badge";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentTeacherId } from "@/lib/data/identity";
+import { attendancePercentage } from "@/lib/data/metrics";
 import { formatDate, formatTime, sameDay } from "@/lib/format";
 
 export const Route = createFileRoute("/teacher/")({ component: TeacherHome });
 
 function TeacherHome() {
   const { lang } = useI18n();
-  const { groups, lessons, rooms, courses, isLoading } = useData();
+  const { groups, lessons, rooms, courses, attendance, grades, isLoading } = useData();
   const teacherId = useCurrentTeacherId();
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
 
@@ -32,6 +33,19 @@ function TeacherHome() {
 
   const next = todayLessons.find((l) => new Date(l.datetime).getTime() >= Date.now()) ?? todayLessons[0];
   const totalStudents = useMemo(() => new Set(myGroups.flatMap((g) => g.studentIds)).size, [myGroups]);
+
+  // KPI: davomat % и средний балл по моим группам
+  const myLessonIds = useMemo(() => {
+    const ids = new Set(lessons.filter((l) => myGroupIds.has(l.groupId)).map((l) => l.id));
+    return ids;
+  }, [lessons, myGroupIds]);
+  const myAttendance = useMemo(() => attendance.filter((a) => myLessonIds.has(a.lessonId)), [attendance, myLessonIds]);
+  const attPct = attendancePercentage(myAttendance);
+  const myGrades = useMemo(() => grades.filter((g) => myGroupIds.has(g.groupId)), [grades, myGroupIds]);
+  const avgGrade = useMemo(() => {
+    if (!myGrades.length) return 0;
+    return Math.round((myGrades.reduce((s, g) => s + (g.score / g.maxScore) * 10, 0) / myGrades.length) * 10) / 10;
+  }, [myGrades]);
   const groupById = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
   const roomById = useMemo(() => Object.fromEntries(rooms.map((r) => [r.id, r])), [rooms]);
   const courseById = useMemo(() => Object.fromEntries(courses.map((c) => [c.id, c])), [courses]);
@@ -59,10 +73,11 @@ function TeacherHome() {
       }
     >
       {/* KPI row */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <KpiCard label={tr("Mening guruhlarim", "Мои группы")} value={myGroups.length} icon={Layers} iconColor="blue" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard label={tr("Bugungi darslar", "Дней сегодня")} value={todayLessons.length} icon={Calendar} iconColor="blue" />
         <KpiCard label={tr("O'quvchilar", "Ученики")} value={totalStudents} icon={Users} iconColor="violet" />
-        <KpiCard label={tr("Bugungi darslar", "Занятий сегодня")} value={todayLessons.length} icon={Calendar} iconColor="green" />
+        <KpiCard label={tr("Davomat", "Посещаемость")} value={`${attPct}%`} icon={TrendingUp} iconColor="green" />
+        <KpiCard label={tr("O'rtacha baho", "Средний балл")} value={avgGrade} icon={Star} iconColor="amber" />
       </div>
 
       {/* Next lesson highlight */}
