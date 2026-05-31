@@ -468,8 +468,6 @@ export interface GradeRaw {
 
 export function mapGrade(r: GradeRaw) {
   const type = r.grade_type ?? r.type ?? "exam";
-  const rawScore = Number(r.score);
-  const normalizedScore = rawScore > 10 ? Math.round((rawScore / 100) * 10) : rawScore;
   return {
     id: r.id,
     studentId: extractId(r.student),
@@ -478,7 +476,7 @@ export function mapGrade(r: GradeRaw) {
     kind: type,
     type,
     title: type,
-    score: normalizedScore,
+    score: typeof r.score === "number" ? r.score : Number(r.score ?? 0),
     maxScore: 10,
     date: r.graded_at ?? r.created_at ?? new Date().toISOString(),
     comment: r.comment ?? undefined,

@@ -2,11 +2,12 @@ import logging
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 
 from apps.accounts.permissions import IsBranchAdmin, IsTeacher
 from apps.finance.serializers import PaymentSerializer
@@ -27,8 +28,13 @@ from .serializers import (
 logger = logging.getLogger(__name__)
 
 
+class LeadSubmitThrottle(AnonRateThrottle):
+    rate = "10/hour"
+
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([LeadSubmitThrottle])
 def public_submit_lead(request):
     """
     Public endpoint — accepts lead submissions from the landing page.

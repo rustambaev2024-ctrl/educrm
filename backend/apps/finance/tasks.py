@@ -56,11 +56,16 @@ def daily_lesson_charge():
 
                 # БИЗНЕС-ПРАВИЛО: списание происходит со всех студентов группы
                 # независимо от посещаемости. Исключение: статус excused.
-                students_to_charge = list(
-                    group.students.exclude(
-                        status__in=["frozen", "archived", "graduate", "expelled"]
-                    ).select_related("user")
+                # ВАЖНО: только активные участники группы (left_at IS NULL),
+                # удалённые из группы студенты не должны получать списания.
+                members = (
+                    group.memberships.filter(left_at__isnull=True)
+                    .select_related("student__user")
+                    .exclude(
+                        student__status__in=["frozen", "archived", "graduate", "expelled"]
+                    )
                 )
+                students_to_charge = [m.student for m in members]
                 if not students_to_charge:
                     continue
 
