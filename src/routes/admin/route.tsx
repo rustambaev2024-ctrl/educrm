@@ -10,6 +10,7 @@ import {
   KeyRound,
   MessageSquarePlus,
   ClipboardList,
+  ClipboardCheck,
   Bell,
   MessageSquare,
   type LucideIcon,
@@ -54,6 +55,7 @@ function AdminLayout() {
         { id: "students", to: "/admin/students", icon: Users, label: tr("Barcha o'quvchilar", "Все ученики"), section: tr("O'QUVCHILAR", "УЧЕНИКИ") },
         { id: "leads", to: "/admin/leads", icon: MessageSquarePlus, label: tr("Murojaatlar", "Заявки"), section: tr("O'QUVCHILAR", "УЧЕНИКИ") },
         { id: "accounts", to: "/admin/accounts", icon: KeyRound, label: tr("Akkauntlar", "Аккаунты"), section: tr("O'QUVCHILAR", "УЧЕНИКИ") },
+        { id: "quizzes", to: "/admin/quizzes", icon: ClipboardCheck, label: tr("Testlar", "Тесты"), section: tr("O'QUVCHILAR", "УЧЕНИКИ") },
       ],
     },
     {

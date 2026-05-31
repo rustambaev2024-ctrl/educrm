@@ -24,6 +24,8 @@ import { Route as StudentIndexRouteImport } from './routes/student/index'
 import { Route as ParentIndexRouteImport } from './routes/parent/index'
 import { Route as DirectorIndexRouteImport } from './routes/director/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as TeacherQuizzesRouteImport } from './routes/teacher/quizzes'
+import { Route as TeacherQuizCreateRouteImport } from './routes/teacher/quiz-create'
 import { Route as TeacherMessagesRouteImport } from './routes/teacher/messages'
 import { Route as TeacherHomeworkRouteImport } from './routes/teacher/homework'
 import { Route as TeacherGroupsRouteImport } from './routes/teacher/groups'
@@ -58,6 +60,8 @@ import { Route as DirectorAuditRouteImport } from './routes/director/audit'
 import { Route as DirectorAnalyticsRouteImport } from './routes/director/analytics'
 import { Route as AdminStudentsRouteImport } from './routes/admin/students'
 import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
+import { Route as AdminQuizzesRouteImport } from './routes/admin/quizzes'
+import { Route as AdminQuizCreateRouteImport } from './routes/admin/quiz-create'
 import { Route as AdminNotificationsRouteImport } from './routes/admin/notifications'
 import { Route as AdminMessagesRouteImport } from './routes/admin/messages'
 import { Route as AdminLeadsRouteImport } from './routes/admin/leads'
@@ -142,6 +146,16 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRouteRoute,
+} as any)
+const TeacherQuizzesRoute = TeacherQuizzesRouteImport.update({
+  id: '/quizzes',
+  path: '/quizzes',
+  getParentRoute: () => TeacherRouteRoute,
+} as any)
+const TeacherQuizCreateRoute = TeacherQuizCreateRouteImport.update({
+  id: '/quiz-create',
+  path: '/quiz-create',
+  getParentRoute: () => TeacherRouteRoute,
 } as any)
 const TeacherMessagesRoute = TeacherMessagesRouteImport.update({
   id: '/messages',
@@ -313,6 +327,16 @@ const AdminScheduleRoute = AdminScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminQuizzesRoute = AdminQuizzesRouteImport.update({
+  id: '/quizzes',
+  path: '/quizzes',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminQuizCreateRoute = AdminQuizCreateRouteImport.update({
+  id: '/quiz-create',
+  path: '/quiz-create',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -378,6 +402,8 @@ export interface FileRoutesByFullPath {
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/quiz-create': typeof AdminQuizCreateRoute
+  '/admin/quizzes': typeof AdminQuizzesRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/students': typeof AdminStudentsRoute
   '/director/analytics': typeof DirectorAnalyticsRoute
@@ -412,6 +438,8 @@ export interface FileRoutesByFullPath {
   '/teacher/groups': typeof TeacherGroupsRoute
   '/teacher/homework': typeof TeacherHomeworkRoute
   '/teacher/messages': typeof TeacherMessagesRoute
+  '/teacher/quiz-create': typeof TeacherQuizCreateRoute
+  '/teacher/quizzes': typeof TeacherQuizzesRoute
   '/admin/': typeof AdminIndexRoute
   '/director/': typeof DirectorIndexRoute
   '/parent/': typeof ParentIndexRoute
@@ -432,6 +460,8 @@ export interface FileRoutesByTo {
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/quiz-create': typeof AdminQuizCreateRoute
+  '/admin/quizzes': typeof AdminQuizzesRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/students': typeof AdminStudentsRoute
   '/director/analytics': typeof DirectorAnalyticsRoute
@@ -466,6 +496,8 @@ export interface FileRoutesByTo {
   '/teacher/groups': typeof TeacherGroupsRoute
   '/teacher/homework': typeof TeacherHomeworkRoute
   '/teacher/messages': typeof TeacherMessagesRoute
+  '/teacher/quiz-create': typeof TeacherQuizCreateRoute
+  '/teacher/quizzes': typeof TeacherQuizzesRoute
   '/admin': typeof AdminIndexRoute
   '/director': typeof DirectorIndexRoute
   '/parent': typeof ParentIndexRoute
@@ -493,6 +525,8 @@ export interface FileRoutesById {
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/quiz-create': typeof AdminQuizCreateRoute
+  '/admin/quizzes': typeof AdminQuizzesRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/students': typeof AdminStudentsRoute
   '/director/analytics': typeof DirectorAnalyticsRoute
@@ -527,6 +561,8 @@ export interface FileRoutesById {
   '/teacher/groups': typeof TeacherGroupsRoute
   '/teacher/homework': typeof TeacherHomeworkRoute
   '/teacher/messages': typeof TeacherMessagesRoute
+  '/teacher/quiz-create': typeof TeacherQuizCreateRoute
+  '/teacher/quizzes': typeof TeacherQuizzesRoute
   '/admin/': typeof AdminIndexRoute
   '/director/': typeof DirectorIndexRoute
   '/parent/': typeof ParentIndexRoute
@@ -555,6 +591,8 @@ export interface FileRouteTypes {
     | '/admin/leads'
     | '/admin/messages'
     | '/admin/notifications'
+    | '/admin/quiz-create'
+    | '/admin/quizzes'
     | '/admin/schedule'
     | '/admin/students'
     | '/director/analytics'
@@ -589,6 +627,8 @@ export interface FileRouteTypes {
     | '/teacher/groups'
     | '/teacher/homework'
     | '/teacher/messages'
+    | '/teacher/quiz-create'
+    | '/teacher/quizzes'
     | '/admin/'
     | '/director/'
     | '/parent/'
@@ -609,6 +649,8 @@ export interface FileRouteTypes {
     | '/admin/leads'
     | '/admin/messages'
     | '/admin/notifications'
+    | '/admin/quiz-create'
+    | '/admin/quizzes'
     | '/admin/schedule'
     | '/admin/students'
     | '/director/analytics'
@@ -643,6 +685,8 @@ export interface FileRouteTypes {
     | '/teacher/groups'
     | '/teacher/homework'
     | '/teacher/messages'
+    | '/teacher/quiz-create'
+    | '/teacher/quizzes'
     | '/admin'
     | '/director'
     | '/parent'
@@ -669,6 +713,8 @@ export interface FileRouteTypes {
     | '/admin/leads'
     | '/admin/messages'
     | '/admin/notifications'
+    | '/admin/quiz-create'
+    | '/admin/quizzes'
     | '/admin/schedule'
     | '/admin/students'
     | '/director/analytics'
@@ -703,6 +749,8 @@ export interface FileRouteTypes {
     | '/teacher/groups'
     | '/teacher/homework'
     | '/teacher/messages'
+    | '/teacher/quiz-create'
+    | '/teacher/quizzes'
     | '/admin/'
     | '/director/'
     | '/parent/'
@@ -829,6 +877,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
+    }
+    '/teacher/quizzes': {
+      id: '/teacher/quizzes'
+      path: '/quizzes'
+      fullPath: '/teacher/quizzes'
+      preLoaderRoute: typeof TeacherQuizzesRouteImport
+      parentRoute: typeof TeacherRouteRoute
+    }
+    '/teacher/quiz-create': {
+      id: '/teacher/quiz-create'
+      path: '/quiz-create'
+      fullPath: '/teacher/quiz-create'
+      preLoaderRoute: typeof TeacherQuizCreateRouteImport
+      parentRoute: typeof TeacherRouteRoute
     }
     '/teacher/messages': {
       id: '/teacher/messages'
@@ -1068,6 +1130,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScheduleRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/quizzes': {
+      id: '/admin/quizzes'
+      path: '/quizzes'
+      fullPath: '/admin/quizzes'
+      preLoaderRoute: typeof AdminQuizzesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/quiz-create': {
+      id: '/admin/quiz-create'
+      path: '/quiz-create'
+      fullPath: '/admin/quiz-create'
+      preLoaderRoute: typeof AdminQuizCreateRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/notifications': {
       id: '/admin/notifications'
       path: '/notifications'
@@ -1144,6 +1220,8 @@ interface AdminRouteRouteChildren {
   AdminLeadsRoute: typeof AdminLeadsRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
+  AdminQuizCreateRoute: typeof AdminQuizCreateRoute
+  AdminQuizzesRoute: typeof AdminQuizzesRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -1159,6 +1237,8 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminLeadsRoute: AdminLeadsRoute,
   AdminMessagesRoute: AdminMessagesRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
+  AdminQuizCreateRoute: AdminQuizCreateRoute,
+  AdminQuizzesRoute: AdminQuizzesRoute,
   AdminScheduleRoute: AdminScheduleRoute,
   AdminStudentsRoute: AdminStudentsRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -1275,6 +1355,8 @@ interface TeacherRouteRouteChildren {
   TeacherGroupsRoute: typeof TeacherGroupsRoute
   TeacherHomeworkRoute: typeof TeacherHomeworkRoute
   TeacherMessagesRoute: typeof TeacherMessagesRoute
+  TeacherQuizCreateRoute: typeof TeacherQuizCreateRoute
+  TeacherQuizzesRoute: typeof TeacherQuizzesRoute
   TeacherIndexRoute: typeof TeacherIndexRoute
 }
 
@@ -1285,6 +1367,8 @@ const TeacherRouteRouteChildren: TeacherRouteRouteChildren = {
   TeacherGroupsRoute: TeacherGroupsRoute,
   TeacherHomeworkRoute: TeacherHomeworkRoute,
   TeacherMessagesRoute: TeacherMessagesRoute,
+  TeacherQuizCreateRoute: TeacherQuizCreateRoute,
+  TeacherQuizzesRoute: TeacherQuizzesRoute,
   TeacherIndexRoute: TeacherIndexRoute,
 }
 

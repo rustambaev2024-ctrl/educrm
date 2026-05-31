@@ -49,6 +49,7 @@ function TeacherLayout() {
         { id: "attendance", to: "/teacher/attendance", icon: ClipboardCheck, label: tr("Davomat", "Посещаемость"), section: tr("TA'LIM", "ОБУЧЕНИЕ") },
         { id: "homework", to: "/teacher/homework", icon: BookOpen, label: tr("Uy vazifasi", "Домашнее задание"), section: tr("TA'LIM", "ОБУЧЕНИЕ") },
         { id: "grades", to: "/teacher/grades", icon: Award, label: tr("Baholar", "Оценки"), section: tr("TA'LIM", "ОБУЧЕНИЕ") },
+        { id: "quizzes", to: "/teacher/quizzes", icon: ClipboardCheck, label: tr("Testlar", "Тесты"), section: tr("TA'LIM", "ОБУЧЕНИЕ") },
       ],
     },
     {
