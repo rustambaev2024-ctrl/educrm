@@ -17,6 +17,7 @@ const typeConfig: Record<string, { icon: any; color: string; bg: string; label: 
   lead_follow_up: { icon: Users, color: "text-amber-500", bg: "bg-amber-500/10", label: "Murojaat" },
   debtor_alert: { icon: DollarSign, color: "text-destructive", bg: "bg-destructive/10", label: "Qarzdor" },
   lesson_reminder: { icon: Calendar, color: "text-blue-500", bg: "bg-blue-500/10", label: "Dars" },
+  trial_lesson_reminder: { icon: Calendar, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Sinov darsi" },
   homework_deadline: { icon: BookOpen, color: "text-violet-500", bg: "bg-violet-500/10", label: "Vazifa" },
   lesson_cancelled: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", label: "Bekor" },
   payment_due: { icon: DollarSign, color: "text-amber-500", bg: "bg-amber-500/10", label: "To'lov" },

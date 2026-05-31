@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useRef } from "react";
-import { CheckCircle2, Clock3, GraduationCap, MessageSquarePlus, Phone, Plus, Search, Trash2, UserPlus } from "lucide-react";
+import { Calendar, CheckCircle2, Clock3, GraduationCap, Layers, MessageSquarePlus, Phone, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
@@ -61,6 +61,10 @@ type LeadRaw = {
   status: StudentLeadStatus;
   next_follow_up?: string | null;
   notes?: string | null;
+  trial_lesson_date?: string | null;
+  trial_lesson_attended?: boolean | null;
+  trial_lesson_group?: string | { id: string } | null;
+  trial_lesson_group_name?: string | null;
   created_by_name?: string;
   created_at: string;
   updated_at: string;
@@ -115,6 +119,10 @@ function mapLead(raw: LeadRaw): StudentLead {
     status: raw.status,
     nextFollowUp: raw.next_follow_up ?? undefined,
     notes: raw.notes ?? "",
+    trialLessonDate: raw.trial_lesson_date ?? null,
+    trialLessonAttended: raw.trial_lesson_attended ?? null,
+    trialLessonGroup: extractId(raw.trial_lesson_group) || null,
+    trialLessonGroupName: raw.trial_lesson_group_name ?? null,
     createdByName: raw.created_by_name,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
@@ -149,7 +157,7 @@ function formFromLead(lead: StudentLead): LeadForm {
 
 function DirectorLeadsPage() {
   const { lang } = useI18n();
-  const { branches, courses, reload, isLoading: isDataLoading } = useData();
+  const { branches, courses, groups, reload, isLoading: isDataLoading } = useData();
   const [leads, setLeads] = useState<StudentLead[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -160,6 +168,11 @@ function DirectorLeadsPage() {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [sourceFilter, setSourceFilter] = useState<FilterSource>("all");
   const [convertSheetOpen, setConvertSheetOpen] = useState(false);
+  const [trialDialog, setTrialDialog] = useState<{ lead: StudentLead | null; date: string; groupId: string }>({
+    lead: null,
+    date: "",
+    groupId: "",
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -257,6 +270,62 @@ function DirectorLeadsPage() {
     setLeads((prev) => prev.map((lead) => (lead.id === updated.id ? updated : lead)));
     setDetailForm(formFromLead(updated));
     return updated;
+  };
+
+  // Частичный PATCH сырыми snake_case полями (для trial-полей, не входящих в LeadForm)
+  const patchLeadRaw = async (leadId: string, patch: Record<string, unknown>) => {
+    const raw = await leadApi.update(leadId, patch) as LeadRaw;
+    const updated = mapLead(raw);
+    setLeads((prev) => prev.map((lead) => (lead.id === updated.id ? updated : lead)));
+    return updated;
+  };
+
+  const openConvertDialog = (leadId: string) => {
+    setSelectedId(leadId);
+    setConvertSheetOpen(true);
+  };
+
+  const saveTrialDialog = async () => {
+    if (!trialDialog.lead) return;
+    if (!trialDialog.date) {
+      toast.error(lang === "uz" ? "Sanani tanlang" : "Выберите дату");
+      return;
+    }
+    try {
+      await patchLeadRaw(trialDialog.lead.id, {
+        status: "trial",
+        trial_lesson_date: trialDialog.date,
+        trial_lesson_group: trialDialog.groupId || null,
+      });
+      toast.success(lang === "uz" ? "Sinov darsi tayinlandi" : "Пробный урок назначен");
+      setTrialDialog({ lead: null, date: "", groupId: "" });
+    } catch (err) {
+      console.error("[leads] trial save failed", err);
+      toast.error(t.saveError);
+    }
+  };
+
+  const handleTrialAttendance = async (leadId: string, attended: boolean) => {
+    try {
+      await patchLeadRaw(leadId, { trial_lesson_attended: attended });
+      if (attended) {
+        toast.success(
+          lang === "uz"
+            ? "Keldi! O'quvchiga o'tkazishni xohlaysizmi?"
+            : "Пришёл! Хотите конвертировать в студента?",
+          {
+            action: {
+              label: lang === "uz" ? "O'tkazish" : "Конвертировать",
+              onClick: () => openConvertDialog(leadId),
+            },
+            duration: 8000,
+          },
+        );
+      }
+    } catch (err) {
+      console.error("[leads] trial attendance failed", err);
+      toast.error(t.saveError);
+    }
   };
 
   const saveSelected = async () => {
@@ -381,11 +450,19 @@ function DirectorLeadsPage() {
                   onDrop={async (e) => {
                     e.preventDefault();
                     const id = e.dataTransfer.getData("text/plain");
-                    if (id && status !== "won") {
-                      await updateLead(id, { status });
-                    } else if (id && status === "won") {
+                    if (!id) return;
+                    if (status === "won") {
                       setSelectedId(id);
                       setConvertSheetOpen(true);
+                    } else if (status === "trial") {
+                      const lead = leads.find((l) => l.id === id) ?? null;
+                      setTrialDialog({
+                        lead,
+                        date: lead?.trialLessonDate ? lead.trialLessonDate.slice(0, 16) : "",
+                        groupId: lead?.trialLessonGroup ?? "",
+                      });
+                    } else {
+                      await updateLead(id, { status });
                     }
                   }}
                 >
@@ -423,6 +500,59 @@ function DirectorLeadsPage() {
                             </span>
                           )}
                         </div>
+
+                        {lead.status === "trial" && (
+                          <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5">
+                            {lead.trialLessonDate && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Calendar className="h-3 w-3" />
+                                {formatDate(lead.trialLessonDate, lang)}
+                                {" · "}
+                                {new Date(lead.trialLessonDate).toLocaleTimeString(lang === "uz" ? "uz" : "ru", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </div>
+                            )}
+                            {lead.trialLessonGroupName && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Layers className="h-3 w-3" />
+                                {lead.trialLessonGroupName}
+                              </div>
+                            )}
+                            {lead.trialLessonAttended === null || lead.trialLessonAttended === undefined ? (
+                              <div className="flex gap-1.5 mt-2">
+                                <Button
+                                  size="sm"
+                                  className="h-6 text-[11px] flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleTrialAttendance(lead.id, true);
+                                  }}
+                                >
+                                  {lang === "uz" ? "Keldi" : "Пришёл"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 text-[11px] flex-1 border-destructive/50 text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleTrialAttendance(lead.id, false);
+                                  }}
+                                >
+                                  {lang === "uz" ? "Kelmadi" : "Не пришёл"}
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className={`text-xs font-medium mt-1 ${lead.trialLessonAttended ? "text-emerald-600" : "text-destructive"}`}>
+                                {lead.trialLessonAttended
+                                  ? (lang === "uz" ? "Keldi" : "Пришёл")
+                                  : (lang === "uz" ? "Kelmadi" : "Не пришёл")}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                     {columnLeads.length === 0 && (
@@ -488,6 +618,54 @@ function DirectorLeadsPage() {
           }}
         />
       )}
+
+      <Dialog
+        open={!!trialDialog.lead}
+        onOpenChange={(open) => !open && setTrialDialog({ lead: null, date: "", groupId: "" })}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{lang === "uz" ? "Sinov darsi tayinlash" : "Назначить пробный урок"}</DialogTitle>
+            <DialogDescription>{trialDialog.lead?.fullName}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>{lang === "uz" ? "Sana va vaqt" : "Дата и время"}</Label>
+              <Input
+                type="datetime-local"
+                value={trialDialog.date}
+                min={new Date().toISOString().slice(0, 16)}
+                onChange={(e) => setTrialDialog((prev) => ({ ...prev, date: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{lang === "uz" ? "Guruh" : "Группа"}</Label>
+              <Select
+                value={trialDialog.groupId || NONE}
+                onValueChange={(v) => setTrialDialog((prev) => ({ ...prev, groupId: v === NONE ? "" : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={lang === "uz" ? "Tanlanmagan" : "Не выбрано"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>{lang === "uz" ? "Tanlanmagan" : "Не выбрано"}</SelectItem>
+                  {groups.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTrialDialog({ lead: null, date: "", groupId: "" })}>
+              {t.cancel}
+            </Button>
+            <Button onClick={saveTrialDialog}>{t.save}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
