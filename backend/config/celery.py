@@ -26,4 +26,12 @@ app.conf.beat_schedule = {
         "task": "apps.homework.tasks.mark_overdue_homework",
         "schedule": crontab(hour=0, minute=10),
     },
+    "send-debtor-sms": {
+        "task": "apps.notifications.tasks.send_debtor_sms",
+        "schedule": crontab(hour=10, minute=0, day_of_week=1),
+    },
+    "send-trial-lesson-sms": {
+        "task": "apps.notifications.tasks.send_trial_lesson_sms",
+        "schedule": crontab(hour=9, minute=0),
+    },
 }

@@ -4,11 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { PageShell } from "@/components/edu/page-shell";
 import { branchApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
-import { Settings, Check, Loader2, Link2, Info, ArrowUpRight } from "lucide-react";
+import { Settings, Check, Loader2, Link2, Info, ArrowUpRight, MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/director/integrations")({
   component: DirectorIntegrationsPage,
@@ -20,6 +21,16 @@ function DirectorIntegrationsPage() {
   const [accessToken, setAccessToken] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const [smsSettings, setSmsSettings] = useState({
+    sms_enabled: false,
+    sms_email: "",
+    sms_password: "",
+    sms_sender: "",
+  });
+  const [smsLoading, setSmsLoading] = useState(false);
+  const [testPhone, setTestPhone] = useState("");
+  const [testLoading, setTestLoading] = useState(false);
 
   const t = labels(lang);
 
@@ -39,6 +50,13 @@ function DirectorIntegrationsPage() {
     };
     void fetchSettings();
   }, [lang]);
+
+  useEffect(() => {
+    branchApi
+      .smsSettings()
+      .then((data: any) => setSmsSettings(data))
+      .catch(console.error);
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,6 +158,118 @@ function DirectorIntegrationsPage() {
                   </div>
                 </form>
               )}
+            </Card>
+
+            <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
+                    <MessageSquare className="h-5 w-5 text-emerald-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">{lang === "uz" ? "SMS xabarnomalar" : "SMS уведомления"}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Eskiz.uz</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={smsSettings.sms_enabled}
+                  onCheckedChange={(v) => setSmsSettings((s) => ({ ...s, sms_enabled: v }))}
+                />
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    {lang === "uz" ? "Email (Eskiz kabineti)" : "Email (кабинет Eskiz)"}
+                  </Label>
+                  <Input
+                    className="mt-1"
+                    value={smsSettings.sms_email}
+                    onChange={(e) => setSmsSettings((s) => ({ ...s, sms_email: e.target.value }))}
+                    autoComplete="off"
+                    placeholder="email@example.com"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    {lang === "uz" ? "API parol" : "API пароль"}
+                  </Label>
+                  <Input
+                    className="mt-1"
+                    type="password"
+                    value={smsSettings.sms_password}
+                    onChange={(e) => setSmsSettings((s) => ({ ...s, sms_password: e.target.value }))}
+                    autoComplete="new-password"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    {lang === "uz" ? "Yuboruvchi nomi" : "Имя отправителя"}
+                  </Label>
+                  <Input
+                    className="mt-1"
+                    value={smsSettings.sms_sender}
+                    onChange={(e) => setSmsSettings((s) => ({ ...s, sms_sender: e.target.value }))}
+                    autoComplete="off"
+                    placeholder="EduCRM"
+                    maxLength={11}
+                  />
+                </div>
+                <Button
+                  className="w-full mt-2"
+                  onClick={async () => {
+                    setSmsLoading(true);
+                    try {
+                      await branchApi.updateSmsSettings(smsSettings);
+                      toast.success(lang === "uz" ? "Saqlandi" : "Сохранено");
+                    } catch {
+                      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+                    } finally {
+                      setSmsLoading(false);
+                    }
+                  }}
+                  disabled={smsLoading}
+                >
+                  {smsLoading
+                    ? lang === "uz"
+                      ? "Saqlanmoqda..."
+                      : "Сохранение..."
+                    : lang === "uz"
+                      ? "Saqlash"
+                      : "Сохранить"}
+                </Button>
+                <div className="border-t pt-3 mt-3">
+                  <Label className="text-xs text-muted-foreground">
+                    {lang === "uz" ? "Test SMS yuborish" : "Тестовая отправка"}
+                  </Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      value={testPhone}
+                      onChange={(e) => setTestPhone(e.target.value)}
+                      placeholder="+998901234567"
+                      autoComplete="off"
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        setTestLoading(true);
+                        try {
+                          await branchApi.testSms(testPhone);
+                          toast.success(lang === "uz" ? "Test SMS yuborildi!" : "Тестовое SMS отправлено!");
+                        } catch {
+                          toast.error(lang === "uz" ? "SMS yuborishda xatolik" : "Ошибка отправки SMS");
+                        } finally {
+                          setTestLoading(false);
+                        }
+                      }}
+                      disabled={testLoading || !testPhone}
+                    >
+                      {testLoading ? "..." : lang === "uz" ? "Yuborish" : "Отправить"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </Card>
           </div>
 

@@ -23,6 +23,10 @@ class Institution(TenantMixin):
     subscription_end = models.DateField(null=True, blank=True)
     meta_pixel_id = models.CharField(max_length=100, blank=True, default="")
     meta_access_token = models.CharField(max_length=500, blank=True, default="")
+    sms_enabled = models.BooleanField(default=False)
+    sms_email = models.CharField(max_length=255, blank=True, default="")
+    sms_password = models.CharField(max_length=255, blank=True, default="")
+    sms_sender = models.CharField(max_length=20, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     auto_create_schema = True

@@ -4,6 +4,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
+from django.db import connection
+
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
 from apps.students.models import Student
 from apps.tenants.models import Institution
@@ -92,9 +94,62 @@ class BranchViewSet(viewsets.ModelViewSet):
         institution.save(update_fields=["meta_pixel_id", "meta_access_token"])
         return Response({"detail": "Saved"}, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=["get", "patch"], url_path="settings", permission_classes=[permissions.IsAuthenticated], parser_classes=[MultiPartParser, FormParser, JSONParser])
+    @action(detail=False, methods=["get", "patch"], url_path="sms-settings", permission_classes=[IsDirector])
+    def sms_settings(self, request):
+        institution = request.tenant
+        if request.method == "GET":
+            return Response(
+                {
+                    "sms_enabled": institution.sms_enabled,
+                    "sms_email": institution.sms_email,
+                    "sms_password": "••••••••" if institution.sms_password else "",
+                    "sms_sender": institution.sms_sender,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        data = request.data
+        if "sms_enabled" in data:
+            institution.sms_enabled = data["sms_enabled"]
+        if "sms_email" in data:
+            institution.sms_email = data["sms_email"]
+        if "sms_password" in data and data["sms_password"] != "••••••••":
+            institution.sms_password = data["sms_password"]
+        if "sms_sender" in data:
+            institution.sms_sender = data["sms_sender"]
+        institution.save(
+            update_fields=["sms_enabled", "sms_email", "sms_password", "sms_sender"]
+        )
+        return Response({"success": True}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"], url_path="sms-test", permission_classes=[IsDirector])
+    def sms_test(self, request):
+        from apps.notifications.sms import EskizSmsService
+
+        phone = request.data.get("phone", "").strip()
+        if not phone:
+            return Response({"error": "phone required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        institution = request.tenant
+        schema = connection.schema_name
+        success = EskizSmsService.send_for_tenant(
+            institution=institution,
+            phone=phone,
+            message="EduCRM: SMS integratsiyasi muvaffaqiyatli ulandi!",
+            schema=schema,
+        )
+        if success:
+            return Response({"success": True, "message": "SMS yuborildi"}, status=status.HTTP_200_OK)
+        return Response({"error": "SMS yuborishda xatolik"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        detail=False,
+        methods=["get", "patch"],
+        url_path="settings",
+        permission_classes=[permissions.IsAuthenticated],
+        parser_classes=[MultiPartParser, FormParser, JSONParser],
+    )
     def institution_settings(self, request):
-        
         institution = request.tenant
         if request.method == "GET":
             return Response(
@@ -117,12 +172,17 @@ class BranchViewSet(viewsets.ModelViewSet):
             institution.address = data["address"]
         if "phone" in data:
             institution.phone = data["phone"]
-            
+
         if "logo" in request.FILES:
             institution.logo = request.FILES["logo"]
-            
-        institution.save(update_fields=["name", "address", "phone", "logo"] if "logo" in request.FILES else ["name", "address", "phone"])
-        
+
+        update_fields = (
+            ["name", "address", "phone", "logo"]
+            if "logo" in request.FILES
+            else ["name", "address", "phone"]
+        )
+        institution.save(update_fields=update_fields)
+
         return Response(
             {
                 "name": institution.name,
@@ -132,7 +192,6 @@ class BranchViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_200_OK
         )
-
 
 
 class RoomViewSet(viewsets.ModelViewSet):

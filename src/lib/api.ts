@@ -321,6 +321,20 @@ export const branchApi = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  smsSettings: () =>
+    requestJson<{ sms_enabled: boolean; sms_email: string; sms_password: string; sms_sender: string }>(
+      "/branches/sms-settings/",
+    ),
+  updateSmsSettings: (data: Record<string, unknown>) =>
+    requestJson("/branches/sms-settings/", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  testSms: (phone: string) =>
+    requestJson("/branches/sms-test/", {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    }),
   institutionSettings: () => requestJson<{ name: string; address: string; phone: string; logo: string | null }>("/branches/settings/"),
   updateInstitutionSettings: (data: FormData | Record<string, any>) => {
     if (data instanceof FormData) {

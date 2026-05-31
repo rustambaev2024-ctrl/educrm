@@ -4,6 +4,8 @@ from celery import shared_task
 from django.utils import timezone
 from django_tenants.utils import get_public_schema_name, get_tenant_model, schema_context
 
+from apps.notifications.sms import EskizSmsService
+
 logger = logging.getLogger(__name__)
 
 
@@ -169,3 +171,84 @@ def homework_deadline_reminder():
                             related_object_id=str(hw.id),
                         )
     logger.info("homework_deadline_reminder completed")
+
+
+@shared_task
+def send_debtor_sms():
+    """Еженедельно: SMS должникам и их родителям"""
+    from apps.students.models import Student
+    from apps.tenants.models import Institution
+
+    for schema in _iter_tenant_schemas():
+        with schema_context(schema):
+            try:
+                institution = Institution.objects.get(schema_name=schema)
+            except Exception:
+                continue
+            if not institution.sms_enabled:
+                continue
+            debtors = Student.objects.filter(
+                wallet_balance__lt=0,
+                status="active",
+            ).select_related("user")
+            for student in debtors:
+                if not student.user.phone:
+                    continue
+                balance = abs(student.wallet_balance)
+                msg_uz = (
+                    f"Hurmatli {student.user.full_name}, "
+                    f"hisobingizda {balance:,.0f} so'm qarz mavjud. "
+                    f"Iltimos, to'lovni amalga oshiring."
+                )
+                EskizSmsService.send_for_tenant(
+                    institution=institution,
+                    phone=student.user.phone,
+                    message=msg_uz,
+                    schema=schema,
+                )
+    logger.info("send_debtor_sms completed")
+
+
+@shared_task
+def send_trial_lesson_sms():
+    """За день до пробного урока — SMS лиду"""
+    from datetime import timedelta
+
+    from apps.students.models import StudentLead
+    from apps.tenants.models import Institution
+
+    now = timezone.now()
+    tomorrow_start = now + timedelta(hours=20)
+    tomorrow_end = now + timedelta(hours=28)
+
+    for schema in _iter_tenant_schemas():
+        with schema_context(schema):
+            try:
+                institution = Institution.objects.get(schema_name=schema)
+            except Exception:
+                continue
+            if not institution.sms_enabled:
+                continue
+            leads = StudentLead.objects.filter(
+                trial_lesson_date__gte=tomorrow_start,
+                trial_lesson_date__lte=tomorrow_end,
+                status="trial",
+            ).select_related("trial_lesson_group")
+            for lead in leads:
+                if not lead.phone:
+                    continue
+                group = lead.trial_lesson_group
+                time_str = lead.trial_lesson_date.strftime("%d.%m %H:%M")
+                group_name = group.name if group else ""
+                msg = (
+                    f"Hurmatli {lead.full_name}, "
+                    f"ertaga {time_str} da sinov darsingiz bor. "
+                    f"{group_name}. Sizni kutamiz!"
+                )
+                EskizSmsService.send_for_tenant(
+                    institution=institution,
+                    phone=lead.phone,
+                    message=msg,
+                    schema=schema,
+                )
+    logger.info("send_trial_lesson_sms completed")
