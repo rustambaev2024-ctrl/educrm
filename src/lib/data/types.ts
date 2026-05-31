@@ -111,6 +111,10 @@ export interface StudentLead {
   status: StudentLeadStatus;
   nextFollowUp?: string;
   notes: string;
+  trialLessonDate?: string | null;
+  trialLessonAttended?: boolean | null;
+  trialLessonGroup?: string | null;
+  trialLessonGroupName?: string | null;
   createdByName?: string;
   createdAt: string;
   updatedAt: string;

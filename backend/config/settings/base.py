@@ -243,5 +243,9 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.notifications.tasks.homework_deadline_reminder",
         "schedule": crontab(hour=18, minute=0),
     },
+    "trial-lesson-reminder": {
+        "task": "apps.notifications.tasks.trial_lesson_reminder",
+        "schedule": crontab(minute="*/30"),
+    },
 }
 

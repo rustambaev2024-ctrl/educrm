@@ -179,6 +179,15 @@ class StudentLead(models.Model):
         blank=True,
         related_name="created_student_leads",
     )
+    trial_lesson_date = models.DateTimeField(null=True, blank=True)
+    trial_lesson_attended = models.BooleanField(null=True, blank=True)
+    trial_lesson_group = models.ForeignKey(
+        "courses.Group",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="trial_leads",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

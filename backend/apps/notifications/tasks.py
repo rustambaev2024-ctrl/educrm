@@ -100,6 +100,42 @@ def lesson_reminder():
 
 
 @shared_task
+def trial_lesson_reminder():
+    """Every 30 min — remind admins/directors about a trial lesson starting in ~2 hours."""
+    from datetime import timedelta
+
+    from apps.accounts.models import User
+    from apps.notifications.services import NotificationService
+    from apps.students.models import StudentLead
+
+    now = timezone.now()
+    window_start = now + timedelta(hours=1, minutes=50)
+    window_end = now + timedelta(hours=2, minutes=10)
+
+    for schema in _iter_tenant_schemas():
+        with schema_context(schema):
+            upcoming = StudentLead.objects.filter(
+                trial_lesson_date__gte=window_start,
+                trial_lesson_date__lte=window_end,
+                status="trial",
+            ).select_related("trial_lesson_group")
+            if not upcoming.exists():
+                continue
+            admins = list(User.objects.filter(role__in=["admin", "director"]))
+            if not admins:
+                continue
+            for lead in upcoming:
+                group_name = lead.trial_lesson_group.name if lead.trial_lesson_group else ""
+                NotificationService.notify(
+                    recipients=admins,
+                    notification_type="trial_lesson_reminder",
+                    title="Sinov darsi 2 soatdan boshlanadi",
+                    body=f"{lead.full_name} — {group_name} · {lead.trial_lesson_date.strftime('%H:%M')}",
+                )
+    logger.info("trial_lesson_reminder completed")
+
+
+@shared_task
 def homework_deadline_reminder():
     """Daily 18:00 — remind students about homework due tomorrow."""
     from datetime import timedelta
