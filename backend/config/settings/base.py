@@ -50,6 +50,7 @@ TENANT_APPS = [
     "apps.audit",
     "apps.notifications",
     "apps.reports",
+    "apps.quizzes",
     "apps.core",
 ]
 
