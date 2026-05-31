@@ -9,7 +9,7 @@ function getLocalDateString() {
 }
 import { Ban, CalendarDays, CircleMinus, Edit3, Plus, Search, Trash2, UserRound, Clock, UserCheck, CheckCircle2, XCircle, Award, Gift } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/edu/page-header";
+import { PageShell } from "@/components/edu/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -117,12 +117,8 @@ export function NazoratPage() {
   const labels = pageLabels(lang);
 
   return (
-    <>
-      <PageHeader
-        title={labels.pageTitle}
-        description={labels.pageSubtitle}
-      />
-      <div className="flex-1 w-full p-4 md:p-8 pt-0 md:pt-4">
+    <PageShell title={labels.pageTitle} subtitle={labels.pageSubtitle}>
+      <div className="w-full">
         <Tabs defaultValue="bugun" className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="bugun">{labels.bugun}</TabsTrigger>
@@ -143,7 +139,7 @@ export function NazoratPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </>
+    </PageShell>
   );
 }
 
