@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as JoinRouteImport } from './routes/join'
 import { Route as ApplyRouteImport } from './routes/apply'
 import { Route as TeacherRouteRouteImport } from './routes/teacher/route'
 import { Route as SuperadminRouteRouteImport } from './routes/superadmin/route'
@@ -40,6 +41,7 @@ import { Route as StudentProfileRouteImport } from './routes/student/profile'
 import { Route as StudentMessagesRouteImport } from './routes/student/messages'
 import { Route as StudentHomeworkRouteImport } from './routes/student/homework'
 import { Route as StudentGradesRouteImport } from './routes/student/grades'
+import { Route as PlayCodeRouteImport } from './routes/play.$code'
 import { Route as ParentProfileRouteImport } from './routes/parent/profile'
 import { Route as ParentMessagesRouteImport } from './routes/parent/messages'
 import { Route as ParentChildrenRouteImport } from './routes/parent/children'
@@ -71,10 +73,17 @@ import { Route as AdminDailyReportRouteImport } from './routes/admin/daily-repor
 import { Route as AdminControlRouteImport } from './routes/admin/control'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminAccountsRouteImport } from './routes/admin/accounts'
+import { Route as TeacherQuizSessionSessionIdRouteImport } from './routes/teacher/quiz-session.$sessionId'
+import { Route as AdminQuizSessionSessionIdRouteImport } from './routes/admin/quiz-session.$sessionId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApplyRoute = ApplyRouteImport.update({
@@ -226,6 +235,11 @@ const StudentGradesRoute = StudentGradesRouteImport.update({
   id: '/grades',
   path: '/grades',
   getParentRoute: () => StudentRouteRoute,
+} as any)
+const PlayCodeRoute = PlayCodeRouteImport.update({
+  id: '/play/$code',
+  path: '/play/$code',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ParentProfileRoute = ParentProfileRouteImport.update({
   id: '/profile',
@@ -382,6 +396,18 @@ const AdminAccountsRoute = AdminAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const TeacherQuizSessionSessionIdRoute =
+  TeacherQuizSessionSessionIdRouteImport.update({
+    id: '/quiz-session/$sessionId',
+    path: '/quiz-session/$sessionId',
+    getParentRoute: () => TeacherRouteRoute,
+  } as any)
+const AdminQuizSessionSessionIdRoute =
+  AdminQuizSessionSessionIdRouteImport.update({
+    id: '/quiz-session/$sessionId',
+    path: '/quiz-session/$sessionId',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -392,6 +418,7 @@ export interface FileRoutesByFullPath {
   '/superadmin': typeof SuperadminRouteRouteWithChildren
   '/teacher': typeof TeacherRouteRouteWithChildren
   '/apply': typeof ApplyRoute
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -424,6 +451,7 @@ export interface FileRoutesByFullPath {
   '/parent/children': typeof ParentChildrenRoute
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
+  '/play/$code': typeof PlayCodeRoute
   '/student/grades': typeof StudentGradesRoute
   '/student/homework': typeof StudentHomeworkRoute
   '/student/messages': typeof StudentMessagesRoute
@@ -446,10 +474,13 @@ export interface FileRoutesByFullPath {
   '/student/': typeof StudentIndexRoute
   '/superadmin/': typeof SuperadminIndexRoute
   '/teacher/': typeof TeacherIndexRoute
+  '/admin/quiz-session/$sessionId': typeof AdminQuizSessionSessionIdRoute
+  '/teacher/quiz-session/$sessionId': typeof TeacherQuizSessionSessionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apply': typeof ApplyRoute
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -482,6 +513,7 @@ export interface FileRoutesByTo {
   '/parent/children': typeof ParentChildrenRoute
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
+  '/play/$code': typeof PlayCodeRoute
   '/student/grades': typeof StudentGradesRoute
   '/student/homework': typeof StudentHomeworkRoute
   '/student/messages': typeof StudentMessagesRoute
@@ -504,6 +536,8 @@ export interface FileRoutesByTo {
   '/student': typeof StudentIndexRoute
   '/superadmin': typeof SuperadminIndexRoute
   '/teacher': typeof TeacherIndexRoute
+  '/admin/quiz-session/$sessionId': typeof AdminQuizSessionSessionIdRoute
+  '/teacher/quiz-session/$sessionId': typeof TeacherQuizSessionSessionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -515,6 +549,7 @@ export interface FileRoutesById {
   '/superadmin': typeof SuperadminRouteRouteWithChildren
   '/teacher': typeof TeacherRouteRouteWithChildren
   '/apply': typeof ApplyRoute
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -547,6 +582,7 @@ export interface FileRoutesById {
   '/parent/children': typeof ParentChildrenRoute
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
+  '/play/$code': typeof PlayCodeRoute
   '/student/grades': typeof StudentGradesRoute
   '/student/homework': typeof StudentHomeworkRoute
   '/student/messages': typeof StudentMessagesRoute
@@ -569,6 +605,8 @@ export interface FileRoutesById {
   '/student/': typeof StudentIndexRoute
   '/superadmin/': typeof SuperadminIndexRoute
   '/teacher/': typeof TeacherIndexRoute
+  '/admin/quiz-session/$sessionId': typeof AdminQuizSessionSessionIdRoute
+  '/teacher/quiz-session/$sessionId': typeof TeacherQuizSessionSessionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -581,6 +619,7 @@ export interface FileRouteTypes {
     | '/superadmin'
     | '/teacher'
     | '/apply'
+    | '/join'
     | '/login'
     | '/admin/accounts'
     | '/admin/analytics'
@@ -613,6 +652,7 @@ export interface FileRouteTypes {
     | '/parent/children'
     | '/parent/messages'
     | '/parent/profile'
+    | '/play/$code'
     | '/student/grades'
     | '/student/homework'
     | '/student/messages'
@@ -635,10 +675,13 @@ export interface FileRouteTypes {
     | '/student/'
     | '/superadmin/'
     | '/teacher/'
+    | '/admin/quiz-session/$sessionId'
+    | '/teacher/quiz-session/$sessionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/apply'
+    | '/join'
     | '/login'
     | '/admin/accounts'
     | '/admin/analytics'
@@ -671,6 +714,7 @@ export interface FileRouteTypes {
     | '/parent/children'
     | '/parent/messages'
     | '/parent/profile'
+    | '/play/$code'
     | '/student/grades'
     | '/student/homework'
     | '/student/messages'
@@ -693,6 +737,8 @@ export interface FileRouteTypes {
     | '/student'
     | '/superadmin'
     | '/teacher'
+    | '/admin/quiz-session/$sessionId'
+    | '/teacher/quiz-session/$sessionId'
   id:
     | '__root__'
     | '/'
@@ -703,6 +749,7 @@ export interface FileRouteTypes {
     | '/superadmin'
     | '/teacher'
     | '/apply'
+    | '/join'
     | '/login'
     | '/admin/accounts'
     | '/admin/analytics'
@@ -735,6 +782,7 @@ export interface FileRouteTypes {
     | '/parent/children'
     | '/parent/messages'
     | '/parent/profile'
+    | '/play/$code'
     | '/student/grades'
     | '/student/homework'
     | '/student/messages'
@@ -757,6 +805,8 @@ export interface FileRouteTypes {
     | '/student/'
     | '/superadmin/'
     | '/teacher/'
+    | '/admin/quiz-session/$sessionId'
+    | '/teacher/quiz-session/$sessionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -768,7 +818,9 @@ export interface RootRouteChildren {
   SuperadminRouteRoute: typeof SuperadminRouteRouteWithChildren
   TeacherRouteRoute: typeof TeacherRouteRouteWithChildren
   ApplyRoute: typeof ApplyRoute
+  JoinRoute: typeof JoinRoute
   LoginRoute: typeof LoginRoute
+  PlayCodeRoute: typeof PlayCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -778,6 +830,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/apply': {
@@ -989,6 +1048,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/student/grades'
       preLoaderRoute: typeof StudentGradesRouteImport
       parentRoute: typeof StudentRouteRoute
+    }
+    '/play/$code': {
+      id: '/play/$code'
+      path: '/play/$code'
+      fullPath: '/play/$code'
+      preLoaderRoute: typeof PlayCodeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/parent/profile': {
       id: '/parent/profile'
@@ -1207,6 +1273,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAccountsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/teacher/quiz-session/$sessionId': {
+      id: '/teacher/quiz-session/$sessionId'
+      path: '/quiz-session/$sessionId'
+      fullPath: '/teacher/quiz-session/$sessionId'
+      preLoaderRoute: typeof TeacherQuizSessionSessionIdRouteImport
+      parentRoute: typeof TeacherRouteRoute
+    }
+    '/admin/quiz-session/$sessionId': {
+      id: '/admin/quiz-session/$sessionId'
+      path: '/quiz-session/$sessionId'
+      fullPath: '/admin/quiz-session/$sessionId'
+      preLoaderRoute: typeof AdminQuizSessionSessionIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
   }
 }
 
@@ -1225,6 +1305,7 @@ interface AdminRouteRouteChildren {
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminQuizSessionSessionIdRoute: typeof AdminQuizSessionSessionIdRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
@@ -1242,6 +1323,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminScheduleRoute: AdminScheduleRoute,
   AdminStudentsRoute: AdminStudentsRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminQuizSessionSessionIdRoute: AdminQuizSessionSessionIdRoute,
 }
 
 const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
@@ -1358,6 +1440,7 @@ interface TeacherRouteRouteChildren {
   TeacherQuizCreateRoute: typeof TeacherQuizCreateRoute
   TeacherQuizzesRoute: typeof TeacherQuizzesRoute
   TeacherIndexRoute: typeof TeacherIndexRoute
+  TeacherQuizSessionSessionIdRoute: typeof TeacherQuizSessionSessionIdRoute
 }
 
 const TeacherRouteRouteChildren: TeacherRouteRouteChildren = {
@@ -1370,6 +1453,7 @@ const TeacherRouteRouteChildren: TeacherRouteRouteChildren = {
   TeacherQuizCreateRoute: TeacherQuizCreateRoute,
   TeacherQuizzesRoute: TeacherQuizzesRoute,
   TeacherIndexRoute: TeacherIndexRoute,
+  TeacherQuizSessionSessionIdRoute: TeacherQuizSessionSessionIdRoute,
 }
 
 const TeacherRouteRouteWithChildren = TeacherRouteRoute._addFileChildren(
@@ -1385,7 +1469,9 @@ const rootRouteChildren: RootRouteChildren = {
   SuperadminRouteRoute: SuperadminRouteRouteWithChildren,
   TeacherRouteRoute: TeacherRouteRouteWithChildren,
   ApplyRoute: ApplyRoute,
+  JoinRoute: JoinRoute,
   LoginRoute: LoginRoute,
+  PlayCodeRoute: PlayCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
