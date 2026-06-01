@@ -64,7 +64,7 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
 
               {/* KPI */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                <KpiMini icon={Users} color="text-blue-500" bg="bg-blue-500/10" label={lang === "uz" ? "O'quvchilar" : "Студентов"} value={String(kpi?.students_count)} />
+                <KpiMini icon={Users} color="text-[#0077b6]" bg="bg-[#e0f2fe]" label={lang === "uz" ? "O'quvchilar" : "Студентов"} value={String(kpi?.students_count)} />
                 <KpiMini icon={TrendingUp} color="text-emerald-500" bg="bg-emerald-500/10" label={lang === "uz" ? "Davomat" : "Посещаемость"} value={`${kpi?.attendance_rate}%`} />
                 <KpiMini icon={BookOpen} color="text-orange-500" bg="bg-orange-500/10" label={lang === "uz" ? "Darslar" : "Уроки"} value={`${kpi?.conducted_lessons}/${kpi?.total_lessons}`} />
                 <KpiMini icon={Award} color="text-rose-500" bg="bg-rose-500/10" label={lang === "uz" ? "O'rtacha baho" : "Ср. балл"} value={kpi?.avg_grade ? String(kpi.avg_grade) : "—"} />

@@ -404,7 +404,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
                <div className="space-y-4">
                  {lessonsHistory.map((lesson) => {
                   const noAttendanceAlert = lesson.status === "conducted" && lesson.present_count === 0 && lesson.total_students > 0;
-                  let statusBg = "bg-blue-500";
+                  let statusBg = "bg-[#0077b6]";
                   if (lesson.status === "conducted") statusBg = "bg-emerald-500";
                   else if (lesson.status === "cancelled") statusBg = "bg-destructive";
                   else if (lesson.status === "rescheduled") statusBg = "bg-amber-500";

@@ -68,15 +68,11 @@ const STATUS_OPTIONS: StatusFilter[] = [
   "archived",
 ];
 
+const _avaBg  = ["#dbeafe","#dcfce7","#fce7f3","#fef3c7","#f3e8ff"];
+const _avaTxt = ["#1d4ed8","#15803d","#9d174d","#92400e","#7c3aed"];
 const getAvatarStyle = (name: string) => {
-  const colors = [
-    { bg: "#caf0f8", text: "#0077b6" },
-    { bg: "#dcfce7", text: "#166534" },
-    { bg: "#fee2e2", text: "#dc2626" },
-    { bg: "#fef3c7", text: "#d97706" },
-    { bg: "#f3e8ff", text: "#7c3aed" },
-  ];
-  return colors[(name.trim().charCodeAt(0) || 0) % colors.length];
+  const i = (name.trim().charCodeAt(0) || 0) % 5;
+  return { bg: _avaBg[i], text: _avaTxt[i] };
 };
 const avatarColor = (name: string) => {
   const colors = ["blue", "green", "red", "amber", "violet"];
@@ -194,10 +190,7 @@ export function StudentsPage() {
       actions={
         <button
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg px-3 h-8 text-[12px] font-semibold text-white transition-colors"
-          style={{ background: "#0077b6" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#00b4d8"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#0077b6"; }}
+          className="btn-primary h-8 px-3 text-[12px]"
         >
           <Plus className="h-3.5 w-3.5" /> {t("students.add")}
         </button>
@@ -264,7 +257,7 @@ export function StudentsPage() {
                       key={s.id}
                       className="cursor-pointer transition-colors"
                       style={{ cursor: "pointer" }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#f0f9ff"; }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#f8fafc"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}
                       onClick={() => setSelectedId(s.id)}
                     >
@@ -285,8 +278,8 @@ export function StudentsPage() {
                             );
                           })()}
                           <div className="min-w-0">
-                            <div style={{ fontWeight: 600, color: "#0077b6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.fullName}</div>
-                            <div style={{ fontSize: 11, color: "#90e0ef", marginTop: 1 }}>{s.phone}</div>
+                            <div style={{ fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.fullName}</div>
+                            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>{s.phone}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -309,7 +302,7 @@ export function StudentsPage() {
                           textAlign: "right",
                           fontWeight: 700,
                           fontVariantNumeric: "tabular-nums",
-                          color: s.balance > 0 ? "#008000" : s.balance < 0 ? "#dc2626" : "#90e0ef",
+                          color: s.balance > 0 ? "#16a34a" : s.balance < 0 ? "#dc2626" : "#94a3b8",
                         }}
                       >
                         {s.balance > 0 ? "+" : ""}{formatMoney(s.balance, lang)}
@@ -324,7 +317,7 @@ export function StudentsPage() {
                           title={lang === "uz" ? "Ko'rish" : "Открыть"}
                           onClick={() => setSelectedId(s.id)}
                           style={{ padding: "4px 8px", borderRadius: 6, color: "#0077b6", background: "transparent", border: "none", cursor: "pointer" }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#e0f2fe"; }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#f1f5f9"; }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                         >
                           <Pencil className="h-4 w-4" />

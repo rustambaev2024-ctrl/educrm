@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { AlertCircle, Clock, DollarSign, MapPin, TrendingUp, Users } from "lucide-react";
+import { AlertCircle, Clock, DollarSign, MapPin, TrendingUp, UserPlus, Users } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { useData } from "@/lib/data/store";
@@ -10,49 +10,39 @@ import { formatMoney, formatTime, sameDay } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/")({ component: AdminHome });
 
-const getAvatarStyle = (name: string) => {
-  const colors = [
-    { bg: "#caf0f8", text: "#0077b6" },
-    { bg: "#dcfce7", text: "#166534" },
-    { bg: "#fee2e2", text: "#dc2626" },
-    { bg: "#fef3c7", text: "#d97706" },
-    { bg: "#f3e8ff", text: "#7c3aed" },
-  ];
-  return colors[(name.trim().charCodeAt(0) || 0) % colors.length];
-};
+/* avatar color index 0-4 */
+const avaIdx = (name: string) => (name.trim().charCodeAt(0) || 0) % 5;
+const avaBg  = ["#dbeafe","#dcfce7","#fce7f3","#fef3c7","#f3e8ff"];
+const avaTxt = ["#1d4ed8","#15803d","#9d174d","#92400e","#7c3aed"];
 
-const getInitials = (name: string) =>
+const initials = (name: string) =>
   name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-
-const paymentTypeLabels: Record<string, { uz: string; ru: string }> = {
-  top_up:       { uz: "To'lov",         ru: "Платеж" },
-  charge:       { uz: "Yechim",         ru: "Списание" },
-  discount:     { uz: "Chegirma",       ru: "Скидка" },
-  refund:       { uz: "Qaytarish",      ru: "Возврат" },
-  expense:      { uz: "Xarajat",        ru: "Расход" },
-  manual_top_up:{ uz: "Qo'lda kirim",   ru: "Ручное пополнение" },
-  manual_charge:{ uz: "Qo'lda yechim",  ru: "Ручное списание" },
-};
 
 const lessonStatusBadge: Record<string, { cls: string; uz: string; ru: string }> = {
   scheduled:  { cls: "badge-plan",   uz: "Rejalashtirilgan", ru: "Запланирован" },
-  conducted:  { cls: "badge-active", uz: "O'tildi",          ru: "Проведен" },
+  conducted:  { cls: "badge-done",   uz: "O'tildi",          ru: "Проведен" },
   cancelled:  { cls: "badge-cancel", uz: "Bekor",            ru: "Отменен" },
   rescheduled:{ cls: "badge-frozen", uz: "Ko'chirildi",      ru: "Перенесен" },
 };
 
-const leadStatusMeta: Record<string, { uz: string; ru: string; color: string }> = {
-  new:       { uz: "Yangi",         ru: "Новые",     color: "#0077b6" },
-  contacted: { uz: "Aloqa qilindi", ru: "Связались", color: "#00b4d8" },
-  trial:     { uz: "Sinov darsi",   ru: "Пробный",   color: "#d97706" },
-  won:       { uz: "Yozildi",       ru: "Записан",   color: "#008000" },
-  lost:      { uz: "Rad etdi",      ru: "Отказал",   color: "#dc2626" },
+const paymentTypeLabels: Record<string, { uz: string; ru: string }> = {
+  top_up:        { uz: "To'lov",         ru: "Платеж" },
+  charge:        { uz: "Yechim",         ru: "Списание" },
+  discount:      { uz: "Chegirma",       ru: "Скидка" },
+  refund:        { uz: "Qaytarish",      ru: "Возврат" },
+  expense:       { uz: "Xarajat",        ru: "Расход" },
+  manual_top_up: { uz: "Qo'lda kirim",   ru: "Ручное пополнение" },
+  manual_charge: { uz: "Qo'lda yechim",  ru: "Ручное списание" },
 };
+
+function getLocalDateString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 
 function AdminHome() {
   const { lang } = useI18n();
   const { students, groups, lessons, payments, staff, rooms, courses, attendance, isLoading } = useData();
-  const leads: { status: string }[] = [];
 
   const today = new Date();
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
@@ -61,15 +51,12 @@ function AdminHome() {
   const debtors = students.filter((s) => s.status === "debtor" || s.balance < 0);
 
   const monthRevenue = useMemo(() => {
-    const year = today.getFullYear();
-    const month = today.getMonth();
+    const yr = today.getFullYear();
+    const mo = today.getMonth();
     return payments
       .filter((p) => p.direction === "in")
-      .filter((p) => {
-        const d = new Date(p.date);
-        return d.getFullYear() === year && d.getMonth() === month;
-      })
-      .reduce((sum, p) => sum + p.amount, 0);
+      .filter((p) => { const d = new Date(p.date); return d.getFullYear() === yr && d.getMonth() === mo; })
+      .reduce((s, p) => s + p.amount, 0);
   }, [payments]);
 
   const todayLessons = useMemo(
@@ -84,53 +71,63 @@ function AdminHome() {
 
   const recentPayments = useMemo(() => [...payments].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8), [payments]);
 
-  const groupById = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
-  const roomById  = useMemo(() => Object.fromEntries(rooms.map((r) => [r.id, r])), [rooms]);
+  const groupById   = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
+  const roomById    = useMemo(() => Object.fromEntries(rooms.map((r) => [r.id, r])), [rooms]);
   const teacherById = useMemo(() => Object.fromEntries(staff.map((t) => [t.id, t])), [staff]);
   const courseById  = useMemo(() => Object.fromEntries(courses.map((c) => [c.id, c])), [courses]);
   const studentById = useMemo(() => Object.fromEntries(students.map((s) => [s.id, s])), [students]);
 
-  const leadCounts = useMemo(() => {
-    const counts: Record<string, number> = { new: 0, contacted: 0, trial: 0, won: 0, lost: 0 };
-    for (const lead of (leads ?? [])) {
-      if (lead.status in counts) counts[lead.status]++;
-    }
-    return counts;
-  }, [leads]);
-
-  const todayLabel = today.toLocaleDateString(lang === "uz" ? "uz-Latn" : "ru-RU", { day: "numeric", month: "long" });
+  const todayLabel = today.toLocaleDateString(lang === "uz" ? "uz-Latn" : "ru-RU", { day: "numeric", month: "long", year: "numeric" });
 
   if (isLoading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 256 }}>
-        <div style={{ width: 32, height: 32, borderRadius: "50%", borderBottom: "2px solid #0077b6", animation: "spin 1s linear infinite" }} />
+        <div style={{ width: 28, height: 28, borderRadius: "50%", borderBottom: "2px solid #0077b6", animation: "spin 1s linear infinite" }} />
       </div>
     );
   }
 
   return (
-    <PageShell title={tr("Boshqaruv paneli", "Панель управления")} subtitle={todayLabel}>
+    <PageShell
+      title={tr("Boshqaruv paneli", "Панель управления")}
+      subtitle={todayLabel}
+      actions={
+        <button className="btn-primary">
+          <UserPlus style={{ width: 14, height: 14 }} />
+          {tr("Yangi o'quvchi", "Новый ученик")}
+        </button>
+      }
+    >
       {/* KPI grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 16 }}
            className="md:grid-cols-4">
-        <KpiCard label={tr("O'quvchilar", "Ученики")}       value={activeStudents}               icon={Users}       color="blue" />
-        <KpiCard label={tr("Davomat", "Посещаемость")}      value={`${todayAttendancePct}%`}     icon={TrendingUp}  color="green" />
-        <KpiCard label={tr("Oylik tushum", "Доход/месяц")}  value={formatMoney(monthRevenue, lang)} icon={DollarSign}  color="cyan" />
-        <KpiCard label={tr("Qarzdorlar", "Должники")}       value={debtors.length}               icon={AlertCircle} color="red" />
+        <KpiCard label={tr("O'quvchilar", "Ученики")}      value={activeStudents}            icon={Users}       color="blue" />
+        <KpiCard label={tr("Davomat", "Посещаемость")}     value={`${todayAttendancePct}%`}  icon={TrendingUp}  color="green" />
+        <KpiCard label={tr("Oylik tushum", "Доход/месяц")} value={formatMoney(monthRevenue, lang)} icon={DollarSign} color="cyan" />
+        <KpiCard label={tr("Qarzdorlar", "Должники")}      value={debtors.length}            icon={AlertCircle} color="red" />
       </div>
 
       {/* Two-column cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginBottom: 16 }} className="lg:grid-cols-2">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }} className="lg:grid-cols-2">
+
         {/* Today's lessons */}
         <div className="edu-card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "14px 16px", borderBottom: "1.5px solid #e0f2fe" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#0077b6" }}>{tr("Bugungi darslar", "Сегодняшние уроки")}</div>
-            <div style={{ fontSize: 12, color: "#00b4d8", marginTop: 2 }}>
-              {todayLessons.length} {tr("ta dars", "урок(ов)")}
+          <div style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{tr("Bugungi darslar", "Сегодняшние уроки")}</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                {todayLessons.length} {tr("ta dars", "урок(ов)")}
+              </div>
             </div>
+            <button
+              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#f1f5f9", color: "#475569", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+            >
+              {tr("Barchasi", "Все")}
+            </button>
           </div>
+
           {todayLessons.length === 0 ? (
-            <div style={{ padding: "40px 16px", textAlign: "center", color: "#90e0ef", fontSize: 13 }}>
+            <div style={{ padding: "36px 14px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
               {tr("Bugun darslar yo'q", "Сегодня уроков нет")}
             </div>
           ) : (
@@ -138,27 +135,27 @@ function AdminHome() {
               {todayLessons.slice(0, 7).map((lesson) => {
                 const group = groupById[lesson.groupId];
                 if (!group) return null;
-                const teacher = teacherById[group.teacherId];
-                const room = roomById[lesson.roomId];
-                const course = courseById[group.courseId];
-                const meta = lessonStatusBadge[lesson.status] ?? lessonStatusBadge.scheduled;
-
+                const teacher  = teacherById[group.teacherId];
+                const room     = roomById[lesson.roomId];
+                const course   = courseById[group.courseId];
+                const meta     = lessonStatusBadge[lesson.status] ?? lessonStatusBadge.scheduled;
                 return (
                   <div
                     key={lesson.id}
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid #f0f9ff", transition: "background 0.1s" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f0f9ff"; }}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid #f8fafc", transition: "background 0.1s" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f8fafc"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                   >
-                    <div style={{ minWidth: 44, fontWeight: 700, color: "#00b4d8", fontSize: 13, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 4 }}>
-                      <Clock style={{ width: 12, height: 12 }} />
+                    <div style={{ minWidth: 44, fontWeight: 700, color: "#0077b6", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
+                      <Clock style={{ width: 11, height: 11 }} />
                       {formatTime(lesson.datetime)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "#0077b6", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {course?.name ?? group.name} <span style={{ fontWeight: 400, color: "#00b4d8" }}>{group.name}</span>
+                      <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {course?.name ?? group.name}
+                        {" "}<span style={{ fontWeight: 400, color: "#64748b" }}>{group.name}</span>
                       </div>
-                      <div style={{ fontSize: 11, color: "#90e0ef", marginTop: 1, display: "flex", gap: 8 }}>
+                      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1, display: "flex", gap: 8 }}>
                         {teacher?.fullName && <span>{teacher.fullName.split(" ")[0]}</span>}
                         {room?.name && (
                           <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
@@ -178,40 +175,49 @@ function AdminHome() {
 
         {/* Recent payments */}
         <div className="edu-card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "14px 16px", borderBottom: "1.5px solid #e0f2fe" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#0077b6" }}>{tr("So'nggi to'lovlar", "Последние платежи")}</div>
-            <div style={{ fontSize: 12, color: "#00b4d8", marginTop: 2 }}>{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
+          <div style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{tr("So'nggi to'lovlar", "Последние платежи")}</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
+            </div>
+            <button
+              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#f1f5f9", color: "#475569", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+            >
+              {tr("Barchasi", "Все")}
+            </button>
           </div>
+
           {recentPayments.length === 0 ? (
-            <div style={{ padding: "40px 16px", textAlign: "center", color: "#90e0ef", fontSize: 13 }}>
+            <div style={{ padding: "36px 14px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
               {tr("To'lovlar yo'q", "Платежей нет")}
             </div>
           ) : (
             <div>
               {recentPayments.map((payment) => {
-                const student = payment.studentId ? studentById[payment.studentId] : undefined;
-                const name = student?.fullName ?? paymentTypeLabels[payment.type]?.uz ?? tr("To'lov", "Платеж");
+                const student  = payment.studentId ? studentById[payment.studentId] : undefined;
+                const name     = student?.fullName ?? paymentTypeLabels[payment.type]?.uz ?? tr("To'lov", "Платеж");
                 const isCharge = payment.type === "charge" || payment.type === "manual_charge" || payment.direction === "out";
                 const typeLabel = paymentTypeLabels[payment.type] ?? { uz: payment.type, ru: payment.type };
-                const av = getAvatarStyle(name);
-
+                const idx = avaIdx(name);
                 return (
                   <div
                     key={payment.id}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: "1px solid #f0f9ff", transition: "background 0.1s" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f0f9ff"; }}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid #f8fafc", transition: "background 0.1s" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f8fafc"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                   >
-                    <div style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: av.bg, color: av.text, flexShrink: 0 }}>
-                      {getInitials(name)}
+                    <div style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: avaBg[idx], color: avaTxt[idx] }}>
+                      {initials(name)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "#0077b6", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
-                      <div style={{ fontSize: 11, color: "#90e0ef", marginTop: 1 }}>
+                      <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {name}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
                         {formatTime(payment.date)} · {payment.method ?? tr(typeLabel.uz, typeLabel.ru)}
                       </div>
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: 13, flexShrink: 0, color: isCharge ? "#dc2626" : "#008000" }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, flexShrink: 0, color: isCharge ? "#dc2626" : "#16a34a" }}>
                       {isCharge ? "−" : "+"}{formatMoney(payment.amount, lang)}
                     </div>
                   </div>
@@ -219,25 +225,6 @@ function AdminHome() {
               })}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Leads status strip */}
-      <div className="edu-card" style={{ padding: "14px 16px" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#0077b6", marginBottom: 12 }}>{tr("Murojaatlar", "Заявки")}</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
-          {(["new", "contacted", "trial", "won", "lost"] as const).map((status) => {
-            const meta = leadStatusMeta[status];
-            return (
-              <div
-                key={status}
-                style={{ textAlign: "center", padding: "10px 8px", borderRadius: 8, background: "#f0f9ff", border: "1.5px solid #e0f2fe" }}
-              >
-                <div style={{ fontSize: 22, fontWeight: 800, color: meta.color }}>{leadCounts[status]}</div>
-                <div style={{ fontSize: 11, color: "#90e0ef", marginTop: 3 }}>{tr(meta.uz, meta.ru)}</div>
-              </div>
-            );
-          })}
         </div>
       </div>
     </PageShell>

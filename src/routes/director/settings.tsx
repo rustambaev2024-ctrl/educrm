@@ -221,7 +221,7 @@ function DirectorSettingsPage() {
           <Card className="shadow-elegant border-border/60">
             <CardHeader className="border-b border-border/40 pb-4 bg-muted/20">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                <div className="rounded-lg bg-[#e0f2fe] p-2 text-[#0077b6]">
                   <User className="size-5" />
                 </div>
                 <div>
@@ -295,4 +295,3 @@ function DirectorSettingsPage() {
     </PageShell>
   );
 }
-

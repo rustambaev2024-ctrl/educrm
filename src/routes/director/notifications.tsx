@@ -16,7 +16,7 @@ export const Route = createFileRoute("/director/notifications")({ component: Not
 const typeConfig: Record<string, { icon: any; color: string; bg: string; label: string }> = {
   lead_follow_up: { icon: Users, color: "text-amber-500", bg: "bg-amber-500/10", label: "Murojaat" },
   debtor_alert: { icon: DollarSign, color: "text-destructive", bg: "bg-destructive/10", label: "Qarzdor" },
-  lesson_reminder: { icon: Calendar, color: "text-blue-500", bg: "bg-blue-500/10", label: "Dars" },
+  lesson_reminder: { icon: Calendar, color: "text-[#0077b6]", bg: "bg-[#e0f2fe]", label: "Dars" },
   homework_deadline: { icon: BookOpen, color: "text-violet-500", bg: "bg-violet-500/10", label: "Vazifa" },
   lesson_cancelled: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", label: "Bekor" },
   payment_due: { icon: DollarSign, color: "text-amber-500", bg: "bg-amber-500/10", label: "To'lov" },

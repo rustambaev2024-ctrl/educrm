@@ -4,12 +4,10 @@ import { Plus, TrendingUp, TrendingDown, Wallet, AlertTriangle, Receipt, RotateC
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tabs,
   TabsContent,
@@ -56,9 +54,9 @@ const localDateInputValue = (date: Date) =>
 
 const getAvatarStyle = (name: string) => {
   const colors = [
-    { bg: "#caf0f8", text: "#0077b6" },
-    { bg: "#dcfce7", text: "#166534" },
-    { bg: "#fee2e2", text: "#dc2626" },
+    { bg: "#dbeafe", text: "#1d4ed8" },
+    { bg: "#dcfce7", text: "#15803d" },
+    { bg: "#fce7f3", text: "#9d174d" },
     { bg: "#fef3c7", text: "#d97706" },
     { bg: "#f3e8ff", text: "#7c3aed" },
   ];
@@ -89,7 +87,7 @@ const paymentVisual = (payment: Payment) => {
   if (payment.type === "refund" || payment.type === "discount") {
     return { icon: Receipt, bg: "#fef3c7", text: "#d97706" };
   }
-  return { icon: TrendingUp, bg: "#dcfce7", text: "#008000" };
+  return { icon: TrendingUp, bg: "#dcfce7", text: "#16a34a" };
 };
 
 const methodBadgeClass = (method: PaymentMethod) => {
@@ -259,7 +257,7 @@ function FinancePage() {
                       <TableCell className="font-medium">{w.fullName}</TableCell>
                       <TableCell className="text-muted-foreground">{w.phone}</TableCell>
                       <TableCell><Badge variant={w.status === "debtor" ? "destructive" : "outline"}>{t(`status.${w.status}`)}</Badge></TableCell>
-                      <TableCell className={`text-right font-semibold ${w.balance < 0 ? 'text-destructive' : 'text-success'}`}>{formatMoney(w.balance, lang)}</TableCell>
+                      <TableCell style={{ textAlign: "right", fontWeight: 700, color: w.balance < 0 ? "#dc2626" : w.balance > 0 ? "#16a34a" : "#94a3b8" }}>{formatMoney(w.balance, lang)}</TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
                         {w.lastPaymentDate ? `${formatDate(w.lastPaymentDate, lang)} (+${formatMoney(w.lastPaymentAmount || 0, lang)})` : "—"}
                       </TableCell>
@@ -325,8 +323,8 @@ function FinancePage() {
                               </div>
                             ); })()}
                             <div className="min-w-0">
-                              <div style={{ fontWeight: 600, color: "#0077b6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
-                              <div style={{ fontSize: 11, color: "#90e0ef", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              <div style={{ fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
+                              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {student?.phone ?? group?.name ?? "-"}
                               </div>
                             </div>
@@ -345,7 +343,7 @@ function FinancePage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell style={{ textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: outgoing ? "#dc2626" : "#008000" }}>
+                        <TableCell style={{ textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: outgoing ? "#dc2626" : "#16a34a" }}>
                           {sign}{formatMoney(p.amount, lang)}
                         </TableCell>
                         <TableCell>
@@ -412,10 +410,10 @@ function FinancePage() {
           <TabsContent value="debtors" className="mt-4">
             {debtors.length === 0 ? (
               <div className="edu-card flex flex-col items-center gap-3 p-12 text-center">
-                <div style={{ display: "flex", width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, background: "#dcfce7", color: "#008000" }}>
+                <div style={{ display: "flex", width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, background: "#dcfce7", color: "#16a34a" }}>
                   <Wallet className="size-6" />
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "#0077b6" }}>{t("finance.emptyDebtors")}</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "#0f172a" }}>{t("finance.emptyDebtors")}</div>
               </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
@@ -426,8 +424,8 @@ function FinancePage() {
                         <AlertTriangle className="size-5" />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 600, color: "#0077b6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.fullName}</div>
-                        <div style={{ fontSize: 11, color: "#90e0ef", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.phone}</div>
+                        <div style={{ fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.fullName}</div>
+                        <div style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.phone}</div>
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>{formatMoney(Math.abs(student.balance), lang)}</div>

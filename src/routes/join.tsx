@@ -99,7 +99,7 @@ function JoinPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4 text-white">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold">E</div>
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#0077b6] text-2xl font-bold">E</div>
           <h1 className="mt-4 text-2xl font-bold">EduCRM Quiz</h1>
         </div>
 
@@ -118,12 +118,12 @@ function JoinPage() {
               placeholder="000000"
               inputMode="numeric"
               autoFocus
-              className="w-full rounded-xl border border-white/15 bg-white/5 py-4 text-center font-mono text-3xl tracking-[0.4em] text-white placeholder:text-white/30 focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-xl border border-white/15 bg-white/5 py-4 text-center font-mono text-3xl tracking-[0.4em] text-white placeholder:text-white/30 focus:border-[#0077b6] focus:outline-none"
             />
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 font-semibold transition-colors hover:bg-blue-700 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0077b6] py-3.5 font-semibold transition-colors hover:bg-[#006da8] disabled:opacity-60"
             >
               {loading ? <Loader2 className="size-5 animate-spin" /> : <>Kirish <ArrowRight className="size-5" /></>}
             </button>
@@ -176,7 +176,7 @@ function Field({
         autoFocus={autoFocus}
         autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2.5 text-white placeholder:text-white/30 focus:border-blue-500 focus:outline-none"
+        className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2.5 text-white placeholder:text-white/30 focus:border-[#0077b6] focus:outline-none"
       />
     </div>
   );

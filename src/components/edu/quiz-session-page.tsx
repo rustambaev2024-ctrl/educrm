@@ -28,7 +28,7 @@ interface WsResult {
 
 const ANSWER_COLORS = [
   "bg-red-500 hover:bg-red-600",
-  "bg-blue-500 hover:bg-blue-600",
+  "bg-[#0077b6] hover:bg-[#006da8]",
   "bg-emerald-500 hover:bg-emerald-600",
   "bg-amber-500 hover:bg-amber-600",
 ];

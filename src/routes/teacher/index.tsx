@@ -84,14 +84,14 @@ function TeacherHome() {
       {next && nextGroup && (
         <Link
           to="/teacher/attendance"
-          className="mt-4 flex items-center gap-4 rounded-md border border-blue-600/30 bg-blue-50 p-4 transition-colors hover:bg-blue-100"
+          className="mt-4 flex items-center gap-4 rounded-md border border-[#e2e8f0] bg-white p-4 transition-colors hover:bg-[#f8fafc]"
         >
-          <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-md bg-blue-600 py-1.5 text-white">
+          <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-md bg-[#0077b6] py-1.5 text-white">
             <Clock className="size-3.5" />
             <div className="text-base font-bold tabular-nums">{formatTime(next.datetime)}</div>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-blue-600">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-[#64748b]">
               {tr("Keyingi dars", "РЎР»РµРґСѓСЋС‰РµРµ Р·Р°РЅСЏС‚РёРµ")}
             </div>
             <div className="truncate text-[15px] font-semibold">{nextGroup.name}</div>

@@ -1,8 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LogOut, Moon, Sun } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
-import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "@tanstack/react-router";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -20,7 +19,6 @@ export interface MobileNavItem {
 
 export function MobileLayout({ items, children }: { items: MobileNavItem[]; children: ReactNode }) {
   const location = useLocation();
-  const { theme, toggle } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useI18n();
@@ -46,11 +44,11 @@ export function MobileLayout({ items, children }: { items: MobileNavItem[]; chil
   const initials = user?.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-[#f8fafc] text-[#0f172a]">
       {/* Topbar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-4 backdrop-blur-md">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-[#e2e8f0] bg-white px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-blue-600 text-sm font-bold text-white">
+          <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#0077b6] text-sm font-bold text-white">
             {instLogo && !logoError ? (
               <img src={instLogo} alt="Logo" className="size-full object-contain" onError={() => setLogoError(true)} />
             ) : (
@@ -61,12 +59,9 @@ export function MobileLayout({ items, children }: { items: MobileNavItem[]; chil
         </div>
         <div className="ml-auto flex items-center gap-1">
           <LangToggle />
-          <Button variant="ghost" size="icon" className="size-8" onClick={toggle} aria-label={t("theme.toggle")}>
-            {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          </Button>
           <NotificationsPopover size="sm" />
           <Avatar className="size-8">
-            <AvatarFallback className="bg-blue-600 text-[11px] font-semibold text-white">{initials}</AvatarFallback>
+            <AvatarFallback className="bg-[#0077b6] text-[11px] font-semibold text-white">{initials}</AvatarFallback>
           </Avatar>
           <Button
             variant="ghost"
@@ -87,7 +82,7 @@ export function MobileLayout({ items, children }: { items: MobileNavItem[]; chil
       <main className="flex-1 pb-20">{children}</main>
 
       {/* Bottom navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#f1f5f9] bg-white pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-md items-center justify-around px-2 py-1.5">
           {items.map((item) => {
             const active =
@@ -97,13 +92,11 @@ export function MobileLayout({ items, children }: { items: MobileNavItem[]; chil
                 key={item.to}
                 to={item.to}
                 className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 transition-colors ${
-                  active ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground hover:text-foreground"
+                  active ? "text-[#0077b6]" : "text-[#94a3b8] hover:text-[#64748b]"
                 }`}
               >
                 <div
-                  className={`flex size-9 items-center justify-center rounded-lg transition-colors ${
-                    active ? "bg-blue-50 dark:bg-blue-950/40" : ""
-                  }`}
+                  className="flex size-9 items-center justify-center rounded-lg transition-colors"
                 >
                   <item.icon className="size-[18px]" />
                 </div>

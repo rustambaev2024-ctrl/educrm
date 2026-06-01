@@ -498,7 +498,7 @@ export function DailyReportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/15"><BookOpen className="h-4 w-4 text-blue-500" /></div>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#e0f2fe]"><BookOpen className="h-4 w-4 text-[#0077b6]" /></div>
               {labels.lessons.title}
             </CardTitle>
           </CardHeader>

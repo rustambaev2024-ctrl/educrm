@@ -139,12 +139,12 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
       <div className="mx-auto max-w-2xl space-y-5">
         {/* Step indicator */}
         <div className="flex items-center gap-2 text-[13px]">
-          <span className={`flex size-6 items-center justify-center rounded-full text-[12px] font-semibold ${step === 1 ? "bg-blue-600 text-white" : "bg-emerald-600 text-white"}`}>
+          <span className={`flex size-6 items-center justify-center rounded-full text-[12px] font-semibold ${step === 1 ? "bg-[#0077b6] text-white" : "bg-emerald-600 text-white"}`}>
             {step === 1 ? "1" : <Check className="size-3.5" />}
           </span>
           <span className={step === 1 ? "font-medium" : "text-muted-foreground"}>{tr("Asosiy", "Основное")}</span>
           <div className="h-px w-8 bg-border" />
-          <span className={`flex size-6 items-center justify-center rounded-full text-[12px] font-semibold ${step === 2 ? "bg-blue-600 text-white" : "bg-muted text-muted-foreground"}`}>2</span>
+          <span className={`flex size-6 items-center justify-center rounded-full text-[12px] font-semibold ${step === 2 ? "bg-[#0077b6] text-white" : "bg-muted text-muted-foreground"}`}>2</span>
           <span className={step === 2 ? "font-medium" : "text-muted-foreground"}>{tr("Savollar", "Вопросы")}</span>
         </div>
 
@@ -188,7 +188,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
                       <div className="text-[14px] font-medium">{idx + 1}. {q.text}</div>
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {q.answers.filter((a) => a.text.trim()).map((a, ai) => (
-                          <span key={ai} className={`rounded-md px-2 py-0.5 text-[11px] ${ai === q.correctIndex ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+                          <span key={ai} className={`rounded-md px-2 py-0.5 text-[11px] ${ai === q.correctIndex ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
                             {a.text}
                           </span>
                         ))}

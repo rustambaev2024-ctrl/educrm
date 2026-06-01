@@ -124,9 +124,9 @@ function AccountsPage() {
   return (
     <PageShell title={t("title")} subtitle={t("description")}>
       <div className="space-y-4">
-        <Card className="p-4 border-blue-500/20 bg-blue-500/5">
+        <Card className="border-[#f1f5f9] bg-white p-4">
           <div className="flex gap-3">
-            <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#0077b6]" />
             <p className="text-sm text-muted-foreground">{t("note")}</p>
           </div>
         </Card>

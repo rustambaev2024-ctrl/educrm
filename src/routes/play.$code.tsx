@@ -25,7 +25,7 @@ interface WsResult {
 
 const ANSWER_COLORS = [
   "bg-red-500 hover:bg-red-600",
-  "bg-blue-500 hover:bg-blue-600",
+  "bg-[#0077b6] hover:bg-[#006da8]",
   "bg-emerald-500 hover:bg-emerald-600",
   "bg-amber-500 hover:bg-amber-600",
 ];
@@ -86,7 +86,7 @@ function PlayPage() {
   if (phase === "waiting") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-900 text-white">
-        <Loader2 className="size-10 animate-spin text-blue-500" />
+        <Loader2 className="size-10 animate-spin text-[#0077b6]" />
         <div className="text-lg font-medium">Test boshlanishini kuting...</div>
         {myName && <div className="text-white/50">{myName}</div>}
       </div>
@@ -164,7 +164,7 @@ function PlayPage() {
           {results.slice(0, 10).map((r, i) => (
             <div
               key={r.participant_id}
-              className={`flex items-center gap-3 p-3 ${r.participant_id === participantId ? "bg-blue-500/15" : ""}`}
+              className={`flex items-center gap-3 p-3 ${r.participant_id === participantId ? "bg-[#0077b6]/15" : ""}`}
             >
               <span className="w-6 text-center text-sm font-bold tabular-nums">{r.rank ?? i + 1}</span>
               <span className="flex-1 truncate text-sm font-medium">{r.name}</span>

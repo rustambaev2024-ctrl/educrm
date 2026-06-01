@@ -118,8 +118,8 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
 
   const statusBadge = (status: QuizSessionRow["status"]) => {
     const map = {
-      waiting: { cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400", label: tr("Kutilmoqda", "Ожидание") },
-      active: { cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", label: tr("Faol", "Активна") },
+      waiting: { cls: "bg-amber-500/10 text-amber-600", label: tr("Kutilmoqda", "Ожидание") },
+      active: { cls: "bg-emerald-500/10 text-emerald-600", label: tr("Faol", "Активна") },
       finished: { cls: "bg-muted text-muted-foreground", label: tr("Tugadi", "Завершена") },
     }[status];
     return <Badge variant="outline" className={map.cls}>{map.label}</Badge>;
@@ -155,10 +155,10 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
               {quizzes.map((quiz) => (
                 <div key={quiz.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <div className="flex size-9 items-center justify-center rounded-lg bg-[#e0f2fe] text-[#0077b6]">
                       <FileText className="size-4" />
                     </div>
-                    <Badge variant="outline" className={quiz.quiz_type === "lead" ? "bg-violet-500/10 text-violet-600 dark:text-violet-400" : "bg-blue-500/10 text-blue-600 dark:text-blue-400"}>
+                    <Badge variant="outline" className={quiz.quiz_type === "lead" ? "bg-violet-500/10 text-violet-600" : "bg-[#e0f2fe] text-[#0077b6]"}>
                       {quiz.quiz_type === "lead" ? tr("Lidlar", "Лиды") : tr("O'quvchilar", "Ученики")}
                     </Badge>
                   </div>
