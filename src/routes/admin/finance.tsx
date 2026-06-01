@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tabs,
   TabsContent,
@@ -42,11 +43,73 @@ import { Textarea } from "@/components/ui/textarea";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatMoney } from "@/lib/format";
-import type { PaymentMethod } from "@/lib/data/types";
+import type { Payment, PaymentMethod } from "@/lib/data/types";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/finance")({ component: FinancePage });
 
 const METHODS: PaymentMethod[] = ["cash", "card", "transfer", "click", "payme"];
+type PaymentFilter = "all" | "in" | "out" | "manual";
+
+const localDateInputValue = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const avatarColor = (name: string) => {
+  const colors = ["indigo", "green", "amber", "red", "blue", "violet"];
+  const first = name.trim().charCodeAt(0);
+  return colors[Number.isFinite(first) ? first % colors.length : 0];
+};
+
+const initials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+const isManualPayment = (payment: Payment) => payment.type === "manual_top_up" || payment.type === "manual_charge";
+const isOutgoingPayment = (payment: Payment) =>
+  payment.direction === "out" || payment.type === "charge" || payment.type === "manual_charge" || payment.type === "expense";
+
+const paymentVisual = (payment: Payment) => {
+  if (isManualPayment(payment)) {
+    return { icon: Wallet, bg: "bg-[#EEF2FF]", text: "text-[#4F46E5]" };
+  }
+  if (isOutgoingPayment(payment)) {
+    return { icon: TrendingDown, bg: "bg-[#FEF2F2]", text: "text-[#DC2626]" };
+  }
+  if (payment.type === "refund" || payment.type === "discount") {
+    return { icon: Receipt, bg: "bg-[#FFFBEB]", text: "text-[#B45309]" };
+  }
+  return { icon: TrendingUp, bg: "bg-[#F0FDF4]", text: "text-[#15803D]" };
+};
+
+const methodBadgeClass = (method: PaymentMethod) => {
+  const map: Record<PaymentMethod, string> = {
+    cash: "badge-status-active",
+    card: "badge-status-trial",
+    transfer: "badge-status-frozen",
+    click: "badge-status-trial",
+    payme: "badge-status-trial",
+  };
+  return map[method];
+};
+
+const paymentTypeLabel = (type: string, lang: "uz" | "ru") => {
+  const map: Record<string, { uz: string; ru: string }> = {
+    top_up: { uz: "To'lov", ru: "Платеж" },
+    charge: { uz: "Dars uchun yechim", ru: "Списание за урок" },
+    discount: { uz: "Chegirma", ru: "Скидка" },
+    refund: { uz: "Qaytarish", ru: "Возврат" },
+    expense: { uz: "Xarajat", ru: "Расход" },
+    manual_top_up: { uz: "Qo'lda kirim", ru: "Ручной приход" },
+    manual_charge: { uz: "Qo'lda yechim", ru: "Ручное списание" },
+  };
+  const label = map[type];
+  return label ? label[lang] : type;
+};
 
 function FinancePage() {
   const { t, lang } = useI18n();
@@ -55,13 +118,14 @@ function FinancePage() {
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
     d.setDate(1);
-    return d.toISOString().split("T")[0];
+    return localDateInputValue(d);
   });
   const [dateTo, setDateTo] = useState(() => {
     const d = new Date();
-    return d.toISOString().split("T")[0];
+    return localDateInputValue(d);
   });
   const [expenseOpen, setExpenseOpen] = useState(false);
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
 
   const studentById = useMemo(() => Object.fromEntries(students.map((s) => [s.id, s])), [students]);
   const groupById = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
@@ -78,8 +142,19 @@ function FinancePage() {
     .reduce((s, st) => s + Math.abs(st.balance), 0);
   const totalPending = 0;
 
-  const incomingPayments = [...payments].filter((p) => p.direction === "in").sort((a, b) => b.date.localeCompare(a.date));
   const outgoingPayments = [...payments].filter((p) => p.direction === "out").sort((a, b) => b.date.localeCompare(a.date));
+  const filteredPayments = useMemo(
+    () =>
+      [...payments]
+        .filter((payment) => {
+          if (paymentFilter === "in") return payment.direction === "in" && !isManualPayment(payment);
+          if (paymentFilter === "out") return isOutgoingPayment(payment) && !isManualPayment(payment);
+          if (paymentFilter === "manual") return isManualPayment(payment);
+          return true;
+        })
+        .sort((a, b) => b.date.localeCompare(a.date)),
+    [payments, paymentFilter],
+  );
   const debtors = students
     .filter((s) => s.status === "debtor")
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -190,12 +265,26 @@ function FinancePage() {
           </TabsContent>
 
           <TabsContent value="payments" className="mt-4">
-            <Card className="overflow-hidden shadow-elegant">
-              <Table>
+            <div className="mb-3 flex justify-end">
+              <Select value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as PaymentFilter)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{lang === "uz" ? "Barchasi" : "Все"}</SelectItem>
+                  <SelectItem value="in">{lang === "uz" ? "Kirim" : "Приход"}</SelectItem>
+                  <SelectItem value="out">{lang === "uz" ? "Chiqim" : "Расход"}</SelectItem>
+                  <SelectItem value="manual">{lang === "uz" ? "Qo'lda" : "Вручную"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Card className="card-elevated overflow-hidden">
+              <Table className="data-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("finance.col.student")}</TableHead>
-                    <TableHead>{t("finance.col.group")}</TableHead>
+                    <TableHead>{lang === "uz" ? "Tur" : "Тип"}</TableHead>
                     <TableHead className="text-right">{t("finance.col.amount")}</TableHead>
                     <TableHead>{t("finance.col.method")}</TableHead>
                     <TableHead>{t("finance.col.date")}</TableHead>
@@ -204,28 +293,72 @@ function FinancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {incomingPayments.length === 0 && (
+                  {filteredPayments.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                         {t("finance.empty")}
                       </TableCell>
                     </TableRow>
                   )}
-                  {incomingPayments.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.studentId ? studentById[p.studentId]?.fullName : "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{p.groupId ? groupById[p.groupId]?.name : "—"}</TableCell>
-                      <TableCell className="text-right font-semibold text-success">+{formatMoney(p.amount, lang)}</TableCell>
-                      <TableCell><Badge variant="outline">{t(`finance.method.${p.method}`)}</Badge></TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{formatDate(p.date, lang)}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{p.comment ?? "—"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => reversePayment(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                          <RotateCcw className="size-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredPayments.map((p) => {
+                    const student = p.studentId ? studentById[p.studentId] : undefined;
+                    const group = p.groupId ? groupById[p.groupId] : undefined;
+                    const name = student?.fullName ?? (lang === "uz" ? "Tizim amali" : "Системная операция");
+                    const visual = paymentVisual(p);
+                    const Icon = visual.icon;
+                    const outgoing = isOutgoingPayment(p);
+                    const sign = outgoing ? "-" : "+";
+
+                    return (
+                      <TableRow key={p.id} className="transition-colors hover:bg-muted/30">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="size-9">
+                              <AvatarFallback className={cn("text-[11px] font-semibold", `avatar-${avatarColor(name)}`)}>
+                                {initials(name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="truncate font-semibold text-foreground">{name}</div>
+                              <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                                {student?.phone ?? group?.name ?? "-"}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className={cn("flex size-8 items-center justify-center rounded-lg", visual.bg)}>
+                              <Icon className={cn("size-4", visual.text)} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-medium text-foreground">
+                                {paymentTypeLabel(p.type, lang)}
+                              </div>
+                              {group?.name && <div className="truncate text-[11px] text-muted-foreground">{group.name}</div>}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className={cn("text-right font-semibold tabular-nums", outgoing ? "text-[#DC2626]" : "text-[#15803D]")}>
+                          {sign}{formatMoney(p.amount, lang)}
+                        </TableCell>
+                        <TableCell>
+                          <span className={cn("rounded-md px-2 py-1 text-[11px] font-medium", methodBadgeClass(p.method))}>
+                            {t(`finance.method.${p.method}`)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{formatDate(p.date, lang)}</TableCell>
+                        <TableCell className="max-w-[220px] truncate text-xs text-muted-foreground">{p.comment ?? "-"}</TableCell>
+                        <TableCell className="text-right">
+                          {p.type !== "refund" && (
+                            <Button variant="ghost" size="icon" onClick={() => reversePayment(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                              <RotateCcw className="size-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </Card>
@@ -380,7 +513,6 @@ function PaymentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
       category: "tuition",
     });
     
-    toast.success(t("finance.received"));
     toast.success(t("finance.received"));
     reset();
     onOpenChange(false);
