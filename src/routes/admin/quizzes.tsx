@@ -109,7 +109,7 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
   const startSession = async (quizId: string) => {
     try {
       const session = (await quizApi.createSession(quizId)) as QuizSessionRow;
-      navigate({ to: `${basePath}/quiz/session/${session.id}` as string });
+      navigate({ to: `${basePath}/quiz-session/${session.id}` as string });
     } catch (err) {
       console.error("[quizzes] start session failed", err);
       toast.error(tr("Sessiyani boshlab bo'lmadi", "Не удалось запустить сессию"));
@@ -130,7 +130,7 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
       title={tr("Testlar", "Тесты")}
       subtitle={tr("Barcha testlar va sessiyalar", "Все тесты и сессии")}
       actions={
-        <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={() => navigate({ to: `${basePath}/quiz/create` as string })}>
+        <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={() => navigate({ to: `${basePath}/quiz-create` as string })}>
           <Plus className="size-3.5" /> {tr("Yangi test", "Новый тест")}
         </Button>
       }
@@ -176,7 +176,7 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
                     <Button size="sm" className="h-8 flex-1 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => startSession(quiz.id)}>
                       <Play className="size-3.5" /> {tr("Boshlash", "Запустить")}
                     </Button>
-                    <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => navigate({ to: `${basePath}/quiz/create?edit=${quiz.id}` as string })}>
+                    <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => navigate({ to: `${basePath}/quiz-create?edit=${quiz.id}` as string })}>
                       <Pencil className="size-3.5" /> {tr("Tahrirlash", "Изменить")}
                     </Button>
                   </div>
