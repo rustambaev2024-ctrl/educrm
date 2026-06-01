@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Calendar, DollarSign, Users, Wallet, MinusCircle } from "lucide-react";
@@ -114,7 +114,7 @@ function TeacherFinancePage() {
           <>
             {/* Penalty Debt Card */}
             {Number(data.penalty_debt) > 0 && (
-              <Card className="border-orange-500 bg-orange-50 dark:bg-orange-950/20">
+              <Card className="border-orange-500 bg-orange-50 ">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-orange-600 text-sm">
                     Jarima qoldig'i (keyingi oyga o'tadi)
