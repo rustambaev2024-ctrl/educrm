@@ -178,8 +178,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
       let list = (res as any).results || [];
       setTeachersData(list);
     } catch (err) {
-      console.error(err);
-      toast.error("Ma'lumotlarni yuklashda xatolik");
+      console.warn("[nazorat] teachers load failed:", err);
     } finally {
       setLoading(false);
     }
@@ -485,8 +484,7 @@ function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; 
       }
       setTeachersData(list);
     } catch (err) {
-      console.error(err);
-      toast.error("Ma'lumotlarni yuklashda xatolik");
+      console.warn("[nazorat] monthly teachers load failed:", err);
     } finally {
       setLoading(false);
     }
@@ -704,7 +702,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
       const listRaw = Array.isArray(res) ? res : (res as any).results ?? [];
       setRecords(listRaw);
     } catch (err) {
-      toast.error("Ma'lumotlarni yuklashda xatolik yuz berdi");
+      console.warn("[nazorat] records load failed:", err);
     } finally {
       setLoading(false);
     }

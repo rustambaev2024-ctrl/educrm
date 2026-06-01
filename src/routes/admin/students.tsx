@@ -142,8 +142,8 @@ export function StudentsPage() {
         const count = res.count ?? list.length;
         setPageStudents(mapStudents(list) as Student[]);
         setTotalCount(count);
-      } catch {
-        toast.error("Ma'lumotlarni yuklashda xatolik");
+      } catch (err) {
+        console.warn("[students] load failed:", err);
       } finally {
         setPageLoading(false);
       }
