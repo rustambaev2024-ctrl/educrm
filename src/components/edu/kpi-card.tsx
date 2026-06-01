@@ -7,94 +7,104 @@ interface KpiCardProps {
   subtitle?: string;
   delta?: { value: string; positive: boolean };
   icon: ElementType;
-  color?: "blue" | "green" | "cyan" | "red" | "amber";
+  color?: "blue" | "green" | "cyan" | "red" | "amber" | "violet";
   /** Legacy alias */
   iconColor?: "indigo" | "green" | "red" | "amber" | "blue" | "violet" | "cyan";
 }
 
 const colorMap = {
-  blue:  { bg: "#e0f2fe", icon: "#0077b6", val: "#0077b6" },
-  green: { bg: "#dcfce7", icon: "#008000", val: "#008000" },
-  cyan:  { bg: "#caf0f8", icon: "#00b4d8", val: "#00b4d8" },
-  red:   { bg: "#fee2e2", icon: "#dc2626", val: "#dc2626" },
-  amber: { bg: "#fef3c7", icon: "#d97706", val: "#d97706" },
+  blue:   { bg: "#dbeafe", icon: "#0077b6", val: "#0f172a" },
+  green:  { bg: "#dcfce7", icon: "#16a34a", val: "#16a34a" },
+  cyan:   { bg: "#e0f2fe", icon: "#00b4d8", val: "#0f172a" },
+  red:    { bg: "#fee2e2", icon: "#dc2626", val: "#dc2626" },
+  amber:  { bg: "#fef3c7", icon: "#d97706", val: "#0f172a" },
+  violet: { bg: "#f3e8ff", icon: "#7c3aed", val: "#0f172a" },
 };
 
-const legacyToNew: Record<string, keyof typeof colorMap> = {
+const legacyMap: Record<string, keyof typeof colorMap> = {
   indigo: "blue",
-  violet: "blue",
-  blue: "blue",
-  green: "green",
-  red: "red",
-  amber: "amber",
-  cyan: "cyan",
+  blue:   "blue",
+  green:  "green",
+  red:    "red",
+  amber:  "amber",
+  violet: "violet",
+  cyan:   "cyan",
 };
 
 export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, iconColor }: KpiCardProps) {
-  const resolvedKey = color ?? (iconColor ? legacyToNew[iconColor] : undefined) ?? "blue";
-  const c = colorMap[resolvedKey as keyof typeof colorMap] ?? colorMap.blue;
+  const key = color ?? (iconColor ? legacyMap[iconColor] : undefined) ?? "blue";
+  const c = colorMap[key as keyof typeof colorMap] ?? colorMap.blue;
 
   return (
     <div
       style={{
         background: "#fff",
-        borderRadius: "10px",
-        border: "1.5px solid #e0f2fe",
-        padding: "16px",
-        boxShadow: "0 1px 3px rgba(0,119,182,0.08)",
+        borderRadius: 10,
+        border: "1px solid #f1f5f9",
+        padding: 14,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 40,
-          height: 40,
-          borderRadius: 9,
-          background: c.bg,
-          marginBottom: 10,
-        }}
-      >
-        <Icon style={{ width: 20, height: 20, color: c.icon }} />
+      {/* Row 1: icon + delta */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: c.bg,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon style={{ width: 18, height: 18, color: c.icon }} />
+        </div>
+        {delta && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+              fontSize: 11,
+              fontWeight: 600,
+              padding: "2px 7px",
+              borderRadius: 9999,
+              background: delta.positive ? "#dcfce7" : "#fee2e2",
+              color: delta.positive ? "#15803d" : "#dc2626",
+            }}
+          >
+            {delta.positive ? (
+              <TrendingUp style={{ width: 11, height: 11 }} />
+            ) : (
+              <TrendingDown style={{ width: 11, height: 11 }} />
+            )}
+            {delta.value}
+          </div>
+        )}
       </div>
 
+      {/* Row 2: value */}
+      <div style={{ fontSize: 22, fontWeight: 800, color: c.val, lineHeight: 1, marginBottom: 4 }}>
+        {value}
+      </div>
+
+      {/* Row 3: label */}
       <div
         style={{
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",
           letterSpacing: "0.06em",
-          color: c.val,
-          marginBottom: 4,
+          color: "#64748b",
         }}
       >
         {label}
       </div>
 
-      <div style={{ fontSize: 24, fontWeight: 800, color: c.val, lineHeight: 1 }}>
-        {value}
-      </div>
-
+      {/* Row 4: subtitle */}
       {subtitle && (
-        <div style={{ fontSize: 11, color: "#90e0ef", marginTop: 3 }}>{subtitle}</div>
-      )}
-
-      {delta && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            fontSize: 12,
-            fontWeight: 600,
-            marginTop: 8,
-            color: delta.positive ? "#008000" : "#dc2626",
-          }}
-        >
-          {delta.positive ? <TrendingUp style={{ width: 12, height: 12 }} /> : <TrendingDown style={{ width: 12, height: 12 }} />}
-          {delta.value}
-        </div>
+        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{subtitle}</div>
       )}
     </div>
   );
