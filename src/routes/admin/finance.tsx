@@ -54,11 +54,17 @@ type PaymentFilter = "all" | "in" | "out" | "manual";
 const localDateInputValue = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-const avatarColor = (name: string) => {
-  const colors = ["indigo", "green", "amber", "red", "blue", "violet"];
-  const first = name.trim().charCodeAt(0);
-  return colors[Number.isFinite(first) ? first % colors.length : 0];
+const getAvatarStyle = (name: string) => {
+  const colors = [
+    { bg: "#caf0f8", text: "#0077b6" },
+    { bg: "#dcfce7", text: "#166534" },
+    { bg: "#fee2e2", text: "#dc2626" },
+    { bg: "#fef3c7", text: "#d97706" },
+    { bg: "#f3e8ff", text: "#7c3aed" },
+  ];
+  return colors[(name.trim().charCodeAt(0) || 0) % colors.length];
 };
+
 
 const initials = (name: string) =>
   name
@@ -75,15 +81,15 @@ const isOutgoingPayment = (payment: Payment) =>
 
 const paymentVisual = (payment: Payment) => {
   if (isManualPayment(payment)) {
-    return { icon: Wallet, bg: "bg-[#EEF2FF]", text: "text-[#4F46E5]" };
+    return { icon: Wallet, bg: "#e0f2fe", text: "#0077b6" };
   }
   if (isOutgoingPayment(payment)) {
-    return { icon: TrendingDown, bg: "bg-[#FEF2F2]", text: "text-[#DC2626]" };
+    return { icon: TrendingDown, bg: "#fee2e2", text: "#dc2626" };
   }
   if (payment.type === "refund" || payment.type === "discount") {
-    return { icon: Receipt, bg: "bg-[#FFFBEB]", text: "text-[#B45309]" };
+    return { icon: Receipt, bg: "#fef3c7", text: "#d97706" };
   }
-  return { icon: TrendingUp, bg: "bg-[#F0FDF4]", text: "text-[#15803D]" };
+  return { icon: TrendingUp, bg: "#dcfce7", text: "#008000" };
 };
 
 const methodBadgeClass = (method: PaymentMethod) => {
@@ -229,7 +235,7 @@ function FinancePage() {
           </div>
 
           <TabsContent value="wallets" className="mt-4">
-            <Card className="overflow-hidden shadow-elegant">
+            <div className="edu-card overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -261,7 +267,7 @@ function FinancePage() {
                   ))}
                 </TableBody>
               </Table>
-            </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="payments" className="mt-4">
@@ -279,8 +285,8 @@ function FinancePage() {
               </Select>
             </div>
 
-            <Card className="card-elevated overflow-hidden">
-              <Table className="data-table">
+            <div className="edu-card overflow-hidden">
+              <Table className="edu-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("finance.col.student")}</TableHead>
@@ -313,14 +319,14 @@ function FinancePage() {
                       <TableRow key={p.id} className="transition-colors hover:bg-muted/30">
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <Avatar className="size-9">
-                              <AvatarFallback className={cn("text-[11px] font-semibold", `avatar-${avatarColor(name)}`)}>
+                            {(() => { const av = getAvatarStyle(name); return (
+                              <div style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: av.bg, color: av.text, flexShrink: 0 }}>
                                 {initials(name)}
-                              </AvatarFallback>
-                            </Avatar>
+                              </div>
+                            ); })()}
                             <div className="min-w-0">
-                              <div className="truncate font-semibold text-foreground">{name}</div>
-                              <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                              <div style={{ fontWeight: 600, color: "#0077b6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
+                              <div style={{ fontSize: 11, color: "#90e0ef", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {student?.phone ?? group?.name ?? "-"}
                               </div>
                             </div>
@@ -328,8 +334,8 @@ function FinancePage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className={cn("flex size-8 items-center justify-center rounded-lg", visual.bg)}>
-                              <Icon className={cn("size-4", visual.text)} />
+                            <div style={{ display: "flex", width: 30, height: 30, alignItems: "center", justifyContent: "center", borderRadius: 8, background: visual.bg }}>
+                              <Icon style={{ width: 14, height: 14, color: visual.text }} />
                             </div>
                             <div className="min-w-0">
                               <div className="truncate text-sm font-medium text-foreground">
@@ -339,7 +345,7 @@ function FinancePage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className={cn("text-right font-semibold tabular-nums", outgoing ? "text-[#DC2626]" : "text-[#15803D]")}>
+                        <TableCell style={{ textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: outgoing ? "#dc2626" : "#008000" }}>
                           {sign}{formatMoney(p.amount, lang)}
                         </TableCell>
                         <TableCell>
@@ -361,11 +367,11 @@ function FinancePage() {
                   })}
                 </TableBody>
               </Table>
-            </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="history" className="mt-4">
-            <Card className="overflow-hidden shadow-elegant">
+            <div className="edu-card overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -400,34 +406,33 @@ function FinancePage() {
                   ))}
                 </TableBody>
               </Table>
-            </Card>
+            </div>
           </TabsContent>
 
-          
           <TabsContent value="debtors" className="mt-4">
             {debtors.length === 0 ? (
-              <Card className="flex flex-col items-center gap-3 p-12 text-center shadow-elegant">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-success/10 text-success">
+              <div className="edu-card flex flex-col items-center gap-3 p-12 text-center">
+                <div style={{ display: "flex", width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, background: "#dcfce7", color: "#008000" }}>
                   <Wallet className="size-6" />
                 </div>
-                <div className="text-base font-semibold">{t("finance.emptyDebtors")}</div>
-              </Card>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "#0077b6" }}>{t("finance.emptyDebtors")}</div>
+              </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {debtors.map((student) => {
                   return (
-                    <Card key={student.id} className="flex items-center gap-3 p-4 shadow-elegant">
-                      <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-destructive/15 text-destructive">
+                    <div key={student.id} className="edu-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 16 }}>
+                      <div style={{ display: "flex", width: 40, height: 40, flexShrink: 0, alignItems: "center", justifyContent: "center", borderRadius: 8, background: "#fee2e2", color: "#dc2626" }}>
                         <AlertTriangle className="size-5" />
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium">{student.fullName}</div>
-                        <div className="truncate text-xs text-muted-foreground">{student.phone}</div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 600, color: "#0077b6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.fullName}</div>
+                        <div style={{ fontSize: 11, color: "#90e0ef", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.phone}</div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-bold text-destructive">{formatMoney(Math.abs(student.balance), lang)}</div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>{formatMoney(Math.abs(student.balance), lang)}</div>
                       </div>
-                    </Card>
+                    </div>
                   );
                 })}
               </div>
@@ -435,7 +440,7 @@ function FinancePage() {
           </TabsContent>
 
           <TabsContent value="expenses" className="mt-4">
-            <Card className="overflow-hidden shadow-elegant">
+            <div className="edu-card overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -465,7 +470,7 @@ function FinancePage() {
                   ))}
                 </TableBody>
               </Table>
-            </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

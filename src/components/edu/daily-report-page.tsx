@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Calendar, Download, FileText, AlertTriangle, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Minus, DollarSign, BookOpen, Users, UserCheck, Target, TrendingUp, GraduationCap, UserPlus, AlertCircle } from "lucide-react";
 import * as XLSX from "xlsx";
 import { analyticsApi } from "@/lib/api";
@@ -62,76 +62,76 @@ interface DailyReportData {
 }
 
 const pageLabels = (lang: Lang) => ({
-  title: lang === "uz" ? "Kunlik hisobot" : "Ежедневный отчёт",
-  date: lang === "uz" ? "Sana" : "Дата",
+  title: lang === "uz" ? "Kunlik hisobot" : "Р•Р¶РµРґРЅРµРІРЅС‹Р№ РѕС‚С‡С‘С‚",
+  date: lang === "uz" ? "Sana" : "Р”Р°С‚Р°",
   exportPdf: lang === "uz" ? "PDF" : "PDF",
   exportExcel: lang === "uz" ? "Excel" : "Excel",
   kpi: {
-    income: lang === "uz" ? "Tushum" : "Доход",
-    attendance: lang === "uz" ? "O'quvchi davomati" : "Посещаемость учеников",
-    lessons: lang === "uz" ? "Darslar" : "Уроки",
-    leads: lang === "uz" ? "Yangi lidlar" : "Новые лиды",
-    debtors: lang === "uz" ? "Yangi qarzdorlar" : "Новые должники",
+    income: lang === "uz" ? "Tushum" : "Р”РѕС…РѕРґ",
+    attendance: lang === "uz" ? "O'quvchi davomati" : "РџРѕСЃРµС‰Р°РµРјРѕСЃС‚СЊ СѓС‡РµРЅРёРєРѕРІ",
+    lessons: lang === "uz" ? "Darslar" : "РЈСЂРѕРєРё",
+    leads: lang === "uz" ? "Yangi lidlar" : "РќРѕРІС‹Рµ Р»РёРґС‹",
+    debtors: lang === "uz" ? "Yangi qarzdorlar" : "РќРѕРІС‹Рµ РґРѕР»Р¶РЅРёРєРё",
   },
   finance: {
-    title: lang === "uz" ? "Moliya" : "Финансы",
-    income: lang === "uz" ? "Tushum" : "Доход",
-    charges: lang === "uz" ? "Hisobdan yechish" : "Списания",
-    topPayments: lang === "uz" ? "Eng katta to'lovlar" : "Крупнейшие платежи",
-    paymentsCount: lang === "uz" ? "To'lovlar soni" : "Количество платежей",
-    studentName: lang === "uz" ? "O'quvchi" : "Ученик",
-    amount: lang === "uz" ? "Summa" : "Сумма",
-    method: lang === "uz" ? "Usul" : "Способ",
-    time: lang === "uz" ? "Vaqt" : "Время",
-    newDebtors: lang === "uz" ? "Yangi qarzdorlar" : "Новые должники",
-    totalDebt: lang === "uz" ? "Jami qarz" : "Общий долг",
+    title: lang === "uz" ? "Moliya" : "Р¤РёРЅР°РЅСЃС‹",
+    income: lang === "uz" ? "Tushum" : "Р”РѕС…РѕРґ",
+    charges: lang === "uz" ? "Hisobdan yechish" : "РЎРїРёСЃР°РЅРёСЏ",
+    topPayments: lang === "uz" ? "Eng katta to'lovlar" : "РљСЂСѓРїРЅРµР№С€РёРµ РїР»Р°С‚РµР¶Рё",
+    paymentsCount: lang === "uz" ? "To'lovlar soni" : "РљРѕР»РёС‡РµСЃС‚РІРѕ РїР»Р°С‚РµР¶РµР№",
+    studentName: lang === "uz" ? "O'quvchi" : "РЈС‡РµРЅРёРє",
+    amount: lang === "uz" ? "Summa" : "РЎСѓРјРјР°",
+    method: lang === "uz" ? "Usul" : "РЎРїРѕСЃРѕР±",
+    time: lang === "uz" ? "Vaqt" : "Р’СЂРµРјСЏ",
+    newDebtors: lang === "uz" ? "Yangi qarzdorlar" : "РќРѕРІС‹Рµ РґРѕР»Р¶РЅРёРєРё",
+    totalDebt: lang === "uz" ? "Jami qarz" : "РћР±С‰РёР№ РґРѕР»Рі",
   },
   lessons: {
-    title: lang === "uz" ? "Darslar" : "Уроки",
-    total: lang === "uz" ? "Jami" : "Всего",
-    conducted: lang === "uz" ? "O'tkazildi" : "Проведено",
-    cancelled: lang === "uz" ? "Bekor qilindi" : "Отменено",
-    noAttendance: lang === "uz" ? "Davomat belgilanmagan" : "Посещаемость не отмечена",
-    noAttendanceWarning: (n: number) => lang === "uz" ? `⚠️ ${n} ta darsda davomat belgilanmagan — to'lov yo'qotishi!` : `⚠️ В ${n} уроках не отмечена посещаемость — потеря оплаты!`,
-    group: lang === "uz" ? "Guruh" : "Группа",
-    teacher: lang === "uz" ? "O'qituvchi" : "Учитель",
-    reason: lang === "uz" ? "Sabab" : "Причина",
+    title: lang === "uz" ? "Darslar" : "РЈСЂРѕРєРё",
+    total: lang === "uz" ? "Jami" : "Р’СЃРµРіРѕ",
+    conducted: lang === "uz" ? "O'tkazildi" : "РџСЂРѕРІРµРґРµРЅРѕ",
+    cancelled: lang === "uz" ? "Bekor qilindi" : "РћС‚РјРµРЅРµРЅРѕ",
+    noAttendance: lang === "uz" ? "Davomat belgilanmagan" : "РџРѕСЃРµС‰Р°РµРјРѕСЃС‚СЊ РЅРµ РѕС‚РјРµС‡РµРЅР°",
+    noAttendanceWarning: (n: number) => lang === "uz" ? `вљ пёЏ ${n} ta darsda davomat belgilanmagan вЂ” to'lov yo'qotishi!` : `вљ пёЏ Р’ ${n} СѓСЂРѕРєР°С… РЅРµ РѕС‚РјРµС‡РµРЅР° РїРѕСЃРµС‰Р°РµРјРѕСЃС‚СЊ вЂ” РїРѕС‚РµСЂСЏ РѕРїР»Р°С‚С‹!`,
+    group: lang === "uz" ? "Guruh" : "Р“СЂСѓРїРїР°",
+    teacher: lang === "uz" ? "O'qituvchi" : "РЈС‡РёС‚РµР»СЊ",
+    reason: lang === "uz" ? "Sabab" : "РџСЂРёС‡РёРЅР°",
   },
   students: {
-    title: lang === "uz" ? "O'quvchilar davomati" : "Посещаемость учеников",
-    present: lang === "uz" ? "Kelgan" : "Присутствуют",
-    absent: lang === "uz" ? "Kelmagan" : "Отсутствуют",
-    late: lang === "uz" ? "Kechikkan" : "Опоздали",
-    rate: lang === "uz" ? "Davomat" : "Посещаемость",
-    studentName: lang === "uz" ? "O'quvchi" : "Ученик",
-    group: lang === "uz" ? "Guruh" : "Группа",
-    teacher: lang === "uz" ? "O'qituvchi" : "Учитель",
+    title: lang === "uz" ? "O'quvchilar davomati" : "РџРѕСЃРµС‰Р°РµРјРѕСЃС‚СЊ СѓС‡РµРЅРёРєРѕРІ",
+    present: lang === "uz" ? "Kelgan" : "РџСЂРёСЃСѓС‚СЃС‚РІСѓСЋС‚",
+    absent: lang === "uz" ? "Kelmagan" : "РћС‚СЃСѓС‚СЃС‚РІСѓСЋС‚",
+    late: lang === "uz" ? "Kechikkan" : "РћРїРѕР·РґР°Р»Рё",
+    rate: lang === "uz" ? "Davomat" : "РџРѕСЃРµС‰Р°РµРјРѕСЃС‚СЊ",
+    studentName: lang === "uz" ? "O'quvchi" : "РЈС‡РµРЅРёРє",
+    group: lang === "uz" ? "Guruh" : "Р“СЂСѓРїРїР°",
+    teacher: lang === "uz" ? "O'qituvchi" : "РЈС‡РёС‚РµР»СЊ",
   },
   teachers: {
-    title: lang === "uz" ? "O'qituvchilar" : "Учителя",
-    present: lang === "uz" ? "Kelgan" : "Присутствуют",
-    late: lang === "uz" ? "Kechikkan" : "Опоздали",
-    absent: lang === "uz" ? "Kelmagan" : "Отсутствуют",
-    noData: lang === "uz" ? "Ma'lumot yo'q" : "Нет данных",
-    teacherName: lang === "uz" ? "O'qituvchi" : "Учитель",
-    status: lang === "uz" ? "Holat" : "Статус",
-    checkIn: lang === "uz" ? "Kirish" : "Вход",
+    title: lang === "uz" ? "O'qituvchilar" : "РЈС‡РёС‚РµР»СЏ",
+    present: lang === "uz" ? "Kelgan" : "РџСЂРёСЃСѓС‚СЃС‚РІСѓСЋС‚",
+    late: lang === "uz" ? "Kechikkan" : "РћРїРѕР·РґР°Р»Рё",
+    absent: lang === "uz" ? "Kelmagan" : "РћС‚СЃСѓС‚СЃС‚РІСѓСЋС‚",
+    noData: lang === "uz" ? "Ma'lumot yo'q" : "РќРµС‚ РґР°РЅРЅС‹С…",
+    teacherName: lang === "uz" ? "O'qituvchi" : "РЈС‡РёС‚РµР»СЊ",
+    status: lang === "uz" ? "Holat" : "РЎС‚Р°С‚СѓСЃ",
+    checkIn: lang === "uz" ? "Kirish" : "Р’С…РѕРґ",
   },
   leads: {
-    title: lang === "uz" ? "Yangi lidlar" : "Новые лиды",
-    name: lang === "uz" ? "Ism" : "Имя",
-    source: lang === "uz" ? "Manba" : "Источник",
-    status: lang === "uz" ? "Holat" : "Статус",
-    time: lang === "uz" ? "Vaqt" : "Время",
+    title: lang === "uz" ? "Yangi lidlar" : "РќРѕРІС‹Рµ Р»РёРґС‹",
+    name: lang === "uz" ? "Ism" : "РРјСЏ",
+    source: lang === "uz" ? "Manba" : "РСЃС‚РѕС‡РЅРёРє",
+    status: lang === "uz" ? "Holat" : "РЎС‚Р°С‚СѓСЃ",
+    time: lang === "uz" ? "Vaqt" : "Р’СЂРµРјСЏ",
   },
   status: {
-    present: lang === "uz" ? "Kelgan" : "Присутствует",
-    late: lang === "uz" ? "Kechikkan" : "Опоздал",
-    absent: lang === "uz" ? "Kelmagan" : "Отсутствует",
-    new: lang === "uz" ? "Yangi" : "Новый",
-    contacted: lang === "uz" ? "Aloqa qilingan" : "На связи",
-    converted: lang === "uz" ? "Aylantirilgan" : "Конвертирован",
-    lost: lang === "uz" ? "Yo'qotilgan" : "Потерян",
+    present: lang === "uz" ? "Kelgan" : "РџСЂРёСЃСѓС‚СЃС‚РІСѓРµС‚",
+    late: lang === "uz" ? "Kechikkan" : "РћРїРѕР·РґР°Р»",
+    absent: lang === "uz" ? "Kelmagan" : "РћС‚СЃСѓС‚СЃС‚РІСѓРµС‚",
+    new: lang === "uz" ? "Yangi" : "РќРѕРІС‹Р№",
+    contacted: lang === "uz" ? "Aloqa qilingan" : "РќР° СЃРІСЏР·Рё",
+    converted: lang === "uz" ? "Aylantirilgan" : "РљРѕРЅРІРµСЂС‚РёСЂРѕРІР°РЅ",
+    lost: lang === "uz" ? "Yo'qotilgan" : "РџРѕС‚РµСЂСЏРЅ",
   },
 });
 
@@ -169,76 +169,76 @@ export function DailyReportPage() {
     if (!data) return;
     const wb = XLSX.utils.book_new();
 
-    // Лист 1: Moliya
+    // Р›РёСЃС‚ 1: Moliya
     const financeData = [
-      [lang === "uz" ? "Sana" : "Дата", data.date],
-      [lang === "uz" ? "Tushum (bugun)" : "Доход (сегодня)", data.finance.income_today],
-      [lang === "uz" ? "Tushum (kecha)" : "Доход (вчера)", data.finance.income_yesterday],
-      [lang === "uz" ? "Farq" : "Разница", data.finance.income_delta],
-      [lang === "uz" ? "Hisobdan yechish" : "Списания", data.finance.charges_today],
-      [lang === "uz" ? "To'lovlar soni" : "Количество платежей", data.finance.payments_count],
-      [lang === "uz" ? "Yangi qarzdorlar" : "Новые должники", data.finance.new_debtors_today],
-      [lang === "uz" ? "Jami qarz" : "Общий долг", data.finance.total_debt],
+      [lang === "uz" ? "Sana" : "Р”Р°С‚Р°", data.date],
+      [lang === "uz" ? "Tushum (bugun)" : "Р”РѕС…РѕРґ (СЃРµРіРѕРґРЅСЏ)", data.finance.income_today],
+      [lang === "uz" ? "Tushum (kecha)" : "Р”РѕС…РѕРґ (РІС‡РµСЂР°)", data.finance.income_yesterday],
+      [lang === "uz" ? "Farq" : "Р Р°Р·РЅРёС†Р°", data.finance.income_delta],
+      [lang === "uz" ? "Hisobdan yechish" : "РЎРїРёСЃР°РЅРёСЏ", data.finance.charges_today],
+      [lang === "uz" ? "To'lovlar soni" : "РљРѕР»РёС‡РµСЃС‚РІРѕ РїР»Р°С‚РµР¶РµР№", data.finance.payments_count],
+      [lang === "uz" ? "Yangi qarzdorlar" : "РќРѕРІС‹Рµ РґРѕР»Р¶РЅРёРєРё", data.finance.new_debtors_today],
+      [lang === "uz" ? "Jami qarz" : "РћР±С‰РёР№ РґРѕР»Рі", data.finance.total_debt],
       [],
-      [lang === "uz" ? "Eng katta to'lovlar" : "Крупнейшие платежи"],
-      [lang === "uz" ? "O'quvchi" : "Ученик", lang === "uz" ? "Summa" : "Сумма", lang === "uz" ? "Usul" : "Способ", lang === "uz" ? "Vaqt" : "Время"],
+      [lang === "uz" ? "Eng katta to'lovlar" : "РљСЂСѓРїРЅРµР№С€РёРµ РїР»Р°С‚РµР¶Рё"],
+      [lang === "uz" ? "O'quvchi" : "РЈС‡РµРЅРёРє", lang === "uz" ? "Summa" : "РЎСѓРјРјР°", lang === "uz" ? "Usul" : "РЎРїРѕСЃРѕР±", lang === "uz" ? "Vaqt" : "Р’СЂРµРјСЏ"],
       ...data.finance.top_payments.map((p) => [p.student_name, p.amount, p.method, p.time]),
     ];
     const financeSheet = XLSX.utils.aoa_to_sheet(financeData);
     XLSX.utils.book_append_sheet(wb, financeSheet, "Moliya");
 
-    // Лист 2: Darslar
+    // Р›РёСЃС‚ 2: Darslar
     const lessonsData = [
-      [lang === "uz" ? "Jami darslar" : "Всего уроков", data.lessons.total],
-      [lang === "uz" ? "O'tkazildi" : "Проведено", data.lessons.conducted],
-      [lang === "uz" ? "Bekor qilindi" : "Отменено", data.lessons.cancelled],
-      [lang === "uz" ? "Davomat belgilanmagan" : "Посещаемость не отмечена", data.lessons.no_attendance_count],
+      [lang === "uz" ? "Jami darslar" : "Р’СЃРµРіРѕ СѓСЂРѕРєРѕРІ", data.lessons.total],
+      [lang === "uz" ? "O'tkazildi" : "РџСЂРѕРІРµРґРµРЅРѕ", data.lessons.conducted],
+      [lang === "uz" ? "Bekor qilindi" : "РћС‚РјРµРЅРµРЅРѕ", data.lessons.cancelled],
+      [lang === "uz" ? "Davomat belgilanmagan" : "РџРѕСЃРµС‰Р°РµРјРѕСЃС‚СЊ РЅРµ РѕС‚РјРµС‡РµРЅР°", data.lessons.no_attendance_count],
       [],
-      [lang === "uz" ? "Bekor qilingan darslar" : "Отмененные уроки"],
-      [lang === "uz" ? "Guruh" : "Группа", lang === "uz" ? "O'qituvchi" : "Учитель", lang === "uz" ? "Vaqt" : "Время", lang === "uz" ? "Sabab" : "Причина"],
+      [lang === "uz" ? "Bekor qilingan darslar" : "РћС‚РјРµРЅРµРЅРЅС‹Рµ СѓСЂРѕРєРё"],
+      [lang === "uz" ? "Guruh" : "Р“СЂСѓРїРїР°", lang === "uz" ? "O'qituvchi" : "РЈС‡РёС‚РµР»СЊ", lang === "uz" ? "Vaqt" : "Р’СЂРµРјСЏ", lang === "uz" ? "Sabab" : "РџСЂРёС‡РёРЅР°"],
       ...data.lessons.cancelled_list.map((l) => [l.group_name, l.teacher_name, l.time, l.reason]),
     ];
     const lessonsSheet = XLSX.utils.aoa_to_sheet(lessonsData);
     XLSX.utils.book_append_sheet(wb, lessonsSheet, "Darslar");
 
-    // Лист 3: Davomat
+    // Р›РёСЃС‚ 3: Davomat
     const attendanceData = [
-      [lang === "uz" ? "Jami o'quvchilar" : "Всего учеников", data.students.total],
-      [lang === "uz" ? "Kelgan" : "Присутствуют", data.students.present],
-      [lang === "uz" ? "Kelmagan" : "Отсутствуют", data.students.absent],
-      [lang === "uz" ? "Kechikkan" : "Опоздали", data.students.late],
-      [lang === "uz" ? "Davomat foizi" : "Процент посещаемости", `${data.students.attendance_rate}%`],
+      [lang === "uz" ? "Jami o'quvchilar" : "Р’СЃРµРіРѕ СѓС‡РµРЅРёРєРѕРІ", data.students.total],
+      [lang === "uz" ? "Kelgan" : "РџСЂРёСЃСѓС‚СЃС‚РІСѓСЋС‚", data.students.present],
+      [lang === "uz" ? "Kelmagan" : "РћС‚СЃСѓС‚СЃС‚РІСѓСЋС‚", data.students.absent],
+      [lang === "uz" ? "Kechikkan" : "РћРїРѕР·РґР°Р»Рё", data.students.late],
+      [lang === "uz" ? "Davomat foizi" : "РџСЂРѕС†РµРЅС‚ РїРѕСЃРµС‰Р°РµРјРѕСЃС‚Рё", `${data.students.attendance_rate}%`],
       [],
-      [lang === "uz" ? "Kelmagan o'quvchilar" : "Отсутствующие ученики"],
-      [lang === "uz" ? "O'quvchi" : "Ученик", lang === "uz" ? "Guruh" : "Группа", lang === "uz" ? "O'qituvchi" : "Учитель"],
+      [lang === "uz" ? "Kelmagan o'quvchilar" : "РћС‚СЃСѓС‚СЃС‚РІСѓСЋС‰РёРµ СѓС‡РµРЅРёРєРё"],
+      [lang === "uz" ? "O'quvchi" : "РЈС‡РµРЅРёРє", lang === "uz" ? "Guruh" : "Р“СЂСѓРїРїР°", lang === "uz" ? "O'qituvchi" : "РЈС‡РёС‚РµР»СЊ"],
       ...data.students.absent_list.map((a) => [a.student_name, a.group_name, a.teacher_name]),
     ];
     const attendanceSheet = XLSX.utils.aoa_to_sheet(attendanceData);
     XLSX.utils.book_append_sheet(wb, attendanceSheet, "Davomat");
 
-    // Лист 4: O'qituvchilar
+    // Р›РёСЃС‚ 4: O'qituvchilar
     const teachersData = [
-      [lang === "uz" ? "Jami o'qituvchilar" : "Всего учителей", data.teachers.total],
-      [lang === "uz" ? "Kelgan" : "Присутствуют", data.teachers.present],
-      [lang === "uz" ? "Kechikkan" : "Опоздали", data.teachers.late],
-      [lang === "uz" ? "Kelmagan" : "Отсутствуют", data.teachers.absent],
-      [lang === "uz" ? "Ma'lumot yo'q" : "Нет данных", data.teachers.no_data],
+      [lang === "uz" ? "Jami o'qituvchilar" : "Р’СЃРµРіРѕ СѓС‡РёС‚РµР»РµР№", data.teachers.total],
+      [lang === "uz" ? "Kelgan" : "РџСЂРёСЃСѓС‚СЃС‚РІСѓСЋС‚", data.teachers.present],
+      [lang === "uz" ? "Kechikkan" : "РћРїРѕР·РґР°Р»Рё", data.teachers.late],
+      [lang === "uz" ? "Kelmagan" : "РћС‚СЃСѓС‚СЃС‚РІСѓСЋС‚", data.teachers.absent],
+      [lang === "uz" ? "Ma'lumot yo'q" : "РќРµС‚ РґР°РЅРЅС‹С…", data.teachers.no_data],
       [],
-      [lang === "uz" ? "O'qituvchilar ro'yxati" : "Список учителей"],
-      [lang === "uz" ? "O'qituvchi" : "Учитель", lang === "uz" ? "Holat" : "Статус", lang === "uz" ? "Kirish" : "Вход", lang === "uz" ? "Kechikish (daqiqa)" : "Опоздание (мин)"],
+      [lang === "uz" ? "O'qituvchilar ro'yxati" : "РЎРїРёСЃРѕРє СѓС‡РёС‚РµР»РµР№"],
+      [lang === "uz" ? "O'qituvchi" : "РЈС‡РёС‚РµР»СЊ", lang === "uz" ? "Holat" : "РЎС‚Р°С‚СѓСЃ", lang === "uz" ? "Kirish" : "Р’С…РѕРґ", lang === "uz" ? "Kechikish (daqiqa)" : "РћРїРѕР·РґР°РЅРёРµ (РјРёРЅ)"],
       ...data.teachers.list.map((t) => [t.teacher_name, t.status, t.check_in_time || "-", t.late_minutes || "-"]),
     ];
     const teachersSheet = XLSX.utils.aoa_to_sheet(teachersData);
     XLSX.utils.book_append_sheet(wb, teachersSheet, "O'qituvchilar");
 
-    // Лист 5: Lidlar
+    // Р›РёСЃС‚ 5: Lidlar
     const leadsData = [
-      [lang === "uz" ? "Yangi lidlar (bugun)" : "Новые лиды (сегодня)", data.leads.today],
-      [lang === "uz" ? "Yangi lidlar (kecha)" : "Новые лиды (вчера)", data.leads.yesterday],
-      [lang === "uz" ? "Farq" : "Разница", data.leads.delta],
+      [lang === "uz" ? "Yangi lidlar (bugun)" : "РќРѕРІС‹Рµ Р»РёРґС‹ (СЃРµРіРѕРґРЅСЏ)", data.leads.today],
+      [lang === "uz" ? "Yangi lidlar (kecha)" : "РќРѕРІС‹Рµ Р»РёРґС‹ (РІС‡РµСЂР°)", data.leads.yesterday],
+      [lang === "uz" ? "Farq" : "Р Р°Р·РЅРёС†Р°", data.leads.delta],
       [],
-      [lang === "uz" ? "Yangi lidlar ro'yxati" : "Список новых лидов"],
-      [lang === "uz" ? "Ism" : "Имя", lang === "uz" ? "Manba" : "Источник", lang === "uz" ? "Holat" : "Статус", lang === "uz" ? "Vaqt" : "Время"],
+      [lang === "uz" ? "Yangi lidlar ro'yxati" : "РЎРїРёСЃРѕРє РЅРѕРІС‹С… Р»РёРґРѕРІ"],
+      [lang === "uz" ? "Ism" : "РРјСЏ", lang === "uz" ? "Manba" : "РСЃС‚РѕС‡РЅРёРє", lang === "uz" ? "Holat" : "РЎС‚Р°С‚СѓСЃ", lang === "uz" ? "Vaqt" : "Р’СЂРµРјСЏ"],
       ...data.leads.list.map((l) => [l.name, l.source, l.status, l.time]),
     ];
     const leadsSheet = XLSX.utils.aoa_to_sheet(leadsData);
@@ -301,7 +301,7 @@ export function DailyReportPage() {
   if (error || !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-destructive">{error || (lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка")}</div>
+        <div className="text-destructive">{error || (lang === "uz" ? "Xatolik yuz berdi" : "РџСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР°")}</div>
       </div>
     );
   }
@@ -358,7 +358,7 @@ export function DailyReportPage() {
           <CardContent>
             <div className="text-2xl font-bold">{data.students.attendance_rate}%</div>
             <div className="text-sm text-muted-foreground">
-              {lang === "uz" ? "Kecha:" : "Вчера:"} {data.students.attendance_rate_yesterday}%
+              {lang === "uz" ? "Kecha:" : "Р’С‡РµСЂР°:"} {data.students.attendance_rate_yesterday}%
             </div>
           </CardContent>
         </Card>
@@ -373,7 +373,7 @@ export function DailyReportPage() {
               {data.lessons.conducted} / {data.lessons.total}
             </div>
             <div className="text-sm text-muted-foreground">
-              {data.lessons.cancelled} {lang === "uz" ? "bekor qilindi" : "отменено"}
+              {data.lessons.cancelled} {lang === "uz" ? "bekor qilindi" : "РѕС‚РјРµРЅРµРЅРѕ"}
             </div>
           </CardContent>
         </Card>
@@ -408,7 +408,7 @@ export function DailyReportPage() {
           <CardContent>
             <div className="text-2xl font-bold">{data.finance.new_debtors_today}</div>
             <div className="text-sm text-muted-foreground">
-              {lang === "uz" ? "Jami qarz:" : "Общий долг:"} {formatMoney(parseFloat(data.finance.total_debt), lang as Lang)}
+              {lang === "uz" ? "Jami qarz:" : "РћР±С‰РёР№ РґРѕР»Рі:"} {formatMoney(parseFloat(data.finance.total_debt), lang as Lang)}
             </div>
           </CardContent>
         </Card>
@@ -424,7 +424,7 @@ export function DailyReportPage() {
             >
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
-                <span className="font-medium text-amber-700 dark:text-amber-300">
+                <span className="font-medium text-amber-700">
                   {labels.lessons.noAttendanceWarning(data.lessons.no_attendance_count)}
                 </span>
               </div>
@@ -433,8 +433,8 @@ export function DailyReportPage() {
             {showNoAttendance && (
               <div className="mt-4 ml-7 space-y-2">
                 {data.lessons.no_attendance_list.map((lesson, idx) => (
-                  <div key={idx} className="text-sm text-amber-700 dark:text-amber-300">
-                    <strong>{lesson.group_name}</strong> — {lesson.teacher_name} ({lesson.time})
+                  <div key={idx} className="text-sm text-amber-700">
+                    <strong>{lesson.group_name}</strong> вЂ” {lesson.teacher_name} ({lesson.time})
                   </div>
                 ))}
               </div>
@@ -464,7 +464,7 @@ export function DailyReportPage() {
                       <div className="flex-1">
                         <div className="font-medium">{payment.student_name}</div>
                         <div className="text-muted-foreground text-xs">
-                          {payment.method} · {payment.time}
+                          {payment.method} В· {payment.time}
                         </div>
                       </div>
                       <div className="font-semibold text-emerald-600">
@@ -524,7 +524,7 @@ export function DailyReportPage() {
                     <div key={idx} className="text-sm py-2 border-b border-destructive/20">
                       <div className="font-medium">{lesson.group_name}</div>
                       <div className="text-muted-foreground text-xs">
-                        {lesson.teacher_name} · {lesson.time}
+                        {lesson.teacher_name} В· {lesson.time}
                       </div>
                       {lesson.reason && (
                         <div className="text-destructive text-xs mt-1">{lesson.reason}</div>
@@ -537,7 +537,7 @@ export function DailyReportPage() {
 
             {data.lessons.cancelled_list.length === 0 && data.lessons.conducted > 0 && (
               <div className="text-sm text-muted-foreground text-center py-4">
-                {lang === "uz" ? "Bekor qilingan darslar yo'q" : "Отмененных уроков нет"}
+                {lang === "uz" ? "Bekor qilingan darslar yo'q" : "РћС‚РјРµРЅРµРЅРЅС‹С… СѓСЂРѕРєРѕРІ РЅРµС‚"}
               </div>
             )}
           </CardContent>
@@ -591,7 +591,7 @@ export function DailyReportPage() {
                     <div key={idx} className="text-sm py-2 border-b">
                       <div className="font-medium">{student.student_name}</div>
                       <div className="text-muted-foreground text-xs">
-                        {student.group_name} · {student.teacher_name}
+                        {student.group_name} В· {student.teacher_name}
                       </div>
                     </div>
                   ))}
@@ -691,7 +691,7 @@ export function DailyReportPage() {
             </div>
           ) : (
             <div className="text-sm text-muted-foreground text-center py-4">
-              {lang === "uz" ? "Yangi lidlar yo'q" : "Новых лидов нет"}
+              {lang === "uz" ? "Yangi lidlar yo'q" : "РќРѕРІС‹С… Р»РёРґРѕРІ РЅРµС‚"}
             </div>
           )}
         </CardContent>

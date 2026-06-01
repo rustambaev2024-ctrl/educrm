@@ -159,6 +159,21 @@
   }
 }
 
+/* ── shadcn Card override — blue border + shadow ── */
+.shadow-elegant,
+.card-elevated {
+  background: #fff !important;
+  border-radius: var(--radius-lg) !important;
+  border: 1.5px solid var(--blue-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* bg-gradient-primary override → brand blue */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #0077b6, #00b4d8) !important;
+}
+.text-primary-foreground { color: #fff !important; }
+
 /* ── Cards ─────────────────────────────────────────────── */
 .edu-card {
   background: #fff;
