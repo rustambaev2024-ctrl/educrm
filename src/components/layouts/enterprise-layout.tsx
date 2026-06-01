@@ -209,8 +209,9 @@ export function EnterpriseLayout({
           onMouseLeave={handleRailLeave}
           aria-label={item.label}
           className={`relative flex size-10 items-center justify-center rounded-lg transition-colors ${
-            active ? "bg-blue-600 text-white" : "text-white/55 hover:bg-white/10 hover:text-white"
+            active ? "text-white" : "text-white/55 hover:bg-white/10 hover:text-white"
           }`}
+          style={active ? { background: "var(--brand-600)" } : undefined}
         >
           <item.icon className="size-5" />
           {item.badge !== undefined && item.badge > 0 && (
@@ -227,7 +228,7 @@ export function EnterpriseLayout({
   const railContent = (
     <>
       <div className="flex flex-col items-center gap-2 px-2 pt-3">
-        <div className="mb-1 flex size-9 items-center justify-center overflow-hidden rounded-lg bg-blue-600 text-base font-bold text-white">
+        <div className="mb-1 flex size-9 items-center justify-center overflow-hidden rounded-lg bg-[#4F46E5] text-base font-bold text-white">
           {instLogo && !logoError ? (
             <img src={instLogo} alt="Logo" className="size-full object-contain" onError={() => setLogoError(true)} />
           ) : (
@@ -256,7 +257,7 @@ export function EnterpriseLayout({
           <DropdownMenuTrigger asChild>
             <button className="flex size-10 items-center justify-center rounded-lg transition-colors hover:bg-white/10">
               <Avatar className="size-7">
-                <AvatarFallback className="bg-blue-600 text-[10px] font-semibold text-white">
+                <AvatarFallback className="bg-[#4F46E5] text-[10px] font-semibold text-white">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -296,7 +297,13 @@ export function EnterpriseLayout({
             onMouseEnter={handleFlyoutEnter}
             onMouseLeave={handleFlyoutLeave}
           >
-            <div className="w-[260px] overflow-hidden rounded-lg rounded-l-none border border-border bg-card shadow-lg">
+            <div
+              className="w-[260px] overflow-hidden border border-border bg-card"
+              style={{
+                boxShadow: "var(--shadow-lg)",
+                borderRadius: "0 var(--radius-lg) var(--radius-lg) 0",
+              }}
+            >
               <div className="border-b border-border px-4 py-3">
                 <div className="text-[15px] font-medium text-foreground">{data.title}</div>
               </div>
@@ -325,7 +332,7 @@ export function EnterpriseLayout({
                           }}
                           className={`flex w-full items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-[14px] transition-colors ${
                             active
-                              ? "border-blue-600 bg-blue-50 font-medium text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                              ? "border-[#4F46E5] bg-[#EEF2FF] font-medium text-[#4F46E5] dark:bg-[#312E81]/30"
                               : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                           }`}
                         >
@@ -374,7 +381,7 @@ export function EnterpriseLayout({
                   }}
                   className={`flex w-full items-center gap-2.5 rounded-md border-l-2 px-2.5 py-1.5 text-[13px] transition-colors ${
                     active
-                      ? "border-blue-600 bg-blue-50 font-medium text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                      ? "border-[#4F46E5] bg-[#EEF2FF] font-medium text-[#4F46E5] dark:bg-[#312E81]/30"
                       : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   }`}
                 >
@@ -392,7 +399,9 @@ export function EnterpriseLayout({
   return (
     <div className="flex min-h-screen bg-background">
       {/* Icon Rail — единственная постоянная навигационная колонка */}
-      <aside className="hidden w-14 shrink-0 flex-col bg-slate-900 md:flex">{railContent}</aside>
+      <aside className="hidden w-14 shrink-0 flex-col md:flex" style={{ background: "var(--brand-nav)" }}>
+        {railContent}
+      </aside>
 
       {/* Flyout (desktop) */}
       {flyout}
@@ -485,7 +494,9 @@ export function EnterpriseLayout({
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileNavOpen(false)} aria-hidden="true" />
           <div className="relative flex h-full">
-            <div className="flex w-14 shrink-0 flex-col bg-slate-900">{railContent}</div>
+            <div className="flex w-14 shrink-0 flex-col" style={{ background: "var(--brand-nav)" }}>
+              {railContent}
+            </div>
             <div className="flex w-[220px] shrink-0 flex-col border-r border-border bg-sidebar">{mobileSidebar}</div>
           </div>
         </div>
