@@ -68,10 +68,19 @@ const STATUS_OPTIONS: StatusFilter[] = [
   "archived",
 ];
 
+const getAvatarStyle = (name: string) => {
+  const colors = [
+    { bg: "#caf0f8", text: "#0077b6" },
+    { bg: "#dcfce7", text: "#166534" },
+    { bg: "#fee2e2", text: "#dc2626" },
+    { bg: "#fef3c7", text: "#d97706" },
+    { bg: "#f3e8ff", text: "#7c3aed" },
+  ];
+  return colors[(name.trim().charCodeAt(0) || 0) % colors.length];
+};
 const avatarColor = (name: string) => {
-  const colors = ["indigo", "green", "amber", "red", "blue", "violet"];
-  const first = name.trim().charCodeAt(0);
-  return colors[Number.isFinite(first) ? first % colors.length : 0];
+  const colors = ["blue", "green", "red", "amber", "violet"];
+  return colors[(name.trim().charCodeAt(0) || 0) % colors.length];
 };
 
 const studentInitials = (name: string) =>
@@ -183,9 +192,15 @@ export function StudentsPage() {
       title={t("students.title")}
       subtitle={t("students.subtitle")}
       actions={
-        <Button size="sm" onClick={() => setCreateOpen(true)} className="h-8 gap-1.5 px-3 text-[12px]">
-          <Plus className="size-3.5" /> {t("students.add")}
-        </Button>
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg px-3 h-8 text-[12px] font-semibold text-white transition-colors"
+          style={{ background: "#0077b6" }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#00b4d8"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#0077b6"; }}
+        >
+          <Plus className="h-3.5 w-3.5" /> {t("students.add")}
+        </button>
       }
     >
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -195,7 +210,7 @@ export function StudentsPage() {
         <KpiCard label={lang === "uz" ? "Yangi (bu oy)" : "Новые (мес.)"} value={kpis.fresh} icon={UserPlus} iconColor="violet" />
       </div>
       <div>
-        <Card className="card-elevated overflow-hidden">
+        <div className="edu-card overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center md:justify-between">
             <div className="relative flex-1 md:max-w-sm">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -228,7 +243,7 @@ export function StudentsPage() {
           {filtered.length === 0 ? (
             <div className="p-12 text-center text-sm text-muted-foreground">{t("students.empty")}</div>
           ) : (
-            <Table className="data-table">
+            <Table className="edu-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>{lang === "uz" ? "O'quvchi" : "Ученик"}</TableHead>
@@ -247,26 +262,31 @@ export function StudentsPage() {
                   return (
                     <TableRow
                       key={s.id}
-                      className="cursor-pointer transition-colors hover:bg-muted/30"
+                      className="cursor-pointer transition-colors"
+                      style={{ cursor: "pointer" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#f0f9ff"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}
                       onClick={() => setSelectedId(s.id)}
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div
-                            className={cn(
-                              "flex size-9 items-center justify-center overflow-hidden rounded-full text-xs font-semibold",
-                              `avatar-${avatarColor(s.fullName)}`,
-                            )}
-                          >
-                            {s.photo ? (
-                              <img src={s.photo} alt={s.fullName} className="size-full object-cover" />
-                            ) : (
-                              studentInitials(s.fullName)
-                            )}
-                          </div>
+                          {(() => {
+                            const av = getAvatarStyle(s.fullName);
+                            return (
+                              <div
+                                style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: av.bg, color: av.text, flexShrink: 0, overflow: "hidden" }}
+                              >
+                                {s.photo ? (
+                                  <img src={s.photo} alt={s.fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                ) : (
+                                  studentInitials(s.fullName)
+                                )}
+                              </div>
+                            );
+                          })()}
                           <div className="min-w-0">
-                            <div className="truncate font-semibold leading-tight text-foreground">{s.fullName}</div>
-                            <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{s.phone}</div>
+                            <div style={{ fontWeight: 600, color: "#0077b6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.fullName}</div>
+                            <div style={{ fontSize: 11, color: "#90e0ef", marginTop: 1 }}>{s.phone}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -285,12 +305,12 @@ export function StudentsPage() {
                         )}
                       </TableCell>
                       <TableCell
-                        className={cn(
-                          "text-right font-semibold tabular-nums",
-                          s.balance > 0 && "text-[#15803D]",
-                          s.balance < 0 && "text-[#DC2626]",
-                          s.balance === 0 && "text-muted-foreground",
-                        )}
+                        style={{
+                          textAlign: "right",
+                          fontWeight: 700,
+                          fontVariantNumeric: "tabular-nums",
+                          color: s.balance > 0 ? "#008000" : s.balance < 0 ? "#dc2626" : "#90e0ef",
+                        }}
                       >
                         {s.balance > 0 ? "+" : ""}{formatMoney(s.balance, lang)}
                       </TableCell>
@@ -299,16 +319,16 @@ export function StudentsPage() {
                           {t(`status.${s.status}`)}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-[#4F46E5]"
+                      <TableCell style={{ textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                        <button
                           title={lang === "uz" ? "Ko'rish" : "Открыть"}
                           onClick={() => setSelectedId(s.id)}
+                          style={{ padding: "4px 8px", borderRadius: 6, color: "#0077b6", background: "transparent", border: "none", cursor: "pointer" }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#e0f2fe"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                         >
                           <Pencil className="h-4 w-4" />
-                        </Button>
+                        </button>
                       </TableCell>
                     </TableRow>
                   );
@@ -344,7 +364,7 @@ export function StudentsPage() {
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
 
       <CreateStudentSheet
