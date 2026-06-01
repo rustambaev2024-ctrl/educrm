@@ -1,6 +1,5 @@
 import type { ElementType } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface KpiCardProps {
   label: string;
@@ -8,44 +7,92 @@ interface KpiCardProps {
   subtitle?: string;
   delta?: { value: string; positive: boolean };
   icon: ElementType;
-  iconColor?: "indigo" | "green" | "red" | "amber" | "blue" | "violet";
+  color?: "blue" | "green" | "cyan" | "red" | "amber";
+  /** Legacy alias */
+  iconColor?: "indigo" | "green" | "red" | "amber" | "blue" | "violet" | "cyan";
 }
 
-const iconColors = {
-  indigo: { bg: "bg-[#EEF2FF]", text: "text-[#4F46E5]" },
-  green: { bg: "bg-[#F0FDF4]", text: "text-[#16A34A]" },
-  red: { bg: "bg-[#FEF2F2]", text: "text-[#DC2626]" },
-  amber: { bg: "bg-[#FFFBEB]", text: "text-[#B45309]" },
-  blue: { bg: "bg-[#EFF6FF]", text: "text-[#1D4ED8]" },
-  violet: { bg: "bg-[#F5F3FF]", text: "text-[#7C3AED]" },
+const colorMap = {
+  blue:  { bg: "#e0f2fe", icon: "#0077b6", val: "#0077b6" },
+  green: { bg: "#dcfce7", icon: "#008000", val: "#008000" },
+  cyan:  { bg: "#caf0f8", icon: "#00b4d8", val: "#00b4d8" },
+  red:   { bg: "#fee2e2", icon: "#dc2626", val: "#dc2626" },
+  amber: { bg: "#fef3c7", icon: "#d97706", val: "#d97706" },
 };
 
-export function KpiCard({
-  label,
-  value,
-  subtitle,
-  delta,
-  icon: Icon,
-  iconColor = "indigo",
-}: KpiCardProps) {
-  const colors = iconColors[iconColor];
+const legacyToNew: Record<string, keyof typeof colorMap> = {
+  indigo: "blue",
+  violet: "blue",
+  blue: "blue",
+  green: "green",
+  red: "red",
+  amber: "amber",
+  cyan: "cyan",
+};
+
+export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, iconColor }: KpiCardProps) {
+  const resolvedKey = color ?? (iconColor ? legacyToNew[iconColor] : undefined) ?? "blue";
+  const c = colorMap[resolvedKey as keyof typeof colorMap] ?? colorMap.blue;
 
   return (
-    <div className="rounded-xl border border-border/50 bg-white p-4 dark:bg-card" style={{ boxShadow: "var(--shadow-card)" }}>
-      <div className={cn("mb-3 flex h-9 w-9 items-center justify-center rounded-lg", colors.bg)}>
-        <Icon className={cn("h-[18px] w-[18px]", colors.text)} />
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: "10px",
+        border: "1.5px solid #e0f2fe",
+        padding: "16px",
+        boxShadow: "0 1px 3px rgba(0,119,182,0.08)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 40,
+          height: 40,
+          borderRadius: 9,
+          background: c.bg,
+          marginBottom: 10,
+        }}
+      >
+        <Icon style={{ width: 20, height: 20, color: c.icon }} />
       </div>
-      <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="text-[22px] font-semibold leading-none text-foreground">{value}</div>
-      {subtitle && <div className="mt-1 text-[11px] text-muted-foreground">{subtitle}</div>}
+
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          color: c.val,
+          marginBottom: 4,
+        }}
+      >
+        {label}
+      </div>
+
+      <div style={{ fontSize: 24, fontWeight: 800, color: c.val, lineHeight: 1 }}>
+        {value}
+      </div>
+
+      {subtitle && (
+        <div style={{ fontSize: 11, color: "#90e0ef", marginTop: 3 }}>{subtitle}</div>
+      )}
+
       {delta && (
         <div
-          className={cn(
-            "mt-2 flex items-center gap-1 text-[11px] font-medium",
-            delta.positive ? "text-[#16A34A]" : "text-[#DC2626]",
-          )}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 12,
+            fontWeight: 600,
+            marginTop: 8,
+            color: delta.positive ? "#008000" : "#dc2626",
+          }}
         >
-          {delta.positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+          {delta.positive ? <TrendingUp style={{ width: 12, height: 12 }} /> : <TrendingDown style={{ width: 12, height: 12 }} />}
           {delta.value}
         </div>
       )}
