@@ -74,13 +74,6 @@ function AdminLayout() {
       ],
     },
     {
-      rail: { id: "analytics", icon: BarChart3, label: tr("Analitika", "Аналитика") },
-      sidebar: [
-        { id: "analytics", to: "/admin/analytics", icon: BarChart3, label: tr("Analitika", "Аналитика"), section: tr("HISOBOTLAR", "ОТЧЁТЫ") },
-        { id: "daily-report", to: "/admin/daily-report", icon: ClipboardList, label: tr("Kunlik hisobot", "Дневной отчёт"), section: tr("HISOBOTLAR", "ОТЧЁТЫ") },
-      ],
-    },
-    {
       rail: { id: "control", icon: ShieldCheck, label: tr("Nazorat", "Контроль") },
       sidebar: [
         { id: "control", to: "/admin/control", icon: ShieldCheck, label: tr("Nazorat", "Контроль"), section: tr("NAZORAT", "КОНТРОЛЬ") },

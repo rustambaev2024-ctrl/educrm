@@ -80,6 +80,14 @@
   --info: #0077b6;
   --info-bg: #e0f2fe;
 
+  /* ── Chart colors ── */
+  --chart-1: #0077b6;
+  --chart-2: #00b4d8;
+  --chart-3: #16a34a;
+  --chart-4: #d97706;
+  --chart-5: #dc2626;
+  --chart-6: #7c3aed;
+
   /* ── shadcn/ui tokens ── */
   --radius: 0.5rem;
   --background: hsl(210 40% 98%);
