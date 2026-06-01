@@ -52,6 +52,7 @@ import type { Student, StudentStatus } from "@/lib/data/types";
 import { transferApi, paymentApi, studentApi } from "@/lib/api";
 import { mapPayments, mapStudents } from "@/lib/data/mappers";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/students")({ component: StudentsPage });
 
@@ -66,6 +67,33 @@ const STATUS_OPTIONS: StatusFilter[] = [
   "expelled",
   "archived",
 ];
+
+const avatarColor = (name: string) => {
+  const colors = ["indigo", "green", "amber", "red", "blue", "violet"];
+  const first = name.trim().charCodeAt(0);
+  return colors[Number.isFinite(first) ? first % colors.length : 0];
+};
+
+const studentInitials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+const studentStatusClass = (status: StudentStatus) => {
+  const map: Record<StudentStatus, string> = {
+    active: "badge-status-active",
+    debtor: "badge-status-debt",
+    frozen: "badge-status-frozen",
+    graduate: "badge-status-trial",
+    expelled: "badge-status-debt",
+    archived: "badge-status-frozen",
+  };
+  return map[status] ?? "badge-status-trial";
+};
 
 export function StudentsPage() {
   const { t, lang } = useI18n();
@@ -167,7 +195,7 @@ export function StudentsPage() {
         <KpiCard label={lang === "uz" ? "Yangi (bu oy)" : "Новые (мес.)"} value={kpis.fresh} icon={UserPlus} iconColor="violet" />
       </div>
       <div>
-        <Card className="overflow-hidden shadow-elegant">
+        <Card className="card-elevated overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center md:justify-between">
             <div className="relative flex-1 md:max-w-sm">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -200,15 +228,14 @@ export function StudentsPage() {
           {filtered.length === 0 ? (
             <div className="p-12 text-center text-sm text-muted-foreground">{t("students.empty")}</div>
           ) : (
-            <Table>
+            <Table className="data-table">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("students.col.name")}</TableHead>
-                  <TableHead>{t("students.col.phone")}</TableHead>
-                  <TableHead>{t("students.col.status")}</TableHead>
-                  <TableHead>{t("students.col.groups")}</TableHead>
-                  <TableHead className="text-right">{t("students.col.balance")}</TableHead>
-                  <TableHead>{t("students.col.registered")}</TableHead>
+                  <TableHead>{lang === "uz" ? "O'quvchi" : "Ученик"}</TableHead>
+                  <TableHead>{lang === "uz" ? "Guruhlar" : "Группы"}</TableHead>
+                  <TableHead className="text-right">{lang === "uz" ? "Balans" : "Баланс"}</TableHead>
+                  <TableHead>{lang === "uz" ? "Holat" : "Статус"}</TableHead>
+                  <TableHead className="text-right">{lang === "uz" ? "Amallar" : "Действия"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -220,33 +247,36 @@ export function StudentsPage() {
                   return (
                     <TableRow
                       key={s.id}
-                      className="cursor-pointer hover:bg-accent/40"
+                      className="cursor-pointer transition-colors hover:bg-muted/30"
                       onClick={() => setSelectedId(s.id)}
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
+                          <div
+                            className={cn(
+                              "flex size-9 items-center justify-center overflow-hidden rounded-full text-xs font-semibold",
+                              `avatar-${avatarColor(s.fullName)}`,
+                            )}
+                          >
                             {s.photo ? (
                               <img src={s.photo} alt={s.fullName} className="size-full object-cover" />
                             ) : (
-                              s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")
+                              studentInitials(s.fullName)
                             )}
                           </div>
-                          <div>
-                            <div className="font-medium leading-tight">{s.fullName}</div>
-                            <div className="text-[11px] text-muted-foreground">ID: {s.id}</div>
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold leading-tight text-foreground">{s.fullName}</div>
+                            <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{s.phone}</div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{s.phone}</TableCell>
-                      <TableCell><StudentStatusBadge status={s.status} /></TableCell>
                       <TableCell className="text-sm">
                         {groupNames.length === 0 ? (
                           <span className="text-muted-foreground">{t("students.noGroups")}</span>
                         ) : (
-                          <div className="flex flex-col">
+                          <div className="flex flex-col text-muted-foreground">
                             {groupNames.map((n, i) => (
-                              <span key={i} className="truncate max-w-[200px]">{n}</span>
+                              <span key={i} className="max-w-[220px] truncate">{n}</span>
                             ))}
                             {s.groupIds.length > 2 && (
                               <span className="text-[11px] text-muted-foreground">+{s.groupIds.length - 2}</span>
@@ -254,10 +284,32 @@ export function StudentsPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className={`text-right font-medium tabular-nums ${s.balance < 0 ? "text-destructive" : ""}`}>
-                        {formatMoney(s.balance, lang)}
+                      <TableCell
+                        className={cn(
+                          "text-right font-semibold tabular-nums",
+                          s.balance > 0 && "text-[#15803D]",
+                          s.balance < 0 && "text-[#DC2626]",
+                          s.balance === 0 && "text-muted-foreground",
+                        )}
+                      >
+                        {s.balance > 0 ? "+" : ""}{formatMoney(s.balance, lang)}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{formatDate(s.registeredAt, lang)}</TableCell>
+                      <TableCell>
+                        <span className={cn("rounded-md px-2 py-1 text-[11px] font-medium", studentStatusClass(s.status))}>
+                          {t(`status.${s.status}`)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-[#4F46E5]"
+                          title={lang === "uz" ? "Ko'rish" : "Открыть"}
+                          onClick={() => setSelectedId(s.id)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
