@@ -7,6 +7,12 @@ function getLocalDateString() {
   const dd = String(now.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
+
+function monthLastDay(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return `${month}-${String(last).padStart(2, "0")}`;
+}
 import { Ban, CalendarDays, CircleMinus, Edit3, Plus, Search, Trash2, UserRound, Clock, UserCheck, CheckCircle2, XCircle, Award, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
@@ -447,7 +453,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
 }
 
 function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(() => getLocalDateString().slice(0, 7));
   const [branchId, setBranchId] = useState("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -474,7 +480,7 @@ function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; 
       if (branchId !== "all") params.branch_id = branchId;
       if (month) {
         params.date_from = `${month}-01`;
-        params.date_to = `${month}-31`;
+        params.date_to = monthLastDay(month);
       }
       const res = await analyticsApi.teachers(params);
       let list = (res as any).results || [];
@@ -646,7 +652,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState<StaffPenaltyStatus | "all">("all");
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(() => getLocalDateString().slice(0, 7));
   const [branchId, setBranchId] = useState("all");
   
   const [records, setRecords] = useState<any[]>([]);
@@ -694,7 +700,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
       if (branchId !== "all") params.branch_id = branchId;
       if (month) {
         params.date_from = `${month}-01`;
-        params.date_to = `${month}-31`;
+        params.date_to = monthLastDay(month);
       }
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
 
