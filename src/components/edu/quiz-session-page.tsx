@@ -165,7 +165,9 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
         <div className="text-center">
           <div className="text-sm uppercase tracking-widest text-white/50">{session.quiz_title}</div>
           <div className="mt-4 font-mono text-7xl font-bold tracking-[0.2em] tabular-nums">{session.code}</div>
-          <div className="mt-3 text-white/60">{tr("Kodni kiriting", "Введите код")}: app.educrm.uz/join</div>
+          <div className="mt-3 text-white/60">
+            {tr("Kodni kiriting", "Введите код")}: {typeof window !== "undefined" ? window.location.origin : ""}/join
+          </div>
         </div>
 
         <div className="w-full max-w-3xl">
