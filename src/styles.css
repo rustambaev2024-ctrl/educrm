@@ -239,6 +239,86 @@
   .text-balance { text-wrap: balance; }
 }
 
+/* Cards - shadow instead of only border */
+.card-elevated {
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 0.5px solid rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-card);
+}
+
+.dark .card-elevated {
+  background: var(--card);
+  border-color: color-mix(in oklab, white 10%, transparent);
+}
+
+/* Tables */
+.data-table th {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  padding: 10px 14px;
+  background: color-mix(in oklab, var(--muted) 40%, transparent);
+}
+
+.data-table td {
+  padding: 10px 14px;
+  font-size: 13px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tr:hover td {
+  background: color-mix(in oklab, var(--muted) 30%, transparent);
+}
+
+/* Badges - status style */
+.badge-status-active {
+  background: #F0FDF4;
+  color: #15803D;
+  border: none;
+}
+
+.badge-status-debt {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: none;
+}
+
+.badge-status-frozen {
+  background: #FFFBEB;
+  color: #B45309;
+  border: none;
+}
+
+.badge-status-trial {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: none;
+}
+
+/* Input focus */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--brand-600) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12) !important;
+}
+
+/* Avatar */
+.avatar-indigo { background: #EEF2FF; color: #4338CA; }
+.avatar-green { background: #F0FDF4; color: #15803D; }
+.avatar-red { background: #FEF2F2; color: #DC2626; }
+.avatar-amber { background: #FFFBEB; color: #B45309; }
+.avatar-blue { background: #EFF6FF; color: #1D4ED8; }
+.avatar-violet { background: #F5F3FF; color: #7C3AED; }
+
 /* ─── Public Apply / Landing Page ─────────────────────────────────────────── */
 
 .apply-page {
