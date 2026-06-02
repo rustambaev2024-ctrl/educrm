@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Play, ArrowRight, Trophy, Users, RotateCcw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { quizApi, readAccessToken } from "@/lib/api";
+import { quizApi, readAccessToken, getTenantSchema } from "@/lib/api";
 import { getWebSocketBaseUrl } from "@/lib/realtime";
 import { useI18n } from "@/lib/i18n";
 import type { QuizSessionRow } from "@/routes/admin/quizzes";
@@ -166,7 +166,7 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
           <div className="text-sm uppercase tracking-widest text-white/50">{session.quiz_title}</div>
           <div className="mt-4 font-mono text-7xl font-bold tracking-[0.2em] tabular-nums">{session.code}</div>
           <div className="mt-3 text-white/60">
-            {tr("Kodni kiriting", "Введите код")}: {typeof window !== "undefined" ? window.location.origin : ""}/join
+            {tr("Kodni kiriting", "Введите код")}: {typeof window !== "undefined" ? `${window.location.origin}/join?schema=${encodeURIComponent(getTenantSchema())}` : "/join"}
           </div>
         </div>
 

@@ -6,17 +6,30 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-
-@contextmanager
-def _noop():
-    yield
-
 from .models import Quiz, QuizSession, SessionParticipant
 from .serializers import (
     QuestionSerializer,
     QuizSerializer,
     QuizSessionSerializer,
 )
+
+
+def _get_schema(request):
+    """Resolve tenant schema from query param, header, or active tenant."""
+    return (
+        request.query_params.get("schema")
+        or request.META.get("HTTP_X_TENANT_SCHEMA")
+        or (request.tenant.schema_name if getattr(request, "tenant", None) else None)
+    )
+
+
+@contextmanager
+def _schema_ctx(schema_name):
+    if schema_name:
+        with schema_context(schema_name):
+            yield
+    else:
+        yield
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -26,10 +39,8 @@ class QuizViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Quiz.objects.prefetch_related("questions__answers")
-        # Директор и Админ видят все тесты
         if user.role in ("director", "admin", "branch_admin", "superadmin"):
             return qs
-        # Учитель — только свои
         return qs.filter(created_by=user)
 
     def perform_create(self, serializer):
@@ -53,7 +64,6 @@ class QuizViewSet(viewsets.ModelViewSet):
         )
         return Response(QuizSessionSerializer(session).data, status=status.HTTP_201_CREATED)
 
-    # Same url_path ("sessions"), GET method — list the quiz's sessions.
     @create_session.mapping.get
     def list_sessions(self, request, pk=None):
         quiz = self.get_object()
@@ -81,32 +91,24 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         permission_classes=[AllowAny],
     )
     def by_code(self, request, code=None):
-        schema_name = (
-            request.query_params.get("schema")
-            or request.META.get("HTTP_X_TENANT_SCHEMA")
-            or (request.tenant.schema_name if getattr(request, "tenant", None) else None)
-        )
+        schema_name = _get_schema(request)
+        with _schema_ctx(schema_name):
+            try:
+                session = QuizSession.objects.select_related("quiz").get(code=code)
+            except QuizSession.DoesNotExist:
+                return Response({"error": "Session not found"}, status=404)
+            except Exception:
+                # schema was public or missing — tables don't exist there
+                return Response({"error": "Session not found"}, status=404)
 
-        def _fetch(schema=None):
-            ctx = schema_context(schema) if schema else _noop()
-            with ctx:
-                try:
-                    session = QuizSession.objects.select_related("quiz").get(code=code)
-                    return Response({
-                        "session_id": str(session.id),
-                        "code": session.code,
-                        "status": session.status,
-                        "quiz_title": session.quiz.title,
-                        "quiz_type": session.quiz.quiz_type,
-                        "participants_count": session.participants.count(),
-                    })
-                except QuizSession.DoesNotExist:
-                    return None
-
-        result = _fetch(schema_name) if schema_name else _fetch()
-        if result is None:
-            return Response({"error": "Session not found"}, status=404)
-        return result
+            return Response({
+                "session_id": str(session.id),
+                "code": session.code,
+                "status": session.status,
+                "quiz_title": session.quiz.title,
+                "quiz_type": session.quiz.quiz_type,
+                "participants_count": session.participants.count(),
+            })
 
     @action(
         detail=True,
@@ -115,40 +117,31 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         permission_classes=[AllowAny],
     )
     def join(self, request, pk=None):
-        schema_name = (
-            request.query_params.get("schema")
-            or request.META.get("HTTP_X_TENANT_SCHEMA")
-            or (request.tenant.schema_name if getattr(request, "tenant", None) else None)
-        )
-        ctx = schema_context(schema_name) if schema_name else _noop()
-        with ctx:
-            return self._do_join(request, pk)
+        schema_name = _get_schema(request)
+        with _schema_ctx(schema_name):
+            try:
+                session = QuizSession.objects.get(pk=pk)
+            except QuizSession.DoesNotExist:
+                return Response({"error": "Session not found"}, status=404)
+            except Exception:
+                return Response({"error": "Session not found"}, status=404)
 
-    def _do_join(self, request, pk):
-        try:
-            session = QuizSession.objects.get(pk=pk)
-        except QuizSession.DoesNotExist:
-            return Response({"error": "Session not found"}, status=404)
+            if session.status != "waiting":
+                return Response({"error": "Session already started"}, status=400)
 
-        if session.status != "waiting":
-            return Response({"error": "Session already started"}, status=400)
+            data = request.data
+            if not (data.get("name") or "").strip():
+                return Response({"error": "Name is required"}, status=400)
 
-        data = request.data
-        if not (data.get("name") or "").strip():
-            return Response({"error": "Name is required"}, status=400)
-
-        participant = SessionParticipant.objects.create(
-            session=session,
-            name=data.get("name", "").strip(),
-            phone=data.get("phone", ""),
-            birth_date=data.get("birth_date") or None,
-            parent_name=data.get("parent_name", ""),
-            parent_phone=data.get("parent_phone", ""),
-        )
-        return Response(
-            {
-                "participant_id": str(participant.id),
-                "name": participant.name,
-            },
-            status=201,
-        )
+            participant = SessionParticipant.objects.create(
+                session=session,
+                name=data.get("name", "").strip(),
+                phone=data.get("phone", ""),
+                birth_date=data.get("birth_date") or None,
+                parent_name=data.get("parent_name", ""),
+                parent_phone=data.get("parent_phone", ""),
+            )
+            return Response(
+                {"participant_id": str(participant.id), "name": participant.name},
+                status=201,
+            )

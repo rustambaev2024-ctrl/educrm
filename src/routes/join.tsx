@@ -17,11 +17,12 @@ interface SessionMeta {
 function JoinPage() {
   const navigate = useNavigate();
 
-  // Если в URL передана схема (?schema=) — сохраняем её (мульти-тенант доступ без логина)
-  if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search);
-    const schema = params.get("schema");
-    if (schema && schema !== getTenantSchema()) setTenantSchema(schema);
+  // Читаем schema из URL (?schema=) — сохраняем сразу до любых запросов
+  const urlSchema = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("schema")
+    : null;
+  if (urlSchema && urlSchema !== getTenantSchema()) {
+    setTenantSchema(urlSchema);
   }
 
   const [stage, setStage] = useState<"code" | "info">("code");
