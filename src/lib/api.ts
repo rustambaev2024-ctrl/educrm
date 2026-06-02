@@ -628,13 +628,20 @@ export const quizApi = {
 
     get: (id: string) => requestJson(`/quiz-sessions/${id}/`),
 
-    byCode: (code: string) => requestJson(`/quiz-sessions/by-code/${code}/`),
+    byCode: (code: string) => {
+      const schema = getTenantSchema();
+      const qs = schema ? `?schema=${encodeURIComponent(schema)}` : "";
+      return requestJson(`/quiz-sessions/by-code/${code}/${qs}`);
+    },
 
-    join: (sessionId: string, data: Record<string, unknown>) =>
-      requestJson(`/quiz-sessions/${sessionId}/join/`, {
+    join: (sessionId: string, data: Record<string, unknown>) => {
+      const schema = getTenantSchema();
+      const qs = schema ? `?schema=${encodeURIComponent(schema)}` : "";
+      return requestJson(`/quiz-sessions/${sessionId}/join/${qs}`, {
         method: "POST",
         body: JSON.stringify(data),
-      }),
+      });
+    },
   },
 };
 

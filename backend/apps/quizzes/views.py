@@ -1,7 +1,15 @@
+from contextlib import contextmanager
+
+from django_tenants.utils import schema_context
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+
+
+@contextmanager
+def _noop():
+    yield
 
 from .models import Quiz, QuizSession, SessionParticipant
 from .serializers import (
@@ -73,20 +81,32 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         permission_classes=[AllowAny],
     )
     def by_code(self, request, code=None):
-        try:
-            session = QuizSession.objects.select_related("quiz").get(code=code)
-        except QuizSession.DoesNotExist:
-            return Response({"error": "Session not found"}, status=404)
-        return Response(
-            {
-                "session_id": str(session.id),
-                "code": session.code,
-                "status": session.status,
-                "quiz_title": session.quiz.title,
-                "quiz_type": session.quiz.quiz_type,
-                "participants_count": session.participants.count(),
-            }
+        schema_name = (
+            request.query_params.get("schema")
+            or request.META.get("HTTP_X_TENANT_SCHEMA")
+            or (request.tenant.schema_name if getattr(request, "tenant", None) else None)
         )
+
+        def _fetch(schema=None):
+            ctx = schema_context(schema) if schema else _noop()
+            with ctx:
+                try:
+                    session = QuizSession.objects.select_related("quiz").get(code=code)
+                    return Response({
+                        "session_id": str(session.id),
+                        "code": session.code,
+                        "status": session.status,
+                        "quiz_title": session.quiz.title,
+                        "quiz_type": session.quiz.quiz_type,
+                        "participants_count": session.participants.count(),
+                    })
+                except QuizSession.DoesNotExist:
+                    return None
+
+        result = _fetch(schema_name) if schema_name else _fetch()
+        if result is None:
+            return Response({"error": "Session not found"}, status=404)
+        return result
 
     @action(
         detail=True,
@@ -95,7 +115,16 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         permission_classes=[AllowAny],
     )
     def join(self, request, pk=None):
-        # detail=True with AllowAny: fetch directly (scoped queryset returns none for anon).
+        schema_name = (
+            request.query_params.get("schema")
+            or request.META.get("HTTP_X_TENANT_SCHEMA")
+            or (request.tenant.schema_name if getattr(request, "tenant", None) else None)
+        )
+        ctx = schema_context(schema_name) if schema_name else _noop()
+        with ctx:
+            return self._do_join(request, pk)
+
+    def _do_join(self, request, pk):
         try:
             session = QuizSession.objects.get(pk=pk)
         except QuizSession.DoesNotExist:

@@ -19,7 +19,12 @@ class HeaderOrDomainTenantMiddleware:
         "/api/v1/auth/login/",
         "/api/v1/auth/token/",
     }
-    PUBLIC_PATH_PREFIXES = ()
+    PUBLIC_PATH_PREFIXES = (
+        "/api/v1/quiz-sessions/by-code/",
+    )
+    PUBLIC_PATH_SUFFIXES = (
+        "/join/",
+    )
     MUTATING_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
 
     def __init__(self, get_response):
@@ -61,7 +66,11 @@ class HeaderOrDomainTenantMiddleware:
         return self.get_response(request)
 
     def _is_public_path(self, path):
-        return path in self.PUBLIC_PATHS or path.startswith(self.PUBLIC_PATH_PREFIXES)
+        return (
+            path in self.PUBLIC_PATHS
+            or path.startswith(self.PUBLIC_PATH_PREFIXES)
+            or path.endswith(self.PUBLIC_PATH_SUFFIXES)
+        )
 
     def _is_blocked_tenant_request(self, request, tenant):
         if request.method not in self.MUTATING_METHODS:
