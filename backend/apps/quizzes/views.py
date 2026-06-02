@@ -32,6 +32,28 @@ def _schema_ctx(schema_name):
         yield
 
 
+def _find_session_across_tenants(lookup):
+    """
+    Найти QuizSession в любой tenant-схеме.
+    lookup — функция, принимающая ничего и возвращающая session или бросающая
+    QuizSession.DoesNotExist. Используется как fallback когда schema не передана
+    (например ученик открыл /join без ?schema= и без логина).
+    """
+    from apps.tenants.models import Institution
+    from django_tenants.utils import get_public_schema_name
+
+    public = get_public_schema_name()
+    for institution in Institution.objects.exclude(schema_name=public):
+        try:
+            with schema_context(institution.schema_name):
+                return lookup(), institution.schema_name
+        except QuizSession.DoesNotExist:
+            continue
+        except Exception:
+            continue
+    return None, None
+
+
 class QuizViewSet(viewsets.ModelViewSet):
     serializer_class = QuizSerializer
     permission_classes = [IsAuthenticated]
@@ -91,24 +113,35 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         permission_classes=[AllowAny],
     )
     def by_code(self, request, code=None):
-        schema_name = _get_schema(request)
-        with _schema_ctx(schema_name):
-            try:
-                session = QuizSession.objects.select_related("quiz").get(code=code)
-            except QuizSession.DoesNotExist:
-                return Response({"error": "Session not found"}, status=404)
-            except Exception:
-                # schema was public or missing — tables don't exist there
-                return Response({"error": "Session not found"}, status=404)
-
-            return Response({
+        def _serialize(session):
+            return {
                 "session_id": str(session.id),
                 "code": session.code,
                 "status": session.status,
                 "quiz_title": session.quiz.title,
                 "quiz_type": session.quiz.quiz_type,
                 "participants_count": session.participants.count(),
-            })
+            }
+
+        schema_name = _get_schema(request)
+
+        # 1) Если schema известна — ищем в ней.
+        if schema_name:
+            with _schema_ctx(schema_name):
+                try:
+                    session = QuizSession.objects.select_related("quiz").get(code=code)
+                    return Response(_serialize(session))
+                except (QuizSession.DoesNotExist, Exception):
+                    pass
+
+        # 2) Fallback: schema не передана или сессия не найдена — ищем по всем тенантам.
+        result, _ = _find_session_across_tenants(
+            lambda: QuizSession.objects.select_related("quiz").get(code=code)
+        )
+        if result is not None:
+            return Response(_serialize(result))
+
+        return Response({"error": "Session not found"}, status=404)
 
     @action(
         detail=True,
@@ -118,12 +151,21 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
     )
     def join(self, request, pk=None):
         schema_name = _get_schema(request)
+
+        # Определяем рабочую схему: переданная или найденная по всем тенантам.
+        if not schema_name:
+            _, found_schema = _find_session_across_tenants(
+                lambda: QuizSession.objects.get(pk=pk)
+            )
+            schema_name = found_schema
+
+        if not schema_name:
+            return Response({"error": "Session not found"}, status=404)
+
         with _schema_ctx(schema_name):
             try:
                 session = QuizSession.objects.get(pk=pk)
-            except QuizSession.DoesNotExist:
-                return Response({"error": "Session not found"}, status=404)
-            except Exception:
+            except (QuizSession.DoesNotExist, Exception):
                 return Response({"error": "Session not found"}, status=404)
 
             if session.status != "waiting":

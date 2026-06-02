@@ -61,7 +61,9 @@ type ApiList<T> = { results: T[]; count: number } | T[];
 export function getTenantSchema(): string {
   if (typeof window === "undefined") return import.meta.env.VITE_DEFAULT_TENANT_SCHEMA ?? "";
   const stored = localStorage.getItem(TENANT_SCHEMA_KEY);
-  return stored ?? (import.meta.env.DEV ? import.meta.env.VITE_DEFAULT_TENANT_SCHEMA ?? "" : "");
+  // Fallback на дефолтную schema (single-tenant прод) — работает и в DEV, и в PROD.
+  // Нужно для публичных страниц (/join, /apply) где пользователь не залогинен.
+  return stored ?? import.meta.env.VITE_DEFAULT_TENANT_SCHEMA ?? "";
 }
 
 export function setTenantSchema(schema: string | null) {
