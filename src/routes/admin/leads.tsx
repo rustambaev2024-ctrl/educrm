@@ -180,6 +180,13 @@ function AdminLeadsPage() {
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       if (e.deltaY === 0) return;
+      
+      // Allow vertical scrolling inside the columns
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest(".kanban-column-scroll")) {
+        return; 
+      }
+      
       e.preventDefault();
       el.scrollTo({ left: el.scrollLeft + e.deltaY * 2, behavior: "auto" });
     };
@@ -462,7 +469,7 @@ function AdminLeadsPage() {
                     <span className="text-[15px] tracking-tight">{t.status[status]}</span>
                     <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-background/50 backdrop-blur-sm">{columnLeads.length}</Badge>
                   </div>
-                  <div className="flex flex-col gap-3 p-3 flex-1 overflow-y-auto bg-muted/20">
+                  <div className="kanban-column-scroll flex flex-col gap-3 p-3 flex-1 overflow-y-auto bg-muted/20">
                     {columnLeads.map(lead => (
                       <div
                         key={lead.id}
