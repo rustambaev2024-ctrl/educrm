@@ -9,18 +9,19 @@ interface PageShellProps {
 
 export function PageShell({ title, subtitle, actions, children }: PageShellProps) {
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: 16, boxSizing: "border-box", width: "100%", overflowX: "hidden" }}>
       <div
         style={{
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: 12,
+          gap: 8,
           marginBottom: 14,
+          minWidth: 0,
         }}
       >
-        <div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#0f172a", margin: 0, lineHeight: 1.3 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#0f172a", margin: 0, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {title}
           </h1>
           {subtitle && (
@@ -30,7 +31,7 @@ export function PageShell({ title, subtitle, actions, children }: PageShellProps
           )}
         </div>
         {actions && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", flexShrink: 0, maxWidth: "55%" }}>
             {actions}
           </div>
         )}

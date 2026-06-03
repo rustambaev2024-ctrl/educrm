@@ -111,7 +111,7 @@ function TeacherGrades() {
       subtitle={t("grades.subtitle")}
       actions={
         <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-          <SelectTrigger className="h-8 w-[200px] text-[12px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[140px] max-w-[55vw] text-[12px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             {myGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
           </SelectContent>
@@ -119,7 +119,7 @@ function TeacherGrades() {
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 min-[360px]:gap-3">
           <KpiCard label={t("grades.title")} value={groupGrades.length} icon={BookOpen} iconColor="blue" />
           <KpiCard label={t("grades.average")} value={`${overallAvg} / 10`} icon={Award} iconColor="green" />
           <KpiCard label={lang === "uz" ? "A'lochi o'quvchilar" : "Отличники"} value={topStudentsCount} icon={Users} iconColor="violet" />

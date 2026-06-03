@@ -44,7 +44,7 @@ export function MobileLayout({ items, children }: { items: MobileNavItem[]; chil
   const initials = user?.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8fafc] text-[#0f172a]">
+    <div className="flex min-h-screen flex-col bg-[#f8fafc] text-[#0f172a]" style={{ width: "100%", maxWidth: "100vw", overflowX: "hidden", boxSizing: "border-box" }}>
       {/* Topbar */}
       <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-[#e2e8f0] bg-white px-4">
         <div className="flex min-w-0 items-center gap-2">

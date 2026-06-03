@@ -148,7 +148,7 @@ function TeacherHomework() {
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 min-[360px]:gap-3">
           <KpiCard label={lang === "uz" ? "Jami vazifalar" : "Всего заданий"} value={kpis.total} icon={BookOpen} iconColor="blue" />
           <KpiCard label={lang === "uz" ? "Topshirilgan" : "Сдано"} value={kpis.submitted} icon={CheckCircle2} iconColor="green" />
           <KpiCard label={lang === "uz" ? "Muddati o'tgan" : "Просрочено"} value={kpis.overdue} icon={AlertCircle} iconColor="red" />

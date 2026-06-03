@@ -41,8 +41,11 @@ export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, icon
         background: "#fff",
         borderRadius: 10,
         border: "1px solid #f1f5f9",
-        padding: 14,
+        padding: 12,
         boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+        minWidth: 0,
+        overflow: "hidden",
+        boxSizing: "border-box",
       }}
     >
       {/* Row 1: icon + delta */}
@@ -85,18 +88,21 @@ export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, icon
       </div>
 
       {/* Row 2: value */}
-      <div style={{ fontSize: 22, fontWeight: 800, color: c.val, lineHeight: 1, marginBottom: 4 }}>
+      <div style={{ fontSize: 18, fontWeight: 800, color: c.val, lineHeight: 1, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {value}
       </div>
 
       {/* Row 3: label */}
       <div
         style={{
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: 700,
           textTransform: "uppercase",
-          letterSpacing: "0.06em",
+          letterSpacing: "0.04em",
           color: "#64748b",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
         }}
       >
         {label}
