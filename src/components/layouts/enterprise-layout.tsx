@@ -16,6 +16,7 @@ import { GlobalSearch } from "@/components/edu/global-search";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { branchApi } from "@/lib/api";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 /* ── Public types — kept identical so route files need no changes ── */
 export interface RailItem {
@@ -337,16 +338,8 @@ export function EnterpriseLayout({
   );
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "240px 1fr",
-        gridTemplateRows: "52px 1fr",
-        height: "100vh",
-        overflow: "hidden",
-      }}
-    >
-      {/* Sidebar — spans both rows */}
+    <div className="grid h-screen w-full overflow-hidden grid-cols-1 grid-rows-[52px_1fr] md:grid-cols-[240px_1fr]">
+      {/* Sidebar — spans both rows on desktop */}
       <aside
         style={{ gridRow: "1 / 3", gridColumn: "1 / 2" }}
         className="hidden md:block"
@@ -357,15 +350,11 @@ export function EnterpriseLayout({
       {/* Topbar */}
       <header
         style={{
-          gridRow: "1 / 2",
-          gridColumn: "2 / 3",
           background: "#fff",
           borderBottom: "1px solid #e2e8f0",
-          display: "flex",
-          alignItems: "center",
           padding: "0 20px",
-          gap: 12,
         }}
+        className="flex items-center gap-3 col-start-1 md:col-start-2 row-start-1"
       >
         {/* Mobile burger */}
         <button
@@ -497,57 +486,22 @@ export function EnterpriseLayout({
       {/* Main content */}
       <main
         style={{
-          gridRow: "2 / 3",
-          gridColumn: "2 / 3",
           background: "#f8fafc",
           overflowY: "auto",
           overflowX: "hidden",
         }}
+        className="col-start-1 md:col-start-2 row-start-2"
       >
         {children}
       </main>
 
       {/* Mobile drawer */}
-      {mobileOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 50,
-            display: "flex",
-          }}
-          className="md:hidden"
-        >
-          <div
-            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)" }}
-            onClick={() => setMobileOpen(false)}
-          />
-          <div style={{ position: "relative", zIndex: 51, display: "flex", flexDirection: "column" }}>
-            <button
-              onClick={() => setMobileOpen(false)}
-              style={{
-                position: "absolute",
-                right: -40,
-                top: 12,
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.15)",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                zIndex: 52,
-              }}
-            >
-              <X style={{ width: 16, height: 16 }} />
-            </button>
-            {renderSidebar(() => setMobileOpen(false))}
-          </div>
-        </div>
-      )}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-[240px] p-0 border-r-0 [&>button]:text-white">
+          <SheetTitle className="sr-only">Menu</SheetTitle>
+          {renderSidebar(() => setMobileOpen(false))}
+        </SheetContent>
+      </Sheet>
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>

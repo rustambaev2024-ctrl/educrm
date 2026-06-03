@@ -770,9 +770,9 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         safe(roomApi.list() as Promise<ListResponse<RoomRaw>>, [], "rooms"),
         safe(courseApi.list() as Promise<ListResponse<CourseRaw>>, [], "courses"),
         safe(groupApi.list() as Promise<ListResponse<GroupRaw>>, [], "groups"),
-        canSeeStudents ? safe(studentApi.list() as Promise<ListResponse<StudentRaw>>, [], "students") : Promise.resolve([]),
-        canSeeStaff ? safe(staffApi.list() as Promise<ListResponse<StaffRaw>>, [], "staff") : Promise.resolve([]),
-        canSeeStudents ? safe(parentApi.list() as Promise<ListResponse<ParentRaw>>, [], "parents") : Promise.resolve([]),
+        canSeeStudents ? safe(studentApi.list({ page_size: 1000 }) as Promise<ListResponse<StudentRaw>>, [], "students") : Promise.resolve([]),
+        canSeeStaff ? safe(staffApi.list({ page_size: 1000 }) as Promise<ListResponse<StaffRaw>>, [], "staff") : Promise.resolve([]),
+        canSeeStudents ? safe(parentApi.list({ page_size: 1000 }) as Promise<ListResponse<ParentRaw>>, [], "parents") : Promise.resolve([]),
         safe(lessonApi.list() as Promise<ListResponse<LessonRaw>>, [], "lessons"),
         safe(attendanceApi.list() as Promise<ListResponse<AttendanceRaw>>, [], "attendance"),
         (canSeeFinance || user?.role === "student" || user?.role === "parent")

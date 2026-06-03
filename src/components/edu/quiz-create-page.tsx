@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2, GripVertical, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
@@ -42,6 +42,39 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
   const [quizType, setQuizType] = useState<"student" | "lead">("student");
   const [questions, setQuestions] = useState<DraftQuestion[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loadingQuiz, setLoadingQuiz] = useState(false);
+
+  const editId = new URLSearchParams(window.location.search).get("edit");
+
+  useEffect(() => {
+    if (editId) {
+      setLoadingQuiz(true);
+      quizApi.get(editId)
+        .then((data: any) => {
+          setTitle(data.title || "");
+          setDescription(data.description || "");
+          setQuizType(data.quiz_type || "student");
+          if (data.questions) {
+            setQuestions(
+              data.questions.map((q: any) => {
+                const correctIdx = q.answers.findIndex((a: any) => a.is_correct);
+                return {
+                  text: q.text,
+                  time_limit: q.time_limit,
+                  answers: q.answers.map((a: any) => ({ text: a.text })),
+                  correctIndex: correctIdx >= 0 ? correctIdx : 0,
+                };
+              })
+            );
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          toast.error(tr("Testni yuklab bo'lmadi", "Не удалось загрузить тест"));
+        })
+        .finally(() => setLoadingQuiz(false));
+    }
+  }, [editId, lang]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [draft, setDraft] = useState<DraftQuestion>({
@@ -80,7 +113,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
 
   const removeQuestion = (idx: number) => setQuestions((prev) => prev.filter((_, i) => i !== idx));
 
-  const createQuiz = async () => {
+  const saveQuiz = async () => {
     if (!title.trim()) {
       toast.error(tr("Test nomini kiriting", "Введите название теста"));
       setStep(1);
@@ -92,35 +125,44 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
     }
     setSaving(true);
     try {
-      const quiz = (await quizApi.create({
-        title: title.trim(),
-        description: description.trim(),
-        quiz_type: quizType,
-      })) as { id: string };
-
-      // Создаём вопросы по очереди (с answers вложенно)
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        const answers = q.answers
-          .filter((a) => a.text.trim())
-          .map((a, ai) => ({
-            text: a.text.trim(),
-            is_correct: ai === q.correctIndex,
-            order: ai,
-          }));
-        await quizApi.addQuestion(quiz.id, {
-          text: q.text.trim(),
-          time_limit: q.time_limit,
-          order: i,
-          answers,
+      if (editId) {
+        await quizApi.update(editId, {
+          title: title.trim(),
+          description: description.trim(),
+          quiz_type: quizType,
         });
+        toast.success(tr("Test yangilandi (savollar o'zgarmadi)", "Тест обновлен (вопросы нельзя изменить)"));
+      } else {
+        const quiz = (await quizApi.create({
+          title: title.trim(),
+          description: description.trim(),
+          quiz_type: quizType,
+        })) as { id: string };
+
+        // Создаём вопросы по очереди (с answers вложенно)
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          const answers = q.answers
+            .filter((a) => a.text.trim())
+            .map((a, ai) => ({
+              text: a.text.trim(),
+              is_correct: ai === q.correctIndex,
+              order: ai,
+            }));
+          await quizApi.addQuestion(quiz.id, {
+            text: q.text.trim(),
+            time_limit: q.time_limit,
+            order: i,
+            answers,
+          });
+        }
+        toast.success(tr("Test yaratildi", "Тест создан"));
       }
 
-      toast.success(tr("Test yaratildi", "Тест создан"));
       navigate({ to: `${basePath}/quizzes` as string });
     } catch (err) {
       console.error("[quiz-create] failed", err);
-      toast.error(tr("Testni yaratib bo'lmadi", "Не удалось создать тест"));
+      toast.error(tr("Xatolik yuz berdi", "Произошла ошибка"));
     } finally {
       setSaving(false);
     }
@@ -207,14 +249,14 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
               <Plus className="size-4" /> {tr("Savol qo'shish", "Добавить вопрос")}
             </Button>
 
-            <div className="flex items-center justify-between pt-2">
-              <Button variant="ghost" className="gap-1.5" onClick={() => setStep(1)}>
-                <ArrowLeft className="size-4" /> {tr("Orqaga", "Назад")}
-              </Button>
-              <Button className="gap-1.5" onClick={createQuiz} disabled={saving || questions.length === 0}>
-                <Check className="size-4" /> {saving ? tr("Saqlanmoqda...", "Сохранение...") : tr("Test yaratish", "Создать тест")}
-              </Button>
-            </div>
+            <div className="mt-8 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setStep(1)} disabled={saving}>
+              {tr("Orqaga", "Назад")}
+            </Button>
+            <Button onClick={saveQuiz} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              {saving ? tr("Saqlanmoqda...", "Сохранение...") : editId ? tr("Saqlash", "Сохранить") : tr("Yaratish", "Создать")}
+            </Button>
+          </div>
           </div>
         )}
       </div>
