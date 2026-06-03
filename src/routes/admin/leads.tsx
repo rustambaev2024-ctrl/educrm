@@ -425,7 +425,7 @@ function AdminLeadsPage() {
             </div>
           </div>
 
-          <div ref={scrollRef} className="flex gap-4 overflow-x-auto overflow-y-hidden p-4 pb-6 min-h-[520px]">
+          <div ref={scrollRef} className="flex gap-4 overflow-x-auto overflow-y-hidden p-4 pb-6 min-h-[520px] h-[calc(100vh-280px)]">
             {STATUS_OPTIONS.map(status => {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
@@ -437,7 +437,7 @@ function AdminLeadsPage() {
               }[status] || "bg-muted text-foreground border-border";
 
               return (
-                <div key={status} className="flex flex-col w-72 shrink-0 rounded-2xl bg-card border border-border shadow-sm overflow-hidden"
+                <div key={status} className="flex flex-col w-72 shrink-0 rounded-2xl bg-card border border-border shadow-sm overflow-hidden h-full"
                   onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
                   onDrop={async (e) => {
                     e.preventDefault();
