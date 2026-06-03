@@ -32,35 +32,26 @@ def _schema_ctx(schema_name):
         yield
 
 
-def _list_tenant_schemas():
-    """Список всех tenant-схем (кроме public). Запрашивается в public-контексте."""
+def _find_session_across_tenants(lookup):
+    """
+    Найти QuizSession в любой tenant-схеме.
+    lookup — функция, принимающая ничего и возвращающая session или бросающая
+    QuizSession.DoesNotExist. Используется как fallback когда schema не передана
+    (например ученик открыл /join без ?schema= и без логина).
+    """
     from apps.tenants.models import Institution
     from django_tenants.utils import get_public_schema_name
-    from django.db import connection
 
     public = get_public_schema_name()
-    connection.set_schema_to_public()
-    return list(
-        Institution.objects.exclude(schema_name=public).values_list("schema_name", flat=True)
-    )
-
-
-def _find_schema_for_session(predicate):
-    """
-    Перебрать все tenant-схемы и вернуть имя той, где predicate() находит сессию.
-    predicate выполняется ВНУТРИ schema_context, поэтому любой доступ к данным
-    безопасен. Возвращает schema_name или None.
-    """
-    for schema_name in _list_tenant_schemas():
+    for institution in Institution.objects.exclude(schema_name=public):
         try:
-            with schema_context(schema_name):
-                if predicate():
-                    return schema_name
+            with schema_context(institution.schema_name):
+                return lookup(), institution.schema_name
         except QuizSession.DoesNotExist:
             continue
         except Exception:
             continue
-    return None
+    return None, None
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -122,9 +113,7 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         permission_classes=[AllowAny],
     )
     def by_code(self, request, code=None):
-        def _fetch_payload():
-            """Возвращает dict с данными сессии. Выполняется внутри нужной схемы."""
-            session = QuizSession.objects.select_related("quiz").get(code=code)
+        def _serialize(session):
             return {
                 "session_id": str(session.id),
                 "code": session.code,
@@ -138,22 +127,19 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
         # 1) Если schema известна — ищем в ней.
         if schema_name:
-            try:
-                with _schema_ctx(schema_name):
-                    return Response(_fetch_payload())
-            except (QuizSession.DoesNotExist, Exception):
-                pass
+            with _schema_ctx(schema_name):
+                try:
+                    session = QuizSession.objects.select_related("quiz").get(code=code)
+                    return Response(_serialize(session))
+                except (QuizSession.DoesNotExist, Exception):
+                    pass
 
-        # 2) Fallback: ищем схему, где есть сессия с этим кодом, и сериализуем там же.
-        found_schema = _find_schema_for_session(
-            lambda: QuizSession.objects.filter(code=code).exists()
+        # 2) Fallback: schema не передана или сессия не найдена — ищем по всем тенантам.
+        result, _ = _find_session_across_tenants(
+            lambda: QuizSession.objects.select_related("quiz").get(code=code)
         )
-        if found_schema:
-            try:
-                with schema_context(found_schema):
-                    return Response(_fetch_payload())
-            except Exception:
-                pass
+        if result is not None:
+            return Response(_serialize(result))
 
         return Response({"error": "Session not found"}, status=404)
 
@@ -168,9 +154,10 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
         # Определяем рабочую схему: переданная или найденная по всем тенантам.
         if not schema_name:
-            schema_name = _find_schema_for_session(
-                lambda: QuizSession.objects.filter(pk=pk).exists()
+            _, found_schema = _find_session_across_tenants(
+                lambda: QuizSession.objects.get(pk=pk)
             )
+            schema_name = found_schema
 
         if not schema_name:
             return Response({"error": "Session not found"}, status=404)
