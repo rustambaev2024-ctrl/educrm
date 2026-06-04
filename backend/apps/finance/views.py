@@ -65,21 +65,6 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
 
 @api_view(["POST"])
 @perm_classes([IsAuthenticated])
-def run_sync_balances(request):
-    if request.user.role not in ("superadmin", "director", "admin"):
-        return Response({"error": "Forbidden"}, status=403)
-    from io import StringIO
-    from django.core.management import call_command
-    out = StringIO()
-    try:
-        call_command("sync_balances", stdout=out)
-        return Response({"result": out.getvalue(), "success": True})
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
-
-
-@api_view(["POST"])
-@perm_classes([IsAuthenticated])
 def trigger_daily_charge(request):
     """Manual trigger for daily_lesson_charge task (director/admin only)."""
     if request.user.role not in ("director", "admin", "branch_admin", "superadmin"):
