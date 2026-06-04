@@ -183,6 +183,28 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
             comment=comment,
             category="other"  # correction
         )
+    elif payment.payment_type == "manual_charge":
+        # Manual charge was -amount. Reverse with manual_top_up.
+        result = apply_payment(
+            student=payment.student,
+            payment_type="manual_top_up",
+            amount=payment.amount,
+            group=payment.group,
+            lesson=payment.lesson,
+            created_by=created_by,
+            comment=comment,
+        )
+    elif payment.payment_type == "manual_top_up":
+        # Manual top_up was +amount. Reverse with manual_charge.
+        result = apply_payment(
+            student=payment.student,
+            payment_type="manual_charge",
+            amount=payment.amount,
+            group=payment.group,
+            lesson=payment.lesson,
+            created_by=created_by,
+            comment=comment,
+        )
     else:
         raise ValueError(f"Reversal for {payment.payment_type} not implemented")
         

@@ -228,6 +228,16 @@ LOGGING = {
 from celery.schedules import crontab
 
 CELERY_BEAT_SCHEDULE = {
+    # ФИНАНСЫ — критически важно
+    "daily-lesson-charge": {
+        "task": "apps.finance.tasks.daily_lesson_charge",
+        "schedule": crontab(hour=23, minute=0),
+    },
+    "update-debtor-statuses": {
+        "task": "apps.finance.tasks.update_debtor_statuses",
+        "schedule": crontab(hour=0, minute=30),
+    },
+    # УВЕДОМЛЕНИЯ
     "lead-follow-up-reminder": {
         "task": "apps.notifications.tasks.lead_follow_up_reminder",
         "schedule": crontab(hour=9, minute=0),
@@ -247,6 +257,20 @@ CELERY_BEAT_SCHEDULE = {
     "trial-lesson-reminder": {
         "task": "apps.notifications.tasks.trial_lesson_reminder",
         "schedule": crontab(minute="*/30"),
+    },
+    # ДОМАШНИЕ ЗАДАНИЯ
+    "mark-overdue-homework": {
+        "task": "apps.homework.tasks.mark_overdue_homework",
+        "schedule": crontab(hour=0, minute=10),
+    },
+    # SMS
+    "send-debtor-sms": {
+        "task": "apps.notifications.tasks.send_debtor_sms",
+        "schedule": crontab(hour=10, minute=0, day_of_week=1),
+    },
+    "send-trial-lesson-sms": {
+        "task": "apps.notifications.tasks.send_trial_lesson_sms",
+        "schedule": crontab(hour=9, minute=0),
     },
 }
 

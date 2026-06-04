@@ -13,7 +13,6 @@ from .models import Payment
 from .services import (
     apply_payment,
     calculate_lesson_price,
-    get_or_create_wallet,
 )
 
 logger = logging.getLogger(__name__)
@@ -109,7 +108,6 @@ def daily_lesson_charge():
                 for student, att in students_to_process:
                     try:
                         with transaction.atomic():
-                            get_or_create_wallet(student)
                             cat = "absent_charge" if (att and att.status == "absent") else "tuition"
                             apply_payment(
                                 student=student,

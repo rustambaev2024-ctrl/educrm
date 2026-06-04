@@ -71,13 +71,18 @@ def trigger_daily_charge(request):
         return Response({"detail": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
 
     from .tasks import daily_lesson_charge
+    from datetime import date
     try:
         daily_lesson_charge()
-        charge_count = Payment.objects.filter(payment_type="charge").count()
+        today = date.today()
+        charge_count = Payment.objects.filter(
+            payment_type="charge",
+            created_at__date=today,
+        ).count()
         return Response({
             "status": "ok",
             "message": "daily_lesson_charge executed successfully",
-            "total_charges": charge_count,
+            "charges_today": charge_count,
         })
     except Exception as e:
         return Response({"status": "error", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
