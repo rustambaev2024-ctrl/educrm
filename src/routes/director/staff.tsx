@@ -182,7 +182,7 @@ function StaffPage() {
           {filtered.length === 0 ? (
             <div className="p-12 text-center text-sm text-muted-foreground">{t("staff.empty")}</div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto"><Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("staff.col.name")}</TableHead>
@@ -205,9 +205,6 @@ function StaffPage() {
                         </div>
                         <div>
                           <div className="font-medium leading-tight">{s.fullName}</div>
-                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                            <Briefcase className="size-3" /> ID: {s.id}
-                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -256,7 +253,7 @@ function StaffPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+            </Table></div>
           )}
         </Card>
       </div>

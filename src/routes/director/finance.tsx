@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { TrendingUp, TrendingDown, Wallet, AlertTriangle, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
@@ -23,6 +24,23 @@ export const Route = createFileRoute("/director/finance")({ component: DirectorF
 function DirectorFinancePage() {
   const { t, lang } = useI18n();
   const { payments, students, branches, reversePayment, isLoading } = useData();
+
+  const [walletsLimit, setWalletsLimit] = useState(50);
+
+  const handleReversePayment = async (paymentId: string, amount: number) => {
+    const confirmed = window.confirm(
+      lang === "uz"
+        ? `${formatMoney(amount, lang)} miqdordagi to'lovni bekor qilishni tasdiqlaysizmi?`
+        : `Подтвердите отмену платежа на сумму ${formatMoney(amount, lang)}`,
+    );
+    if (!confirmed) return;
+    try {
+      await reversePayment(paymentId);
+      toast.success(lang === "uz" ? "To'lov bekor qilindi" : "Платёж отменён");
+    } catch {
+      toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+    }
+  };
 
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
@@ -75,7 +93,7 @@ function DirectorFinancePage() {
       const studentPayments = monthPayments.filter(p => p.studentId === s.id && p.direction === "in");
       studentPayments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       const lastPayment = studentPayments[0];
-      
+
       return {
         ...s,
         lastPaymentDate: lastPayment ? lastPayment.date : null,
@@ -83,6 +101,8 @@ function DirectorFinancePage() {
       };
     });
   }, [students, monthPayments]);
+
+  const visibleWallets = wallets.slice(0, walletsLimit);
 
   if (isLoading) {
     return (
@@ -164,7 +184,7 @@ function DirectorFinancePage() {
         </div>
 
         <Card className="p-6 shadow-elegant">
-          <div className="mb-4 text-sm font-semibold">Wallets</div>
+          <div className="mb-4 text-sm font-semibold">{lang === "uz" ? "Hamyonlar" : "Кошельки"}</div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -173,7 +193,7 @@ function DirectorFinancePage() {
                   <TableHead>{t("finance.col.phone")}</TableHead>
                   <TableHead>{t("finance.col.status")}</TableHead>
                   <TableHead className="text-right">{t("finance.col.balance")}</TableHead>
-                  <TableHead className="text-right">Last Payment</TableHead>
+                  <TableHead className="text-right">{lang === "uz" ? "Oxirgi to'lov" : "Последний платёж"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -184,7 +204,7 @@ function DirectorFinancePage() {
                     </TableCell>
                   </TableRow>
                 )}
-                {wallets.map((w) => (
+                {visibleWallets.map((w) => (
                   <TableRow key={w.id}>
                     <TableCell className="font-medium">{w.fullName}</TableCell>
                     <TableCell className="text-muted-foreground">{w.phone}</TableCell>
@@ -198,6 +218,16 @@ function DirectorFinancePage() {
               </TableBody>
             </Table>
           </div>
+          {wallets.length > walletsLimit && (
+            <button
+              onClick={() => setWalletsLimit((l) => l + 50)}
+              className="w-full border-t py-2 text-sm text-[#0077b6] hover:bg-[#f0f9ff]"
+            >
+              {lang === "uz"
+                ? `Yana ${wallets.length - walletsLimit} ta ko'rsatish`
+                : `Показать ещё ${wallets.length - walletsLimit}`}
+            </button>
+          )}
         </Card>
 
         <Card className="overflow-hidden shadow-elegant">
@@ -206,7 +236,7 @@ function DirectorFinancePage() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t("finance.col.date")}</TableHead>
-                <TableHead>Tur</TableHead>
+                <TableHead>{lang === "uz" ? "Tur" : "Тип"}</TableHead>
                 <TableHead>{t("finance.col.category")}</TableHead>
                 <TableHead>{t("nav.branches")}</TableHead>
                 <TableHead className="text-right">{t("finance.col.amount")}</TableHead>
@@ -231,7 +261,7 @@ function DirectorFinancePage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {p.type !== 'refund' && (
-                      <Button variant="ghost" size="icon" onClick={() => reversePayment(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                      <Button variant="ghost" size="icon" onClick={() => handleReversePayment(p.id, p.amount)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                         <RotateCcw className="size-4" />
                       </Button>
                     )}

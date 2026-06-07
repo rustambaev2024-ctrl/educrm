@@ -28,10 +28,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useData } from "@/lib/data/store";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/director/courses")({ component: DirectorCoursesPage });
 
 function DirectorCoursesPage() {
+  const { lang } = useI18n();
   const { courses, groups, addCourse, updateCourse, deleteCourse, isLoading } = useData();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -82,7 +84,7 @@ function DirectorCoursesPage() {
   const submit = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      toast.error("Kurs nomini kiriting");
+      toast.error(lang === "uz" ? "Kurs nomini kiriting" : "Введите название курса");
       return;
     }
 
@@ -90,16 +92,16 @@ function DirectorCoursesPage() {
       (course) => course.id !== editingCourseId && course.name.trim().toLowerCase() === trimmedName.toLowerCase(),
     );
     if (duplicate) {
-      toast.error("Bu nomdagi kurs allaqachon mavjud");
+      toast.error(lang === "uz" ? "Bu nomdagi kurs allaqachon mavjud" : "Курс с таким названием уже существует");
       return;
     }
 
     if (editingCourseId) {
       updateCourse(editingCourseId, { name: trimmedName, description: description.trim() || "" });
-      toast.success("Kurs yangilandi");
+      toast.success(lang === "uz" ? "Kurs yangilandi" : "Курс обновлён");
     } else {
       addCourse({ name: trimmedName, description: description.trim() || undefined });
-      toast.success("Kurs yaratildi");
+      toast.success(lang === "uz" ? "Kurs yaratildi" : "Курс создан");
     }
     resetForm();
     setOpen(false);
@@ -109,12 +111,12 @@ function DirectorCoursesPage() {
     if (!deletingCourse) return;
     const stats = courseStats[deletingCourse.id] ?? { groupsCount: 0, studentsCount: 0 };
     if (stats.groupsCount > 0) {
-      toast.error("Bu kursda guruhlar bor. Avval guruhlarni boshqa kursga o'tkazing yoki o'chiring.");
+      toast.error(lang === "uz" ? "Bu kursda guruhlar bor. Avval guruhlarni boshqa kursga o'tkazing yoki o'chiring." : "В этом курсе есть группы. Сначала перенесите или удалите группы.");
       setDeleteCourseId(null);
       return;
     }
     deleteCourse(deletingCourse.id);
-    toast.success("Kurs o'chirildi");
+    toast.success(lang === "uz" ? "Kurs o'chirildi" : "Курс удалён");
     setDeleteCourseId(null);
   };
 
@@ -128,20 +130,20 @@ function DirectorCoursesPage() {
 
   return (
     <PageShell
-      title="Kurslar"
-      subtitle="Muassasa bo'yicha barcha o'quv yo'nalishlarini direktor yaratadi va boshqaradi"
+      title={lang === "uz" ? "Kurslar" : "Курсы"}
+      subtitle={lang === "uz" ? "Muassasa bo'yicha barcha o'quv yo'nalishlarini direktor yaratadi va boshqaradi" : "Директор создаёт и управляет всеми учебными направлениями учреждения"}
       actions={
         <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={openCreate}>
-          <Plus className="size-3.5" /> Kurs qo'shish
+          <Plus className="size-3.5" /> {lang === "uz" ? "Kurs qo'shish" : "Добавить курс"}
         </Button>
       }
     >
       <div className="space-y-5">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <KpiCard label="Jami kurslar" value={courses.length} icon={BookOpen} iconColor="blue" />
-          <KpiCard label="Faol guruhlar" value={groups.length} icon={Layers} iconColor="green" />
+          <KpiCard label={lang === "uz" ? "Jami kurslar" : "Всего курсов"} value={courses.length} icon={BookOpen} iconColor="blue" />
+          <KpiCard label={lang === "uz" ? "Faol guruhlar" : "Активные группы"} value={groups.length} icon={Layers} iconColor="green" />
           <KpiCard
-            label="Kursga bog'langan o'quvchilar"
+            label={lang === "uz" ? "Kursga bog'langan o'quvchilar" : "Учеников на курсах"}
             value={groups.reduce((sum, group) => sum + group.studentIds.length, 0)}
             icon={Plus}
             iconColor="violet"
@@ -151,12 +153,12 @@ function DirectorCoursesPage() {
         <Card className="overflow-hidden shadow-elegant">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Kurslar ro'yxati</h2>
-              <p className="text-sm text-muted-foreground">Kurs yaratilgandan keyin administratorlar shu kurs asosida guruh ochadi.</p>
+              <h2 className="text-lg font-semibold">{lang === "uz" ? "Kurslar ro'yxati" : "Список курсов"}</h2>
+              <p className="text-sm text-muted-foreground">{lang === "uz" ? "Kurs yaratilgandan keyin administratorlar shu kurs asosida guruh ochadi." : "После создания курса администраторы открывают группы на его основе."}</p>
             </div>
             <div className="relative w-full md:w-80">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Kurs qidirish..." className="pl-9" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={lang === "uz" ? "Kurs qidirish..." : "Поиск курса..."} className="pl-9" />
             </div>
           </div>
 
@@ -165,10 +167,10 @@ function DirectorCoursesPage() {
               <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-accent text-primary">
                 <BookOpen className="size-7" />
               </div>
-              <h3 className="mt-4 font-semibold">Hali kurs yo'q</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Birinchi kursni yarating: masalan English A1, Math Foundation yoki IELTS.</p>
+              <h3 className="mt-4 font-semibold">{lang === "uz" ? "Hali kurs yo'q" : "Курсов пока нет"}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{lang === "uz" ? "Birinchi kursni yarating: masalan English A1, Math Foundation yoki IELTS." : "Создайте первый курс: например English A1, Math Foundation или IELTS."}</p>
               <Button onClick={openCreate} className="mt-4 gap-2">
-                <Plus className="size-4" /> Kurs qo'shish
+                <Plus className="size-4" /> {lang === "uz" ? "Kurs qo'shish" : "Добавить курс"}
               </Button>
             </div>
           ) : (
@@ -184,11 +186,11 @@ function DirectorCoursesPage() {
                       <div className="min-w-0 flex-1">
                         <h3 className="truncate font-semibold">{course.name}</h3>
                         <p className="mt-1 line-clamp-2 min-h-10 text-sm text-muted-foreground">
-                          {course.description || "Tavsif kiritilmagan"}
+                          {course.description || (lang === "uz" ? "Tavsif kiritilmagan" : "Описание не указано")}
                         </p>
                       </div>
                       <div className="flex shrink-0 gap-1">
-                        <Button type="button" variant="ghost" size="icon" className="size-8" title="Kursni tahrirlash" onClick={() => openEdit(course)}>
+                        <Button type="button" variant="ghost" size="icon" className="size-8" title={lang === "uz" ? "Kursni tahrirlash" : "Редактировать курс"} onClick={() => openEdit(course)}>
                           <Pencil className="size-4" />
                         </Button>
                         <Button
@@ -196,7 +198,7 @@ function DirectorCoursesPage() {
                           variant="ghost"
                           size="icon"
                           className="size-8 text-destructive hover:text-destructive"
-                          title="Kursni o'chirish"
+                          title={lang === "uz" ? "Kursni o'chirish" : "Удалить курс"}
                           onClick={() => setDeleteCourseId(course.id)}
                         >
                           <Trash2 className="size-4" />
@@ -205,11 +207,11 @@ function DirectorCoursesPage() {
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
                       <div className="rounded-xl bg-muted/60 p-3">
-                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Guruhlar</div>
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{lang === "uz" ? "Guruhlar" : "Группы"}</div>
                         <div className="mt-1 text-lg font-semibold tabular-nums">{stats.groupsCount}</div>
                       </div>
                       <div className="rounded-xl bg-muted/60 p-3">
-                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">O'quvchilar</div>
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{lang === "uz" ? "O'quvchilar" : "Ученики"}</div>
                         <div className="mt-1 text-lg font-semibold tabular-nums">{stats.studentsCount}</div>
                       </div>
                     </div>
@@ -230,29 +232,29 @@ function DirectorCoursesPage() {
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingCourse ? "Kursni tahrirlash" : "Kurs qo'shish"}</DialogTitle>
+            <DialogTitle>{editingCourse ? (lang === "uz" ? "Kursni tahrirlash" : "Редактировать курс") : (lang === "uz" ? "Kurs qo'shish" : "Добавить курс")}</DialogTitle>
             <DialogDescription>
-              Direktor kurs nomi va tavsifini boshqaradi. Guruh, o'qituvchi, xona va jadval alohida belgilanadi.
+              {lang === "uz" ? "Direktor kurs nomi va tavsifini boshqaradi. Guruh, o'qituvchi, xona va jadval alohida belgilanadi." : "Директор управляет названием и описанием курса. Группа, учитель, кабинет и расписание задаются отдельно."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
             <div>
-              <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Kurs nomi *</Label>
-              <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Masalan: English A1" autoFocus />
+              <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">{lang === "uz" ? "Kurs nomi" : "Название курса"} *</Label>
+              <Input value={name} onChange={(event) => setName(event.target.value)} placeholder={lang === "uz" ? "Masalan: English A1" : "Например: English A1"} autoFocus />
             </div>
             <div>
-              <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">Tavsif</Label>
+              <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">{lang === "uz" ? "Tavsif" : "Описание"}</Label>
               <Textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="Kurs maqsadi, darajasi yoki davomiyligi haqida qisqa yozing"
+                placeholder={lang === "uz" ? "Kurs maqsadi, darajasi yoki davomiyligi haqida qisqa yozing" : "Кратко опишите цель, уровень или продолжительность курса"}
                 rows={4}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Bekor qilish</Button>
-            <Button onClick={submit}>{editingCourse ? "Saqlash" : "Yaratish"}</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>{lang === "uz" ? "Bekor qilish" : "Отмена"}</Button>
+            <Button onClick={submit}>{editingCourse ? (lang === "uz" ? "Saqlash" : "Сохранить") : (lang === "uz" ? "Yaratish" : "Создать")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -260,17 +262,19 @@ function DirectorCoursesPage() {
       <AlertDialog open={!!deleteCourseId} onOpenChange={(nextOpen) => !nextOpen && setDeleteCourseId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Kurs o'chirilsinmi?</AlertDialogTitle>
+            <AlertDialogTitle>{lang === "uz" ? "Kurs o'chirilsinmi?" : "Удалить курс?"}</AlertDialogTitle>
             <AlertDialogDescription>
               {deletingCourse
-                ? `"${deletingCourse.name}" kursi o'chiriladi. Guruhlarga bog'langan kurslarni o'chirish mumkin emas.`
-                : "Tanlangan kurs o'chiriladi."}
+                ? (lang === "uz"
+                    ? `"${deletingCourse.name}" kursi o'chiriladi. Guruhlarga bog'langan kurslarni o'chirish mumkin emas.`
+                    : `Курс "${deletingCourse.name}" будет удалён. Курсы с привязанными группами удалить нельзя.`)
+                : (lang === "uz" ? "Tanlangan kurs o'chiriladi." : "Выбранный курс будет удалён.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+            <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              O'chirish
+              {lang === "uz" ? "O'chirish" : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
