@@ -354,7 +354,7 @@ function FinancePage() {
                         <TableCell className="text-xs text-muted-foreground">{formatDate(p.date, lang)}</TableCell>
                         <TableCell className="max-w-[220px] truncate text-xs text-muted-foreground">{p.comment ?? "-"}</TableCell>
                         <TableCell className="text-right">
-                          {p.type !== "refund" && (
+                          {["manual_charge", "manual_top_up", "top_up"].includes(p.type) && (
                             <Button variant="ghost" size="icon" onClick={() => reversePayment(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                               <RotateCcw className="size-4" />
                             </Button>
@@ -394,7 +394,7 @@ function FinancePage() {
                       <TableCell className="text-xs text-muted-foreground">{formatDate(p.date, lang)}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{p.comment ?? "—"}</TableCell>
                       <TableCell className="text-right">
-                        {p.type !== 'refund' && (
+                        {["manual_charge", "manual_top_up", "top_up"].includes(p.type) && (
                           <Button variant="ghost" size="icon" onClick={() => reversePayment(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                             <RotateCcw className="size-4" />
                           </Button>

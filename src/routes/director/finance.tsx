@@ -260,7 +260,7 @@ function DirectorFinancePage() {
                     {p.direction === "in" ? "+" : p.direction === "out" ? "−" : ""}{formatMoney(p.amount, lang)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {p.type !== 'refund' && (
+                    {["manual_charge", "manual_top_up", "top_up"].includes(p.type) && (
                       <Button variant="ghost" size="icon" onClick={() => handleReversePayment(p.id, p.amount)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                         <RotateCcw className="size-4" />
                       </Button>
