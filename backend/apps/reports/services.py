@@ -6,7 +6,6 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db.models import Count, Sum, Avg
 from django.db.models.functions import Coalesce, TruncDate
-from django.db.models import F
 from django.utils import timezone
 
 from apps.audit.models import AuditLog
@@ -423,13 +422,18 @@ def calculate_teacher_salary(
         applied_percent = teacher.salary_percent or Decimal("0.00")
     applied_percent = _quantize(applied_percent)
 
+    # Зарплата учителя считается от ВСЕХ списаний за его группы, а не только
+    # от уроков, где ученик был отмечен present/late. Списание происходит со всех
+    # активных участников группы независимо от посещаемости, поэтому привязка к
+    # lesson + attendance занижала зарплату. Исключаем absent_charge — списания
+    # за пропуск без уважительной причины не идут в долю учителя.
     payments_qs = Payment.objects.filter(
         payment_type="charge",
         group__teacher=teacher,
         created_at__date__gte=period_start,
         created_at__date__lte=period_end,
-        lesson__attendance__student_id=F("student_id"),
-        lesson__attendance__status__in=["present", "late"],
+    ).exclude(
+        category="absent_charge",
     ).distinct()
 
     students_data = (
