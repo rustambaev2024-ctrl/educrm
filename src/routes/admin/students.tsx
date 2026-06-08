@@ -801,7 +801,9 @@ function StudentDetailSheet({
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="text-left">{student.fullName}</SheetTitle>
-          <SheetDescription className="text-left">ID: {student.id}</SheetDescription>
+          <SheetDescription className="text-left">
+            {student.phone} · {lang === "uz" ? "Ro'yxatdan o'tgan" : "Зарегистрирован"}: {formatDate(student.registeredAt, lang)}
+          </SheetDescription>
         </SheetHeader>
 
         <div className="space-y-5 px-4 py-6">

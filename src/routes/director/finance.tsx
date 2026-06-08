@@ -248,7 +248,7 @@ function DirectorFinancePage() {
                 <TableRow key={p.id}>
                   <TableCell className="text-xs text-muted-foreground">{formatDate(p.date, lang)}</TableCell>
                   <TableCell>
-                    <PaymentTypeBadge type={p.type} />
+                    <PaymentTypeBadge type={p.type} lang={lang} />
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{p.category ? t(`finance.cat.${p.category}`) : "—"}</Badge>
@@ -276,16 +276,18 @@ function DirectorFinancePage() {
   );
 }
 
-function PaymentTypeBadge({ type }: { type: string }) {
-  const map: Record<string, { label: string; className: string }> = {
-    top_up: { label: "To'lov", className: "bg-success/15 text-success border-success/30" },
-    charge: { label: "Dars", className: "bg-info/15 text-info border-info/30" },
-    manual_charge: { label: "Qo'lda yechish", className: "bg-destructive/15 text-destructive border-destructive/30" },
-    manual_top_up: { label: "Qo'lda kirim", className: "bg-success/15 text-success border-success/30" },
-    refund: { label: "Qaytarish", className: "bg-warning/15 text-warning border-warning/30" },
-    discount: { label: "Chegirma", className: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
-    expense: { label: "Xarajat", className: "bg-destructive/15 text-destructive border-destructive/30" },
+function PaymentTypeBadge({ type, lang }: { type: string; lang: "uz" | "ru" }) {
+  const map: Record<string, { uz: string; ru: string; className: string }> = {
+    top_up: { uz: "To'lov", ru: "Пополнение", className: "bg-success/15 text-success border-success/30" },
+    charge: { uz: "Dars uchun", ru: "За урок", className: "bg-info/15 text-info border-info/30" },
+    manual_charge: { uz: "Yechish", ru: "Списание", className: "bg-destructive/15 text-destructive border-destructive/30" },
+    manual_top_up: { uz: "Qo'shish", ru: "Зачисление", className: "bg-success/15 text-success border-success/30" },
+    refund: { uz: "Qaytarish", ru: "Возврат", className: "bg-warning/15 text-warning border-warning/30" },
+    discount: { uz: "Chegirma", ru: "Скидка", className: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
+    expense: { uz: "Xarajat", ru: "Расход", className: "bg-destructive/15 text-destructive border-destructive/30" },
   };
-  const info = map[type] ?? { label: type, className: "bg-muted text-muted-foreground" };
-  return <Badge variant="outline" className={`text-[10px] ${info.className}`}>{info.label}</Badge>;
+  const info = map[type];
+  const label = info ? (lang === "uz" ? info.uz : info.ru) : type;
+  const className = info?.className ?? "bg-muted text-muted-foreground";
+  return <Badge variant="outline" className={`text-[10px] ${className}`}>{label}</Badge>;
 }

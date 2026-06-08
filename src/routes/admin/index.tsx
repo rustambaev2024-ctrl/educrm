@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { AlertCircle, Clock, DollarSign, MapPin, TrendingUp, UserPlus, Users } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
@@ -42,6 +42,7 @@ function getLocalDateString() {
 
 function AdminHome() {
   const { lang } = useI18n();
+  const navigate = useNavigate();
   const { students, groups, lessons, payments, staff, rooms, courses, attendance, isLoading } = useData();
 
   const today = new Date();
@@ -92,7 +93,7 @@ function AdminHome() {
       title={tr("Boshqaruv paneli", "Панель управления")}
       subtitle={todayLabel}
       actions={
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={() => navigate({ to: "/admin/students" })}>
           <UserPlus style={{ width: 14, height: 14 }} />
           {tr("Yangi o'quvchi", "Новый ученик")}
         </button>
@@ -120,6 +121,7 @@ function AdminHome() {
               </div>
             </div>
             <button
+              onClick={() => navigate({ to: "/admin/schedule" })}
               style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#f1f5f9", color: "#475569", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
             >
               {tr("Barchasi", "Все")}
@@ -181,6 +183,7 @@ function AdminHome() {
               <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
             </div>
             <button
+              onClick={() => navigate({ to: "/admin/finance" })}
               style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#f1f5f9", color: "#475569", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
             >
               {tr("Barchasi", "Все")}

@@ -13,15 +13,15 @@ import { Users, BookOpen, AlertTriangle, Calendar, DollarSign } from "lucide-rea
 
 export const Route = createFileRoute("/admin/notifications")({ component: NotificationsPage });
 
-const typeConfig: Record<string, { icon: any; color: string; bg: string; label: string }> = {
-  lead_follow_up: { icon: Users, color: "text-amber-500", bg: "bg-amber-500/10", label: "Murojaat" },
-  debtor_alert: { icon: DollarSign, color: "text-destructive", bg: "bg-destructive/10", label: "Qarzdor" },
-  lesson_reminder: { icon: Calendar, color: "text-[#0077b6]", bg: "bg-[#e0f2fe]", label: "Dars" },
-  trial_lesson_reminder: { icon: Calendar, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Sinov darsi" },
-  homework_deadline: { icon: BookOpen, color: "text-violet-500", bg: "bg-violet-500/10", label: "Vazifa" },
-  lesson_cancelled: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", label: "Bekor" },
-  payment_due: { icon: DollarSign, color: "text-amber-500", bg: "bg-amber-500/10", label: "To'lov" },
-  default: { icon: Bell, color: "text-muted-foreground", bg: "bg-muted", label: "" },
+const typeConfig: Record<string, { icon: any; color: string; bg: string; label: string; labelRu: string }> = {
+  lead_follow_up: { icon: Users, color: "text-amber-500", bg: "bg-amber-500/10", label: "Murojaat", labelRu: "Заявка" },
+  debtor_alert: { icon: DollarSign, color: "text-destructive", bg: "bg-destructive/10", label: "Qarzdor", labelRu: "Должник" },
+  lesson_reminder: { icon: Calendar, color: "text-[#0077b6]", bg: "bg-[#e0f2fe]", label: "Dars", labelRu: "Урок" },
+  trial_lesson_reminder: { icon: Calendar, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Sinov darsi", labelRu: "Пробный урок" },
+  homework_deadline: { icon: BookOpen, color: "text-violet-500", bg: "bg-violet-500/10", label: "Vazifa", labelRu: "Задание" },
+  lesson_cancelled: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", label: "Bekor", labelRu: "Отмена" },
+  payment_due: { icon: DollarSign, color: "text-amber-500", bg: "bg-amber-500/10", label: "To'lov", labelRu: "Платёж" },
+  default: { icon: Bell, color: "text-muted-foreground", bg: "bg-muted", label: "", labelRu: "" },
 };
 
 function NotificationsPage() {
@@ -116,6 +116,7 @@ function NotificationsPage() {
             {filtered.map((n) => {
               const cfg = typeConfig[n.notification_type] ?? typeConfig.default;
               const Icon = cfg.icon;
+              const cfgLabel = lang === "uz" ? cfg.label : (cfg.labelRu || cfg.label);
               return (
                 <div
                   key={n.id}
@@ -134,7 +135,7 @@ function NotificationsPage() {
                       <span className="text-xs text-muted-foreground flex-shrink-0">{formatDate(n.created_at, lang)}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
-                    {cfg.label && <Badge variant="outline" className="mt-1.5 text-[10px] h-4 px-1.5">{cfg.label}</Badge>}
+                    {cfgLabel && <Badge variant="outline" className="mt-1.5 text-[10px] h-4 px-1.5">{cfgLabel}</Badge>}
                   </div>
                   {!n.is_read && <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />}
                 </div>

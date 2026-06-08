@@ -103,13 +103,13 @@ const methodBadgeClass = (method: PaymentMethod) => {
 
 const paymentTypeLabel = (type: string, lang: "uz" | "ru") => {
   const map: Record<string, { uz: string; ru: string }> = {
-    top_up: { uz: "To'lov", ru: "Платеж" },
-    charge: { uz: "Dars uchun yechim", ru: "Списание за урок" },
+    top_up: { uz: "To'ldirish", ru: "Пополнение" },
+    charge: { uz: "Dars uchun", ru: "За урок" },
     discount: { uz: "Chegirma", ru: "Скидка" },
     refund: { uz: "Qaytarish", ru: "Возврат" },
     expense: { uz: "Xarajat", ru: "Расход" },
-    manual_top_up: { uz: "Qo'lda kirim", ru: "Ручной приход" },
-    manual_charge: { uz: "Qo'lda yechim", ru: "Ручное списание" },
+    manual_top_up: { uz: "Qo'shish", ru: "Зачисление" },
+    manual_charge: { uz: "Yechish", ru: "Списание" },
   };
   const label = map[type];
   return label ? label[lang] : type;
@@ -386,7 +386,7 @@ function FinancePage() {
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.studentId ? studentById[p.studentId]?.fullName : "—"}</TableCell>
                       <TableCell>
-                        <PaymentTypeBadge type={p.type} />
+                        <PaymentTypeBadge type={p.type} lang={lang} />
                       </TableCell>
                       <TableCell className={`text-right font-semibold ${p.direction === 'in' ? 'text-success' : p.direction === 'out' ? 'text-destructive' : 'text-amber-600'}`}>
                         {p.direction === 'in' ? '+' : p.direction === 'out' ? '-' : '•'} {formatMoney(p.amount, lang)}
@@ -678,16 +678,16 @@ function ExpenseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
 // silence unused — `Receipt` only used for icon palette consistency
 void Receipt;
 
-function PaymentTypeBadge({ type }: { type: string }) {
-  const map: Record<string, { label: string; className: string }> = {
-    top_up: { label: "To'lov", className: "bg-success/15 text-success border-success/30" },
-    charge: { label: "Dars", className: "bg-info/15 text-info border-info/30" },
-    manual_charge: { label: "Qo'lda yechish", className: "bg-destructive/15 text-destructive border-destructive/30" },
-    manual_top_up: { label: "Qo'lda kirim", className: "bg-success/15 text-success border-success/30" },
-    refund: { label: "Qaytarish", className: "bg-warning/15 text-warning border-warning/30" },
-    discount: { label: "Chegirma", className: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
-    expense: { label: "Xarajat", className: "bg-destructive/15 text-destructive border-destructive/30" },
+function PaymentTypeBadge({ type, lang }: { type: string; lang: "uz" | "ru" }) {
+  const classMap: Record<string, string> = {
+    top_up: "bg-success/15 text-success border-success/30",
+    charge: "bg-info/15 text-info border-info/30",
+    manual_charge: "bg-destructive/15 text-destructive border-destructive/30",
+    manual_top_up: "bg-success/15 text-success border-success/30",
+    refund: "bg-warning/15 text-warning border-warning/30",
+    discount: "bg-purple-500/15 text-purple-600 border-purple-500/30",
+    expense: "bg-destructive/15 text-destructive border-destructive/30",
   };
-  const info = map[type] ?? { label: type, className: "bg-muted text-muted-foreground" };
-  return <Badge variant="outline" className={`text-[10px] ${info.className}`}>{info.label}</Badge>;
+  const className = classMap[type] ?? "bg-muted text-muted-foreground";
+  return <Badge variant="outline" className={`text-[10px] ${className}`}>{paymentTypeLabel(type, lang)}</Badge>;
 }

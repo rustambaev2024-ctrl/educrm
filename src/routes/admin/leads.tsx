@@ -352,6 +352,12 @@ function AdminLeadsPage() {
 
   const deleteSelected = async () => {
     if (!selected) return;
+    const confirmed = window.confirm(
+      lang === "uz"
+        ? `"${selected.fullName}" murojaatini o'chirishni tasdiqlaysizmi?`
+        : `Удалить заявку "${selected.fullName}"? Это действие нельзя отменить.`,
+    );
+    if (!confirmed) return;
     try {
       await leadApi.delete(selected.id);
       setLeads((prev) => prev.filter((lead) => lead.id !== selected.id));

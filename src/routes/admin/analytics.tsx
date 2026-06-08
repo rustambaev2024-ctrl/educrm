@@ -18,7 +18,18 @@ function AdminAnalytics() {
   const { t, lang } = useI18n();
   const { students, groups, lessons, payments, attendance, courses, isLoading } = useData();
 
-  const totalIncome = payments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
+  const monthIncome = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+    return payments
+      .filter((p) => {
+        if (p.direction !== "in") return false;
+        const t = new Date(p.date).getTime();
+        return t >= monthStart && t < monthEnd;
+      })
+      .reduce((s, p) => s + p.amount, 0);
+  }, [payments]);
   const completedLessons = lessons.filter((l) => l.status === "completed").length;
   const attPct = attendancePercentage(attendance);
 
@@ -69,7 +80,7 @@ function AdminAnalytics() {
           <KpiCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} iconColor="blue" subtitle={lang === "uz" ? "Faol va muzlatilganlar" : "Активные и замороженные"} />
           <KpiCard label={t("admin.activeGroups")} value={`${groups.length}`} icon={Layers} iconColor="violet" subtitle={lang === "uz" ? "Faol o'quv guruhlari" : "Активные учебные группы"} />
           <KpiCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={CalendarCheck} iconColor="green" subtitle={lang === "uz" ? "O'rtacha joriy oy" : "Среднее за текущий месяц"} />
-          <KpiCard label={t("director.monthlyRevenue")} value={formatMoney(totalIncome, lang)} icon={Wallet} iconColor="amber" subtitle={lang === "uz" ? "Joriy oy to'lovlari" : "Платежи за текущий месяц"} />
+          <KpiCard label={t("director.monthlyRevenue")} value={formatMoney(monthIncome, lang)} icon={Wallet} iconColor="amber" subtitle={lang === "uz" ? "Joriy oy" : "Текущий месяц"} />
         </div>
 
         <Card className="p-6 shadow-elegant">
