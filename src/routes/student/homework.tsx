@@ -98,7 +98,7 @@ function StudentHomeworkPage() {
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-[10px]">{grp?.name}</Badge>
           <span className={`ml-auto rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${due.tone}`}>
-            {due.label === "overdue" ? `${t("hw.overdue")} ${due.days}d` : due.label === "today" ? t("hw.dueToday") : t("hw.dueIn").replace("{n}", String(due.days))}
+            {due.label === "overdue" ? `${t("hw.overdue")} ${due.days}${lang === "uz" ? " kun" : " дн."}` : due.label === "today" ? t("hw.dueToday") : t("hw.dueIn").replace("{n}", String(due.days))}
           </span>
         </div>
         <h3 className="mt-2 text-sm font-semibold">{h.title}</h3>

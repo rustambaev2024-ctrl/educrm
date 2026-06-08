@@ -44,9 +44,9 @@ export function MobileLayout({ items, children }: { items: MobileNavItem[]; chil
   const initials = user?.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8fafc] text-[#0f172a]" style={{ width: "100%", maxWidth: "100vw", overflowX: "hidden", boxSizing: "border-box" }}>
+    <div className="flex min-h-screen flex-col bg-background text-foreground" style={{ width: "100%", maxWidth: "100vw", overflowX: "hidden", boxSizing: "border-box" }}>
       {/* Topbar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-[#e2e8f0] bg-white px-4">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-card px-4">
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#0077b6] text-sm font-bold text-white">
             {instLogo && !logoError ? (
@@ -82,7 +82,7 @@ export function MobileLayout({ items, children }: { items: MobileNavItem[]; chil
       <main className="flex-1 pb-20">{children}</main>
 
       {/* Bottom navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#f1f5f9] bg-white pb-[env(safe-area-inset-bottom)]">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-md items-center justify-around px-2 py-1.5">
           {items.map((item) => {
             const active =

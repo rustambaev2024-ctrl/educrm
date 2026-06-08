@@ -14,15 +14,16 @@ export const Route = createFileRoute("/student/schedule")({ component: StudentSc
 
 function StudentSchedulePage() {
   const { t, lang } = useI18n();
-  const { lessons, groups, rooms, students, staff, isLoading } = useData();
+  const { lessons, groups, rooms, staff, isLoading } = useData();
   const studentId = useCurrentStudentId();
-  const me = students.find((s) => s.id === studentId);
-
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => startOfWeek(new Date()));
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekAnchor, i)), [weekAnchor]);
   const today = new Date();
 
-  const myGroupIds = useMemo(() => new Set(me?.groupIds ?? []), [me]);
+  const myGroupIds = useMemo(
+    () => new Set(studentId ? groups.filter((g) => g.studentIds?.includes(studentId)).map((g) => g.id) : []),
+    [groups, studentId],
+  );
   const groupById = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
   const roomById = useMemo(() => Object.fromEntries(rooms.map((r) => [r.id, r])), [rooms]);
   const teacherById = useMemo(() => Object.fromEntries(staff.map((s) => [s.id, s])), [staff]);

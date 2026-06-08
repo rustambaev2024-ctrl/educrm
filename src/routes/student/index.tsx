@@ -11,6 +11,20 @@ import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/student/")({ component: StudentHome });
 
+function getPaymentLabel(type: string, lang: string) {
+  const map: Record<string, { uz: string; ru: string }> = {
+    top_up:        { uz: "To'lov",     ru: "Оплата" },
+    charge:        { uz: "Dars uchun", ru: "За урок" },
+    manual_charge: { uz: "Yechish",    ru: "Списание" },
+    manual_top_up: { uz: "Qo'shish",   ru: "Зачисление" },
+    discount:      { uz: "Chegirma",   ru: "Скидка" },
+    refund:        { uz: "Qaytarish",  ru: "Возврат" },
+  };
+  const label = map[type];
+  if (!label) return type;
+  return lang === "uz" ? label.uz : label.ru;
+}
+
 function money(amount: number) {
   return `${amount.toLocaleString("uz-Latn", { maximumFractionDigits: 0 })} UZS`;
 }
@@ -28,7 +42,7 @@ function initials(name: string) {
 function StudentHome() {
   const studentId = useCurrentStudentId();
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { students, groups, courses, lessons, rooms, homework, submissions, payments, isLoading } = useData();
 
   const student = useMemo(
@@ -93,7 +107,7 @@ function StudentHome() {
     return (
       <div className="mx-auto max-w-md px-4 py-5">
         <Card className="p-5 shadow-elegant">
-          <div className="text-sm font-semibold">Profile is not loaded yet</div>
+          <div className="text-sm font-semibold">{lang === "uz" ? "Profil yuklanmoqda..." : "Загрузка профиля..."}</div>
           <div className="mt-1 text-xs text-muted-foreground">
             {t("studentHome.profileSync")}
           </div>
@@ -225,7 +239,7 @@ function StudentHome() {
                     </div>
                     <div>
                       <div className="text-xs font-medium">
-                        {p.type === "top_up" || p.type === "manual_top_up" ? "To'lov" : p.type === "charge" || p.type === "manual_charge" ? "Dars uchun" : p.type === "discount" ? "Chegirma" : p.type === "refund" ? "Qaytarish" : p.type}
+                        {getPaymentLabel(p.type, lang)}
                       </div>
                       <div className="text-[10px] text-muted-foreground">{p.date.slice(0, 10)}</div>
                     </div>
