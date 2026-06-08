@@ -46,6 +46,20 @@ class LoginView(TokenObtainPairView):
         refresh = RefreshToken(data["refresh"])
         create_user_session(serializer.user, str(refresh["jti"]), request)
 
+        user = serializer.user
+        if hasattr(user, "student_profile"):
+            student_status = user.student_profile.status
+            if student_status in ("expelled", "archived"):
+                return Response(
+                    {
+                        "detail": {
+                            "uz": "Siz tizimdan chiqarilgansiz. Administrator bilan bog'laning.",
+                            "ru": "Вы отчислены из системы. Обратитесь к администратору.",
+                        }
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         return Response(data, status=status.HTTP_200_OK)
 
     def _resolve_tenant_by_phone(self, phone, request):

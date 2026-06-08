@@ -304,9 +304,6 @@ class StudentViewSet(viewsets.ModelViewSet):
         else:
             return Response({"detail": "Either parent_id or parent_phone is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Clear existing parent links for this student (ensure single parent mapping for this student)
-        ParentStudentLink.objects.filter(student=student).delete()
-        
         link, created = ParentStudentLink.objects.get_or_create(parent=parent, student=student)
         
         return Response({
@@ -408,6 +405,7 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
         serializer.save(created_by=user)
 
     @action(detail=True, methods=["post"], url_path="convert")
+    @transaction.atomic
     def convert_to_student(self, request, pk=None):
         lead = self.get_object()
 
@@ -421,6 +419,17 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
         password = data.get("password") or secrets.token_urlsafe(8)
         full_name = data.get("full_name", lead.full_name)
         phone = data.get("phone", lead.phone)
+
+        if User.objects.filter(phone=phone).exists():
+            return Response(
+                {
+                    "detail": {
+                        "uz": "Bu telefon raqam allaqachon ro'yxatdan o'tgan.",
+                        "ru": "Этот номер телефона уже зарегистрирован в системе.",
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         branch_id = data.get("branch_id", getattr(lead.branch, "id", None))
         birth_date = data.get("date_of_birth")
 

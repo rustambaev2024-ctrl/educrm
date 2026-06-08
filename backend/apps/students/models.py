@@ -3,6 +3,8 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 
 class Student(models.Model):
@@ -238,3 +240,24 @@ class ParentLinkCode(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.code}"
+
+
+_CLOSING_STATUSES = {"expelled", "archived", "graduate"}
+
+
+@receiver(pre_save, sender=Student)
+def close_memberships_on_status_change(sender, instance, **kwargs):
+    """Auto-close open group memberships when student is expelled/archived/graduated."""
+    if not instance.pk:
+        return
+    try:
+        old = Student.objects.get(pk=instance.pk)
+    except Student.DoesNotExist:
+        return
+    if old.status not in _CLOSING_STATUSES and instance.status in _CLOSING_STATUSES:
+        from django.utils import timezone
+        from apps.courses.models import GroupMembership
+        GroupMembership.objects.filter(
+            student=instance,
+            left_at__isnull=True,
+        ).update(left_at=timezone.now())

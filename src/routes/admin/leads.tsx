@@ -168,6 +168,7 @@ function AdminLeadsPage() {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [sourceFilter, setSourceFilter] = useState<FilterSource>("all");
   const [convertSheetOpen, setConvertSheetOpen] = useState(false);
+  const [showWon, setShowWon] = useState(false);
   const [trialDialog, setTrialDialog] = useState<{ lead: StudentLead | null; date: string; groupId: string }>({
     lead: null,
     date: "",
@@ -226,6 +227,7 @@ function AdminLeadsPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return leads.filter((lead) => {
+      if (!showWon && lead.status === "won") return false;
       if (statusFilter !== "all" && lead.status !== statusFilter) return false;
       if (sourceFilter !== "all" && lead.source !== sourceFilter) return false;
       if (!q) return true;
@@ -237,7 +239,7 @@ function AdminLeadsPage() {
         courseName.toLowerCase().includes(q)
       );
     });
-  }, [courseById, leads, search, sourceFilter, statusFilter]);
+  }, [courseById, leads, search, showWon, sourceFilter, statusFilter]);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -435,6 +437,19 @@ function AdminLeadsPage() {
               <div className="flex h-9 items-center justify-center rounded-md border border-border px-3 text-xs text-muted-foreground">
                 {isLoading ? t.loading : `${filtered.length} / ${leads.length}`}
               </div>
+              <button
+                onClick={() => setShowWon(!showWon)}
+                className={`flex h-9 items-center rounded-md border px-3 text-xs transition-colors ${
+                  showWon
+                    ? "border-[#0077b6] bg-[#0077b6] text-white"
+                    : "border-border bg-background text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <GraduationCap className="mr-1.5 size-3.5" />
+                {showWon
+                  ? (lang === "uz" ? "Won yashirish" : "Скрыть конвертированных")
+                  : (lang === "uz" ? "Won ko'rsatish" : "Показать конвертированных")}
+              </button>
             </div>
           </div>
 

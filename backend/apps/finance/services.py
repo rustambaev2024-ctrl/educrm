@@ -54,7 +54,13 @@ def calculate_lesson_price(group, lesson_date: date) -> Decimal:
     )
 
 
+_PROTECTED_STATUSES = {"frozen", "expelled", "graduate", "archived"}
+
+
 def _status_changed_for_balance(student: Student, balance: Decimal) -> bool:
+    # Never touch statuses that are not part of the active/debtor cycle
+    if student.status in _PROTECTED_STATUSES:
+        return False
     previous = student.status
     if balance < 0 and student.status != "debtor":
         student.status = "debtor"
@@ -73,8 +79,8 @@ def _notify_student_became_debtor(student: Student):
     NotificationService.notify(
         recipients=recipients,
         notification_type="payment_due",
-        title="Balance is negative",
-        body="Student wallet balance became negative. Please top up account.",
+        title="Hisobingiz manfiy bo'ldi / Баланс стал отрицательным",
+        body="Iltimos, hisobingizni to'ldiring. / Пожалуйста, пополните счёт.",
         related_object_type="Student",
         related_object_id=str(student.id),
     )
