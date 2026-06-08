@@ -67,8 +67,25 @@ function DirectorHome() {
   }, [payments]);
 
   const courseRevenue = useMemo(() => {
-    return []; // No invoices anymore, will need full transaction processing later
-  }, []);
+    const now = new Date();
+    const curMonth = now.getMonth();
+    const curYear = now.getFullYear();
+    return courses
+      .map((course) => {
+        const courseGroupIds = new Set(groups.filter((g) => g.courseId === course.id).map((g) => g.id));
+        const revenue = payments
+          .filter((p) => {
+            if (p.type !== "charge") return false;
+            if (!p.groupId || !courseGroupIds.has(p.groupId)) return false;
+            const d = new Date(p.date);
+            return d.getMonth() === curMonth && d.getFullYear() === curYear;
+          })
+          .reduce((sum, p) => sum + p.amount, 0);
+        return { name: course.name, revenue };
+      })
+      .filter((c) => c.revenue > 0)
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [courses, groups, payments]);
 
   const topTeachers = useMemo(() => {
     const teachers = staff.filter((s) => s.role === "teacher");
@@ -166,7 +183,7 @@ function DirectorHome() {
                   <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={110} />
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                  <Bar dataKey="value" fill="var(--chart-1)" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="revenue" fill="var(--chart-1)" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
