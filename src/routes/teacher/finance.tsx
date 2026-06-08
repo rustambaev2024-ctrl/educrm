@@ -1,10 +1,11 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Calendar, DollarSign, Users, Wallet, MinusCircle } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { analyticsApi } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
 export const Route = createFileRoute("/teacher/finance")({
@@ -51,6 +52,8 @@ function formatMoney(amount: string | number) {
 }
 
 function TeacherFinancePage() {
+  const { lang } = useI18n();
+  const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
   const today = new Date();
   const [dateFrom, setDateFrom] = useState(() => format(startOfMonth(today), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(() => format(endOfMonth(today), "yyyy-MM-dd"));
@@ -64,7 +67,7 @@ function TeacherFinancePage() {
       setData(res as unknown as SalaryData);
     } catch (err) {
       console.error(err);
-      toast.error("Ma'lumot yuklashda xatolik yuz berdi");
+      toast.error(tr("Ma'lumot yuklashda xatolik yuz berdi", "Ошибка загрузки данных"));
     } finally {
       setLoading(false);
     }
@@ -76,30 +79,30 @@ function TeacherFinancePage() {
 
   return (
     <PageShell
-      title="Mening daromadim"
-      subtitle="Guruhlar bo'yicha hisoblangan daromad va jarimalar statistikasi"
+      title={tr("Mening daromadim", "Мой доход")}
+      subtitle={tr("Guruhlar bo'yicha hisoblangan daromad va jarimalar statistikasi", "Статистика начисленного дохода и штрафов по группам")}
     >
       <div className="max-w-7xl mx-auto space-y-6">
-        
+
         {/* Date Filters */}
         <Card className="shadow-sm">
           <CardContent className="p-4 flex flex-wrap gap-4 items-center">
             <div className="flex items-center gap-2">
               <Calendar className="size-5 text-muted-foreground" />
-              <span className="text-sm font-medium">Davr:</span>
+              <span className="text-sm font-medium">{tr("Davr:", "Период:")}</span>
             </div>
-            <input 
-              type="date" 
+            <input
+              type="date"
               value={dateFrom}
               onChange={e => setDateFrom(e.target.value)}
-              className="border border-border rounded-md px-3 py-1.5 text-sm"
+              className="border border-border rounded-md px-3 py-1.5 text-sm bg-background"
             />
             <span className="text-muted-foreground">-</span>
-            <input 
-              type="date" 
+            <input
+              type="date"
               value={dateTo}
               onChange={e => setDateTo(e.target.value)}
-              className="border border-border rounded-md px-3 py-1.5 text-sm"
+              className="border border-border rounded-md px-3 py-1.5 text-sm bg-background"
             />
           </CardContent>
         </Card>
@@ -109,23 +112,26 @@ function TeacherFinancePage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : !data ? (
-          <div className="text-center py-10 text-muted-foreground">Ma'lumot topilmadi</div>
+          <div className="text-center py-10 text-muted-foreground">{tr("Ma'lumot topilmadi", "Данные не найдены")}</div>
         ) : (
           <>
             {/* Penalty Debt Card */}
             {Number(data.penalty_debt) > 0 && (
-              <Card className="border-orange-500 bg-orange-50 ">
+              <Card className="border-orange-500 bg-orange-500/10">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-orange-600 text-sm">
-                    Jarima qoldig'i (keyingi oyga o'tadi)
+                  <CardTitle className="text-orange-500 text-sm">
+                    {tr("Jarima qoldig'i (keyingi oyga o'tadi)", "Остаток штрафов (переходит на следующий месяц)")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-orange-600">
+                  <p className="text-2xl font-bold text-orange-500">
                     {formatMoney(data.penalty_debt)}
                   </p>
                   <p className="text-xs text-orange-500 mt-1">
-                    Jarimalar daromaddan ko'p bo'lgani uchun qolgan qism keyingi hisob-kitobga o'tkaziladi
+                    {tr(
+                      "Jarimalar daromaddan ko'p bo'lgani uchun qolgan qism keyingi hisob-kitobga o'tkaziladi",
+                      "Штрафы превысили доход — остаток перенесён на следующий расчёт"
+                    )}
                   </p>
                 </CardContent>
               </Card>
@@ -135,20 +141,20 @@ function TeacherFinancePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-green-500/10 to-transparent">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Umumiy hisoblangan</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{tr("Hisoblangan", "Начислено")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
                     <DollarSign className="size-5 text-green-500" />
                     <span className="text-xl font-bold">{formatMoney(data.calculated_salary)}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">O'quvchilar to'lovidan {data.salary_percent}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">{tr("O'quvchilar to'lovidan", "От оплат учеников")} {data.salary_percent}%</p>
                 </CardContent>
               </Card>
 
               <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-red-500/10 to-transparent">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Jarimalar</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{tr("Jarimalar", "Штрафы")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
@@ -160,7 +166,7 @@ function TeacherFinancePage() {
 
               <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-primary/10 to-transparent">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-primary">Sof daromad</CardTitle>
+                  <CardTitle className="text-sm font-medium text-primary">{tr("Sof daromad", "Чистый доход")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
@@ -172,34 +178,34 @@ function TeacherFinancePage() {
 
               <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-emerald-500/10 to-transparent">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-emerald-600">Faktik to'langan</CardTitle>
+                  <CardTitle className="text-sm font-medium text-emerald-500">{tr("To'langan", "Выплачено")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
-                    <DollarSign className="size-5 text-emerald-600" />
-                    <span className="text-xl font-bold text-emerald-600">{formatMoney(data.total_paid)}</span>
+                    <DollarSign className="size-5 text-emerald-500" />
+                    <span className="text-xl font-bold text-emerald-500">{formatMoney(data.total_paid)}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Kassadan berilgan</p>
+                  <p className="text-xs text-muted-foreground mt-1">{tr("Kassadan berilgan", "Выдано из кассы")}</p>
                 </CardContent>
               </Card>
 
               <Card className="shadow-elegant border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-transparent">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-orange-600">Qoldiq</CardTitle>
+                  <CardTitle className="text-sm font-medium text-orange-500">{tr("Qoldiq", "Остаток")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
-                    <Wallet className="size-5 text-orange-600" />
-                    <span className="text-xl font-bold text-orange-600">{formatMoney(data.remaining_balance)}</span>
+                    <Wallet className="size-5 text-orange-500" />
+                    <span className="text-xl font-bold text-orange-500">{formatMoney(data.remaining_balance)}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">To'lanishi kerak</p>
+                  <p className="text-xs text-muted-foreground mt-1">{tr("To'lanishi kerak", "К выплате")}</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Groups Breakdown */}
             <h3 className="text-lg font-semibold mt-8 mb-4 flex items-center gap-2">
-              <Users className="size-5 text-primary" /> Guruhlar bo'yicha daromad
+              <Users className="size-5 text-primary" /> {tr("Guruhlar bo'yicha daromad", "Доход по группам")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {data.groups?.length > 0 ? (
@@ -207,19 +213,19 @@ function TeacherFinancePage() {
                   <Card key={group.group_id} className="shadow-sm border-border/60 overflow-hidden hover:shadow-md transition-shadow">
                     <div className="bg-muted/30 px-4 py-3 border-b flex justify-between items-center">
                       <h4 className="font-semibold">{group.group_name}</h4>
-                      <span className="text-primary font-bold">{formatMoney(Number(group.group_total) * (Number(data.salary_percent)/100))}</span>
+                      <span className="text-primary font-bold">{formatMoney(Number(group.group_total) * (Number(data.salary_percent) / 100))}</span>
                     </div>
                     <CardContent className="p-0">
                       <div className="max-h-[250px] overflow-y-auto p-4 space-y-3">
                         {group.students?.map((student) => (
                           <div key={student.student_id} className="flex justify-between items-center text-sm border-b border-border/40 pb-2 last:border-0 last:pb-0">
                             <span>{student.full_name}</span>
-                            <span className="text-muted-foreground">{formatMoney(student.payments_sum)} to'lov</span>
+                            <span className="text-muted-foreground">{formatMoney(student.payments_sum)} {tr("to'lov", "оплата")}</span>
                           </div>
                         ))}
                         {(!group.students || group.students.length === 0) && (
                           <div className="text-center text-xs text-muted-foreground py-2">
-                            Ushbu davrda to'lovlar yo'q
+                            {tr("Ushbu davrda to'lovlar yo'q", "Нет данных за этот период")}
                           </div>
                         )}
                       </div>
@@ -228,7 +234,7 @@ function TeacherFinancePage() {
                 ))
               ) : (
                 <div className="col-span-full bg-muted/20 rounded-lg p-8 text-center text-muted-foreground">
-                  Tanlangan davr uchun guruhlardan tushumlar mavjud emas
+                  {tr("Tanlangan davr uchun guruhlardan tushumlar mavjud emas", "За выбранный период поступлений от групп нет")}
                 </div>
               )}
             </div>
@@ -237,7 +243,7 @@ function TeacherFinancePage() {
             {data.penalties?.length > 0 && (
               <>
                 <h3 className="text-lg font-semibold mt-8 mb-4 flex items-center gap-2 text-red-500">
-                  <MinusCircle className="size-5" /> Jarimalar tafsiloti
+                  <MinusCircle className="size-5" /> {tr("Jarimalar tafsiloti", "Детализация штрафов")}
                 </h3>
                 <Card className="shadow-sm border-red-500/20">
                   <div className="divide-y divide-border/50">

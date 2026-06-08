@@ -1,5 +1,5 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Award, Trash2, Users, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
@@ -42,7 +42,12 @@ function TeacherGrades() {
   const { groups, grades, students, addGrade, deleteGrade, isLoading } = useData();
 
   const myGroups = useMemo(() => groups.filter((g) => g.teacherId === teacherId), [groups, teacherId]);
-  const [selectedGroupId, setSelectedGroupId] = useState<string>(() => myGroups[0]?.id ?? "");
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  useEffect(() => {
+    if (!selectedGroupId && myGroups.length > 0) {
+      setSelectedGroupId(myGroups[0].id);
+    }
+  }, [myGroups]);
   const studentById = useMemo(() => Object.fromEntries(students.map((s) => [s.id, s])), [students]);
   const selectedGroup = myGroups.find((g) => g.id === selectedGroupId);
 
@@ -194,6 +199,12 @@ function TeacherGrades() {
                         size="icon"
                         className="size-8"
                         onClick={() => {
+                          const confirmed = window.confirm(
+                            lang === "uz"
+                              ? "Bu bahoni o'chirishni tasdiqlaysizmi?"
+                              : "Удалить эту оценку?"
+                          );
+                          if (!confirmed) return;
                           deleteGrade(g.id);
                           toast.success(t("grades.deleted"));
                         }}
