@@ -114,6 +114,18 @@ class StudentViewSet(viewsets.ModelViewSet):
             permission_classes = [IsBranchAdmin]
         return [permission() for permission in permission_classes]
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        # Если branch не пришёл с формы — подставляем филиал из профиля сотрудника,
+        # чтобы ученик не остался без филиала и был виден в списках.
+        if serializer.validated_data.get("branch"):
+            serializer.save()
+            return
+        branch = None
+        if hasattr(user, "staff_profile") and user.staff_profile.branch_id:
+            branch = user.staff_profile.branch
+        serializer.save(branch=branch)
+
     def get_queryset(self):
         user = self.request.user
         qs = super().get_queryset()

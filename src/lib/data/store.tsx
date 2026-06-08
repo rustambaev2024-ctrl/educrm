@@ -899,7 +899,9 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     formData.append("full_name", created.fullName);
     formData.append("phone", created.phone);
     if (input.password) formData.append("password", input.password);
-    formData.append("branch", created.branchId);
+    // Отправляем branch только если он реально задан — иначе backend подставит
+    // филиал из профиля сотрудника (perform_create), а не запишет пустую строку.
+    if (created.branchId) formData.append("branch", created.branchId);
     if (created.birthDate) formData.append("date_of_birth", created.birthDate);
     if (input.parentName) formData.append("parent_full_name", input.parentName);
     if (input.parentPhone) formData.append("parent_phone", input.parentPhone);
