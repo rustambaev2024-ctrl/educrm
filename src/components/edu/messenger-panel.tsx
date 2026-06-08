@@ -282,7 +282,7 @@ export function MessengerPanel({
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{contact.name}</div>
                   <div className="truncate text-xs text-muted-foreground">
-                    {roleLabel(contact.role, lang)} · {contact.phone}
+                    {roleLabel(contact.role, lang)}
                   </div>
                 </div>
                 <MessageSquarePlus className="size-4 text-muted-foreground" />
