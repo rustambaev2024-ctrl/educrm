@@ -12,6 +12,20 @@ import { formatDate, formatMoney, formatTime } from "@/lib/format";
 
 export const Route = createFileRoute("/parent/children")({ component: ParentChildren });
 
+function getPaymentLabel(type: string, lang: string) {
+  const map: Record<string, { uz: string; ru: string }> = {
+    top_up:        { uz: "To'lov",     ru: "Оплата" },
+    charge:        { uz: "Dars uchun", ru: "За урок" },
+    manual_charge: { uz: "Yechish",    ru: "Списание" },
+    manual_top_up: { uz: "Qo'shish",   ru: "Зачисление" },
+    discount:      { uz: "Chegirma",   ru: "Скидка" },
+    refund:        { uz: "Qaytarish",  ru: "Возврат" },
+  };
+  const label = map[type];
+  if (!label) return type;
+  return lang === "uz" ? label.uz : label.ru;
+}
+
 function initialsOf(name: string) {
   return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
@@ -33,7 +47,12 @@ function ParentChildren() {
     () => (me ? students.filter((s) => me.childrenIds.includes(s.id)) : []),
     [me, students],
   );
-  const [activeChildId, setActiveChildId] = useState<string>(() => children[0]?.id ?? "");
+  const [activeChildId, setActiveChildId] = useState<string>("");
+  useEffect(() => {
+    if (!activeChildId && children.length > 0) {
+      setActiveChildId(children[0].id);
+    }
+  }, [children]);
   const child = children.find((c) => c.id === activeChildId) ?? children[0];
 
   const groupById = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
@@ -56,8 +75,8 @@ function ParentChildren() {
     );
   }
 
-  const myGroupIds = new Set(child.groupIds);
-  const myGroups = groups.filter((g) => myGroupIds.has(g.id));
+  const myGroups = groups.filter((g) => g.studentIds?.includes(child.id));
+  const myGroupIds = new Set(myGroups.map((g) => g.id));
   const upcoming = lessons
     .filter((l) => myGroupIds.has(l.groupId) && new Date(l.datetime).getTime() >= Date.now())
     .sort((a, b) => a.datetime.localeCompare(b.datetime))
@@ -113,7 +132,7 @@ function ParentChildren() {
           </div>
         </div>
         <div className="grid grid-cols-4 divide-x divide-border/40 text-center">
-          <Mini icon={Award} value={String(avg)} label={t("profile.avgGrade")} />
+          <Mini icon={Award} value={`${avg}%`} label={t("profile.avgGrade")} />
           <Mini icon={Calendar} value={`${attPct}%`} label={t("profile.attendance")} />
           <Mini icon={BookOpen} value={String(pendingHw)} label={t("parent.activeHw")} />
           <Mini icon={Wallet} value={child.balance < 0 ? "−" : "+"} label={t("parent.balance")} valueClass={child.balance < 0 ? "text-destructive" : "text-success"} />
@@ -125,7 +144,7 @@ function ParentChildren() {
           <TabsTrigger value="overview">{t("profile.tab.overview")}</TabsTrigger>
           <TabsTrigger value="grades">{t("profile.tab.grades")}</TabsTrigger>
           <TabsTrigger value="attendance">{t("profile.tab.attendance")}</TabsTrigger>
-          <TabsTrigger value="payments">To'lovlar</TabsTrigger>
+          <TabsTrigger value="payments">{lang === "uz" ? "To'lovlar" : "Платежи"}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-3 space-y-3">
@@ -246,7 +265,7 @@ function ParentChildren() {
               .sort((a, b) => b.date.localeCompare(a.date))
               .slice(0, 20);
             if (childPayments.length === 0) {
-              return <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">To'lovlar tarixi yo'q</Card>;
+              return <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{lang === "uz" ? "To'lovlar tarixi yo'q" : "История платежей пуста"}</Card>;
             }
             return childPayments.map((p) => {
               const isIncome = p.direction === "in";
@@ -256,7 +275,7 @@ function ParentChildren() {
                     {isIncome ? "+" : "−"}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">{isIncome ? "To'lov" : "Dars uchun"}</div>
+                    <div className="text-sm font-medium">{getPaymentLabel(p.type, lang)}</div>
                     <div className="text-[10px] text-muted-foreground">{formatDate(p.date, lang)}</div>
                   </div>
                   <div className={`text-sm font-bold ${isIncome ? "text-success" : "text-destructive"}`}>

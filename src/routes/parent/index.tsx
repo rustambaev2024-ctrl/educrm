@@ -59,9 +59,9 @@ function ParentHome() {
 
       <Card className="space-y-3 p-4 shadow-elegant">
         <div>
-          <div className="font-semibold">Farzandni ulash</div>
+          <div className="font-semibold">{lang === "uz" ? "Farzandni ulash" : "Привязать ребёнка"}</div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Admin bergan 6 xonali kodni kiriting. Kod 24 soat amal qiladi.
+            {lang === "uz" ? "Admin bergan 6 xonali kodni kiriting. Kod 24 soat amal qiladi." : "Введите 6-значный код от администратора. Код действует 24 часа."}
           </p>
         </div>
         <div className="flex gap-2">
@@ -72,6 +72,7 @@ function ParentHome() {
             maxLength={6}
             inputMode="numeric"
             className="font-mono text-lg tracking-widest text-center"
+            autoComplete="off"
           />
           <Button
             disabled={syncing || linkCode.length !== 6}
@@ -81,21 +82,21 @@ function ParentHome() {
                 await parentApi.linkChild(linkCode);
                 setLinkCode("");
                 await reload();
-                toast.success("Farzand kabinetga ulandi");
+                toast.success(lang === "uz" ? "Farzand kabinetga ulandi" : "Ребёнок успешно привязан");
               } catch {
-                toast.error("Kod noto'g'ri yoki muddati o'tgan");
+                toast.error(lang === "uz" ? "Kod noto'g'ri yoki muddati o'tgan" : "Код неверный или истёк");
               } finally {
                 setSyncing(false);
               }
             }}
           >
-            Ulash
+            {lang === "uz" ? "Ulash" : "Привязать"}
           </Button>
         </div>
       </Card>
 
       {children.map((child) => {
-        const myGroupIds = new Set(child.groupIds);
+        const myGroupIds = new Set(groups.filter((g) => g.studentIds?.includes(child.id)).map((g) => g.id));
         const next = lessons
           .filter((l) => myGroupIds.has(l.groupId) && new Date(l.datetime).getTime() >= Date.now())
           .sort((a, b) => a.datetime.localeCompare(b.datetime))[0];
