@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-
-function getLocalDateString() {
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
+import { getLocalDateString } from "@/lib/format";
 
 function monthLastDay(month: string): string {
   const [y, m] = month.split("-").map(Number);
@@ -662,7 +655,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
   
   const [dialogOpen, setDialogOpen] = useState(false);
   
-  const emptyForm = { staffId: "", branchId: "", amount: "", reason: "", date: new Date().toISOString().slice(0, 10), status: "active", comment: "" };
+  const emptyForm = { staffId: "", branchId: "", amount: "", reason: "", date: getLocalDateString(), status: "active", comment: "" };
   const [form, setForm] = useState(emptyForm);
 
   const isWriteAllowed = user?.role === "director" || user?.role === "superadmin" || user?.role === "admin";

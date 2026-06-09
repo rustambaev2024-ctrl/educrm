@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/data/store";
-import { formatTime } from "@/lib/format";
+import { formatTime, initialsOf } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { openChatSocket } from "@/lib/realtime";
 import type { ChatThread } from "@/lib/data/types";
@@ -29,16 +29,6 @@ type Contact = {
   phone: string;
   role: "director" | "admin" | "teacher" | "student" | "parent";
 };
-
-function initialsOf(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
 
 function relativeTime(iso: string, lang: "uz" | "ru") {
   const date = new Date(iso);

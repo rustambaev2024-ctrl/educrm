@@ -11,12 +11,9 @@ import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useCurrentParentId } from "@/lib/data/identity";
 import { LangToggle } from "@/components/edu/lang-toggle";
+import { initialsOf } from "@/lib/format";
 
 export const Route = createFileRoute("/parent/profile")({ component: ParentProfile });
-
-function initialsOf(name: string) {
-  return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-}
 
 function ParentProfile() {
   const { t } = useI18n();

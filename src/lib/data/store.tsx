@@ -68,6 +68,7 @@ import {
   type StaffPenaltyRaw,
   type StudentRaw,
 } from "@/lib/data/mappers";
+import { getLocalDateString } from "@/lib/format";
 import { openNotificationSocket } from "@/lib/realtime";
 import type {
   Branch,
@@ -628,7 +629,7 @@ function institutionFromRaw(raw: InstitutionRaw): Institution {
     plan: toInstitutionPlan(source.plan),
     status: toInstitutionStatus(mapped.status),
     monthlyRevenue: Number(source.monthly_revenue ?? source.monthlyRevenue ?? 0),
-    expiresAt: String(source.expires_at ?? source.subscription_end ?? new Date().toISOString().slice(0, 10)),
+    expiresAt: String(source.expires_at ?? source.subscription_end ?? getLocalDateString()),
     createdAt: mapped.createdAt,
     directorName: source.director_name ? String(source.director_name) : undefined,
     directorPhone: source.director_login ? String(source.director_login) : undefined,
@@ -881,7 +882,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       photo: input.photo,
       branchId: input.branchId,
       status: "active",
-      registeredAt: new Date().toISOString().slice(0, 10),
+      registeredAt: getLocalDateString(),
       balance: 0,
       groupIds: [],
       parentId,
@@ -1496,7 +1497,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
             title: hw.title,
             score: grade,
             maxScore: 10,
-            date: new Date().toISOString().slice(0, 10),
+            date: getLocalDateString(),
             comment: feedback,
           };
           return [created, ...prev];
@@ -1587,7 +1588,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       branchesCount: input.branchesCount ?? 0,
       staffCount: input.staffCount ?? (directorId ? 1 : 0),
       monthlyRevenue: input.monthlyRevenue ?? 0,
-      createdAt: new Date().toISOString().slice(0, 10),
+      createdAt: getLocalDateString(),
       directorId,
       directorName,
       directorPhone,

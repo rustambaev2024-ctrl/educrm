@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
-import { dayLabel, formatDate, formatMoney } from "@/lib/format";
+import { dayLabel, formatDate, formatMoney, getLocalDateString } from "@/lib/format";
 import type { DayOfWeek, Group, ScheduleSlot, StudentStatus } from "@/lib/data/types";
 import { GroupReportSheet } from "@/components/edu/group-report-sheet";
 
@@ -195,7 +195,7 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
   const [roomId, setRoomId] = useState(rooms[0]?.id ?? "");
   const [capacity, setCapacity] = useState(12);
   const [monthlyPrice, setMonthlyPrice] = useState(600000);
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(() => getLocalDateString());
   const [slots, setSlots] = useState<Record<DayOfWeek, { enabled: boolean; start: string; end: string }>>(
     () => Object.fromEntries(DAYS.map((d) => [d, { enabled: false, start: "09:00", end: "10:30" }])) as Record<DayOfWeek, { enabled: boolean; start: string; end: string }>,
   );

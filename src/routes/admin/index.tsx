@@ -6,7 +6,7 @@ import { KpiCard } from "@/components/edu/kpi-card";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { attendancePercentage } from "@/lib/data/metrics";
-import { formatMoney, formatTime, sameDay } from "@/lib/format";
+import { formatMoney, formatTime, getLocalDateString, sameDay } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/")({ component: AdminHome });
 
@@ -34,11 +34,6 @@ const paymentTypeLabels: Record<string, { uz: string; ru: string }> = {
   manual_top_up: { uz: "Qo'lda kirim",   ru: "Ручное пополнение" },
   manual_charge: { uz: "Qo'lda yechim",  ru: "Ручное списание" },
 };
-
-function getLocalDateString() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
 
 function AdminHome() {
   const { lang } = useI18n();

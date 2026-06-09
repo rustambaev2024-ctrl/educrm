@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
 
 export const Route = createFileRoute("/director/finance")({ component: DirectorFinancePage });
 
@@ -45,12 +45,9 @@ function DirectorFinancePage() {
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
     d.setDate(1);
-    return d.toISOString().split("T")[0];
+    return getLocalDateString(d);
   });
-  const [dateTo, setDateTo] = useState(() => {
-    const d = new Date();
-    return d.toISOString().split("T")[0];
-  });
+  const [dateTo, setDateTo] = useState(() => getLocalDateString());
 
   const fromTime = new Date(dateFrom).getTime();
   const toTime = new Date(dateTo).getTime() + 86400000;

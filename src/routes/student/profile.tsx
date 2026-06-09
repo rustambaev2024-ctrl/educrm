@@ -15,13 +15,9 @@ import { useCurrentStudentId } from "@/lib/data/identity";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { LangToggle } from "@/components/edu/lang-toggle";
 import { StudentStatusBadge } from "@/components/edu/status-badge";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, initialsOf } from "@/lib/format";
 
 export const Route = createFileRoute("/student/profile")({ component: StudentProfile });
-
-function initialsOf(name: string) {
-  return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-}
 
 function scoreTone(pct: number) {
   if (pct >= 85) return "bg-success/15 text-success";

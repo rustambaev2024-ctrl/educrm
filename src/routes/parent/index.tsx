@@ -12,13 +12,9 @@ import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useCurrentParentId } from "@/lib/data/identity";
-import { formatMoney, formatTime } from "@/lib/format";
+import { formatMoney, formatTime, initialsOf } from "@/lib/format";
 
 export const Route = createFileRoute("/parent/")({ component: ParentHome });
-
-function initialsOf(name: string) {
-  return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-}
 
 function ParentHome() {
   const { t, lang } = useI18n();

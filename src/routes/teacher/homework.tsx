@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentTeacherId } from "@/lib/data/identity";
-import { formatDate } from "@/lib/format";
+import { formatDate, initialsOf } from "@/lib/format";
 import type { Homework, HomeworkSubmission } from "@/lib/data/types";
 
 export const Route = createFileRoute("/teacher/homework")({ component: TeacherHomework });
@@ -29,10 +29,6 @@ function dueState(dueIso: string): { tone: string; key: "overdue" | "dueToday" |
   if (diff < 0) return { tone: "bg-destructive/10 text-destructive", key: "overdue", days: -diff };
   if (diff === 0) return { tone: "bg-warning/15 text-warning", key: "dueToday", days: 0 };
   return { tone: "bg-success/10 text-success", key: "dueIn", days: diff };
-}
-
-function initialsOf(name: string) {
-  return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
 
 function TeacherHomework() {

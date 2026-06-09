@@ -6,24 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { useCurrentStudentId } from "@/lib/data/identity";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/data/store";
-import { formatTime } from "@/lib/format";
+import { formatTime, getPaymentLabel } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/student/")({ component: StudentHome });
-
-function getPaymentLabel(type: string, lang: string) {
-  const map: Record<string, { uz: string; ru: string }> = {
-    top_up:        { uz: "To'lov",     ru: "Оплата" },
-    charge:        { uz: "Dars uchun", ru: "За урок" },
-    manual_charge: { uz: "Yechish",    ru: "Списание" },
-    manual_top_up: { uz: "Qo'shish",   ru: "Зачисление" },
-    discount:      { uz: "Chegirma",   ru: "Скидка" },
-    refund:        { uz: "Qaytarish",  ru: "Возврат" },
-  };
-  const label = map[type];
-  if (!label) return type;
-  return lang === "uz" ? label.uz : label.ru;
-}
 
 function money(amount: number) {
   return `${amount.toLocaleString("uz-Latn", { maximumFractionDigits: 0 })} UZS`;

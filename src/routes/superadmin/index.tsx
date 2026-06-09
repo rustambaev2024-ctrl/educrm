@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
 import type { Institution, InstitutionPlan, InstitutionStatus, Branch } from "@/lib/data/types";
 
 export const Route = createFileRoute("/superadmin/")({ component: SuperadminHome });
@@ -48,7 +48,7 @@ interface InstitutionFormState {
 
 const emptyForm: InstitutionFormState = {
   name: "", slug: "", city: "", domain: "", plan: "standard", status: "active",
-  expiresAt: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+  expiresAt: getLocalDateString(new Date(Date.now() + 365 * 86400000)),
   directorName: "", directorPhone: "", directorPassword: "",
 };
 

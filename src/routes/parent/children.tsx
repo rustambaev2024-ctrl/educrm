@@ -8,27 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentParentId } from "@/lib/data/identity";
-import { formatDate, formatMoney, formatTime } from "@/lib/format";
+import { formatDate, formatMoney, formatTime, getPaymentLabel, initialsOf } from "@/lib/format";
 
 export const Route = createFileRoute("/parent/children")({ component: ParentChildren });
-
-function getPaymentLabel(type: string, lang: string) {
-  const map: Record<string, { uz: string; ru: string }> = {
-    top_up:        { uz: "To'lov",     ru: "Оплата" },
-    charge:        { uz: "Dars uchun", ru: "За урок" },
-    manual_charge: { uz: "Yechish",    ru: "Списание" },
-    manual_top_up: { uz: "Qo'shish",   ru: "Зачисление" },
-    discount:      { uz: "Chegirma",   ru: "Скидка" },
-    refund:        { uz: "Qaytarish",  ru: "Возврат" },
-  };
-  const label = map[type];
-  if (!label) return type;
-  return lang === "uz" ? label.uz : label.ru;
-}
-
-function initialsOf(name: string) {
-  return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-}
 
 function scoreTone(pct: number) {
   if (pct >= 85) return "bg-success/15 text-success";

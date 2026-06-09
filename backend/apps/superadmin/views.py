@@ -1,4 +1,8 @@
+import logging
+
 from django.db.models import Count, Q
+
+logger = logging.getLogger(__name__)
 from django_tenants.utils import schema_context
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -45,17 +49,18 @@ class SuperadminInstitutionViewSet(
             try:
                 institution.delete(force_drop=True)
             except Exception as e:
+                logger.error("Institution.delete(force_drop=True) failed for schema %s: %s", schema_name, e)
                 # If delete fails due to active connections, forcefully drop it or delete the record anyway
                 from django.db import connection
                 try:
                     with connection.cursor() as cursor:
                         cursor.execute(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE')
-                except Exception:
-                    pass
+                except Exception as drop_err:
+                    logger.error("Failed to drop schema %s: %s", schema_name, drop_err)
                 try:
                     super(Institution, institution).delete()
-                except Exception:
-                    pass
+                except Exception as del_err:
+                    logger.error("Failed to delete institution record for schema %s: %s", schema_name, del_err)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):

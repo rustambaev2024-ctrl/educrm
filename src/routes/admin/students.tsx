@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
 import type { Student, StudentStatus } from "@/lib/data/types";
 import { transferApi, paymentApi, studentApi } from "@/lib/api";
 import { mapPayments, mapStudents } from "@/lib/data/mappers";
@@ -587,7 +587,7 @@ function StudentDetailSheet({
   const [transferForm, setTransferForm] = useState({
     fromGroupId: "",
     toGroupId: "",
-    transferDate: new Date().toISOString().split("T")[0],
+    transferDate: getLocalDateString(),
     reason: "other",
     comment: "",
   });
@@ -1112,7 +1112,7 @@ function StudentDetailSheet({
                   setTransferForm({
                     fromGroupId: studentGroups[0]?.id ?? "",
                     toGroupId: "",
-                    transferDate: new Date().toISOString().split("T")[0],
+                    transferDate: getLocalDateString(),
                     reason: "other",
                     comment: "",
                   });

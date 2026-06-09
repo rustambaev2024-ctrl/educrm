@@ -6,6 +6,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { analyticsApi } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { formatMoney as _formatMoney } from "@/lib/format";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
 export const Route = createFileRoute("/teacher/finance")({
@@ -46,14 +47,10 @@ interface SalaryData {
   penalties: PenaltyRow[];
 }
 
-function formatMoney(amount: string | number) {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat("uz-UZ", { style: "currency", currency: "UZS", maximumFractionDigits: 0 }).format(num);
-}
-
 function TeacherFinancePage() {
   const { lang } = useI18n();
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
+  const formatMoney = (amount: string | number) => _formatMoney(typeof amount === "string" ? parseFloat(amount) : amount, lang);
   const today = new Date();
   const [dateFrom, setDateFrom] = useState(() => format(startOfMonth(today), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(() => format(endOfMonth(today), "yyyy-MM-dd"));

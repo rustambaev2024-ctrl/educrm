@@ -167,6 +167,7 @@ function DirectorLeadsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [sourceFilter, setSourceFilter] = useState<FilterSource>("all");
+  const [showWon, setShowWon] = useState(false);
   const [convertSheetOpen, setConvertSheetOpen] = useState(false);
   const [trialDialog, setTrialDialog] = useState<{ lead: StudentLead | null; date: string; groupId: string }>({
     lead: null,
@@ -219,6 +220,7 @@ function DirectorLeadsPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return leads.filter((lead) => {
+      if (!showWon && lead.status === "won") return false;
       if (statusFilter !== "all" && lead.status !== statusFilter) return false;
       if (sourceFilter !== "all" && lead.source !== sourceFilter) return false;
       if (!q) return true;
@@ -427,6 +429,15 @@ function DirectorLeadsPage() {
                   {SOURCE_OPTIONS.map((source) => <SelectItem key={source} value={source}>{t.source[source]}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Button
+                variant={showWon ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowWon(!showWon)}
+                className="h-9 gap-1.5"
+              >
+                <GraduationCap className="size-4" />
+                {t.status.won}
+              </Button>
               <div className="flex h-9 items-center justify-center rounded-md border border-border px-3 text-xs text-muted-foreground">
                 {isLoading ? t.loading : `${filtered.length} / ${leads.length}`}
               </div>

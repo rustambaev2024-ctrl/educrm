@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentTeacherId } from "@/lib/data/identity";
-import { formatDate } from "@/lib/format";
+import { formatDate, getLocalDateString, initialsOf } from "@/lib/format";
 import type { GradeKind } from "@/lib/data/types";
 
 export const Route = createFileRoute("/teacher/grades")({ component: TeacherGrades });
@@ -30,10 +30,6 @@ function scoreTone(score: number, max: number): string {
   if (pct >= 65) return "bg-info/15 text-info";
   if (pct >= 50) return "bg-warning/15 text-warning";
   return "bg-destructive/15 text-destructive";
-}
-
-function initialsOf(name: string) {
-  return name.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
 
 function TeacherGrades() {
@@ -93,7 +89,7 @@ function TeacherGrades() {
       title: t(`gkind.${form.kind}`),
       score,
       maxScore: 10,
-      date: new Date().toISOString().slice(0, 10),
+      date: getLocalDateString(),
       comment: form.comment.trim() || undefined,
     });
     toast.success(t("grades.created"));
