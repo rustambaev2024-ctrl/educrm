@@ -4,8 +4,13 @@ from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
 
-from .models import Staff, StaffPenalty, StaffBonus
-from .serializers import StaffPenaltySerializer, StaffSerializer, StaffBonusSerializer
+from .models import Staff, StaffPenalty, StaffBonus, SupportTeacherLink
+from .serializers import (
+    StaffPenaltySerializer,
+    StaffSerializer,
+    StaffBonusSerializer,
+    SupportTeacherLinkSerializer,
+)
 
 
 class StaffViewSet(viewsets.ModelViewSet):
@@ -34,6 +39,38 @@ class StaffViewSet(viewsets.ModelViewSet):
                 return qs.filter(branch_id=branch_id)
 
         return qs.none()
+
+
+class SupportTeacherViewSet(viewsets.ModelViewSet):
+    serializer_class = SupportTeacherLinkSerializer
+    permission_classes = [permissions.IsAuthenticated, IsBranchAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = SupportTeacherLink.objects.select_related(
+            "support_teacher", "teacher__user"
+        ).order_by("-created_at")
+
+        if not user.is_authenticated:
+            return qs.none()
+
+        if user.role in ("superadmin", "director"):
+            pass
+        elif user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
+            branch_id = user.staff_profile.branch_id
+            if branch_id:
+                qs = qs.filter(teacher__branch_id=branch_id)
+            else:
+                return qs.none()
+        else:
+            return qs.none()
+
+        params = self.request.query_params
+        if params.get("support_teacher"):
+            qs = qs.filter(support_teacher_id=params["support_teacher"])
+        if params.get("teacher"):
+            qs = qs.filter(teacher_id=params["teacher"])
+        return qs
 
 
 class StaffPenaltyViewSet(viewsets.ModelViewSet):

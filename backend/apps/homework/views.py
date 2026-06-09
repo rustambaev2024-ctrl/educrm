@@ -3,7 +3,7 @@ from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsTeacher
+from apps.accounts.permissions import IsSupportTeacher, IsTeacher
 from apps.grades.services import upsert_homework_grade
 from apps.notifications.services import NotificationService
 
@@ -22,7 +22,7 @@ class HomeworkViewSet(
 
     def get_permissions(self):
         if self.action in ("create", "update_status"):
-            permission_classes = [IsTeacher]
+            permission_classes = [IsTeacher | IsSupportTeacher]
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
@@ -35,6 +35,10 @@ class HomeworkViewSet(
             scoped = qs
         elif user.role == "teacher" and hasattr(user, "staff_profile"):
             scoped = qs.filter(group__teacher_id=user.staff_profile.id)
+        elif user.role == "support_teacher":
+            from apps.staff.utils import get_support_teacher_group_ids
+            group_ids = get_support_teacher_group_ids(user)
+            scoped = qs.filter(group_id__in=group_ids)
         elif user.role == "student" and hasattr(user, "student_profile"):
             scoped = qs.filter(statuses__student=user.student_profile)
         elif user.role == "parent" and hasattr(user, "parent_profile"):
@@ -130,6 +134,10 @@ class HomeworkStatusViewSet(
             scoped = qs
         elif user.role == "teacher" and hasattr(user, "staff_profile"):
             scoped = qs.filter(homework__group__teacher_id=user.staff_profile.id)
+        elif user.role == "support_teacher":
+            from apps.staff.utils import get_support_teacher_group_ids
+            group_ids = get_support_teacher_group_ids(user)
+            scoped = qs.filter(homework__group_id__in=group_ids)
         elif user.role == "student" and hasattr(user, "student_profile"):
             scoped = qs.filter(student=user.student_profile)
         elif user.role == "parent" and hasattr(user, "parent_profile"):

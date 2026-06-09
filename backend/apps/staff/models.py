@@ -38,6 +38,28 @@ class Staff(models.Model):
         return self.user.full_name
 
 
+class SupportTeacherLink(models.Model):
+    support_teacher = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="supported_teachers",
+        limit_choices_to={"role": "support_teacher"},
+    )
+    teacher = models.ForeignKey(
+        "staff.Staff",
+        on_delete=models.CASCADE,
+        related_name="support_teachers",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "staff_support_teacher_link"
+        unique_together = [("support_teacher", "teacher")]
+
+    def __str__(self):
+        return f"{self.support_teacher.full_name} → {self.teacher.user.full_name}"
+
+
 class StaffPenalty(models.Model):
     STATUS_CHOICES = [
         ("active", "Active"),

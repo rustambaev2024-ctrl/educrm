@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 
-from .models import Staff, StaffPenalty, StaffBonus
+from .models import Staff, StaffPenalty, StaffBonus, SupportTeacherLink
 
 def normalize_phone(value: str) -> str:
     """Keep phone uniqueness stable for inputs with spaces/dashes."""
@@ -21,7 +21,7 @@ class StaffSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(source="user.phone")
     role = serializers.ChoiceField(
         source="user.role",
-        choices=["director", "admin", "branch_admin", "teacher"],
+        choices=["director", "admin", "branch_admin", "teacher", "support_teacher"],
     )
     password = serializers.CharField(write_only=True, required=False)
 
@@ -184,3 +184,28 @@ class StaffBonusSerializer(serializers.ModelSerializer):
         if staff and branch and staff.branch_id and staff.branch_id != branch.id:
             raise serializers.ValidationError({"branch": "Bonus branch must match staff branch."})
         return attrs
+
+
+class SupportTeacherLinkSerializer(serializers.ModelSerializer):
+    support_teacher_name = serializers.CharField(
+        source="support_teacher.full_name", read_only=True
+    )
+    teacher_name = serializers.CharField(
+        source="teacher.user.full_name", read_only=True
+    )
+    groups = serializers.SerializerMethodField()
+
+    def get_groups(self, obj):
+        from apps.courses.models import Group
+        return list(
+            Group.objects.filter(teacher=obj.teacher)
+            .values("id", "name")
+        )
+
+    class Meta:
+        model = SupportTeacherLink
+        fields = [
+            "id", "support_teacher", "support_teacher_name",
+            "teacher", "teacher_name", "groups", "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]

@@ -13,6 +13,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ("admin", "Branch Admin"),
         ("branch_admin", "Branch Admin"),
         ("teacher", "Teacher"),
+        ("support_teacher", "Support Teacher"),
         ("student", "Student"),
         ("parent", "Parent"),
     ]

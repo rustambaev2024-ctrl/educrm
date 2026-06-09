@@ -3,7 +3,7 @@ from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsBranchAdmin, IsTeacher
+from apps.accounts.permissions import IsBranchAdmin, IsSupportTeacher, IsTeacher
 from apps.courses.models import GroupMembership
 from apps.notifications.services import NotificationService
 
@@ -33,7 +33,7 @@ class LessonViewSet(
             if self.request.method == "GET":
                 permission_classes = [permissions.IsAuthenticated]
             else:
-                permission_classes = [IsTeacher]
+                permission_classes = [IsTeacher | IsSupportTeacher]
         elif self.action in ("update", "partial_update"):
             permission_classes = [IsBranchAdmin]
         else:
@@ -53,6 +53,10 @@ class LessonViewSet(
             scoped = qs.filter(group__branch_id=branch_id) if branch_id else qs.none()
         elif user.role == "teacher" and hasattr(user, "staff_profile"):
             scoped = qs.filter(group__teacher=user.staff_profile)
+        elif user.role == "support_teacher":
+            from apps.staff.utils import get_support_teacher_group_ids
+            group_ids = get_support_teacher_group_ids(user)
+            scoped = qs.filter(group_id__in=group_ids)
         elif user.role == "student" and hasattr(user, "student_profile"):
             scoped = qs.filter(
                 group__memberships__student=user.student_profile,
@@ -218,6 +222,10 @@ class AttendanceViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets
             scoped = qs.filter(lesson__group__branch_id=branch_id) if branch_id else qs.none()
         elif user.role == "teacher" and hasattr(user, "staff_profile"):
             scoped = qs.filter(lesson__group__teacher=user.staff_profile)
+        elif user.role == "support_teacher":
+            from apps.staff.utils import get_support_teacher_group_ids
+            group_ids = get_support_teacher_group_ids(user)
+            scoped = qs.filter(lesson__group_id__in=group_ids)
         elif user.role == "student" and hasattr(user, "student_profile"):
             scoped = qs.filter(student=user.student_profile)
         elif user.role == "parent" and hasattr(user, "parent_profile"):

@@ -43,6 +43,26 @@ class IsTeacher(BasePermission):
         )
 
 
+class IsSupportTeacher(BasePermission):
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role == "support_teacher"
+        )
+
+
+class IsTeacherOrSupport(BasePermission):
+    """Разрешает доступ и teacher и support_teacher"""
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role in ("teacher", "support_teacher")
+        )
+
+
 class IsStudent(BasePermission):
     def has_permission(self, request, view):
         return bool(
