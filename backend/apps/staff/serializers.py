@@ -209,3 +209,31 @@ class SupportTeacherLinkSerializer(serializers.ModelSerializer):
             "teacher", "teacher_name", "groups", "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+    def validate_support_teacher(self, value):
+        if value.role != "support_teacher":
+            raise serializers.ValidationError(
+                "Выбранный пользователь не является помощником учителя."
+            )
+        return value
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        teacher = attrs.get("teacher") or getattr(self.instance, "teacher", None)
+        user = getattr(request, "user", None)
+
+        # superadmin/director видят все филиалы — без ограничений по филиалу.
+        # admin/branch_admin может привязывать только учителей своего филиала.
+        if user and user.role in ("admin", "branch_admin"):
+            admin_branch_id = getattr(
+                getattr(user, "staff_profile", None), "branch_id", None
+            )
+            if not admin_branch_id:
+                raise serializers.ValidationError(
+                    {"teacher": "У администратора не задан филиал."}
+                )
+            if teacher and teacher.branch_id != admin_branch_id:
+                raise serializers.ValidationError(
+                    {"teacher": "Учитель относится к другому филиалу."}
+                )
+        return attrs
