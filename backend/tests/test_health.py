@@ -1,5 +1,4 @@
-import pytest
-from django.db import connection
+﻿import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from apps.institutions.models import Branch
@@ -14,10 +13,6 @@ def test_healthcheck(api_client):
     assert response.json()["status"] == "ok"
 
 
-@pytest.mark.skipif(
-    not hasattr(connection, "set_schema"),
-    reason="Teacher check-in tests require django-tenants PostgreSQL backend.",
-)
 @pytest.mark.django_db
 def test_teacher_checkin_flow(api_client):
     User = get_user_model()

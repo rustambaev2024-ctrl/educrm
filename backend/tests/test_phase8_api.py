@@ -1,15 +1,11 @@
-import pytest
+﻿import pytest
 from django.contrib.auth import get_user_model
-from django.db import connection
 
 from apps.tenants.models import Institution
 
 
 User = get_user_model()
-pytestmark = pytest.mark.skipif(
-    not hasattr(connection, "set_schema"),
-    reason="Phase 8 integration tests require django-tenants PostgreSQL backend.",
-)
+pytestmark = pytest.mark.django_db
 
 
 def _login(api_client, phone, password):

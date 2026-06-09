@@ -1,9 +1,8 @@
-from datetime import timedelta
+﻿from datetime import timedelta
 from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.db import connection
 from django.utils import timezone
 
 from apps.courses.models import Course, Group, GroupMembership
@@ -17,10 +16,7 @@ from apps.students.models import Certificate, Parent, ParentStudentLink, Student
 
 
 User = get_user_model()
-pytestmark = pytest.mark.skipif(
-    not hasattr(connection, "set_schema"),
-    reason="Phase 7 integration tests require django-tenants PostgreSQL backend.",
-)
+pytestmark = pytest.mark.django_db
 
 
 def _login(api_client, phone, password):
