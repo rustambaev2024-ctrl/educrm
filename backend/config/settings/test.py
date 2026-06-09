@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     if app not in ("django_tenants", "apps.tenants", "apps.superadmin")
 ]
 
+ROOT_URLCONF = "config.test_urls"
+
 MIDDLEWARE = [
     mw
     for mw in MIDDLEWARE
