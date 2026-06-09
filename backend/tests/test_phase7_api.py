@@ -99,7 +99,8 @@ def test_phase7_student_and_parent_mobile_endpoints(api_client):
         recorded_by=teacher_user,
     )
 
-    wallet = Wallet.objects.create(student=student, balance=Decimal("350000.00"))
+    wallet, _ = Wallet.objects.get_or_create(student=student, defaults={"balance": Decimal("350000.00")})
+    wallet.balance = Decimal("350000.00"); wallet.save()
     Payment.objects.create(
         wallet=wallet,
         student=student,
@@ -166,11 +167,20 @@ def test_phase7_student_and_parent_mobile_endpoints(api_client):
         branch=branch,
         status="active",
     )
-
+    # Endpoint requires a 6-digit code, not student_id — create a ParentLinkCode
+    from apps.students.models import ParentLinkCode
+    from django.utils import timezone as tz
+    import datetime
+    link_code_obj = ParentLinkCode.objects.create(
+        student=another_student,
+        code="123456",
+        is_used=False,
+        expires_at=tz.now() + datetime.timedelta(hours=1),
+    )
     link_response = api_client.post(
         "/api/v1/parent/me/children/link/",
-        {"student_id": str(another_student.id)},
+        {"code": "123456"},
         format="json",
     )
-    assert link_response.status_code == 201
-    assert link_response.json()["linked"] is True
+    assert link_response.status_code == 201, link_response.json()
+    assert link_response.json()["created"] is True

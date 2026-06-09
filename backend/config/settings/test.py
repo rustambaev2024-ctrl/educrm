@@ -41,6 +41,7 @@ INSTALLED_APPS = [
 
 ROOT_URLCONF = "config.test_urls"
 
+
 MIDDLEWARE = [
     mw
     for mw in MIDDLEWARE

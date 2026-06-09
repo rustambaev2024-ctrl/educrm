@@ -116,8 +116,10 @@ def test_phase6_analytics_salary_and_exports(api_client):
         recorded_by=teacher_user,
     )
 
-    wallet_student = Wallet.objects.create(student=student, balance=Decimal("500000.00"))
-    wallet_debtor = Wallet.objects.create(student=debtor, balance=Decimal("-100000.00"))
+    wallet_student, _ = Wallet.objects.get_or_create(student=student, defaults={"balance": Decimal("500000.00")})
+    wallet_student.balance = Decimal("500000.00"); wallet_student.save()
+    wallet_debtor, _ = Wallet.objects.get_or_create(student=debtor, defaults={"balance": Decimal("-100000.00")})
+    wallet_debtor.balance = Decimal("-100000.00"); wallet_debtor.save()
     Payment.objects.create(
         wallet=wallet_student,
         student=student,
@@ -127,6 +129,19 @@ def test_phase6_analytics_salary_and_exports(api_client):
         amount=Decimal("400000.00"),
         balance_before=Decimal("100000.00"),
         balance_after=Decimal("500000.00"),
+        created_by=director,
+    )
+    # Charge payment so teacher salary calculation returns > 0
+    Payment.objects.create(
+        wallet=wallet_student,
+        student=student,
+        branch=branch,
+        group=group,
+        payment_type="charge",
+        amount=Decimal("100000.00"),
+        balance_before=Decimal("500000.00"),
+        balance_after=Decimal("400000.00"),
+        category="tuition",
         created_by=director,
     )
     Payment.objects.create(

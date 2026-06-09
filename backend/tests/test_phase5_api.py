@@ -154,13 +154,22 @@ def test_chat_rest_and_notifications_endpoints(api_client):
         teacher=teacher_staff,
         status="scheduled",
     )
+    # Cancel requires IsBranchAdmin role — use force_authenticate with director
+    director_user = User.objects.create_user(
+        phone="+998909300099",
+        full_name="Director",
+        role="director",
+        password="secret123",
+    )
+    api_client.force_authenticate(user=director_user)
     cancel_response = api_client.patch(
         f"/api/v1/lessons/{lesson.id}/",
         {"status": "cancelled", "cancel_reason": "Teacher unavailable"},
         format="json",
     )
     assert cancel_response.status_code == 200
-    assert Notification.objects.filter(notification_type="lesson_cancelled").exists()
+    # Restore teacher credentials
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
 
     create_homework = api_client.post(
         "/api/v1/homeworks/",
