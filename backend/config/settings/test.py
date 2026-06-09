@@ -18,6 +18,20 @@ DATABASES = {
 # Remove django_tenants routing so standard `migrate` runs on SQLite
 DATABASE_ROUTERS = []
 
+# Use in-memory cache to avoid Redis dependency in tests
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
+# Disable Channel Layers to avoid Redis dependency in tests
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
+
 # Remove django_tenants and apps.tenants from INSTALLED_APPS —
 # they require PostgreSQL and break SQLite test setup
 INSTALLED_APPS = [
