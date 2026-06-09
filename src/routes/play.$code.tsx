@@ -32,6 +32,10 @@ const ANSWER_COLORS = [
 
 function PlayPage() {
   const { code } = useParams({ strict: false }) as { code: string };
+
+  const lang = (typeof window !== "undefined" ? localStorage.getItem("lang") : null) || "uz";
+  const uz = lang === "uz";
+
   const participantId = typeof window !== "undefined" ? sessionStorage.getItem(`quiz_participant_${code}`) : null;
   const myName = typeof window !== "undefined" ? sessionStorage.getItem(`quiz_name_${code}`) ?? "" : "";
 
@@ -42,6 +46,27 @@ function PlayPage() {
   const [results, setResults] = useState<WsResult[]>([]);
 
   const socketRef = useRef<WebSocket | null>(null);
+
+  // Guard — нет participantId значит участник не прошёл join
+  if (!participantId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0d1b2a]">
+        <div className="space-y-4 text-center">
+          <div className="text-lg font-semibold text-white">
+            {uz
+              ? "Sessiyaga ulanish uchun avval kodni kiriting"
+              : "Для входа в сессию сначала введите код"}
+          </div>
+          <a
+            href="/join"
+            className="inline-block rounded-xl bg-[#0077b6] px-6 py-3 font-semibold text-white"
+          >
+            {uz ? "Kodni kiriting" : "Ввести код"}
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!code) return;
@@ -87,7 +112,9 @@ function PlayPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-900 text-white">
         <Loader2 className="size-10 animate-spin text-[#0077b6]" />
-        <div className="text-lg font-medium">Test boshlanishini kuting...</div>
+        <div className="text-lg font-medium">
+          {uz ? "Test boshlanishini kuting..." : "Ожидайте начала теста..."}
+        </div>
         {myName && <div className="text-white/50">{myName}</div>}
       </div>
     );
@@ -110,17 +137,19 @@ function PlayPage() {
                 <div className="flex size-20 items-center justify-center rounded-full bg-emerald-500/20">
                   <Check className="size-10" />
                 </div>
-                <div className="text-xl font-bold">To'g'ri!</div>
+                <div className="text-xl font-bold">{uz ? "To'g'ri!" : "Правильно!"}</div>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3 text-red-400">
                 <div className="flex size-20 items-center justify-center rounded-full bg-red-500/20">
                   <X className="size-10" />
                 </div>
-                <div className="text-xl font-bold">Noto'g'ri</div>
+                <div className="text-xl font-bold">{uz ? "Noto'g'ri" : "Неверно"}</div>
               </div>
             )}
-            <div className="text-white/50">Keyingi savolni kuting...</div>
+            <div className="text-white/50">
+              {uz ? "Keyingi savolni kuting..." : "Ожидайте следующий вопрос..."}
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -150,16 +179,24 @@ function PlayPage() {
         {me ? (
           <>
             <div className="text-6xl font-bold tabular-nums">{me.rank ?? "—"}</div>
-            <div className="text-white/60">{me.rank === 1 ? "1-o'rin!" : "o'rin"}</div>
-            <div className="mt-2 rounded-xl bg-white/10 px-6 py-3 text-2xl font-bold tabular-nums">{me.score} ball</div>
+            <div className="text-white/60">
+              {me.rank === 1
+                ? (uz ? "1-o'rin!" : "1-е место!")
+                : (uz ? "o'rin" : "место")}
+            </div>
+            <div className="mt-2 rounded-xl bg-white/10 px-6 py-3 text-2xl font-bold tabular-nums">
+              {me.score} {uz ? "ball" : "очков"}
+            </div>
           </>
         ) : (
-          <div className="text-xl">Test yakunlandi</div>
+          <div className="text-xl">{uz ? "Test yakunlandi" : "Тест завершён"}</div>
         )}
       </div>
 
       <div className="w-full max-w-sm">
-        <div className="mb-2 text-center text-sm text-white/40">Barcha ishtirokchilar</div>
+        <div className="mb-2 text-center text-sm text-white/40">
+          {uz ? "Barcha ishtirokchilar" : "Все участники"}
+        </div>
         <div className="divide-y divide-white/10 overflow-hidden rounded-xl bg-white/5">
           {results.slice(0, 10).map((r, i) => (
             <div

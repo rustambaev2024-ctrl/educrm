@@ -17,6 +17,9 @@ interface SessionMeta {
 function JoinPage() {
   const navigate = useNavigate();
 
+  const lang = (typeof window !== "undefined" ? localStorage.getItem("lang") : null) || "uz";
+  const t = lang === "uz";
+
   // Читаем schema из URL (?schema=) — сохраняем сразу до любых запросов
   const urlSchema = typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("schema")
@@ -42,20 +45,20 @@ function JoinPage() {
     e.preventDefault();
     setError("");
     if (code.trim().length !== 6) {
-      setError("Kodni to'liq kiriting");
+      setError(t ? "Kodni to'liq kiriting" : "Введите полный код");
       return;
     }
     setLoading(true);
     try {
       const res = (await quizApi.sessions.byCode(code.trim())) as SessionMeta;
       if (res.status !== "waiting") {
-        setError("Sessiya allaqachon boshlangan");
+        setError(t ? "Sessiya allaqachon boshlangan" : "Сессия уже началась");
         return;
       }
       setMeta(res);
       setStage("info");
     } catch {
-      setError("Sessiya topilmadi");
+      setError(t ? "Sessiya topilmadi" : "Сессия не найдена");
     } finally {
       setLoading(false);
     }
@@ -67,11 +70,11 @@ function JoinPage() {
     if (!meta) return;
     const isLead = meta.quiz_type === "lead";
     if (!name.trim()) {
-      setError("Ism va familiyani kiriting");
+      setError(t ? "Ism va familiyani kiriting" : "Введите имя и фамилию");
       return;
     }
     if (isLead && (!phone.trim() || !parentName.trim() || !parentPhone.trim())) {
-      setError("Barcha maydonlarni to'ldiring");
+      setError(t ? "Barcha maydonlarni to'ldiring" : "Заполните все поля");
       return;
     }
     setLoading(true);
@@ -88,7 +91,7 @@ function JoinPage() {
       sessionStorage.setItem(`quiz_name_${meta.code}`, res.name);
       navigate({ to: `/play/${meta.code}` as string });
     } catch {
-      setError("Qo'shilishda xatolik");
+      setError(t ? "Qo'shilishda xatolik" : "Ошибка при подключении");
     } finally {
       setLoading(false);
     }
@@ -100,12 +103,14 @@ function JoinPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4 text-white">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#0077b6] text-2xl font-bold">E</div>
-          <h1 className="mt-4 text-2xl font-bold">EduCRM Quiz</h1>
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold">E</div>
+          <h1 className="mt-4 text-2xl font-bold">
+            {t ? "EduCRM Test platformasi" : "EduCRM Тестовая платформа"}
+          </h1>
         </div>
 
         {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             <AlertCircle className="size-4 shrink-0" />
             {error}
           </div>
@@ -118,27 +123,33 @@ function JoinPage() {
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="000000"
               inputMode="numeric"
+              autoComplete="off"
               autoFocus
-              className="w-full rounded-xl border border-white/15 bg-white/5 py-4 text-center font-mono text-3xl tracking-[0.4em] text-white placeholder:text-white/30 focus:border-[#0077b6] focus:outline-none"
+              className="w-full rounded-xl border border-white/15 bg-white/5 py-4 text-center font-mono text-3xl tracking-[0.4em] text-white placeholder:text-white/30 focus:border-primary focus:outline-none"
             />
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0077b6] py-3.5 font-semibold transition-colors hover:bg-[#006da8] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-semibold transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="size-5 animate-spin" /> : <>Kirish <ArrowRight className="size-5" /></>}
+              {loading ? <Loader2 className="size-5 animate-spin" /> : <>{t ? "Kirish" : "Войти"} <ArrowRight className="size-5" /></>}
             </button>
           </form>
         ) : (
           <form onSubmit={submitJoin} className="space-y-3">
             <div className="mb-2 text-center text-sm text-white/60">{meta?.quiz_title}</div>
-            <Field label="Ism va familiya *" value={name} onChange={setName} autoFocus />
-            <Field label={isLead ? "Telefon raqami *" : "Telefon (ixtiyoriy)"} value={phone} onChange={setPhone} type="tel" />
+            <Field label={t ? "Ism va familiya *" : "Имя и фамилия *"} value={name} onChange={setName} autoFocus />
+            <Field
+              label={isLead ? (t ? "Telefon raqami *" : "Номер телефона *") : (t ? "Telefon (ixtiyoriy)" : "Телефон (необязательно)")}
+              value={phone}
+              onChange={setPhone}
+              type="tel"
+            />
             {isLead && (
               <>
-                <Field label="Tug'ilgan sana" value={birthDate} onChange={setBirthDate} type="date" />
-                <Field label="Ota-ona ismi *" value={parentName} onChange={setParentName} />
-                <Field label="Ota-ona telefoni *" value={parentPhone} onChange={setParentPhone} type="tel" />
+                <Field label={t ? "Tug'ilgan sana" : "Дата рождения"} value={birthDate} onChange={setBirthDate} type="date" />
+                <Field label={t ? "Ota-ona ismi *" : "Имя родителя *"} value={parentName} onChange={setParentName} />
+                <Field label={t ? "Ota-ona telefoni *" : "Телефон родителя *"} value={parentPhone} onChange={setParentPhone} type="tel" />
               </>
             )}
             <button
@@ -146,7 +157,7 @@ function JoinPage() {
               disabled={loading}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 font-semibold transition-colors hover:bg-emerald-700 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="size-5 animate-spin" /> : "Qo'shilish"}
+              {loading ? <Loader2 className="size-5 animate-spin" /> : (t ? "Qo'shilish" : "Присоединиться")}
             </button>
           </form>
         )}
@@ -177,7 +188,7 @@ function Field({
         autoFocus={autoFocus}
         autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2.5 text-white placeholder:text-white/30 focus:border-[#0077b6] focus:outline-none"
+        className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-white placeholder:text-white/30 focus:border-primary focus:outline-none"
       />
     </div>
   );
