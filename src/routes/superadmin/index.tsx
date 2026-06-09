@@ -367,7 +367,7 @@ function SuperadminHome() {
             <Field label={t("sa.field.expires")} className="md:col-span-2">
               <Input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} />
             </Field>
-            <div className="md:col-span-2 mt-2 rounded-lg border border-border/60 bg-accent/30 p-4">
+            <div className="md:col-span-2 mt-2 rounded-xl border border-border/60 bg-accent/30 p-4">
               <div className="mb-1 text-sm font-semibold">{t("sa.directorBlock")}</div>
               <div className="mb-3 text-xs text-muted-foreground">{t("sa.directorHint")}</div>
               <div className="grid gap-3 md:grid-cols-2">
@@ -405,7 +405,7 @@ function SuperadminHome() {
           </DialogHeader>
           {activeBranchInst && (
             <div className="space-y-4">
-              <div className="rounded-lg border border-border/60 p-3">
+              <div className="rounded-xl border border-border/60 p-3">
                 <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("sa.branches.add")}</div>
                 <div className="grid gap-2 md:grid-cols-[1fr_2fr_auto]">
                   <Input placeholder={t("branches.field.name")} value={branchForm.name} onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })} />
@@ -414,7 +414,7 @@ function SuperadminHome() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border/60">
+              <div className="rounded-xl border border-border/60">
                 {branchesOf(activeBranchInst.id).length === 0 ? (
                   <div className="p-6 text-center text-sm text-muted-foreground">{t("sa.branches.empty")}</div>
                 ) : (

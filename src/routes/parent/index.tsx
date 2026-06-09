@@ -134,7 +134,7 @@ function ParentHome() {
 
             {next && nextGroup && (
               <Link to="/parent/children" className="flex items-center gap-3 border-b border-border/40 p-4 transition-colors hover:bg-accent/30">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-accent text-primary">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-accent text-primary">
                   <Clock className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">

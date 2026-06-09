@@ -201,7 +201,7 @@ function StudentProfile() {
           ) : (
             myPayments.map((p) => (
               <Card key={p.id} className="flex items-center gap-3 p-3 shadow-elegant">
-                <div className="flex size-9 items-center justify-center rounded-lg bg-success/10 text-success"><Wallet className="size-4" /></div>
+                <div className="flex size-9 items-center justify-center rounded-xl bg-success/10 text-success"><Wallet className="size-4" /></div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium">{formatMoney(p.amount, lang)}</div>
                   <div className="text-[11px] text-muted-foreground">{formatDate(p.date, lang)} · {t(`finance.method.${p.method}`)}</div>

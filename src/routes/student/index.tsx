@@ -163,7 +163,7 @@ function StudentHome() {
         </div>
         <div className="space-y-2">
           {myGroups.length === 0 ? (
-            <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <div className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
               {t("studentHome.noGroups")}
             </div>
           ) : (
@@ -176,9 +176,9 @@ function StudentHome() {
                 <Link
                   key={group.id}
                   to="/student/schedule"
-                  className="flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-accent/40"
+                  className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-accent/40"
                 >
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-gradient-primary text-sm font-bold text-primary-foreground">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-primary text-sm font-bold text-primary-foreground">
                     {initials(course?.name ?? group.name)}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -210,7 +210,7 @@ function StudentHome() {
               .slice(0, 10);
             if (myPayments.length === 0) {
               return (
-                <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+                <div className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
                   {t("studentHome.noPayments")}
                 </div>
               );
@@ -218,7 +218,7 @@ function StudentHome() {
             return myPayments.map((p) => {
               const isIncome = p.direction === "in";
               return (
-                <div key={p.id} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2">
+                <div key={p.id} className="flex items-center justify-between rounded-xl border border-border/50 px-3 py-2">
                   <div className="flex items-center gap-2">
                     <div className={`flex size-7 items-center justify-center rounded-md text-xs font-bold ${isIncome ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
                       {isIncome ? "+" : "−"}
@@ -260,7 +260,7 @@ function QuickCard({ to, icon: Icon, label, value, hint, tone }: {
   return (
     <Link to={to} className="block">
       <Card className="gap-2 p-4 shadow-elegant transition-all active:scale-95">
-        <div className={`flex size-9 items-center justify-center rounded-lg ${tones[tone]}`}>
+        <div className={`flex size-9 items-center justify-center rounded-xl ${tones[tone]}`}>
           <Icon className="size-4" />
         </div>
         <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>

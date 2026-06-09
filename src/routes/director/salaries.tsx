@@ -348,7 +348,7 @@ function DirectorSalaries() {
             <DialogTitle>{lang === "uz" ? "To'lov berish" : "Выдать зарплату"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+            <div className="rounded-xl border border-border/60 bg-muted/20 p-3 text-sm">
               <div className="font-semibold">{payRow?.staff.fullName}</div>
               <div className="mt-1 text-muted-foreground">
                 {lang === "uz" ? "Qoldiq" : "Остаток"}:{" "}
@@ -387,7 +387,7 @@ function DirectorSalaries() {
           </SheetHeader>
           {detailRow && (
             <div className="mt-5 space-y-4">
-              <div className="rounded-lg border border-border/60 p-4 space-y-3">
+              <div className="rounded-xl border border-border/60 p-4 space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <UserRound className="size-4 text-primary" />
                   {t(`role.${detailRow.staff.role}`)} · {detailRow.isTeacher
@@ -417,7 +417,7 @@ function DirectorSalaries() {
                 <Info label={lang === "uz" ? "To'langan" : "Выплачено"} value={formatMoney(detailRow.paid, lang)} />
               </div>
 
-              <div className="rounded-lg border border-border/60 p-4">
+              <div className="rounded-xl border border-border/60 p-4">
                 <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
                   <ReceiptText className="size-4 text-primary" />
                   {lang === "uz" ? "Hisob-kitob tafsiloti" : "Детализация расчёта"}
@@ -456,7 +456,7 @@ function DirectorSalaries() {
 
 function Info({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+    <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
       <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-1 font-semibold">{icon}{value}</div>
     </div>
@@ -465,7 +465,7 @@ function Info({ label, value, icon }: { label: string; value: string; icon?: Rea
 
 function BreakdownItem({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className="rounded-lg bg-muted/20 p-3">
+    <div className="rounded-xl bg-muted/20 p-3">
       <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={`mt-1 ${strong ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{value}</div>
     </div>

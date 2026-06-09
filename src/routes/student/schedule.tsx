@@ -92,7 +92,7 @@ function StudentSchedulePage() {
               <button
                 key={d.toISOString()}
                 onClick={() => setSelectedDay(d)}
-                className={`flex flex-col items-center gap-0.5 rounded-lg py-2 transition-all ${
+                className={`flex flex-col items-center gap-0.5 rounded-xl py-2 transition-all ${
                   isSel
                     ? "bg-gradient-primary text-primary-foreground shadow-glow"
                     : isToday

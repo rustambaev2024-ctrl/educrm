@@ -88,7 +88,7 @@ function StudentGradesPage() {
                       {course?.name ?? group?.name ?? ""}
                     </div>
                   </div>
-                  <div className={`flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold ${scoreTone(pct)}`}>
+                  <div className={`flex shrink-0 items-center gap-1 rounded-xl px-2 py-1 text-sm font-bold ${scoreTone(pct)}`}>
                     <Star className="size-3.5" />
                     {grade.score}
                     <span className="text-xs opacity-60">/{grade.maxScore}</span>

@@ -135,7 +135,7 @@ function ParentChildren() {
             <div className="space-y-2">
               {myGroups.map((g) => (
                 <div key={g.id} className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-primary text-xs font-bold text-primary-foreground">{g.name[0]}</div>
+                  <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-primary text-xs font-bold text-primary-foreground">{g.name[0]}</div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{g.name}</div>
                     <div className="text-[11px] text-muted-foreground">{teacherById[g.teacherId]?.fullName ?? "—"}</div>
@@ -192,7 +192,7 @@ function ParentChildren() {
           </Card>
 
           <Card className="flex items-center gap-3 p-4 shadow-elegant">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-accent text-primary"><Wallet className="size-5" /></div>
+            <div className="flex size-10 items-center justify-center rounded-xl bg-accent text-primary"><Wallet className="size-5" /></div>
             <div className="flex-1">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("parent.balance")}</div>
               <div className={`text-lg font-bold ${child.balance < 0 ? "text-destructive" : "text-success"}`}>{formatMoney(child.balance, lang)}</div>
@@ -253,7 +253,7 @@ function ParentChildren() {
               const isIncome = p.direction === "in";
               return (
                 <Card key={p.id} className="flex items-center gap-3 p-3 shadow-elegant">
-                  <div className={`flex size-8 items-center justify-center rounded-lg text-xs font-bold ${isIncome ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                  <div className={`flex size-8 items-center justify-center rounded-xl text-xs font-bold ${isIncome ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
                     {isIncome ? "+" : "−"}
                   </div>
                   <div className="min-w-0 flex-1">
