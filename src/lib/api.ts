@@ -9,7 +9,7 @@ export const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 export const TENANT_SCHEMA_KEY = "educrm.tenant_schema";
 export const AUTH_KEY = "educrm.auth";
 
-export type UserRole = "superadmin" | "director" | "admin" | "branch_admin" | "teacher" | "student" | "parent";
+export type UserRole = "superadmin" | "director" | "admin" | "branch_admin" | "teacher" | "support_teacher" | "student" | "parent";
 
 export interface AuthUser {
   id: string;
@@ -357,6 +357,19 @@ export const staffApi = {
       method: "POST",
       body: JSON.stringify(params),
     }),
+};
+
+export const supportTeacherApi = {
+  links: {
+    list: () => requestJson<unknown[]>("/staff/support-teacher-links/"),
+    create: (data: Record<string, unknown>) =>
+      requestJson("/staff/support-teacher-links/", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      requestJson(`/staff/support-teacher-links/${id}/`, { method: "DELETE" }),
+  },
 };
 
 export const penaltyApi = crudApi("/penalties/");

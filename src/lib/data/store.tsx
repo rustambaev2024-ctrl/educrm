@@ -288,6 +288,7 @@ function friendlyApiMessage(message: string): string {
 
 function roleAudience(role?: string): AppNotification["audience"][number] {
   if (role === "branch_admin") return "admin";
+  if (role === "support_teacher") return "teacher";
   if (role === "superadmin" || role === "director" || role === "admin" || role === "teacher" || role === "student" || role === "parent") {
     return role;
   }
