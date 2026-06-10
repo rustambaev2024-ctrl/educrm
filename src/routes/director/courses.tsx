@@ -1,6 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { BookOpen, ChevronRight, DollarSign, Layers, Pencil, Plus, Search, Trash2, TrendingUp, Users } from "lucide-react";
+import {
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  DollarSign,
+  Layers,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
@@ -32,9 +44,21 @@ import { StudentDetailSheet } from "@/components/students/student-detail-sheet";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
-import type { Course, Student } from "@/lib/data/types";
+import type { Course, Group, Student } from "@/lib/data/types";
 
 export const Route = createFileRoute("/director/courses")({ component: DirectorCoursesPage });
+
+function initialsOf(name: string) {
+  return name.split(" ").slice(0, 2).map((p) => p[0] ?? "").join("").toUpperCase();
+}
+
+const AVATAR_COLORS = [
+  "bg-blue-500/10 text-blue-600",
+  "bg-emerald-500/10 text-emerald-600",
+  "bg-purple-500/10 text-purple-600",
+  "bg-amber-500/10 text-amber-600",
+  "bg-pink-500/10 text-pink-600",
+];
 
 function DirectorCoursesPage() {
   const { lang } = useI18n();
@@ -48,6 +72,7 @@ function DirectorCoursesPage() {
   const [description, setDescription] = useState("");
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const filtered = useMemo(() => {
@@ -79,13 +104,8 @@ function DirectorCoursesPage() {
     [courseGroups],
   );
 
-  const courseStudents = useMemo(
-    () => students.filter((s) => courseStudentIds.has(s.id)),
-    [students, courseStudentIds],
-  );
-
   const sheetStats = useMemo(() => {
-    const totalStudents = courseStudents.length;
+    const totalStudents = courseStudentIds.size;
     const activeGroups = courseGroups.filter((g) => g.status === "active").length;
     const avgFill =
       courseGroups.length > 0
@@ -100,15 +120,13 @@ function DirectorCoursesPage() {
       .filter((p) => p.direction === "in" && courseStudentIds.has(p.studentId ?? "") && new Date(p.date) >= monthStart)
       .reduce((s, p) => s + p.amount, 0);
     return { totalStudents, activeGroups, avgFill, monthIncome };
-  }, [courseGroups, courseStudents, courseStudentIds, payments]);
+  }, [courseGroups, courseStudentIds, payments]);
 
   const editingCourse = editingCourseId ? courses.find((c) => c.id === editingCourseId) : null;
   const deletingCourse = deleteCourseId ? courses.find((c) => c.id === deleteCourseId) : null;
 
   const resetForm = () => { setEditingCourseId(null); setName(""); setDescription(""); };
-
   const openCreate = () => { resetForm(); setDialogOpen(true); };
-
   const openEdit = (course: Course, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingCourseId(course.id);
@@ -124,7 +142,7 @@ function DirectorCoursesPage() {
     if (dup) { toast.error(lang === "uz" ? "Bu nomdagi kurs allaqachon mavjud" : "Курс с таким названием уже существует"); return; }
     if (editingCourseId) {
       updateCourse(editingCourseId, { name: trimmed, description: description.trim() || "" });
-      toast.success(lang === "uz" ? "Kurs yangilandi" : "Курс обновлён");
+      toast.success(lang === "uz" ? "Kurs yanglandi" : "Курс обновлён");
     } else {
       addCourse({ name: trimmed, description: description.trim() || undefined });
       toast.success(lang === "uz" ? "Kurs yaratildi" : "Курс создан");
@@ -284,9 +302,9 @@ function DirectorCoursesPage() {
         </div>
       </PageShell>
 
-      {/* Course detail sheet — outside PageShell to avoid overflow clipping */}
+      {/* ── Sheet: курс → список групп ────────────────────────────── */}
       <Sheet open={!!selectedCourse} onOpenChange={(v) => { if (!v) setSelectedCourse(null); }}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-[620px]">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-[580px]">
           {selectedCourse && (
             <>
               <SheetHeader className="border-b border-border pb-4">
@@ -311,6 +329,7 @@ function DirectorCoursesPage() {
               </SheetHeader>
 
               <div className="space-y-6 py-5">
+                {/* KPI */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <KpiCard label={lang === "uz" ? "O'quvchilar" : "Студенты"} value={sheetStats.totalStudents} icon={Users} iconColor="blue" />
                   <KpiCard label={lang === "uz" ? "Faol guruhlar" : "Активных групп"} value={sheetStats.activeGroups} icon={Layers} iconColor="green" />
@@ -318,6 +337,7 @@ function DirectorCoursesPage() {
                   <KpiCard label={lang === "uz" ? "Oylik daromad" : "Доход/мес"} value={formatMoney(sheetStats.monthIncome, lang)} icon={DollarSign} iconColor="amber" />
                 </div>
 
+                {/* Группы */}
                 <div>
                   <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
                     <Layers className="size-4 text-primary" />
@@ -333,7 +353,11 @@ function DirectorCoursesPage() {
                       {courseGroups.map((group) => {
                         const teacher = staff.find((s) => s.id === group.teacherId);
                         return (
-                          <div key={group.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                          <div
+                            key={group.id}
+                            className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/40"
+                            onClick={() => setSelectedGroup(group)}
+                          >
                             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                               <Layers className="size-4" />
                             </div>
@@ -370,69 +394,154 @@ function DirectorCoursesPage() {
                     </div>
                   )}
                 </div>
-
-                <div>
-                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <Users className="size-4 text-primary" />
-                    {lang === "uz" ? "O'quvchilar" : "Студенты"}
-                    <span className="font-normal text-muted-foreground">({courseStudents.length})</span>
-                  </h3>
-                  {courseStudents.length === 0 ? (
-                    <p className="py-4 text-center text-sm text-muted-foreground">
-                      {lang === "uz" ? "O'quvchilar yo'q" : "Студентов нет"}
-                    </p>
-                  ) : (
-                    <div className="space-y-1">
-                      {courseStudents.map((student) => {
-                        const studentGroup = courseGroups.find((g) => g.studentIds.includes(student.id));
-                        const initials = student.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-                        return (
-                          <div
-                            key={student.id}
-                            className="flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-muted/40"
-                            onClick={() => setSelectedStudent(student)}
-                          >
-                            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
-                              {initials}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-medium text-foreground">{student.fullName}</div>
-                              <div className="truncate text-xs text-muted-foreground">{studentGroup?.name ?? "—"}</div>
-                            </div>
-                            <span className={`shrink-0 text-sm font-semibold tabular-nums ${student.balance >= 0 ? "text-emerald-600" : "text-destructive"}`}>
-                              {formatMoney(student.balance, lang)}
-                            </span>
-                            <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                                student.status === "active"
-                                  ? "bg-emerald-500/10 text-emerald-600"
-                                  : student.status === "frozen"
-                                  ? "bg-amber-500/10 text-amber-600"
-                                  : student.status === "expelled"
-                                  ? "bg-red-500/10 text-red-600"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {student.status === "active"
-                                ? lang === "uz" ? "Faol" : "Актив"
-                                : student.status === "frozen"
-                                ? lang === "uz" ? "Muzlatilgan" : "Заморожен"
-                                : student.status === "expelled"
-                                ? lang === "uz" ? "Chiqarilgan" : "Отчислен"
-                                : lang === "uz" ? "Arxiv" : "Архив"}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
               </div>
             </>
           )}
         </SheetContent>
       </Sheet>
 
+      {/* ── Sheet: группа → список студентов ─────────────────────── */}
+      <Sheet open={!!selectedGroup} onOpenChange={(v) => { if (!v) setSelectedGroup(null); }}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-[560px]">
+          {selectedGroup && (() => {
+            const groupStudents = students.filter((s) => selectedGroup.studentIds.includes(s.id));
+            const teacher = staff.find((s) => s.id === selectedGroup.teacherId);
+
+            return (
+              <>
+                <SheetHeader className="border-b border-border pb-4">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGroup(null)}
+                      className="flex size-8 items-center justify-center rounded-lg border border-border hover:bg-muted"
+                    >
+                      <ChevronLeft className="size-4" />
+                    </button>
+                    <div>
+                      <SheetTitle className="text-lg font-bold text-foreground">
+                        {selectedGroup.name}
+                      </SheetTitle>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{selectedCourse?.name}</p>
+                    </div>
+                  </div>
+                </SheetHeader>
+
+                <div className="space-y-4 py-4">
+                  {/* Инфо группы */}
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                          {lang === "uz" ? "O'qituvchi" : "Учитель"}
+                        </div>
+                        <div className="text-sm font-medium text-foreground">
+                          {teacher?.fullName ?? (lang === "uz" ? "Belgilanmagan" : "Не назначен")}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                          {lang === "uz" ? "Holati" : "Статус"}
+                        </div>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            selectedGroup.status === "active"
+                              ? "bg-emerald-500/10 text-emerald-600"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {selectedGroup.status === "active"
+                            ? lang === "uz" ? "Faol" : "Активная"
+                            : lang === "uz" ? "Nofaol" : "Неактивная"}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                          {lang === "uz" ? "Narx" : "Цена"}
+                        </div>
+                        <div className="text-sm font-semibold text-primary">
+                          {formatMoney(selectedGroup.monthlyPrice || 0, lang)}
+                          {lang === "uz" ? "/oy" : "/мес"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                          {lang === "uz" ? "O'quvchilar" : "Студентов"}
+                        </div>
+                        <div className="text-sm font-semibold text-foreground">
+                          {groupStudents.length}
+                          {selectedGroup.capacity ? ` / ${selectedGroup.capacity}` : ""}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Список студентов */}
+                  <div>
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Users className="size-4 text-primary" />
+                      {lang === "uz" ? "O'quvchilar" : "Студенты"}
+                      <span className="font-normal text-muted-foreground">({groupStudents.length})</span>
+                    </h3>
+
+                    {groupStudents.length === 0 ? (
+                      <p className="py-8 text-center text-sm text-muted-foreground">
+                        {lang === "uz" ? "Bu guruhda hali o'quvchilar yo'q" : "В этой группе пока нет студентов"}
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {groupStudents.map((student) => {
+                          const colorClass = AVATAR_COLORS[(student.fullName.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+                          return (
+                            <div
+                              key={student.id}
+                              className="flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-muted/40"
+                              onClick={() => setSelectedStudent(student)}
+                            >
+                              <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${colorClass}`}>
+                                {initialsOf(student.fullName)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-sm font-medium text-foreground">{student.fullName}</div>
+                                <div className="text-xs text-muted-foreground">{student.phone}</div>
+                              </div>
+                              <span className={`shrink-0 text-sm font-semibold tabular-nums ${student.balance >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                                {formatMoney(student.balance, lang)}
+                              </span>
+                              <span
+                                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                  student.status === "active"
+                                    ? "bg-emerald-500/10 text-emerald-600"
+                                    : student.status === "frozen"
+                                    ? "bg-amber-500/10 text-amber-600"
+                                    : student.status === "expelled"
+                                    ? "bg-red-500/10 text-red-600"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {student.status === "active"
+                                  ? lang === "uz" ? "Faol" : "Активный"
+                                  : student.status === "frozen"
+                                  ? lang === "uz" ? "Muzlatilgan" : "Заморожен"
+                                  : student.status === "expelled"
+                                  ? lang === "uz" ? "Chiqarilgan" : "Отчислен"
+                                  : lang === "uz" ? "Arxiv" : "Архив"}
+                              </span>
+                              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
+
+      {/* Student detail sheet */}
       {selectedStudent && (
         <StudentDetailSheet
           student={selectedStudent}
@@ -442,6 +551,7 @@ function DirectorCoursesPage() {
         />
       )}
 
+      {/* Диалог создания / редактирования */}
       <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) resetForm(); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
