@@ -2,24 +2,24 @@ export type Role = "superadmin" | "director" | "admin" | "branch_admin" | "teach
 
 export const ROLE_LABELS: Record<Role, string> = {
   superadmin: "Superadmin",
-  director: "Director",
-  admin: "Admin",
-  branch_admin: "Branch Admin",
-  teacher: "Teacher",
-  support_teacher: "Support Teacher",
-  student: "Student",
-  parent: "Parent",
+  director: "Direktor",
+  admin: "Administrator",
+  branch_admin: "Filial admin",
+  teacher: "O'qituvchi",
+  support_teacher: "Yordamchi o'qituvchi",
+  student: "O'quvchi",
+  parent: "Ota-ona",
 };
 
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
-  superadmin: "Platform-level management",
-  director: "Institution analytics and operations",
-  admin: "Organization operations",
-  branch_admin: "Branch operations",
-  teacher: "Groups, attendance, homework",
-  support_teacher: "Assistant: attendance, homework, grades",
-  student: "Schedule, grades, wallet",
-  parent: "Children monitoring",
+  superadmin: "Platforma boshqaruvi",
+  director: "Tahlil va boshqaruv",
+  admin: "Tashkilot boshqaruvi",
+  branch_admin: "Filial boshqaruvi",
+  teacher: "Guruhlar, davomat, uy vazifalari",
+  support_teacher: "Davomat, uy vazifalari, baholar",
+  student: "Jadval, baholar, hamyon",
+  parent: "Farzandlar monitoringi",
 };
 
 export const ROLE_HOMES: Record<Role, string> = {
