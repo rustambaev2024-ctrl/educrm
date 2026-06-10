@@ -113,7 +113,13 @@ class TeacherAttendance(models.Model):
     ]
 
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="teacher_attendance")
-    teacher = models.ForeignKey("staff.Staff", on_delete=models.CASCADE, related_name="teacher_attendance")
+    teacher = models.ForeignKey(
+        "staff.Staff",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="teacher_attendances",
+    )
     check_in_time = models.TimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="present")
     late_minutes = models.IntegerField(null=True, blank=True)
@@ -122,7 +128,13 @@ class TeacherAttendance(models.Model):
 
     class Meta:
         db_table = "lessons_teacher_attendance"
-        unique_together = ("lesson", "teacher")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["lesson", "teacher"],
+                condition=models.Q(teacher__isnull=False),
+                name="unique_teacher_attendance_per_lesson",
+            )
+        ]
 
     def __str__(self):
         return f"{self.teacher} - {self.lesson} - {self.status}"

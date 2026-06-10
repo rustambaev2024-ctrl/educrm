@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { BookOpen, Layers, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { BookOpen, Layers, Pencil, Plus, Search, Trash2, Users, TrendingUp, DollarSign, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
@@ -9,6 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,20 +33,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { StudentDetailSheet } from "@/components/students/student-detail-sheet";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
+import { formatMoney } from "@/lib/format";
+import type { Course, Student } from "@/lib/data/types";
 
 export const Route = createFileRoute("/director/courses")({ component: DirectorCoursesPage });
 
 function DirectorCoursesPage() {
   const { lang } = useI18n();
-  const { courses, groups, addCourse, updateCourse, deleteCourse, isLoading } = useData();
+  const { courses, groups, staff, students, payments, addCourse, updateCourse, deleteCourse, isLoading } = useData();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [deleteCourseId, setDeleteCourseId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+
+  // Course detail sheet
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -60,6 +73,47 @@ function DirectorCoursesPage() {
     );
   }, [courses, groups]);
 
+  // Data for the selected course sheet
+  const courseGroups = useMemo(
+    () => (selectedCourse ? groups.filter((g) => g.courseId === selectedCourse.id) : []),
+    [selectedCourse, groups],
+  );
+
+  const courseStudentIds = useMemo(
+    () => new Set(courseGroups.flatMap((g) => g.studentIds)),
+    [courseGroups],
+  );
+
+  const courseStudents = useMemo(
+    () => students.filter((s) => courseStudentIds.has(s.id)),
+    [students, courseStudentIds],
+  );
+
+  const courseSheetStats = useMemo(() => {
+    const totalStudents = courseStudents.length;
+    const activeGroups = courseGroups.filter((g) => g.status === "active").length;
+    const avgFill =
+      courseGroups.length > 0
+        ? Math.round(
+            courseGroups.reduce(
+              (sum, g) => sum + (g.studentIds.length / (g.capacity || 20)) * 100,
+              0,
+            ) / courseGroups.length,
+          )
+        : 0;
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthIncome = payments
+      .filter((p) => {
+        const d = new Date(p.date);
+        return p.direction === "in" && courseStudentIds.has(p.studentId ?? "") && d >= monthStart;
+      })
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    return { totalStudents, activeGroups, avgFill, monthIncome };
+  }, [courseGroups, courseStudents, courseStudentIds, payments]);
+
   const editingCourse = editingCourseId ? courses.find((course) => course.id === editingCourseId) : null;
   const deletingCourse = deleteCourseId ? courses.find((course) => course.id === deleteCourseId) : null;
 
@@ -74,7 +128,8 @@ function DirectorCoursesPage() {
     setOpen(true);
   };
 
-  const openEdit = (course: { id: string; name: string; description?: string }) => {
+  const openEdit = (course: Course, e: React.MouseEvent) => {
+    e.stopPropagation();
     setEditingCourseId(course.id);
     setName(course.name);
     setDescription(course.description ?? "");
@@ -87,7 +142,6 @@ function DirectorCoursesPage() {
       toast.error(lang === "uz" ? "Kurs nomini kiriting" : "Введите название курса");
       return;
     }
-
     const duplicate = courses.some(
       (course) => course.id !== editingCourseId && course.name.trim().toLowerCase() === trimmedName.toLowerCase(),
     );
@@ -95,7 +149,6 @@ function DirectorCoursesPage() {
       toast.error(lang === "uz" ? "Bu nomdagi kurs allaqachon mavjud" : "Курс с таким названием уже существует");
       return;
     }
-
     if (editingCourseId) {
       updateCourse(editingCourseId, { name: trimmedName, description: description.trim() || "" });
       toast.success(lang === "uz" ? "Kurs yangilandi" : "Курс обновлён");
@@ -111,7 +164,11 @@ function DirectorCoursesPage() {
     if (!deletingCourse) return;
     const stats = courseStats[deletingCourse.id] ?? { groupsCount: 0, studentsCount: 0 };
     if (stats.groupsCount > 0) {
-      toast.error(lang === "uz" ? "Bu kursda guruhlar bor. Avval guruhlarni boshqa kursga o'tkazing yoki o'chiring." : "В этом курсе есть группы. Сначала перенесите или удалите группы.");
+      toast.error(
+        lang === "uz"
+          ? "Bu kursda guruhlar bor. Avval guruhlarni boshqa kursga o'tkazing yoki o'chiring."
+          : "В этом курсе есть группы. Сначала перенесите или удалите группы.",
+      );
       setDeleteCourseId(null);
       return;
     }
@@ -131,7 +188,11 @@ function DirectorCoursesPage() {
   return (
     <PageShell
       title={lang === "uz" ? "Kurslar" : "Курсы"}
-      subtitle={lang === "uz" ? "Muassasa bo'yicha barcha o'quv yo'nalishlarini direktor yaratadi va boshqaradi" : "Директор создаёт и управляет всеми учебными направлениями учреждения"}
+      subtitle={
+        lang === "uz"
+          ? "Muassasa bo'yicha barcha o'quv yo'nalishlarini direktor yaratadi va boshqaradi"
+          : "Директор создаёт и управляет всеми учебными направлениями учреждения"
+      }
       actions={
         <Button size="sm" className="h-8 gap-1.5 px-3 text-[12px]" onClick={openCreate}>
           <Plus className="size-3.5" /> {lang === "uz" ? "Kurs qo'shish" : "Добавить курс"}
@@ -145,7 +206,7 @@ function DirectorCoursesPage() {
           <KpiCard
             label={lang === "uz" ? "Kursga bog'langan o'quvchilar" : "Учеников на курсах"}
             value={groups.reduce((sum, group) => sum + group.studentIds.length, 0)}
-            icon={Plus}
+            icon={Users}
             iconColor="violet"
           />
         </div>
@@ -154,11 +215,21 @@ function DirectorCoursesPage() {
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-semibold">{lang === "uz" ? "Kurslar ro'yxati" : "Список курсов"}</h2>
-              <p className="text-sm text-muted-foreground">{lang === "uz" ? "Kurs yaratilgandan keyin administratorlar shu kurs asosida guruh ochadi." : "После создания курса администраторы открывают группы на его основе."}</p>
+              <p className="text-sm text-muted-foreground">
+                {lang === "uz"
+                  ? "Kurs yaratilgandan keyin administratorlar shu kurs asosida guruh ochadi."
+                  : "После создания курса администраторы открывают группы на его основе."}
+              </p>
             </div>
             <div className="relative w-full md:w-80">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={lang === "uz" ? "Kurs qidirish..." : "Поиск курса..."} className="pl-9" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={lang === "uz" ? "Kurs qidirish..." : "Поиск курса..."}
+                className="pl-9"
+                autoComplete="off"
+              />
             </div>
           </div>
 
@@ -168,7 +239,11 @@ function DirectorCoursesPage() {
                 <BookOpen className="size-7" />
               </div>
               <h3 className="mt-4 font-semibold">{lang === "uz" ? "Hali kurs yo'q" : "Курсов пока нет"}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{lang === "uz" ? "Birinchi kursni yarating: masalan English A1, Math Foundation yoki IELTS." : "Создайте первый курс: например English A1, Math Foundation или IELTS."}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {lang === "uz"
+                  ? "Birinchi kursni yarating: masalan English A1, Math Foundation yoki IELTS."
+                  : "Создайте первый курс: например English A1, Math Foundation или IELTS."}
+              </p>
               <Button onClick={openCreate} className="mt-4 gap-2">
                 <Plus className="size-4" /> {lang === "uz" ? "Kurs qo'shish" : "Добавить курс"}
               </Button>
@@ -178,7 +253,11 @@ function DirectorCoursesPage() {
               {filtered.map((course) => {
                 const stats = courseStats[course.id] ?? { groupsCount: 0, studentsCount: 0 };
                 return (
-                  <div key={course.id} className="rounded-2xl border border-border bg-background/70 p-4 transition hover:border-primary/40 hover:shadow-elegant">
+                  <div
+                    key={course.id}
+                    className="rounded-2xl border border-border bg-background/70 p-4 transition hover:border-primary/40 hover:shadow-elegant cursor-pointer"
+                    onClick={() => setSelectedCourse(course)}
+                  >
                     <div className="flex items-start gap-3">
                       <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                         <BookOpen className="size-5" />
@@ -190,7 +269,14 @@ function DirectorCoursesPage() {
                         </p>
                       </div>
                       <div className="flex shrink-0 gap-1">
-                        <Button type="button" variant="ghost" size="icon" className="size-8" title={lang === "uz" ? "Kursni tahrirlash" : "Редактировать курс"} onClick={() => openEdit(course)}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          title={lang === "uz" ? "Kursni tahrirlash" : "Редактировать курс"}
+                          onClick={(e) => openEdit(course, e)}
+                        >
                           <Pencil className="size-4" />
                         </Button>
                         <Button
@@ -199,7 +285,7 @@ function DirectorCoursesPage() {
                           size="icon"
                           className="size-8 text-destructive hover:text-destructive"
                           title={lang === "uz" ? "Kursni o'chirish" : "Удалить курс"}
-                          onClick={() => setDeleteCourseId(course.id)}
+                          onClick={(e) => { e.stopPropagation(); setDeleteCourseId(course.id); }}
                         >
                           <Trash2 className="size-4" />
                         </Button>
@@ -207,11 +293,15 @@ function DirectorCoursesPage() {
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
                       <div className="rounded-xl bg-muted/60 p-3">
-                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{lang === "uz" ? "Guruhlar" : "Группы"}</div>
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          {lang === "uz" ? "Guruhlar" : "Группы"}
+                        </div>
                         <div className="mt-1 text-lg font-semibold tabular-nums">{stats.groupsCount}</div>
                       </div>
                       <div className="rounded-xl bg-muted/60 p-3">
-                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{lang === "uz" ? "O'quvchilar" : "Ученики"}</div>
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          {lang === "uz" ? "O'quvchilar" : "Ученики"}
+                        </div>
                         <div className="mt-1 text-lg font-semibold tabular-nums">{stats.studentsCount}</div>
                       </div>
                     </div>
@@ -223,6 +313,217 @@ function DirectorCoursesPage() {
         </Card>
       </div>
 
+      {/* ── Course detail sheet ─────────────────────────────────────────────── */}
+      <Sheet open={!!selectedCourse} onOpenChange={(open) => !open && setSelectedCourse(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-[620px]">
+          {selectedCourse && (
+            <>
+              <SheetHeader className="border-b border-border pb-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <SheetTitle className="text-xl font-bold text-foreground">
+                      {selectedCourse.name}
+                    </SheetTitle>
+                    {selectedCourse.description && (
+                      <p className="mt-1 text-sm text-muted-foreground">{selectedCourse.description}</p>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 shrink-0"
+                    onClick={(e) => { openEdit(selectedCourse, e); setSelectedCourse(null); }}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                </div>
+              </SheetHeader>
+
+              <div className="space-y-6 py-5">
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <KpiCard
+                    label={lang === "uz" ? "O'quvchilar" : "Студенты"}
+                    value={courseSheetStats.totalStudents}
+                    icon={Users}
+                    iconColor="blue"
+                  />
+                  <KpiCard
+                    label={lang === "uz" ? "Faol guruhlar" : "Активных групп"}
+                    value={courseSheetStats.activeGroups}
+                    icon={Layers}
+                    iconColor="green"
+                  />
+                  <KpiCard
+                    label={lang === "uz" ? "To'ldirilganlik" : "Заполненность"}
+                    value={`${courseSheetStats.avgFill}%`}
+                    icon={TrendingUp}
+                    iconColor="cyan"
+                  />
+                  <KpiCard
+                    label={lang === "uz" ? "Oylik daromad" : "Доход/мес"}
+                    value={formatMoney(courseSheetStats.monthIncome, lang)}
+                    icon={DollarSign}
+                    iconColor="amber"
+                  />
+                </div>
+
+                {/* Groups */}
+                <div>
+                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <Layers className="size-4 text-primary" />
+                    {lang === "uz" ? "Guruhlar" : "Группы"}
+                    <span className="font-normal text-muted-foreground">({courseGroups.length})</span>
+                  </h3>
+                  {courseGroups.length === 0 ? (
+                    <p className="py-4 text-center text-sm text-muted-foreground">
+                      {lang === "uz" ? "Guruhlar yo'q" : "Групп нет"}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {courseGroups.map((group) => {
+                        const teacher = staff.find((s) => s.id === group.teacherId);
+                        return (
+                          <div
+                            key={group.id}
+                            className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                          >
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                              <Layers className="size-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate text-sm font-medium text-foreground">
+                                  {group.name}
+                                </span>
+                                <span
+                                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                    group.status === "active"
+                                      ? "bg-emerald-500/10 text-emerald-600"
+                                      : group.status === "completed"
+                                      ? "bg-blue-500/10 text-blue-600"
+                                      : "bg-muted text-muted-foreground"
+                                  }`}
+                                >
+                                  {group.status === "active"
+                                    ? lang === "uz" ? "Faol" : "Активная"
+                                    : group.status === "completed"
+                                    ? lang === "uz" ? "Tugallangan" : "Завершена"
+                                    : lang === "uz" ? "Nofaol" : "Неактивная"}
+                                </span>
+                              </div>
+                              <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>
+                                  {teacher?.fullName ?? (lang === "uz" ? "O'qituvchi yo'q" : "Без учителя")}
+                                </span>
+                                <span>·</span>
+                                <span>
+                                  {group.studentIds.length}/{group.capacity ?? "?"}{" "}
+                                  {lang === "uz" ? "o'quvchi" : "студентов"}
+                                </span>
+                                {group.monthlyPrice > 0 && (
+                                  <>
+                                    <span>·</span>
+                                    <span>{formatMoney(group.monthlyPrice, lang)}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Students */}
+                <div>
+                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <Users className="size-4 text-primary" />
+                    {lang === "uz" ? "O'quvchilar" : "Студенты"}
+                    <span className="font-normal text-muted-foreground">({courseStudents.length})</span>
+                  </h3>
+                  {courseStudents.length === 0 ? (
+                    <p className="py-4 text-center text-sm text-muted-foreground">
+                      {lang === "uz" ? "O'quvchilar yo'q" : "Студентов нет"}
+                    </p>
+                  ) : (
+                    <div className="space-y-1">
+                      {courseStudents.map((student) => {
+                        const studentGroup = courseGroups.find((g) => g.studentIds.includes(student.id));
+                        const initials = student.fullName
+                          .split(" ")
+                          .slice(0, 2)
+                          .map((p) => p[0])
+                          .join("")
+                          .toUpperCase();
+                        return (
+                          <div
+                            key={student.id}
+                            className="flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-muted/40"
+                            onClick={() => setSelectedStudent(student)}
+                          >
+                            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                              {initials}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-medium text-foreground">
+                                {student.fullName}
+                              </div>
+                              <div className="truncate text-xs text-muted-foreground">
+                                {studentGroup?.name ?? "—"}
+                              </div>
+                            </div>
+                            <span
+                              className={`shrink-0 text-sm font-semibold tabular-nums ${
+                                student.balance >= 0 ? "text-emerald-600" : "text-destructive"
+                              }`}
+                            >
+                              {formatMoney(student.balance, lang)}
+                            </span>
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                student.status === "active"
+                                  ? "bg-emerald-500/10 text-emerald-600"
+                                  : student.status === "frozen"
+                                  ? "bg-amber-500/10 text-amber-600"
+                                  : student.status === "expelled"
+                                  ? "bg-red-500/10 text-red-600"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {student.status === "active"
+                                ? lang === "uz" ? "Faol" : "Актив"
+                                : student.status === "frozen"
+                                ? lang === "uz" ? "Muzlatilgan" : "Заморожен"
+                                : student.status === "expelled"
+                                ? lang === "uz" ? "Chiqarilgan" : "Отчислен"
+                                : lang === "uz" ? "Arxiv" : "Архив"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Student detail sheet — nested */}
+      {selectedStudent && (
+        <StudentDetailSheet
+          student={selectedStudent}
+          onClose={() => setSelectedStudent(null)}
+          onArchive={() => setSelectedStudent(null)}
+          onDelete={() => setSelectedStudent(null)}
+        />
+      )}
+
+      {/* Edit/Create dialog */}
       <Dialog
         open={open}
         onOpenChange={(nextOpen) => {
@@ -232,48 +533,84 @@ function DirectorCoursesPage() {
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingCourse ? (lang === "uz" ? "Kursni tahrirlash" : "Редактировать курс") : (lang === "uz" ? "Kurs qo'shish" : "Добавить курс")}</DialogTitle>
+            <DialogTitle>
+              {editingCourse
+                ? lang === "uz" ? "Kursni tahrirlash" : "Редактировать курс"
+                : lang === "uz" ? "Kurs qo'shish" : "Добавить курс"}
+            </DialogTitle>
             <DialogDescription>
-              {lang === "uz" ? "Direktor kurs nomi va tavsifini boshqaradi. Guruh, o'qituvchi, xona va jadval alohida belgilanadi." : "Директор управляет названием и описанием курса. Группа, учитель, кабинет и расписание задаются отдельно."}
+              {lang === "uz"
+                ? "Direktor kurs nomi va tavsifini boshqaradi. Guruh, o'qituvchi, xona va jadval alohida belgilanadi."
+                : "Директор управляет названием и описанием курса. Группа, учитель, кабинет и расписание задаются отдельно."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
             <div>
-              <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">{lang === "uz" ? "Kurs nomi" : "Название курса"} *</Label>
-              <Input value={name} onChange={(event) => setName(event.target.value)} placeholder={lang === "uz" ? "Masalan: English A1" : "Например: English A1"} autoFocus />
+              <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+                {lang === "uz" ? "Kurs nomi" : "Название курса"} *
+              </Label>
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder={lang === "uz" ? "Masalan: English A1" : "Например: English A1"}
+                autoComplete="off"
+                autoFocus
+              />
             </div>
             <div>
-              <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">{lang === "uz" ? "Tavsif" : "Описание"}</Label>
+              <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">
+                {lang === "uz" ? "Tavsif" : "Описание"}
+              </Label>
               <Textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder={lang === "uz" ? "Kurs maqsadi, darajasi yoki davomiyligi haqida qisqa yozing" : "Кратко опишите цель, уровень или продолжительность курса"}
+                placeholder={
+                  lang === "uz"
+                    ? "Kurs maqsadi, darajasi yoki davomiyligi haqida qisqa yozing"
+                    : "Кратко опишите цель, уровень или продолжительность курса"
+                }
                 rows={4}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>{lang === "uz" ? "Bekor qilish" : "Отмена"}</Button>
-            <Button onClick={submit}>{editingCourse ? (lang === "uz" ? "Saqlash" : "Сохранить") : (lang === "uz" ? "Yaratish" : "Создать")}</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              {lang === "uz" ? "Bekor qilish" : "Отмена"}
+            </Button>
+            <Button onClick={submit}>
+              {editingCourse
+                ? lang === "uz" ? "Saqlash" : "Сохранить"
+                : lang === "uz" ? "Yaratish" : "Создать"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteCourseId} onOpenChange={(nextOpen) => !nextOpen && setDeleteCourseId(null)}>
+      <AlertDialog
+        open={!!deleteCourseId}
+        onOpenChange={(nextOpen) => !nextOpen && setDeleteCourseId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{lang === "uz" ? "Kurs o'chirilsinmi?" : "Удалить курс?"}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {lang === "uz" ? "Kurs o'chirilsinmi?" : "Удалить курс?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {deletingCourse
-                ? (lang === "uz"
-                    ? `"${deletingCourse.name}" kursi o'chiriladi. Guruhlarga bog'langan kurslarni o'chirish mumkin emas.`
-                    : `Курс "${deletingCourse.name}" будет удалён. Курсы с привязанными группами удалить нельзя.`)
-                : (lang === "uz" ? "Tanlangan kurs o'chiriladi." : "Выбранный курс будет удалён.")}
+                ? lang === "uz"
+                  ? `"${deletingCourse.name}" kursi o'chiriladi. Guruhlarga bog'langan kurslarni o'chirish mumkin emas.`
+                  : `Курс "${deletingCourse.name}" будет удалён. Курсы с привязанными группами удалить нельзя.`
+                : lang === "uz"
+                ? "Tanlangan kurs o'chiriladi."
+                : "Выбранный курс будет удалён."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               {lang === "uz" ? "O'chirish" : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
