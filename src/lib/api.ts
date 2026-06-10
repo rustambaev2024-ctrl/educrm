@@ -632,6 +632,12 @@ export const quizApi = {
   addQuestion: (quizId: string, data: Record<string, unknown>) =>
     requestJson(`/quizzes/${quizId}/questions/`, { method: "POST", body: JSON.stringify(data) }),
 
+  updateQuestion: (quizId: string, questionId: string, data: Record<string, unknown>) =>
+    requestJson(`/quizzes/${quizId}/questions/${questionId}/`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  deleteQuestion: (quizId: string, questionId: string) =>
+    requestJson(`/quizzes/${quizId}/questions/${questionId}/`, { method: "DELETE" }),
+
   createSession: (quizId: string) =>
     requestJson(`/quizzes/${quizId}/sessions/`, { method: "POST" }),
 

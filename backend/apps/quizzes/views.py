@@ -95,6 +95,41 @@ class QuizViewSet(viewsets.ModelViewSet):
         )
         return Response(QuizSessionSerializer(session).data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["patch", "delete"],
+            url_path="questions/(?P<question_id>[^/.]+)")
+    def update_question(self, request, pk=None, question_id=None):
+        quiz = self.get_object()
+        try:
+            from .models import Answer, Question
+            question = quiz.questions.get(id=question_id)
+        except Exception:
+            return Response({"error": "Not found"}, status=404)
+
+        if request.method == "DELETE":
+            question.delete()
+            return Response(status=204)
+
+        if "text" in request.data:
+            question.text = request.data["text"]
+        if "time_limit" in request.data:
+            question.time_limit = request.data["time_limit"]
+        if "order" in request.data:
+            question.order = request.data["order"]
+        question.save()
+
+        if "answers" in request.data:
+            question.answers.all().delete()
+            for a in request.data["answers"]:
+                Answer.objects.create(
+                    question=question,
+                    text=a["text"],
+                    is_correct=a.get("is_correct", False),
+                    order=a.get("order", 0),
+                )
+
+        from .serializers import QuestionSerializer
+        return Response(QuestionSerializer(question).data)
+
     @create_session.mapping.get
     def list_sessions(self, request, pk=None):
         quiz = self.get_object()
