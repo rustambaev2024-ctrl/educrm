@@ -57,6 +57,16 @@ class GradeViewSet(
     def perform_create(self, serializer):
         serializer.save(graded_by=self.request.user)
 
+    def perform_destroy(self, instance):
+        user = self.request.user
+        if user.role == "support_teacher":
+            if str(instance.graded_by_id) != str(user.id):
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied(
+                    "Siz faqat o'zingiz qo'ygan baholarni o'chira olasiz."
+                )
+        instance.delete()
+
     @action(detail=False, methods=["get"], url_path=r"group/(?P<group_id>[0-9a-f-]+)/journal")
     def group_journal(self, request, group_id=None):
         grades = self.get_queryset().filter(group_id=group_id)

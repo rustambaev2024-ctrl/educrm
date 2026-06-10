@@ -125,7 +125,8 @@ function AccountsPage() {
   return (
     <PageShell title={t("title")} subtitle={t("description")}>
       <div className="space-y-4">
-        <Card className="border-[#f1f5f9] bg-white p-4">
+        <SupportTeacherLinks />
+        <Card className="border-border bg-card p-4">
           <div className="flex gap-3">
             <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#0077b6]" />
             <p className="text-sm text-muted-foreground">{t("note")}</p>
@@ -207,8 +208,6 @@ function AccountsPage() {
             })}
           </div>
         )}
-
-        <SupportTeacherLinks />
       </div>
     </PageShell>
   );

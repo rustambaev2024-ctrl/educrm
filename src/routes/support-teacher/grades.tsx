@@ -42,6 +42,7 @@ function scoreTone(score: number, max: number): string {
 function SupportTeacherGrades() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
+  const currentUserId = user?.id ?? "";
   // Группы из store уже отфильтрованы бэкендом по учителям этого помощника.
   const { groups, grades, students, addGrade, deleteGrade, isLoading } = useData();
 
@@ -202,23 +203,25 @@ function SupportTeacherGrades() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{formatDate(g.date, lang)}</TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        onClick={() => {
-                          const confirmed = window.confirm(
-                            lang === "uz"
-                              ? "Bu bahoni o'chirishni tasdiqlaysizmi?"
-                              : "Удалить эту оценку?"
-                          );
-                          if (!confirmed) return;
-                          deleteGrade(g.id);
-                          toast.success(t("grades.deleted"));
-                        }}
-                      >
-                        <Trash2 className="size-4 text-muted-foreground" />
-                      </Button>
+                      {g.teacherId === currentUserId && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              lang === "uz"
+                                ? "Bu bahoni o'chirishni tasdiqlaysizmi?"
+                                : "Удалить эту оценку?"
+                            );
+                            if (!confirmed) return;
+                            deleteGrade(g.id);
+                            toast.success(t("grades.deleted"));
+                          }}
+                        >
+                          <Trash2 className="size-4 text-muted-foreground" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Clock, MapPin, Users, ChevronRight, ClipboardCheck, Calendar, BookOpen } from "lucide-react";
+import { Clock, MapPin, Users, ChevronRight, ClipboardCheck, Calendar, BookOpen, AlertCircle } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,26 @@ function SupportTeacherHome() {
       <div className="flex h-64 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
       </div>
+    );
+  }
+
+  if (groups.length === 0) {
+    return (
+      <PageShell title={tr("Bugun", "Сегодня")} subtitle={formatDate(today.toISOString(), lang)}>
+        <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+          <div className="flex size-14 items-center justify-center rounded-full bg-amber-500/10">
+            <AlertCircle className="size-7 text-amber-500" />
+          </div>
+          <div>
+            <div className="text-base font-semibold text-foreground">
+              {tr("Siz hali hech qaysi o'qituvchiga biriktirilmagansiz", "Вы ещё не привязаны ни к одному учителю")}
+            </div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              {tr("Administrator sizni o'qituvchiga biriktirishi kerak", "Обратитесь к администратору для привязки к учителю")}
+            </div>
+          </div>
+        </div>
+      </PageShell>
     );
   }
 
