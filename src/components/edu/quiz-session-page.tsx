@@ -37,7 +37,6 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   const { lang } = useI18n();
   const navigate = useNavigate();
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
-  // Route is `${basePath}/quiz-session/$sessionId`
   const { sessionId } = useParams({ strict: false }) as { sessionId: string };
 
   const [session, setSession] = useState<QuizSessionRow | null>(null);
@@ -47,13 +46,14 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   const [qIndex, setQIndex] = useState(0);
   const [qTotal, setQTotal] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
+  const [totalParticipants, setTotalParticipants] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [results, setResults] = useState<WsResult[]>([]);
 
   const socketRef = useRef<WebSocket | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load session meta (code, participants, quiz title) via REST
+  // Load session meta via REST
   useEffect(() => {
     quizApi.sessions
       .get(sessionId)
@@ -63,14 +63,13 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
         setPhase(row.status);
         setParticipants(row.participants.map((p) => ({ id: p.id, name: p.name })));
       })
-      .catch((err) => {
-        console.error("[quiz-session] load failed", err);
+      .catch(() => {
         toast.error(tr("Sessiyani yuklab bo'lmadi", "Не удалось загрузить сессию"));
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  // Countdown
+  // Countdown timer
   const startTimer = useCallback((seconds: number) => {
     if (timerRef.current) clearInterval(timerRef.current);
     setSecondsLeft(seconds);
@@ -85,7 +84,7 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
     }, 1000);
   }, []);
 
-  // Connect WS once we know the code (host uses token auth)
+  // Connect WebSocket once session code is known
   useEffect(() => {
     if (!session?.code) return;
     const token = readAccessToken();
@@ -94,20 +93,33 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
     socketRef.current = socket;
 
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data) as Record<string, unknown>;
+
       if (data.type === "question") {
         setPhase("active");
         setQuestion(data.question as WsQuestion);
-        setQIndex(data.index);
-        setQTotal(data.total);
+        setQIndex(Number(data.index));
+        setQTotal(Number(data.total));
         setAnsweredCount(0);
         startTimer((data.question as WsQuestion).time_limit);
-      } else if (data.type === "answer_received") {
-        setAnsweredCount((c) => c + 1);
+      } else if (data.type === "answer_count_update") {
+        // БАГ 4: анонимный счётчик ответов вместо answer_received
+        setAnsweredCount(Number(data.answered));
+        setTotalParticipants(Number(data.total));
       } else if (data.type === "finished") {
         setPhase("finished");
         setResults(data.results as WsResult[]);
         if (timerRef.current) clearInterval(timerRef.current);
+      } else if (data.type === "error") {
+        // БАГ 3: тест без вопросов
+        if ((data.message as string) === "no_questions") {
+          toast.error(
+            tr(
+              "Testda savollar yo'q! Avval savol qo'shing.",
+              "В тесте нет вопросов! Сначала добавьте вопросы."
+            )
+          );
+        }
       }
     };
 
@@ -117,13 +129,15 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
     };
   }, [session?.code, startTimer]);
 
-  // Poll participant list while waiting (no WS event for joins in spec)
+  // Poll participant list while waiting
   useEffect(() => {
     if (phase !== "waiting" || !sessionId) return;
     const interval = setInterval(() => {
       quizApi.sessions
         .get(sessionId)
-        .then((s) => setParticipants((s as QuizSessionRow).participants.map((p) => ({ id: p.id, name: p.name }))))
+        .then((s) =>
+          setParticipants((s as QuizSessionRow).participants.map((p) => ({ id: p.id, name: p.name })))
+        )
         .catch(() => {});
     }, 3000);
     return () => clearInterval(interval);
@@ -143,7 +157,6 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
     try {
       const fresh = (await quizApi.createSession(session.quiz)) as QuizSessionRow;
       navigate({ to: `${basePath}/quiz-session/${fresh.id}` as string });
-      // hard reload to reset all WS/timer state
       window.location.reload();
     } catch {
       toast.error(tr("Xatolik", "Ошибка"));
@@ -164,9 +177,14 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
       <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-slate-900 p-6 text-white">
         <div className="text-center">
           <div className="text-sm uppercase tracking-widest text-white/50">{session.quiz_title}</div>
-          <div className="mt-4 font-mono text-7xl font-bold tracking-[0.2em] tabular-nums">{session.code}</div>
+          <div className="mt-4 font-mono text-7xl font-bold tracking-[0.2em] tabular-nums">
+            {session.code}
+          </div>
           <div className="mt-3 text-white/60">
-            {tr("Kodni kiriting", "Введите код")}: {typeof window !== "undefined" ? `${window.location.origin}/join?schema=${encodeURIComponent(getTenantSchema())}` : "/join"}
+            {tr("Kodni kiriting", "Введите код")}:{" "}
+            {typeof window !== "undefined"
+              ? `${window.location.origin}/join?schema=${encodeURIComponent(getTenantSchema())}`
+              : "/join"}
           </div>
         </div>
 
@@ -181,7 +199,9 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
               </span>
             ))}
             {participants.length === 0 && (
-              <span className="text-white/40">{tr("Ishtirokchilarni kutmoqda...", "Ожидание участников...")}</span>
+              <span className="text-white/40">
+                {tr("Ishtirokchilarni kutmoqda...", "Ожидание участников...")}
+              </span>
             )}
           </div>
         </div>
@@ -201,17 +221,21 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   // ─── ACTIVE (question) ──────────────────────────────────────────────────────
   if (phase === "active" && question) {
     const danger = secondsLeft <= 5;
+    const displayAnswered = totalParticipants > 0 ? answeredCount : answeredCount;
     return (
       <div className="flex min-h-screen flex-col bg-slate-900 p-6 text-white">
         <div className="flex items-center justify-between">
           <div className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium">
             {qIndex + 1}/{qTotal} {tr("savol", "вопрос")}
           </div>
-          <div className={`font-mono text-5xl font-bold tabular-nums ${danger ? "animate-pulse text-red-500" : ""}`}>
+          <div
+            className={`font-mono text-5xl font-bold tabular-nums ${danger ? "animate-pulse text-red-500" : ""}`}
+          >
             {secondsLeft}
           </div>
           <div className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium">
-            {answeredCount} {tr("javob berdi", "ответили")}
+            {displayAnswered}
+            {totalParticipants > 0 ? `/${totalParticipants}` : ""} {tr("javob berdi", "ответили")}
           </div>
         </div>
 
@@ -221,8 +245,13 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {question.answers.map((a, i) => (
-            <div key={a.id} className={`flex items-center gap-3 rounded-xl p-5 text-lg font-semibold ${ANSWER_COLORS[i % 4]}`}>
-              <span className="flex size-8 items-center justify-center rounded-md bg-white/20 text-base">{i + 1}</span>
+            <div
+              key={a.id}
+              className={`flex items-center gap-3 rounded-xl p-5 text-lg font-semibold ${ANSWER_COLORS[i % 4]}`}
+            >
+              <span className="flex size-8 items-center justify-center rounded-md bg-white/20 text-base">
+                {i + 1}
+              </span>
               {a.text}
             </div>
           ))}
@@ -256,7 +285,13 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
               <div key={r.participant_id} className="flex items-center gap-4 p-4">
                 <span
                   className={`flex size-8 items-center justify-center rounded-full text-sm font-bold ${
-                    i === 0 ? "bg-amber-400 text-slate-900" : i === 1 ? "bg-slate-300 text-slate-900" : i === 2 ? "bg-amber-700 text-white" : "bg-white/10"
+                    i === 0
+                      ? "bg-amber-400 text-slate-900"
+                      : i === 1
+                      ? "bg-slate-300 text-slate-900"
+                      : i === 2
+                      ? "bg-amber-700 text-white"
+                      : "bg-white/10"
                   }`}
                 >
                   {r.rank ?? i + 1}
@@ -270,7 +305,11 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
       </Card>
 
       <div className="flex gap-3">
-        <Button variant="outline" className="gap-2 border-white/20 bg-transparent text-white hover:bg-white/10" onClick={() => navigate({ to: `${basePath}/quizzes` as string })}>
+        <Button
+          variant="outline"
+          className="gap-2 border-white/20 bg-transparent text-white hover:bg-white/10"
+          onClick={() => navigate({ to: `${basePath}/quizzes` as string })}
+        >
           {tr("Testlarga qaytish", "К тестам")}
         </Button>
         <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700" onClick={newSession}>

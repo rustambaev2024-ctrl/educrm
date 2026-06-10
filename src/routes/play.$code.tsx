@@ -1,5 +1,6 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Loader2, Trophy, Check, X } from "lucide-react";
 import { getTenantSchema } from "@/lib/api";
 import { getWebSocketBaseUrl } from "@/lib/realtime";
@@ -36,18 +37,21 @@ function PlayPage() {
   const lang = (typeof window !== "undefined" ? localStorage.getItem("lang") : null) || "uz";
   const uz = lang === "uz";
 
-  const participantId = typeof window !== "undefined" ? sessionStorage.getItem(`quiz_participant_${code}`) : null;
-  const myName = typeof window !== "undefined" ? sessionStorage.getItem(`quiz_name_${code}`) ?? "" : "";
+  const participantId =
+    typeof window !== "undefined" ? sessionStorage.getItem(`quiz_participant_${code}`) : null;
+  const myName =
+    typeof window !== "undefined" ? sessionStorage.getItem(`quiz_name_${code}`) ?? "" : "";
 
   const [phase, setPhase] = useState<"waiting" | "active" | "answered" | "finished">("waiting");
   const [question, setQuestion] = useState<WsQuestion | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
-  const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [myScore, setMyScore] = useState(0);
   const [results, setResults] = useState<WsResult[]>([]);
 
   const socketRef = useRef<WebSocket | null>(null);
 
-  // Guard — нет participantId значит участник не прошёл join
+  // Guard — участник не прошёл join
   if (!participantId) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0d1b2a]">
@@ -68,6 +72,7 @@ function PlayPage() {
     );
   }
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (!code) return;
     const schema = getTenantSchema();
@@ -76,17 +81,28 @@ function PlayPage() {
     socketRef.current = socket;
 
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data) as Record<string, unknown>;
+
       if (data.type === "question") {
         setQuestion(data.question as WsQuestion);
         setChosen(null);
-        setLastCorrect(null);
+        setIsCorrect(null);
         setPhase("active");
-      } else if (data.type === "answer_received" && data.participant_id === participantId) {
-        setLastCorrect(Boolean(data.is_correct));
+      } else if (data.type === "answer_result") {
+        // БАГ 4: личный результат — только этому участнику
+        setIsCorrect(Boolean(data.is_correct));
+        setMyScore(Number(data.score));
       } else if (data.type === "finished") {
         setResults(data.results as WsResult[]);
         setPhase("finished");
+      } else if (data.type === "host_disconnected") {
+        // БАГ 1: хост закрыл браузер
+        setPhase("finished");
+        toast.error(
+          uz
+            ? "O'qituvchi ulanishdan uzildi. Test yakunlandi."
+            : "Учитель отключился. Тест завершён."
+        );
       }
     };
 
@@ -103,7 +119,7 @@ function PlayPage() {
         participant_id: participantId,
         question_id: question.id,
         answer_id: answerId,
-      }),
+      })
     );
   };
 
@@ -130,14 +146,15 @@ function PlayPage() {
 
         {phase === "answered" ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">
-            {lastCorrect === null ? (
+            {isCorrect === null ? (
               <Loader2 className="size-12 animate-spin text-white/60" />
-            ) : lastCorrect ? (
+            ) : isCorrect ? (
               <div className="flex flex-col items-center gap-3 text-emerald-400">
                 <div className="flex size-20 items-center justify-center rounded-full bg-emerald-500/20">
                   <Check className="size-10" />
                 </div>
                 <div className="text-xl font-bold">{uz ? "To'g'ri!" : "Правильно!"}</div>
+                <div className="text-white/60">{myScore} {uz ? "ball" : "очков"}</div>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3 text-red-400">
@@ -160,7 +177,9 @@ function PlayPage() {
                 disabled={!!chosen}
                 className={`flex items-center gap-3 rounded-xl p-6 text-left text-lg font-semibold transition-all ${ANSWER_COLORS[i % 4]} ${chosen && chosen !== a.id ? "opacity-40" : ""}`}
               >
-                <span className="flex size-9 items-center justify-center rounded-md bg-white/20 text-base">{i + 1}</span>
+                <span className="flex size-9 items-center justify-center rounded-md bg-white/20 text-base">
+                  {i + 1}
+                </span>
                 {a.text}
               </button>
             ))}
@@ -180,9 +199,7 @@ function PlayPage() {
           <>
             <div className="text-6xl font-bold tabular-nums">{me.rank ?? "—"}</div>
             <div className="text-white/60">
-              {me.rank === 1
-                ? (uz ? "1-o'rin!" : "1-е место!")
-                : (uz ? "o'rin" : "место")}
+              {me.rank === 1 ? (uz ? "1-o'rin!" : "1-е место!") : uz ? "o'rin" : "место"}
             </div>
             <div className="mt-2 rounded-xl bg-white/10 px-6 py-3 text-2xl font-bold tabular-nums">
               {me.score} {uz ? "ball" : "очков"}
@@ -203,7 +220,9 @@ function PlayPage() {
               key={r.participant_id}
               className={`flex items-center gap-3 p-3 ${r.participant_id === participantId ? "bg-[#0077b6]/15" : ""}`}
             >
-              <span className="w-6 text-center text-sm font-bold tabular-nums">{r.rank ?? i + 1}</span>
+              <span className="w-6 text-center text-sm font-bold tabular-nums">
+                {r.rank ?? i + 1}
+              </span>
               <span className="flex-1 truncate text-sm font-medium">{r.name}</span>
               <span className="font-mono text-sm font-bold tabular-nums">{r.score}</span>
             </div>

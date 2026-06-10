@@ -220,12 +220,22 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
                 return Response({"error": "Session already started"}, status=400)
 
             data = request.data
-            if not (data.get("name") or "").strip():
-                return Response({"error": "Name is required"}, status=400)
+            name = (data.get("name") or "").strip()
+            if not name:
+                return Response({"error": "name_required"}, status=400)
+
+            # БАГ 5: для lead тестов — обязательные поля на бэкенде
+            if session.quiz.quiz_type == "lead":
+                if not (data.get("phone") or "").strip():
+                    return Response({"error": "phone_required"}, status=400)
+                if not (data.get("parent_name") or "").strip():
+                    return Response({"error": "parent_name_required"}, status=400)
+                if not (data.get("parent_phone") or "").strip():
+                    return Response({"error": "parent_phone_required"}, status=400)
 
             participant = SessionParticipant.objects.create(
                 session=session,
-                name=data.get("name", "").strip(),
+                name=name,
                 phone=data.get("phone", ""),
                 birth_date=data.get("birth_date") or None,
                 parent_name=data.get("parent_name", ""),
