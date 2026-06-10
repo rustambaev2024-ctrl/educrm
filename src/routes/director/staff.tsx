@@ -125,7 +125,7 @@ function StaffPage() {
       role: form.role,
       branchId: form.role === "director" ? undefined : form.branchId || undefined,
       salaryPercent: form.role === "teacher" ? Number(form.salaryPercent) || 40 : undefined,
-      fixedSalary: form.role !== "teacher" ? Number(form.fixedSalary) || 0 : undefined,
+      fixedSalary: form.role !== "teacher" ? (Number(form.fixedSalary) || undefined) : undefined,
     };
     if (editing) {
       updateStaff(editing.id, payload);

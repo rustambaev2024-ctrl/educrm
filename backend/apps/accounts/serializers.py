@@ -58,7 +58,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.UUID)
     def get_profileId(self, obj):
-        if obj.role in ("director", "admin", "branch_admin", "teacher"):
+        if obj.role in ("director", "admin", "branch_admin", "teacher", "support_teacher"):
             profile = self._staff_profile(obj)
         elif obj.role == "student":
             profile = self._student_profile(obj)
@@ -87,7 +87,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.UUID)
     def get_branchId(self, obj):
-        if obj.role in ("director", "admin", "branch_admin", "teacher"):
+        if obj.role in ("director", "admin", "branch_admin", "teacher", "support_teacher"):
             profile = self._staff_profile(obj)
         elif obj.role == "student":
             profile = self._student_profile(obj)
