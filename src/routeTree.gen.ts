@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as ApplyRouteImport } from './routes/apply'
 import { Route as TeacherRouteRouteImport } from './routes/teacher/route'
+import { Route as SupportTeacherRouteRouteImport } from './routes/support-teacher/route'
 import { Route as SuperadminRouteRouteImport } from './routes/superadmin/route'
 import { Route as StudentRouteRouteImport } from './routes/student/route'
 import { Route as ParentRouteRouteImport } from './routes/parent/route'
@@ -20,6 +21,7 @@ import { Route as DirectorRouteRouteImport } from './routes/director/route'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeacherIndexRouteImport } from './routes/teacher/index'
+import { Route as SupportTeacherIndexRouteImport } from './routes/support-teacher/index'
 import { Route as SuperadminIndexRouteImport } from './routes/superadmin/index'
 import { Route as StudentIndexRouteImport } from './routes/student/index'
 import { Route as ParentIndexRouteImport } from './routes/parent/index'
@@ -33,6 +35,11 @@ import { Route as TeacherGroupsRouteImport } from './routes/teacher/groups'
 import { Route as TeacherGradesRouteImport } from './routes/teacher/grades'
 import { Route as TeacherFinanceRouteImport } from './routes/teacher/finance'
 import { Route as TeacherAttendanceRouteImport } from './routes/teacher/attendance'
+import { Route as SupportTeacherMessagesRouteImport } from './routes/support-teacher/messages'
+import { Route as SupportTeacherHomeworkRouteImport } from './routes/support-teacher/homework'
+import { Route as SupportTeacherGroupsRouteImport } from './routes/support-teacher/groups'
+import { Route as SupportTeacherGradesRouteImport } from './routes/support-teacher/grades'
+import { Route as SupportTeacherAttendanceRouteImport } from './routes/support-teacher/attendance'
 import { Route as SuperadminSettingsRouteImport } from './routes/superadmin/settings'
 import { Route as SuperadminLogsRouteImport } from './routes/superadmin/logs'
 import { Route as SuperadminAnalyticsRouteImport } from './routes/superadmin/analytics'
@@ -96,6 +103,11 @@ const TeacherRouteRoute = TeacherRouteRouteImport.update({
   path: '/teacher',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportTeacherRouteRoute = SupportTeacherRouteRouteImport.update({
+  id: '/support-teacher',
+  path: '/support-teacher',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SuperadminRouteRoute = SuperadminRouteRouteImport.update({
   id: '/superadmin',
   path: '/superadmin',
@@ -130,6 +142,11 @@ const TeacherIndexRoute = TeacherIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => TeacherRouteRoute,
+} as any)
+const SupportTeacherIndexRoute = SupportTeacherIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SupportTeacherRouteRoute,
 } as any)
 const SuperadminIndexRoute = SuperadminIndexRouteImport.update({
   id: '/',
@@ -196,6 +213,32 @@ const TeacherAttendanceRoute = TeacherAttendanceRouteImport.update({
   path: '/attendance',
   getParentRoute: () => TeacherRouteRoute,
 } as any)
+const SupportTeacherMessagesRoute = SupportTeacherMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => SupportTeacherRouteRoute,
+} as any)
+const SupportTeacherHomeworkRoute = SupportTeacherHomeworkRouteImport.update({
+  id: '/homework',
+  path: '/homework',
+  getParentRoute: () => SupportTeacherRouteRoute,
+} as any)
+const SupportTeacherGroupsRoute = SupportTeacherGroupsRouteImport.update({
+  id: '/groups',
+  path: '/groups',
+  getParentRoute: () => SupportTeacherRouteRoute,
+} as any)
+const SupportTeacherGradesRoute = SupportTeacherGradesRouteImport.update({
+  id: '/grades',
+  path: '/grades',
+  getParentRoute: () => SupportTeacherRouteRoute,
+} as any)
+const SupportTeacherAttendanceRoute =
+  SupportTeacherAttendanceRouteImport.update({
+    id: '/attendance',
+    path: '/attendance',
+    getParentRoute: () => SupportTeacherRouteRoute,
+  } as any)
 const SuperadminSettingsRoute = SuperadminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -416,6 +459,7 @@ export interface FileRoutesByFullPath {
   '/parent': typeof ParentRouteRouteWithChildren
   '/student': typeof StudentRouteRouteWithChildren
   '/superadmin': typeof SuperadminRouteRouteWithChildren
+  '/support-teacher': typeof SupportTeacherRouteRouteWithChildren
   '/teacher': typeof TeacherRouteRouteWithChildren
   '/apply': typeof ApplyRoute
   '/join': typeof JoinRoute
@@ -460,6 +504,11 @@ export interface FileRoutesByFullPath {
   '/superadmin/analytics': typeof SuperadminAnalyticsRoute
   '/superadmin/logs': typeof SuperadminLogsRoute
   '/superadmin/settings': typeof SuperadminSettingsRoute
+  '/support-teacher/attendance': typeof SupportTeacherAttendanceRoute
+  '/support-teacher/grades': typeof SupportTeacherGradesRoute
+  '/support-teacher/groups': typeof SupportTeacherGroupsRoute
+  '/support-teacher/homework': typeof SupportTeacherHomeworkRoute
+  '/support-teacher/messages': typeof SupportTeacherMessagesRoute
   '/teacher/attendance': typeof TeacherAttendanceRoute
   '/teacher/finance': typeof TeacherFinanceRoute
   '/teacher/grades': typeof TeacherGradesRoute
@@ -473,6 +522,7 @@ export interface FileRoutesByFullPath {
   '/parent/': typeof ParentIndexRoute
   '/student/': typeof StudentIndexRoute
   '/superadmin/': typeof SuperadminIndexRoute
+  '/support-teacher/': typeof SupportTeacherIndexRoute
   '/teacher/': typeof TeacherIndexRoute
   '/admin/quiz-session/$sessionId': typeof AdminQuizSessionSessionIdRoute
   '/teacher/quiz-session/$sessionId': typeof TeacherQuizSessionSessionIdRoute
@@ -522,6 +572,11 @@ export interface FileRoutesByTo {
   '/superadmin/analytics': typeof SuperadminAnalyticsRoute
   '/superadmin/logs': typeof SuperadminLogsRoute
   '/superadmin/settings': typeof SuperadminSettingsRoute
+  '/support-teacher/attendance': typeof SupportTeacherAttendanceRoute
+  '/support-teacher/grades': typeof SupportTeacherGradesRoute
+  '/support-teacher/groups': typeof SupportTeacherGroupsRoute
+  '/support-teacher/homework': typeof SupportTeacherHomeworkRoute
+  '/support-teacher/messages': typeof SupportTeacherMessagesRoute
   '/teacher/attendance': typeof TeacherAttendanceRoute
   '/teacher/finance': typeof TeacherFinanceRoute
   '/teacher/grades': typeof TeacherGradesRoute
@@ -535,6 +590,7 @@ export interface FileRoutesByTo {
   '/parent': typeof ParentIndexRoute
   '/student': typeof StudentIndexRoute
   '/superadmin': typeof SuperadminIndexRoute
+  '/support-teacher': typeof SupportTeacherIndexRoute
   '/teacher': typeof TeacherIndexRoute
   '/admin/quiz-session/$sessionId': typeof AdminQuizSessionSessionIdRoute
   '/teacher/quiz-session/$sessionId': typeof TeacherQuizSessionSessionIdRoute
@@ -547,6 +603,7 @@ export interface FileRoutesById {
   '/parent': typeof ParentRouteRouteWithChildren
   '/student': typeof StudentRouteRouteWithChildren
   '/superadmin': typeof SuperadminRouteRouteWithChildren
+  '/support-teacher': typeof SupportTeacherRouteRouteWithChildren
   '/teacher': typeof TeacherRouteRouteWithChildren
   '/apply': typeof ApplyRoute
   '/join': typeof JoinRoute
@@ -591,6 +648,11 @@ export interface FileRoutesById {
   '/superadmin/analytics': typeof SuperadminAnalyticsRoute
   '/superadmin/logs': typeof SuperadminLogsRoute
   '/superadmin/settings': typeof SuperadminSettingsRoute
+  '/support-teacher/attendance': typeof SupportTeacherAttendanceRoute
+  '/support-teacher/grades': typeof SupportTeacherGradesRoute
+  '/support-teacher/groups': typeof SupportTeacherGroupsRoute
+  '/support-teacher/homework': typeof SupportTeacherHomeworkRoute
+  '/support-teacher/messages': typeof SupportTeacherMessagesRoute
   '/teacher/attendance': typeof TeacherAttendanceRoute
   '/teacher/finance': typeof TeacherFinanceRoute
   '/teacher/grades': typeof TeacherGradesRoute
@@ -604,6 +666,7 @@ export interface FileRoutesById {
   '/parent/': typeof ParentIndexRoute
   '/student/': typeof StudentIndexRoute
   '/superadmin/': typeof SuperadminIndexRoute
+  '/support-teacher/': typeof SupportTeacherIndexRoute
   '/teacher/': typeof TeacherIndexRoute
   '/admin/quiz-session/$sessionId': typeof AdminQuizSessionSessionIdRoute
   '/teacher/quiz-session/$sessionId': typeof TeacherQuizSessionSessionIdRoute
@@ -617,6 +680,7 @@ export interface FileRouteTypes {
     | '/parent'
     | '/student'
     | '/superadmin'
+    | '/support-teacher'
     | '/teacher'
     | '/apply'
     | '/join'
@@ -661,6 +725,11 @@ export interface FileRouteTypes {
     | '/superadmin/analytics'
     | '/superadmin/logs'
     | '/superadmin/settings'
+    | '/support-teacher/attendance'
+    | '/support-teacher/grades'
+    | '/support-teacher/groups'
+    | '/support-teacher/homework'
+    | '/support-teacher/messages'
     | '/teacher/attendance'
     | '/teacher/finance'
     | '/teacher/grades'
@@ -674,6 +743,7 @@ export interface FileRouteTypes {
     | '/parent/'
     | '/student/'
     | '/superadmin/'
+    | '/support-teacher/'
     | '/teacher/'
     | '/admin/quiz-session/$sessionId'
     | '/teacher/quiz-session/$sessionId'
@@ -723,6 +793,11 @@ export interface FileRouteTypes {
     | '/superadmin/analytics'
     | '/superadmin/logs'
     | '/superadmin/settings'
+    | '/support-teacher/attendance'
+    | '/support-teacher/grades'
+    | '/support-teacher/groups'
+    | '/support-teacher/homework'
+    | '/support-teacher/messages'
     | '/teacher/attendance'
     | '/teacher/finance'
     | '/teacher/grades'
@@ -736,6 +811,7 @@ export interface FileRouteTypes {
     | '/parent'
     | '/student'
     | '/superadmin'
+    | '/support-teacher'
     | '/teacher'
     | '/admin/quiz-session/$sessionId'
     | '/teacher/quiz-session/$sessionId'
@@ -747,6 +823,7 @@ export interface FileRouteTypes {
     | '/parent'
     | '/student'
     | '/superadmin'
+    | '/support-teacher'
     | '/teacher'
     | '/apply'
     | '/join'
@@ -791,6 +868,11 @@ export interface FileRouteTypes {
     | '/superadmin/analytics'
     | '/superadmin/logs'
     | '/superadmin/settings'
+    | '/support-teacher/attendance'
+    | '/support-teacher/grades'
+    | '/support-teacher/groups'
+    | '/support-teacher/homework'
+    | '/support-teacher/messages'
     | '/teacher/attendance'
     | '/teacher/finance'
     | '/teacher/grades'
@@ -804,6 +886,7 @@ export interface FileRouteTypes {
     | '/parent/'
     | '/student/'
     | '/superadmin/'
+    | '/support-teacher/'
     | '/teacher/'
     | '/admin/quiz-session/$sessionId'
     | '/teacher/quiz-session/$sessionId'
@@ -816,6 +899,7 @@ export interface RootRouteChildren {
   ParentRouteRoute: typeof ParentRouteRouteWithChildren
   StudentRouteRoute: typeof StudentRouteRouteWithChildren
   SuperadminRouteRoute: typeof SuperadminRouteRouteWithChildren
+  SupportTeacherRouteRoute: typeof SupportTeacherRouteRouteWithChildren
   TeacherRouteRoute: typeof TeacherRouteRouteWithChildren
   ApplyRoute: typeof ApplyRoute
   JoinRoute: typeof JoinRoute
@@ -851,6 +935,13 @@ declare module '@tanstack/react-router' {
       path: '/teacher'
       fullPath: '/teacher'
       preLoaderRoute: typeof TeacherRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support-teacher': {
+      id: '/support-teacher'
+      path: '/support-teacher'
+      fullPath: '/support-teacher'
+      preLoaderRoute: typeof SupportTeacherRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/superadmin': {
@@ -901,6 +992,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/teacher/'
       preLoaderRoute: typeof TeacherIndexRouteImport
       parentRoute: typeof TeacherRouteRoute
+    }
+    '/support-teacher/': {
+      id: '/support-teacher/'
+      path: '/'
+      fullPath: '/support-teacher/'
+      preLoaderRoute: typeof SupportTeacherIndexRouteImport
+      parentRoute: typeof SupportTeacherRouteRoute
     }
     '/superadmin/': {
       id: '/superadmin/'
@@ -992,6 +1090,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/teacher/attendance'
       preLoaderRoute: typeof TeacherAttendanceRouteImport
       parentRoute: typeof TeacherRouteRoute
+    }
+    '/support-teacher/messages': {
+      id: '/support-teacher/messages'
+      path: '/messages'
+      fullPath: '/support-teacher/messages'
+      preLoaderRoute: typeof SupportTeacherMessagesRouteImport
+      parentRoute: typeof SupportTeacherRouteRoute
+    }
+    '/support-teacher/homework': {
+      id: '/support-teacher/homework'
+      path: '/homework'
+      fullPath: '/support-teacher/homework'
+      preLoaderRoute: typeof SupportTeacherHomeworkRouteImport
+      parentRoute: typeof SupportTeacherRouteRoute
+    }
+    '/support-teacher/groups': {
+      id: '/support-teacher/groups'
+      path: '/groups'
+      fullPath: '/support-teacher/groups'
+      preLoaderRoute: typeof SupportTeacherGroupsRouteImport
+      parentRoute: typeof SupportTeacherRouteRoute
+    }
+    '/support-teacher/grades': {
+      id: '/support-teacher/grades'
+      path: '/grades'
+      fullPath: '/support-teacher/grades'
+      preLoaderRoute: typeof SupportTeacherGradesRouteImport
+      parentRoute: typeof SupportTeacherRouteRoute
+    }
+    '/support-teacher/attendance': {
+      id: '/support-teacher/attendance'
+      path: '/attendance'
+      fullPath: '/support-teacher/attendance'
+      preLoaderRoute: typeof SupportTeacherAttendanceRouteImport
+      parentRoute: typeof SupportTeacherRouteRoute
     }
     '/superadmin/settings': {
       id: '/superadmin/settings'
@@ -1430,6 +1563,27 @@ const SuperadminRouteRouteWithChildren = SuperadminRouteRoute._addFileChildren(
   SuperadminRouteRouteChildren,
 )
 
+interface SupportTeacherRouteRouteChildren {
+  SupportTeacherAttendanceRoute: typeof SupportTeacherAttendanceRoute
+  SupportTeacherGradesRoute: typeof SupportTeacherGradesRoute
+  SupportTeacherGroupsRoute: typeof SupportTeacherGroupsRoute
+  SupportTeacherHomeworkRoute: typeof SupportTeacherHomeworkRoute
+  SupportTeacherMessagesRoute: typeof SupportTeacherMessagesRoute
+  SupportTeacherIndexRoute: typeof SupportTeacherIndexRoute
+}
+
+const SupportTeacherRouteRouteChildren: SupportTeacherRouteRouteChildren = {
+  SupportTeacherAttendanceRoute: SupportTeacherAttendanceRoute,
+  SupportTeacherGradesRoute: SupportTeacherGradesRoute,
+  SupportTeacherGroupsRoute: SupportTeacherGroupsRoute,
+  SupportTeacherHomeworkRoute: SupportTeacherHomeworkRoute,
+  SupportTeacherMessagesRoute: SupportTeacherMessagesRoute,
+  SupportTeacherIndexRoute: SupportTeacherIndexRoute,
+}
+
+const SupportTeacherRouteRouteWithChildren =
+  SupportTeacherRouteRoute._addFileChildren(SupportTeacherRouteRouteChildren)
+
 interface TeacherRouteRouteChildren {
   TeacherAttendanceRoute: typeof TeacherAttendanceRoute
   TeacherFinanceRoute: typeof TeacherFinanceRoute
@@ -1467,6 +1621,7 @@ const rootRouteChildren: RootRouteChildren = {
   ParentRouteRoute: ParentRouteRouteWithChildren,
   StudentRouteRoute: StudentRouteRouteWithChildren,
   SuperadminRouteRoute: SuperadminRouteRouteWithChildren,
+  SupportTeacherRouteRoute: SupportTeacherRouteRouteWithChildren,
   TeacherRouteRoute: TeacherRouteRouteWithChildren,
   ApplyRoute: ApplyRoute,
   JoinRoute: JoinRoute,

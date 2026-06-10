@@ -137,6 +137,13 @@ class StudentViewSet(viewsets.ModelViewSet):
         elif user.role in ("admin", "branch_admin", "teacher") and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             scoped = qs.filter(branch_id=branch_id) if branch_id else qs.none()
+        elif user.role == "support_teacher":
+            from apps.staff.utils import get_support_teacher_group_ids
+            group_ids = get_support_teacher_group_ids(user)
+            scoped = qs.filter(
+                group_memberships__group_id__in=group_ids,
+                group_memberships__left_at__isnull=True,
+            ).distinct()
         elif user.role == "student" and hasattr(user, "student_profile"):
             scoped = qs.filter(id=user.student_profile.id)
         elif user.role == "parent" and hasattr(user, "parent_profile"):

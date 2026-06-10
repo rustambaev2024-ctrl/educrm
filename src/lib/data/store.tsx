@@ -423,6 +423,7 @@ function groupFromRaw(raw: GroupRaw): Group {
     courseId: mapped.courseId,
     branchId: mapped.branchId,
     teacherId: mapped.teacherId,
+    teacherName: mapped.teacherName,
     roomId: mapped.roomId,
     capacity: mapped.capacity,
     startDate: mapped.startDate,
@@ -744,7 +745,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const canSeeStudents = ["director", "admin", "branch_admin", "teacher", "student", "parent"].includes(user?.role ?? "");
+      const canSeeStudents = ["director", "admin", "branch_admin", "teacher", "support_teacher", "student", "parent"].includes(user?.role ?? "");
       const canSeeStaff = ["director", "admin", "branch_admin"].includes(user?.role ?? "");
       const canSeeFinance = ["director", "admin", "branch_admin"].includes(user?.role ?? "");
       const canSeePenalties = user?.role === "director";

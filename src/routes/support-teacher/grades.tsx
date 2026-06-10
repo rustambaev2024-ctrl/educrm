@@ -1,0 +1,268 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Award, Trash2, Users, BookOpen } from "lucide-react";
+import { toast } from "sonner";
+import { PageShell } from "@/components/edu/page-shell";
+import { KpiCard } from "@/components/edu/kpi-card";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useData } from "@/lib/data/store";
+import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
+import { formatDate, getLocalDateString, initialsOf } from "@/lib/format";
+import type { GradeKind } from "@/lib/data/types";
+
+export const Route = createFileRoute("/support-teacher/grades")({ component: SupportTeacherGrades });
+
+// Помощник учителя НЕ может ставить итоговые (exam) оценки.
+const ALLOWED_GRADE_TYPES: GradeKind[] = [
+  "homework",
+  "speaking",
+  "vocabulary",
+  "test",
+  "extra_lesson",
+];
+
+function scoreTone(score: number, max: number): string {
+  const pct = (score / max) * 100;
+  if (pct >= 85) return "bg-success/15 text-success";
+  if (pct >= 65) return "bg-info/15 text-info";
+  if (pct >= 50) return "bg-warning/15 text-warning";
+  return "bg-destructive/15 text-destructive";
+}
+
+function SupportTeacherGrades() {
+  const { t, lang } = useI18n();
+  const { user } = useAuth();
+  // Группы из store уже отфильтрованы бэкендом по учителям этого помощника.
+  const { groups, grades, students, addGrade, deleteGrade, isLoading } = useData();
+
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  useEffect(() => {
+    if (!selectedGroupId && groups.length > 0) {
+      setSelectedGroupId(groups[0].id);
+    }
+  }, [groups]);
+  const studentById = useMemo(() => Object.fromEntries(students.map((s) => [s.id, s])), [students]);
+  const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+
+  const groupGrades = useMemo(
+    () => grades.filter((g) => g.groupId === selectedGroupId).sort((a, b) => b.date.localeCompare(a.date)),
+    [grades, selectedGroupId],
+  );
+
+  const avgByStudent = useMemo(() => {
+    const map: Record<string, { sum: number; cnt: number }> = {};
+    for (const g of groupGrades) {
+      if (!map[g.studentId]) map[g.studentId] = { sum: 0, cnt: 0 };
+      map[g.studentId].sum += (g.score / g.maxScore) * 10;
+      map[g.studentId].cnt += 1;
+    }
+    return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, Math.round((v.sum / v.cnt) * 10) / 10]));
+  }, [groupGrades]);
+
+  const overallAvg = useMemo(() => {
+    if (groupGrades.length === 0) return 0;
+    return Math.round((groupGrades.reduce((s, g) => s + (g.score / g.maxScore) * 10, 0) / groupGrades.length) * 10) / 10;
+  }, [groupGrades]);
+
+  const topStudentsCount = useMemo(() => {
+    return Object.values(avgByStudent).filter((v) => v >= 8).length;
+  }, [avgByStudent]);
+
+  const [open, setOpen] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [form, setForm] = useState({ kind: "homework" as GradeKind, score: "", comment: "" });
+
+  const submit = () => {
+    const score = Number(form.score);
+    if (!selectedStudentId || !form.score || Number.isNaN(score) || score < 0 || score > 10 || !selectedGroup) {
+      toast.error(t("validation.fillAll"));
+      return;
+    }
+    if (!ALLOWED_GRADE_TYPES.includes(form.kind)) {
+      toast.error(t("validation.fillAll"));
+      return;
+    }
+    addGrade({
+      groupId: selectedGroup.id,
+      studentId: selectedStudentId,
+      // graded_by определяется бэкендом по текущему пользователю.
+      teacherId: user?.id ?? "",
+      kind: form.kind,
+      title: t(`gkind.${form.kind}`),
+      score,
+      maxScore: 10,
+      date: getLocalDateString(),
+      comment: form.comment.trim() || undefined,
+    });
+    toast.success(t("grades.created"));
+    setOpen(false);
+    setSelectedStudentId("");
+    setForm({ kind: "homework", score: "", comment: "" });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <PageShell
+      title={t("grades.title")}
+      subtitle={t("grades.subtitle")}
+      actions={
+        <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+          <SelectTrigger className="h-8 w-[140px] max-w-[55vw] text-[12px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-2 min-[360px]:gap-3">
+          <KpiCard label={t("grades.title")} value={groupGrades.length} icon={BookOpen} iconColor="blue" />
+          <KpiCard label={t("grades.average")} value={`${overallAvg} / 10`} icon={Award} iconColor="green" />
+          <KpiCard label={lang === "uz" ? "A'lochi o'quvchilar" : "Отличники"} value={topStudentsCount} icon={Users} iconColor="violet" />
+        </div>
+        <Card className="overflow-hidden p-0 shadow-elegant">
+          <div className="border-b border-border/60 px-4 py-3 text-sm font-semibold">
+            {t("grades.average")} - {t("groups.field.students")}. {t("grades.add")}: {lang === "uz" ? "o'quvchini bosing" : "нажмите на ученика"}
+          </div>
+          <div className="divide-y divide-border/60">
+            {(selectedGroup?.studentIds ?? []).map((sid) => {
+              const stu = studentById[sid];
+              const avg = avgByStudent[sid];
+              return (
+                <button
+                  key={sid}
+                  type="button"
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-accent/50"
+                  onClick={() => {
+                    setSelectedStudentId(sid);
+                    setOpen(true);
+                  }}
+                >
+                  <Avatar className="size-8">
+                    <AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
+                      {initialsOf(stu?.fullName ?? "?")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 truncate text-sm">{stu?.fullName ?? sid}</div>
+                  {avg !== undefined ? (
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${scoreTone(avg, 10)}`}>{avg}/10</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">{t("grades.add")}</span>
+                  )}
+                </button>
+              );
+            })}
+            {(selectedGroup?.studentIds.length ?? 0) === 0 && (
+              <div className="py-8 text-center text-sm text-muted-foreground">{t("hw.noStudents")}</div>
+            )}
+          </div>
+        </Card>
+
+        <Card className="overflow-hidden p-0 shadow-elegant">
+          <div className="border-b border-border/60 px-4 py-3 text-sm font-semibold">{t("grades.title")}</div>
+          {groupGrades.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">{t("grades.empty")}</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("grades.col.student")}</TableHead>
+                  <TableHead>{t("grades.col.kind")}</TableHead>
+                  <TableHead>{t("grades.col.score")}</TableHead>
+                  <TableHead>{t("grades.col.date")}</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groupGrades.map((g) => (
+                  <TableRow key={g.id}>
+                    <TableCell className="font-medium">{studentById[g.studentId]?.fullName ?? g.studentId}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-[10px]">{t(`gkind.${g.kind}`)}</Badge></TableCell>
+                    <TableCell>
+                      <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-bold ${scoreTone(g.score, g.maxScore)}`}>
+                        {g.score}<span className="text-muted-foreground">/{g.maxScore}</span>
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(g.date, lang)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        onClick={() => {
+                          const confirmed = window.confirm(
+                            lang === "uz"
+                              ? "Bu bahoni o'chirishni tasdiqlaysizmi?"
+                              : "Удалить эту оценку?"
+                          );
+                          if (!confirmed) return;
+                          deleteGrade(g.id);
+                          toast.success(t("grades.deleted"));
+                        }}
+                      >
+                        <Trash2 className="size-4 text-muted-foreground" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
+      </div>
+
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{t("grades.add")}</SheetTitle>
+            <SheetDescription>{selectedGroup?.name}</SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 px-4 pb-4">
+            <Card className="p-3 text-sm">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("grades.col.student")}</div>
+              <div className="mt-1 font-semibold">{selectedStudentId ? studentById[selectedStudentId]?.fullName ?? selectedStudentId : "-"}</div>
+            </Card>
+            <div className="space-y-1.5">
+              <Label>{t("grades.field.kind")}*</Label>
+              <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as GradeKind })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ALLOWED_GRADE_TYPES.map((k) => <SelectItem key={k} value={k}>{t(`gkind.${k}`)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("grades.field.score")}* (0-10)</Label>
+              <Input type="number" min={0} max={10} step={1} value={form.score} onChange={(e) => setForm({ ...form, score: e.target.value })} autoComplete="off" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("grades.field.comment")}</Label>
+              <Textarea rows={3} value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
+              <Button onClick={submit}><Award className="mr-1 size-4" /> {t("common.save")}</Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </PageShell>
+  );
+}

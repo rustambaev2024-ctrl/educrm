@@ -11,6 +11,10 @@ class Grade(models.Model):
         ("homework", "Homework Grade"),
         ("exam", "Exam Grade"),
         ("activity", "Activity Grade"),
+        ("speaking", "Speaking Grade"),
+        ("vocabulary", "Vocabulary Grade"),
+        ("test", "Test Grade"),
+        ("extra_lesson", "Extra Lesson Grade"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

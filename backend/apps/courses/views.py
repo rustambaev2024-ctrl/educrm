@@ -57,6 +57,10 @@ class CourseViewSet(
             return qs
         if user.role == "teacher" and hasattr(user, "staff_profile"):
             return qs.filter(groups__teacher=user.staff_profile).distinct()
+        if user.role == "support_teacher":
+            from apps.staff.utils import get_support_teacher_group_ids
+            group_ids = get_support_teacher_group_ids(user)
+            return qs.filter(groups__id__in=group_ids).distinct()
         if user.role == "student" and hasattr(user, "student_profile"):
             return qs.filter(
                 groups__memberships__student=user.student_profile,
@@ -125,6 +129,10 @@ class GroupViewSet(
             scoped = qs.filter(branch_id=branch_id) if branch_id else qs.none()
             if user.role == "teacher":
                 scoped = scoped.filter(teacher=user.staff_profile)
+        elif user.role == "support_teacher":
+            from apps.staff.utils import get_support_teacher_group_ids
+            group_ids = get_support_teacher_group_ids(user)
+            scoped = qs.filter(id__in=group_ids)
         elif user.role == "student" and hasattr(user, "student_profile"):
             scoped = qs.filter(memberships__student=user.student_profile, memberships__left_at__isnull=True)
         elif user.role == "parent" and hasattr(user, "parent_profile"):

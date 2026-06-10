@@ -127,6 +127,7 @@ export interface Group {
   courseId: string;
   branchId: string;
   teacherId: string;
+  teacherName?: string;
   roomId: string;
   capacity: number;
   startDate: string;
@@ -257,7 +258,7 @@ export interface HomeworkSubmission {
 }
 
 // Grades / exams
-export type GradeKind = "lesson" | "homework" | "exam" | "activity";
+export type GradeKind = "lesson" | "homework" | "exam" | "activity" | "speaking" | "vocabulary" | "test" | "extra_lesson";
 
 export interface Grade {
   id: string;

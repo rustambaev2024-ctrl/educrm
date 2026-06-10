@@ -244,6 +244,7 @@ export interface GroupRaw {
   course: string | { id: string };
   branch: string | { id: string };
   teacher: string | { id: string } | null;
+  teacher_name?: string | null;
   room: string | { id: string } | null;
   capacity: number;
   start_date: string;
@@ -263,6 +264,7 @@ export function mapGroup(r: GroupRaw) {
     courseId: extractId(r.course),
     branchId: extractId(r.branch),
     teacherId: extractId(r.teacher ?? undefined),
+    teacherName: r.teacher_name ?? undefined,
     roomId: extractId(r.room ?? undefined),
     capacity: r.capacity,
     startDate: r.start_date,

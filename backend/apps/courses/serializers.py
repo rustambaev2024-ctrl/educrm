@@ -17,6 +17,7 @@ class CourseSerializer(serializers.ModelSerializer):
 class GroupSerializer(serializers.ModelSerializer):
     active_students_count = serializers.SerializerMethodField()
     active_student_ids = serializers.SerializerMethodField()
+    teacher_name = serializers.CharField(source="teacher.user.full_name", read_only=True)
 
     class Meta:
         model = Group
@@ -26,6 +27,7 @@ class GroupSerializer(serializers.ModelSerializer):
             "course",
             "branch",
             "teacher",
+            "teacher_name",
             "room",
             "capacity",
             "start_date",
@@ -37,7 +39,7 @@ class GroupSerializer(serializers.ModelSerializer):
             "active_students_count",
             "active_student_ids",
         )
-        read_only_fields = ("id", "created_at", "active_students_count", "active_student_ids")
+        read_only_fields = ("id", "created_at", "active_students_count", "active_student_ids", "teacher_name")
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_active_students_count(self, obj):
