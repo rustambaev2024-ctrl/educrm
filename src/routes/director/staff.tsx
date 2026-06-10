@@ -25,6 +25,7 @@ import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 import type { Staff } from "@/lib/data/types";
+import { SupportTeacherLinks } from "@/components/edu/support-teacher-links";
 
 export const Route = createFileRoute("/director/staff")({ component: StaffPage });
 
@@ -32,6 +33,7 @@ const ROLE_TONE: Record<string, string> = {
   director: "bg-primary/15 text-primary border-primary/30",
   admin: "bg-info/15 text-info border-info/30",
   teacher: "bg-success/15 text-success border-success/30",
+  support_teacher: "bg-amber-500/15 text-amber-600 border-amber-500/30",
 };
 
 type StaffRole = Staff["role"];
@@ -256,6 +258,8 @@ function StaffPage() {
             </Table></div>
           )}
         </Card>
+
+        <SupportTeacherLinks />
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -286,6 +290,7 @@ function StaffPage() {
                     <SelectItem value="director">{t("role.director")}</SelectItem>
                     <SelectItem value="admin">{t("role.admin")}</SelectItem>
                     <SelectItem value="teacher">{t("role.teacher")}</SelectItem>
+                    <SelectItem value="support_teacher">{lang === "uz" ? "Yordamchi o'qituvchi" : "Помощник учителя"}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>

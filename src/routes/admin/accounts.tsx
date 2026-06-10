@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import type { Parent, Staff, Student } from "@/lib/data/types";
+import { SupportTeacherLinks } from "@/components/edu/support-teacher-links";
 
 export const Route = createFileRoute("/admin/accounts")({ component: AccountsPage });
 
@@ -206,6 +207,8 @@ function AccountsPage() {
             })}
           </div>
         )}
+
+        <SupportTeacherLinks />
       </div>
     </PageShell>
   );
