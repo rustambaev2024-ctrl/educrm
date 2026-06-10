@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, GraduationCap, UserPlus, Users } from "lucide-react";
+import { Plus, Trash2, GraduationCap, UserPlus, Users, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,8 +88,6 @@ export function SupportTeacherLinks() {
     }
   };
 
-  if (supportTeachers.length === 0) return null;
-
   return (
     <Card className="overflow-hidden shadow-elegant">
       <div className="flex items-center gap-2 border-b border-border/60 p-4">
@@ -107,6 +105,17 @@ export function SupportTeacherLinks() {
           </div>
         </div>
       </div>
+
+      {supportTeachers.length === 0 ? (
+        <div className="flex items-center gap-3 p-4 m-4 rounded-xl bg-amber-500/10">
+          <AlertCircle className="size-4 shrink-0 text-amber-500" />
+          <p className="text-sm text-muted-foreground">
+            {lang === "uz"
+              ? "Hozircha yordamchi o'qituvchilar yo'q. Direktor yangi yordamchi yaratishi kerak."
+              : "Помощников учителей пока нет. Директор должен создать сотрудника с ролью «Помощник учителя»."}
+          </p>
+        </div>
+      ) : null}
 
       <div className="divide-y divide-border/60">
         {supportTeachers.map((st) => {
