@@ -40,6 +40,19 @@ class StaffViewSet(viewsets.ModelViewSet):
 
         return qs.none()
 
+    def perform_destroy(self, instance):
+        from apps.courses.models import Group
+        from rest_framework.exceptions import ValidationError
+
+        active_groups = Group.objects.filter(teacher=instance, status="active")
+        if active_groups.exists():
+            group_names = ", ".join(active_groups.values_list("name", flat=True)[:3])
+            raise ValidationError({
+                "uz": f"O'qituvchini o'chirib bo'lmaydi — faol guruhlar mavjud: {group_names}",
+                "ru": f"Нельзя удалить учителя — есть активные группы: {group_names}",
+            })
+        instance.delete()
+
 
 class SupportTeacherViewSet(viewsets.ModelViewSet):
     serializer_class = SupportTeacherLinkSerializer

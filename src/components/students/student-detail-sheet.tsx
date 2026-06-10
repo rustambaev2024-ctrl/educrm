@@ -74,6 +74,33 @@ export function StudentDetailSheet({
 }) {
   const { t, lang } = useI18n();
   const { groups, parents, payments, updateStudentPasswords, assignParent, reload } = useData();
+
+  const STATUS_OPTIONS = [
+    { value: "active",   uz: "Faol",        ru: "Активный",    color: "bg-emerald-500/10 text-emerald-600" },
+    { value: "frozen",   uz: "Muzlatilgan", ru: "Заморожен",   color: "bg-amber-500/10 text-amber-600" },
+    { value: "expelled", uz: "Chiqarilgan", ru: "Отчислен",    color: "bg-red-500/10 text-red-600" },
+    { value: "graduate", uz: "Bitiruvchi",  ru: "Выпuskник",   color: "bg-blue-500/10 text-blue-600" },
+    { value: "archived", uz: "Arxivlangan", ru: "Архивирован", color: "bg-muted text-muted-foreground" },
+  ] as const;
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!student || newStatus === student.status) return;
+    const opt = STATUS_OPTIONS.find((s) => s.value === newStatus);
+    const label = opt ? (lang === "uz" ? opt.uz : opt.ru) : newStatus;
+    const confirmed = window.confirm(
+      lang === "uz"
+        ? `Holatni "${label}" ga o'zgartirishni tasdiqlaysizmi?`
+        : `Изменить статус на "${label}"?`
+    );
+    if (!confirmed) return;
+    try {
+      await studentApi.updateStatus(student.id, newStatus);
+      toast.success(lang === "uz" ? "Holat yangilandi" : "Статус обновлён");
+      reload();
+    } catch {
+      toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+    }
+  };
   const open = student !== null;
 
   const [topUpOpen, setTopUpOpen] = useState(false);
@@ -318,7 +345,20 @@ export function StudentDetailSheet({
               )}
             </div>
             <div className="space-y-1">
-              <StudentStatusBadge status={student.status} />
+              <Select value={student.status} onValueChange={handleStatusChange}>
+                <SelectTrigger className="h-7 w-[160px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${opt.color}`}>
+                        {lang === "uz" ? opt.uz : opt.ru}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Phone className="size-3.5" /> {student.phone}
               </div>
@@ -415,7 +455,27 @@ export function StudentDetailSheet({
                 ) : (
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <Field label={t("students.col.registered")} value={formatDate(student.registeredAt, lang)} />
-                    <Field label={t("students.col.status")} value={t(`status.${student.status}`)} />
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {t("students.col.status")}
+                      </div>
+                      <div className="mt-0.5">
+                        <Select value={student.status} onValueChange={handleStatusChange}>
+                          <SelectTrigger className="h-7 w-[150px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STATUS_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${opt.color}`}>
+                                  {lang === "uz" ? opt.uz : opt.ru}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                     <Field label={t("students.field.phone")} value={student.phone} />
                     <Field label={t("students.field.birthDate")} value={student.birthDate ? formatDate(student.birthDate, lang) : "—"} />
                   </div>

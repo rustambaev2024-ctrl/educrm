@@ -414,6 +414,8 @@ export const studentApi = {
       `/students/${studentId}/generate-link-code/`,
       { method: "POST" },
     ),
+  updateStatus: (id: string, status: string) =>
+    requestJson(`/students/${id}/`, { method: "PATCH", body: JSON.stringify({ status }) }),
   me: () => requestJson("/student/me/"),
   mySchedule: () => requestJson("/student/me/schedule/"),
   myAttendance: () => requestJson("/student/me/attendance/"),
