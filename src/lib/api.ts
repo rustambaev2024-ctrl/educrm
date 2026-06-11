@@ -668,4 +668,102 @@ export const quizApi = {
   },
 };
 
+export const coinApi = {
+  // Настройки (директор)
+  settings: {
+    get: () => requestJson("/coins/settings/me/"),
+    update: (data: Record<string, unknown>) =>
+      requestJson("/coins/settings/me/", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+  },
+
+  // Кошелёк
+  wallet: {
+    my: () => requestJson("/coins/wallets/my/"),
+    list: () => requestJson("/coins/wallets/"),
+    award: (studentId: string, amount: number, comment: string) =>
+      requestJson("/coins/wallets/award/", {
+        method: "POST",
+        body: JSON.stringify({ student_id: studentId, amount, comment }),
+      }),
+    deduct: (studentId: string, amount: number, comment: string) =>
+      requestJson("/coins/wallets/deduct/", {
+        method: "POST",
+        body: JSON.stringify({ student_id: studentId, amount, comment }),
+      }),
+  },
+
+  // Транзакции
+  transactions: {
+    list: (studentId?: string) =>
+      requestJson(`/coins/transactions/${studentId ? `?student_id=${studentId}` : ""}`),
+  },
+
+  // Магазин
+  products: {
+    list: () => requestJson("/coins/products/"),
+    get: (id: string) => requestJson(`/coins/products/${id}/`),
+    create: (data: Record<string, unknown>) =>
+      requestJson("/coins/products/", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: Record<string, unknown>) =>
+      requestJson(`/coins/products/${id}/`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      requestJson(`/coins/products/${id}/`, { method: "DELETE" }),
+    buy: (id: string) =>
+      requestJson(`/coins/products/${id}/buy/`, { method: "POST" }),
+  },
+
+  // Категории
+  categories: {
+    list: () => requestJson("/coins/categories/"),
+    create: (data: Record<string, unknown>) =>
+      requestJson("/coins/categories/", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      requestJson(`/coins/categories/${id}/`, { method: "DELETE" }),
+  },
+
+  // Заказы
+  orders: {
+    list: () => requestJson("/coins/orders/"),
+    updateStatus: (id: string, status: string) =>
+      requestJson(`/coins/orders/${id}/status/`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
+  },
+
+  // Ачивки
+  achievements: {
+    list: () => requestJson("/coins/achievements/"),
+    create: (data: Record<string, unknown>) =>
+      requestJson("/coins/achievements/", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: Record<string, unknown>) =>
+      requestJson(`/coins/achievements/${id}/`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      requestJson(`/coins/achievements/${id}/`, { method: "DELETE" }),
+  },
+
+  // Лидерборд
+  leaderboard: {
+    get: () => requestJson("/coins/leaderboard/"),
+  },
+};
+
 
