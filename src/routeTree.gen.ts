@@ -48,6 +48,7 @@ import { Route as StudentProfileRouteImport } from './routes/student/profile'
 import { Route as StudentMessagesRouteImport } from './routes/student/messages'
 import { Route as StudentHomeworkRouteImport } from './routes/student/homework'
 import { Route as StudentGradesRouteImport } from './routes/student/grades'
+import { Route as StudentCoinsRouteImport } from './routes/student/coins'
 import { Route as PlayCodeRouteImport } from './routes/play.$code'
 import { Route as ParentProfileRouteImport } from './routes/parent/profile'
 import { Route as ParentMessagesRouteImport } from './routes/parent/messages'
@@ -281,6 +282,11 @@ const StudentGradesRoute = StudentGradesRouteImport.update({
   path: '/grades',
   getParentRoute: () => StudentRouteRoute,
 } as any)
+const StudentCoinsRoute = StudentCoinsRouteImport.update({
+  id: '/coins',
+  path: '/coins',
+  getParentRoute: () => StudentRouteRoute,
+} as any)
 const PlayCodeRoute = PlayCodeRouteImport.update({
   id: '/play/$code',
   path: '/play/$code',
@@ -510,6 +516,7 @@ export interface FileRoutesByFullPath {
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
   '/play/$code': typeof PlayCodeRoute
+  '/student/coins': typeof StudentCoinsRoute
   '/student/grades': typeof StudentGradesRoute
   '/student/homework': typeof StudentHomeworkRoute
   '/student/messages': typeof StudentMessagesRoute
@@ -580,6 +587,7 @@ export interface FileRoutesByTo {
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
   '/play/$code': typeof PlayCodeRoute
+  '/student/coins': typeof StudentCoinsRoute
   '/student/grades': typeof StudentGradesRoute
   '/student/homework': typeof StudentHomeworkRoute
   '/student/messages': typeof StudentMessagesRoute
@@ -658,6 +666,7 @@ export interface FileRoutesById {
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/profile': typeof ParentProfileRoute
   '/play/$code': typeof PlayCodeRoute
+  '/student/coins': typeof StudentCoinsRoute
   '/student/grades': typeof StudentGradesRoute
   '/student/homework': typeof StudentHomeworkRoute
   '/student/messages': typeof StudentMessagesRoute
@@ -737,6 +746,7 @@ export interface FileRouteTypes {
     | '/parent/messages'
     | '/parent/profile'
     | '/play/$code'
+    | '/student/coins'
     | '/student/grades'
     | '/student/homework'
     | '/student/messages'
@@ -807,6 +817,7 @@ export interface FileRouteTypes {
     | '/parent/messages'
     | '/parent/profile'
     | '/play/$code'
+    | '/student/coins'
     | '/student/grades'
     | '/student/homework'
     | '/student/messages'
@@ -884,6 +895,7 @@ export interface FileRouteTypes {
     | '/parent/messages'
     | '/parent/profile'
     | '/play/$code'
+    | '/student/coins'
     | '/student/grades'
     | '/student/homework'
     | '/student/messages'
@@ -1204,6 +1216,13 @@ declare module '@tanstack/react-router' {
       path: '/grades'
       fullPath: '/student/grades'
       preLoaderRoute: typeof StudentGradesRouteImport
+      parentRoute: typeof StudentRouteRoute
+    }
+    '/student/coins': {
+      id: '/student/coins'
+      path: '/coins'
+      fullPath: '/student/coins'
+      preLoaderRoute: typeof StudentCoinsRouteImport
       parentRoute: typeof StudentRouteRoute
     }
     '/play/$code': {
@@ -1566,6 +1585,7 @@ const ParentRouteRouteWithChildren = ParentRouteRoute._addFileChildren(
 )
 
 interface StudentRouteRouteChildren {
+  StudentCoinsRoute: typeof StudentCoinsRoute
   StudentGradesRoute: typeof StudentGradesRoute
   StudentHomeworkRoute: typeof StudentHomeworkRoute
   StudentMessagesRoute: typeof StudentMessagesRoute
@@ -1575,6 +1595,7 @@ interface StudentRouteRouteChildren {
 }
 
 const StudentRouteRouteChildren: StudentRouteRouteChildren = {
+  StudentCoinsRoute: StudentCoinsRoute,
   StudentGradesRoute: StudentGradesRoute,
   StudentHomeworkRoute: StudentHomeworkRoute,
   StudentMessagesRoute: StudentMessagesRoute,
