@@ -6,14 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { useCurrentStudentId } from "@/lib/data/identity";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/data/store";
-import { formatTime, getPaymentLabel } from "@/lib/format";
+import { formatDate, formatMoney, formatTime, getPaymentLabel } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/student/")({ component: StudentHome });
-
-function money(amount: number) {
-  return `${amount.toLocaleString("uz-Latn", { maximumFractionDigits: 0 })} UZS`;
-}
 
 function initials(name: string) {
   return name
@@ -132,7 +128,7 @@ function StudentHome() {
           to="/student/profile"
           icon={Wallet}
           label={t("studentHome.balance")}
-          value={money(student.balance)}
+          value={formatMoney(student.balance, lang)}
           hint={student.balance < 0 ? t("studentHome.debt") : t("studentHome.paid")}
           tone={student.balance < 0 ? "warning" : "success"}
         />
@@ -227,11 +223,11 @@ function StudentHome() {
                       <div className="text-xs font-medium">
                         {getPaymentLabel(p.type, lang)}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">{p.date.slice(0, 10)}</div>
+                      <div className="text-[10px] text-muted-foreground">{formatDate(p.date, lang)}</div>
                     </div>
                   </div>
                   <div className={`text-sm font-bold ${isIncome ? "text-success" : "text-destructive"}`}>
-                    {isIncome ? "+" : "−"}{money(p.amount)}
+                    {isIncome ? "+" : "−"}{formatMoney(p.amount, lang)}
                   </div>
                 </div>
               );

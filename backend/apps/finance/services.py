@@ -1,3 +1,4 @@
+import logging
 from calendar import monthrange
 from dataclasses import dataclass
 from datetime import date
@@ -10,6 +11,8 @@ from apps.students.models import Student
 
 from .models import Payment, Wallet
 
+logger = logging.getLogger(__name__)
+
 
 CHARGEABLE_ATTENDANCE_STATUSES = {"present", "late"}
 
@@ -21,11 +24,17 @@ class PaymentResult:
 
 
 def get_or_create_wallet(student: Student) -> Wallet:
-    wallet, _ = Wallet.objects.get_or_create(
+    wallet, created = Wallet.objects.get_or_create(
         student=student,
         defaults={"balance": student.wallet_balance},
     )
-    if wallet.balance != student.wallet_balance:
+    if not created and abs(float(wallet.balance) - float(student.wallet_balance)) > 0.01:
+        logger.warning(
+            "Wallet balance mismatch for student %s: wallet=%s, student=%s. Syncing from student.",
+            student.id,
+            wallet.balance,
+            student.wallet_balance,
+        )
         wallet.balance = student.wallet_balance
         wallet.save(update_fields=["balance", "updated_at"])
     return wallet
@@ -178,16 +187,15 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
             ).update(is_charged=False)
             
     elif payment.payment_type == "top_up":
-        # Top up was +amount. To reverse, we need -amount (charge).
+        # top_up was +amount. Reverse with manual_charge (NOT "charge" — that's lesson billing).
         result = apply_payment(
             student=payment.student,
-            payment_type="charge",
+            payment_type="manual_charge",
             amount=payment.amount,
             group=payment.group,
             lesson=payment.lesson,
             created_by=created_by,
             comment=comment,
-            category="other"  # correction
         )
     elif payment.payment_type == "manual_charge":
         # Manual charge was -amount. Reverse with manual_top_up.

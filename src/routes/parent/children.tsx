@@ -117,7 +117,7 @@ function ParentChildren() {
           <Mini icon={Award} value={`${avg}%`} label={t("profile.avgGrade")} />
           <Mini icon={Calendar} value={`${attPct}%`} label={t("profile.attendance")} />
           <Mini icon={BookOpen} value={String(pendingHw)} label={t("parent.activeHw")} />
-          <Mini icon={Wallet} value={child.balance < 0 ? "−" : "+"} label={t("parent.balance")} valueClass={child.balance < 0 ? "text-destructive" : "text-success"} />
+          <Mini icon={Wallet} value={formatMoney(child.balance, lang)} label={t("parent.balance")} valueClass={child.balance < 0 ? "text-destructive" : "text-success"} />
         </div>
       </Card>
 

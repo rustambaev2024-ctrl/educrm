@@ -119,6 +119,21 @@ function FinancePage() {
   const { t, lang } = useI18n();
   const { payments, students, groups, reversePayment, isLoading } = useData();
   const [payOpen, setPayOpen] = useState(false);
+
+  const handleReverse = async (paymentId: string, amount: number) => {
+    const confirmed = window.confirm(
+      lang === "uz"
+        ? `${formatMoney(amount, lang)} miqdordagi to'lovni bekor qilishni tasdiqlaysizmi?`
+        : `Отменить платёж на сумму ${formatMoney(amount, lang)}?`
+    );
+    if (!confirmed) return;
+    try {
+      await reversePayment(paymentId);
+      toast.success(lang === "uz" ? "To'lov bekor qilindi" : "Платёж отменён");
+    } catch {
+      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+    }
+  };
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -142,14 +157,25 @@ function FinancePage() {
   const monthIncome = monthPayments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
   const monthExpense = monthPayments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
   const totalDebt = students
-    .filter((s) => s.status === "debtor")
+    .filter((s) => s.balance < 0)
     .reduce((s, st) => s + Math.abs(st.balance), 0);
-  const totalPending = 0;
 
-  const outgoingPayments = [...payments].filter((p) => p.direction === "out").sort((a, b) => b.date.localeCompare(a.date));
+  const periodPayments = useMemo(() => {
+    const fromTime = new Date(dateFrom).getTime();
+    const toTime = new Date(dateTo).getTime() + 86400000;
+    return payments.filter((p) => {
+      const t = new Date(p.date).getTime();
+      return t >= fromTime && t < toTime;
+    });
+  }, [payments, dateFrom, dateTo]);
+
+  const outgoingPayments = useMemo(
+    () => [...periodPayments].filter((p) => p.direction === "out").sort((a, b) => b.date.localeCompare(a.date)),
+    [periodPayments],
+  );
   const filteredPayments = useMemo(
     () =>
-      [...payments]
+      [...periodPayments]
         .filter((payment) => {
           if (paymentFilter === "in") return payment.direction === "in" && !isManualPayment(payment);
           if (paymentFilter === "out") return isOutgoingPayment(payment) && !isManualPayment(payment);
@@ -157,7 +183,7 @@ function FinancePage() {
           return true;
         })
         .sort((a, b) => b.date.localeCompare(a.date)),
-    [payments, paymentFilter],
+    [periodPayments, paymentFilter],
   );
   const debtors = students
     .filter((s) => s.status === "debtor")
@@ -209,7 +235,7 @@ function FinancePage() {
           <KpiCard iconColor="green" icon={TrendingUp} label={t("finance.kpi.income")} value={formatMoney(monthIncome, lang)} />
           <KpiCard iconColor="red" icon={TrendingDown} label={t("finance.kpi.expense")} value={formatMoney(monthExpense, lang)} />
           <KpiCard iconColor="violet" icon={Wallet} label={t("finance.kpi.profit")} value={formatMoney(monthIncome - monthExpense, lang)} />
-          <KpiCard iconColor="amber" icon={AlertTriangle} label={t("finance.kpi.debt")} value={formatMoney(totalDebt + totalPending, lang)} />
+          <KpiCard iconColor="amber" icon={AlertTriangle} label={t("finance.kpi.debt")} value={formatMoney(totalDebt, lang)} />
         </div>
 
         <Tabs defaultValue="wallets">
@@ -355,7 +381,7 @@ function FinancePage() {
                         <TableCell className="max-w-[220px] truncate text-xs text-muted-foreground">{p.comment ?? "-"}</TableCell>
                         <TableCell className="text-right">
                           {["manual_charge", "manual_top_up", "top_up"].includes(p.type) && (
-                            <Button variant="ghost" size="icon" onClick={() => reversePayment(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Button variant="ghost" size="icon" onClick={() => handleReverse(p.id, p.amount)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                               <RotateCcw className="size-4" />
                             </Button>
                           )}
@@ -382,7 +408,7 @@ function FinancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {[...payments].sort((a,b) => b.date.localeCompare(a.date)).map((p) => (
+                  {[...periodPayments].sort((a,b) => b.date.localeCompare(a.date)).map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.studentId ? studentById[p.studentId]?.fullName : "—"}</TableCell>
                       <TableCell>
@@ -395,7 +421,7 @@ function FinancePage() {
                       <TableCell className="text-xs text-muted-foreground">{p.comment ?? "—"}</TableCell>
                       <TableCell className="text-right">
                         {["manual_charge", "manual_top_up", "top_up"].includes(p.type) && (
-                          <Button variant="ghost" size="icon" onClick={() => reversePayment(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                          <Button variant="ghost" size="icon" onClick={() => handleReverse(p.id, p.amount)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                             <RotateCcw className="size-4" />
                           </Button>
                         )}

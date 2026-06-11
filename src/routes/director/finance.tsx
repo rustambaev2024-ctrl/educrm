@@ -58,7 +58,7 @@ function DirectorFinancePage() {
   const income = monthPayments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
   const expense = monthPayments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
   const debt = students
-    .filter((s) => s.status === "debtor")
+    .filter((s) => s.balance < 0)
     .reduce((s, st) => s + Math.abs(st.balance), 0);
 
   // Per-branch breakdown
@@ -87,9 +87,10 @@ function DirectorFinancePage() {
 
   const wallets = useMemo(() => {
     return students.map(s => {
-      const studentPayments = monthPayments.filter(p => p.studentId === s.id && p.direction === "in");
-      studentPayments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      const lastPayment = studentPayments[0];
+      // Последний платёж — из ВСЕХ платежей, независимо от выбранного периода
+      const allStudentPayments = payments.filter(p => p.studentId === s.id && p.direction === "in");
+      allStudentPayments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const lastPayment = allStudentPayments[0];
 
       return {
         ...s,
@@ -97,7 +98,7 @@ function DirectorFinancePage() {
         lastPaymentAmount: lastPayment ? lastPayment.amount : null,
       };
     });
-  }, [students, monthPayments]);
+  }, [students, payments]);
 
   const visibleWallets = wallets.slice(0, walletsLimit);
 
