@@ -20,7 +20,9 @@ def get_or_create_wallet(student):
 def award_coins(student, amount: int, reason: str,
                 comment: str = "", created_by=None) -> CoinTransaction:
     """Начислить монеты студенту"""
-    wallet = get_or_create_wallet(student)
+    get_or_create_wallet(student)
+    # Блокируем строку кошелька на время транзакции (lock-then-read)
+    wallet = CoinWallet.objects.select_for_update().get(student=student)
     wallet.balance += amount
 
     # Начислить XP
@@ -43,7 +45,8 @@ def award_coins(student, amount: int, reason: str,
     else:
         wallet.streak = 1
     wallet.last_activity_date = today
-    wallet.save()
+    wallet.save(update_fields=["balance", "xp", "level", "streak",
+                               "last_activity_date", "updated_at"])
 
     tx = CoinTransaction.objects.create(
         wallet=wallet,
@@ -69,7 +72,8 @@ def award_coins(student, amount: int, reason: str,
 def deduct_coins(student, amount: int, reason: str = "penalty",
                  comment: str = "", created_by=None) -> CoinTransaction:
     """Снять монеты (XP и уровень не падают)"""
-    wallet = get_or_create_wallet(student)
+    get_or_create_wallet(student)
+    wallet = CoinWallet.objects.select_for_update().get(student=student)
     wallet.balance = max(0, wallet.balance - amount)
     wallet.save(update_fields=["balance", "updated_at"])
 
@@ -89,7 +93,21 @@ def purchase_product(student, product):
     """Купить товар в магазине"""
     from .models import Order, Product
 
-    wallet = get_or_create_wallet(student)
+    get_or_create_wallet(student)
+    # Блокируем кошелёк и товар на время транзакции (lock-then-read)
+    wallet = CoinWallet.objects.select_for_update().get(student=student)
+    try:
+        product = Product.objects.select_for_update().get(pk=product.pk)
+    except Product.DoesNotExist:
+        raise ValueError("Product not available")
+
+    if not product.is_active:
+        raise ValueError("Product not available")
+
+    # Магазин работает только в разрешённые дни
+    setting = CoinSetting.get_or_create_default()
+    if setting.store_open_days and timezone.localtime().weekday() not in setting.store_open_days:
+        raise ValueError("Store is closed today")
 
     if wallet.balance < product.price_coins:
         raise ValueError("Insufficient coins")
@@ -100,17 +118,20 @@ def purchase_product(student, product):
     if product.stock == 0:
         raise ValueError("Out of stock")
 
-    # Проверить лимиты
-    setting = CoinSetting.get_or_create_default()
+    # Проверить лимиты (под блокировкой)
     _check_purchase_limits(wallet, product, setting)
 
     # Списать монеты
     wallet.balance -= product.price_coins
     wallet.save(update_fields=["balance", "updated_at"])
 
-    # Уменьшить сток
+    # Уменьшить сток (guard stock__gt=0, чтобы не уйти в минус → "unlimited")
     if product.stock > 0:
-        Product.objects.filter(pk=product.pk).update(stock=models.F("stock") - 1)
+        updated = Product.objects.filter(pk=product.pk, stock__gt=0).update(
+            stock=models.F("stock") - 1
+        )
+        if not updated:
+            raise ValueError("Out of stock")
 
     # Создать транзакцию
     CoinTransaction.objects.create(
