@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   Bell,
   MessageSquare,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
 import { EnterpriseLayout, type RailItem, type SidebarItem } from "@/components/layouts/enterprise-layout";
@@ -71,6 +72,12 @@ function AdminLayout() {
         { id: "finance", to: "/admin/finance", icon: DollarSign, label: tr("Umumiy", "Общее"), section: tr("MOLIYA", "ФИНАНСЫ") },
         { id: "daily-report", to: "/admin/daily-report", icon: ClipboardList, label: tr("Kunlik hisobot", "Дневной отчёт"), section: tr("HISOBOTLAR", "ОТЧЁТЫ") },
         { id: "analytics", to: "/admin/analytics", icon: BarChart3, label: tr("Analitika", "Аналитика"), section: tr("HISOBOTLAR", "ОТЧЁТЫ") },
+      ],
+    },
+    {
+      rail: { id: "coins", icon: Coins, label: "Coins" },
+      sidebar: [
+        { id: "coins", to: "/admin/coins", icon: Coins, label: "Coins", section: tr("GAMIFIKATSIYA", "ГЕЙМИФИКАЦИЯ") },
       ],
     },
     {

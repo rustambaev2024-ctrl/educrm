@@ -79,6 +79,7 @@ import { Route as AdminGroupsRouteImport } from './routes/admin/groups'
 import { Route as AdminFinanceRouteImport } from './routes/admin/finance'
 import { Route as AdminDailyReportRouteImport } from './routes/admin/daily-report'
 import { Route as AdminControlRouteImport } from './routes/admin/control'
+import { Route as AdminCoinsRouteImport } from './routes/admin/coins'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminAccountsRouteImport } from './routes/admin/accounts'
 import { Route as TeacherQuizSessionSessionIdRouteImport } from './routes/teacher/quiz-session.$sessionId'
@@ -435,6 +436,11 @@ const AdminControlRoute = AdminControlRouteImport.update({
   path: '/control',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminCoinsRoute = AdminCoinsRouteImport.update({
+  id: '/coins',
+  path: '/coins',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -472,6 +478,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/coins': typeof AdminCoinsRoute
   '/admin/control': typeof AdminControlRoute
   '/admin/daily-report': typeof AdminDailyReportRoute
   '/admin/finance': typeof AdminFinanceRoute
@@ -541,6 +548,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/coins': typeof AdminCoinsRoute
   '/admin/control': typeof AdminControlRoute
   '/admin/daily-report': typeof AdminDailyReportRoute
   '/admin/finance': typeof AdminFinanceRoute
@@ -618,6 +626,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/coins': typeof AdminCoinsRoute
   '/admin/control': typeof AdminControlRoute
   '/admin/daily-report': typeof AdminDailyReportRoute
   '/admin/finance': typeof AdminFinanceRoute
@@ -696,6 +705,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/accounts'
     | '/admin/analytics'
+    | '/admin/coins'
     | '/admin/control'
     | '/admin/daily-report'
     | '/admin/finance'
@@ -765,6 +775,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/accounts'
     | '/admin/analytics'
+    | '/admin/coins'
     | '/admin/control'
     | '/admin/daily-report'
     | '/admin/finance'
@@ -841,6 +852,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/accounts'
     | '/admin/analytics'
+    | '/admin/coins'
     | '/admin/control'
     | '/admin/daily-report'
     | '/admin/finance'
@@ -1411,6 +1423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminControlRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/coins': {
+      id: '/admin/coins'
+      path: '/coins'
+      fullPath: '/admin/coins'
+      preLoaderRoute: typeof AdminCoinsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/analytics': {
       id: '/admin/analytics'
       path: '/analytics'
@@ -1445,6 +1464,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteRouteChildren {
   AdminAccountsRoute: typeof AdminAccountsRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminCoinsRoute: typeof AdminCoinsRoute
   AdminControlRoute: typeof AdminControlRoute
   AdminDailyReportRoute: typeof AdminDailyReportRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
@@ -1463,6 +1483,7 @@ interface AdminRouteRouteChildren {
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAccountsRoute: AdminAccountsRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminCoinsRoute: AdminCoinsRoute,
   AdminControlRoute: AdminControlRoute,
   AdminDailyReportRoute: AdminDailyReportRoute,
   AdminFinanceRoute: AdminFinanceRoute,
