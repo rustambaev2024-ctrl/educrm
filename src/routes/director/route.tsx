@@ -17,6 +17,7 @@ import {
   Building,
   BookOpen,
   Bell,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
 import { EnterpriseLayout, type RailItem, type SidebarItem } from "@/components/layouts/enterprise-layout";
@@ -77,6 +78,12 @@ function DirectorLayout() {
       rail: { id: "finance", icon: DollarSign, label: tr("Moliya", "Финансы") },
       sidebar: [
         { id: "finance", to: "/director/finance", icon: DollarSign, label: tr("Moliya", "Финансы"), section: tr("MOLIYA", "ФИНАНСЫ") },
+      ],
+    },
+    {
+      rail: { id: "coins", icon: Coins, label: "Coins" },
+      sidebar: [
+        { id: "coins", to: "/director/coins", icon: Coins, label: "Coins", section: tr("GAMIFIKATSIYA", "ГЕЙМИФИКАЦИЯ") },
       ],
     },
     {
