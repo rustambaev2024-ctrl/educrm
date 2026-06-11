@@ -76,12 +76,14 @@ export function StudentDetailSheet({
   const { groups, parents, payments, updateStudentPasswords, assignParent, reload } = useData();
 
   const STATUS_OPTIONS = [
-    { value: "active",   uz: "Faol",        ru: "Активный",    color: "bg-emerald-500/10 text-emerald-600" },
-    { value: "frozen",   uz: "Muzlatilgan", ru: "Заморожен",   color: "bg-amber-500/10 text-amber-600" },
-    { value: "expelled", uz: "Chiqarilgan", ru: "Отчислен",    color: "bg-red-500/10 text-red-600" },
-    { value: "graduate", uz: "Bitiruvchi",  ru: "Выпuskник",   color: "bg-blue-500/10 text-blue-600" },
-    { value: "archived", uz: "Arxivlangan", ru: "Архивирован", color: "bg-muted text-muted-foreground" },
+    { value: "active",   uz: "Faol",        ru: "Активный",    color: "bg-emerald-500/10 text-emerald-600", textColor: "text-emerald-600" },
+    { value: "frozen",   uz: "Muzlatilgan", ru: "Заморожен",   color: "bg-amber-500/10 text-amber-600",     textColor: "text-amber-600" },
+    { value: "expelled", uz: "Chiqarilgan", ru: "Отчислен",    color: "bg-red-500/10 text-red-600",         textColor: "text-red-600" },
+    { value: "graduate", uz: "Bitiruvchi",  ru: "Выпускник",   color: "bg-blue-500/10 text-blue-600",       textColor: "text-blue-600" },
+    { value: "archived", uz: "Arxivlangan", ru: "Архивирован", color: "bg-muted text-muted-foreground",     textColor: "text-muted-foreground" },
   ] as const;
+
+  const currentStatusOpt = STATUS_OPTIONS.find((s) => s.value === student?.status);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!student || newStatus === student.status) return;
@@ -345,20 +347,9 @@ export function StudentDetailSheet({
               )}
             </div>
             <div className="space-y-1">
-              <Select value={student.status} onValueChange={handleStatusChange}>
-                <SelectTrigger className="h-7 w-[160px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${opt.color}`}>
-                        {lang === "uz" ? opt.uz : opt.ru}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <span className={`text-sm font-medium ${currentStatusOpt?.textColor ?? "text-muted-foreground"}`}>
+                {currentStatusOpt ? (lang === "uz" ? currentStatusOpt.uz : currentStatusOpt.ru) : student.status}
+              </span>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Phone className="size-3.5" /> {student.phone}
               </div>
@@ -398,10 +389,9 @@ export function StudentDetailSheet({
                   <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {lang === "uz" ? "Asosiy ma'lumotlar" : "Основные данные"}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs"
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
                     onClick={() => {
                       if (!editStudentMode) {
                         setEditStudentForm({
@@ -413,9 +403,9 @@ export function StudentDetailSheet({
                       setEditStudentMode(!editStudentMode);
                     }}
                   >
-                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    <Pencil className="h-3.5 w-3.5" />
                     {editStudentMode ? (lang === "uz" ? "Bekor" : "Отмена") : (lang === "uz" ? "O'zgartirish" : "Изменить")}
-                  </Button>
+                  </button>
                 </div>
                 {editStudentMode ? (
                   <div className="space-y-3">
@@ -460,7 +450,7 @@ export function StudentDetailSheet({
                         {t("students.col.status")}
                       </div>
                       <div className="mt-0.5">
-                        <Select value={student.status} onValueChange={handleStatusChange}>
+                        <Select value={student.status || "active"} onValueChange={handleStatusChange}>
                           <SelectTrigger className="h-7 w-[150px] text-xs">
                             <SelectValue />
                           </SelectTrigger>
