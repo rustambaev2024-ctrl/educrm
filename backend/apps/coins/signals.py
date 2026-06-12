@@ -60,29 +60,31 @@ def award_coins_for_attendance(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender="grades.Grade")
 def award_coins_for_grade(sender, instance, created, **kwargs):
-    if not created:
-        return
     try:
         from apps.coins.services import award_coins
-        from apps.coins.models import CoinSetting
+        from apps.coins.models import CoinSetting, CoinTransaction
+
+        score_pct = instance.score or 0
+        if score_pct < 80:
+            return
 
         setting = CoinSetting.get_or_create_default()
+        coins = setting.coins_grade_perfect if score_pct >= 100 else setting.coins_grade_good
 
-        # Grade.score хранится как 0-100 (percent-like)
-        score_pct = instance.score or 0
-
-        if score_pct >= 100:
-            coins = setting.coins_grade_perfect
-        elif score_pct >= 80:
-            coins = setting.coins_grade_good
-        else:
+        # Защита от двойного начисления за одну и ту же оценку
+        already = CoinTransaction.objects.filter(
+            wallet__student=instance.student,
+            reason="grade",
+            comment__contains=str(instance.pk),
+        ).exists()
+        if already:
             return
 
         award_coins(
             student=instance.student,
             amount=coins,
             reason="grade",
-            comment=f"Grade {instance.score}/100",
+            comment=f"Grade {instance.score}/100 (id {instance.pk})",
         )
     except Exception:
         pass
