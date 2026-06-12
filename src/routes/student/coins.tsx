@@ -1,308 +1,440 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Coins, Flame, Trophy, Lock, ShoppingBag, History, Star } from "lucide-react";
-import { toast } from "sonner";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
+  Coins,
+  ShoppingBag,
+  Trophy,
+  Lock,
+  History,
+  TrendingUp,
+  TrendingDown,
+  Flame,
+  Star,
+  Package,
+} from "lucide-react";
 import { coinApi } from "@/lib/api";
+import { formatDate, initialsOf } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
-import { useData } from "@/lib/data/store";
-import { useCurrentStudentId } from "@/lib/data/identity";
-import { formatDate } from "@/lib/format";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
-export const Route = createFileRoute("/student/coins")({ component: StudentCoinsPage });
+export const Route = createFileRoute("/student/coins")({ component: StudentCoins });
 
-interface WalletData {
-  balance: number; xp: number; level: number; streak: number; student_name?: string;
-  level_thresholds?: { level: number; name_uz: string; name_ru: string; xp: number }[];
-  next_level_xp?: number | null;
-}
-interface ProductData {
-  id: string; name_uz: string; name_ru: string; description_uz: string; description_ru: string;
-  price_coins: number; stock: number; min_level: number; is_active: boolean; image_url: string;
-}
-interface OrderData {
-  id: string; product_name: { uz: string; ru: string }; status: string; coins_spent: number; created_at: string;
-}
-interface AchievementData {
-  id: string; title_uz: string; title_ru: string; description_uz: string; description_ru: string;
-  icon: string; condition_value: number; reward_coins: number; unlocked: boolean;
-}
-interface TxData {
-  id: string; transaction_type: string; reason: string; amount: number; comment: string; created_at: string;
-}
-
-const LEVEL_COLORS = [
-  "bg-slate-400", "bg-emerald-500", "bg-blue-500", "bg-purple-500", "bg-amber-500",
-];
-
-const ORDER_STATUS: Record<string, { uz: string; ru: string; cls: string }> = {
-  new: { uz: "Yangi", ru: "Новый", cls: "bg-blue-500/10 text-blue-600" },
-  confirmed: { uz: "Tasdiqlangan", ru: "Подтверждён", cls: "bg-amber-500/10 text-amber-600" },
-  delivered: { uz: "Yetkazildi", ru: "Доставлен", cls: "bg-emerald-500/10 text-emerald-600" },
-  cancelled: { uz: "Bekor", ru: "Отменён", cls: "bg-red-500/10 text-red-600" },
-};
-
-const REASON_LABEL: Record<string, { uz: string; ru: string }> = {
-  attendance: { uz: "Darsga kelish", ru: "Посещение" },
-  grade: { uz: "Baho", ru: "Оценка" },
-  homework: { uz: "Uy vazifasi", ru: "Домашка" },
-  quiz: { uz: "Test", ru: "Тест" },
-  streak: { uz: "Seriya bonusi", ru: "Бонус серии" },
-  purchase: { uz: "Xarid", ru: "Покупка" },
-  manual: { uz: "Qo'lda", ru: "Вручную" },
-  penalty: { uz: "Jarima", ru: "Штраф" },
-};
-
-function StudentCoinsPage() {
-  const { lang } = useI18n();
-  const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
-  const studentId = useCurrentStudentId();
-  const { students } = useData();
-  const student = students.find((s) => s.id === studentId);
-
-  const [wallet, setWallet] = useState<WalletData | null>(null);
-  const [products, setProducts] = useState<ProductData[]>([]);
-  const [orders, setOrders] = useState<OrderData[]>([]);
-  const [achievements, setAchievements] = useState<AchievementData[]>([]);
-  const [transactions, setTransactions] = useState<TxData[]>([]);
-  const [buyTarget, setBuyTarget] = useState<ProductData | null>(null);
-  const [buying, setBuying] = useState(false);
-
-  const loadAll = () => {
-    coinApi.wallet.my().then((d) => setWallet(d as WalletData)).catch(() => {});
-    coinApi.products.list().then((d) => setProducts(d as ProductData[])).catch(() => {});
-    coinApi.orders.list().then((d) => setOrders(d as OrderData[])).catch(() => {});
-    coinApi.achievements.list().then((d) => setAchievements(d as AchievementData[])).catch(() => {});
-    coinApi.transactions.list().then((d) => setTransactions((d as TxData[]).slice(0, 20))).catch(() => {});
+const getReasonLabel = (reason: string, lang: string) => {
+  const labels: Record<string, { uz: string; ru: string }> = {
+    attendance: { uz: "Darsga kelish",  ru: "Посещение урока" },
+    grade:      { uz: "Baho uchun",     ru: "За оценку" },
+    homework:   { uz: "Uy vazifasi",    ru: "Домашнее задание" },
+    quiz:       { uz: "Test uchun",     ru: "За тест" },
+    streak:     { uz: "Seriya bonusi",  ru: "Бонус серии" },
+    purchase:   { uz: "Xarid",          ru: "Покупка" },
+    manual:     { uz: "Qo'lda berildi", ru: "Начислено вручную" },
+    penalty:    { uz: "Jarima",         ru: "Штраф" },
+    adjustment: { uz: "Tuzatish",       ru: "Корректировка" },
   };
-  useEffect(loadAll, []);
+  const l = labels[reason];
+  return l ? (lang === "uz" ? l.uz : l.ru) : reason;
+};
 
-  const confirmBuy = async () => {
-    if (!buyTarget) return;
-    setBuying(true);
+const levelLabels: Record<number, { uz: string; ru: string }> = {
+  1: { uz: "Boshlovchi", ru: "Начинающий" },
+  2: { uz: "O'rta",      ru: "Средний" },
+  3: { uz: "Ilg'or",     ru: "Продвинутый" },
+  4: { uz: "Usta",       ru: "Мастер" },
+  5: { uz: "Champion",   ru: "Чемпион" },
+};
+
+function StudentCoins() {
+  const { lang } = useI18n();
+  const { user } = useAuth();
+
+  const [wallet, setWallet] = useState<any>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadData = async () => {
     try {
-      await coinApi.products.buy(buyTarget.id);
-      toast.success(tr("Sotib olindi!", "Куплено!"));
-      setBuyTarget(null);
-      loadAll();
-    } catch (err: unknown) {
-      const msg = (err as { body?: { error?: string } })?.body?.error;
-      const map: Record<string, string> = {
-        "Insufficient coins": tr("Coin yetarli emas", "Недостаточно монет"),
-        "Level too low": tr("Daraja yetarli emas", "Низкий уровень"),
-        "Out of stock": tr("Tugagan", "Нет в наличии"),
-        "Store is closed today": tr("Bugun do'kon yopiq", "Магазин сегодня закрыт"),
-        "Weekly purchase limit reached": tr("Haftalik limit", "Лимит на неделю"),
-        "Monthly purchase limit reached": tr("Oylik limit", "Лимит на месяц"),
-      };
-      toast.error(msg ? (map[msg] ?? msg) : tr("Xatolik", "Ошибка"));
+      const [w, p, a, t, o] = await Promise.all([
+        coinApi.wallet.my(),
+        coinApi.products.list(),
+        coinApi.achievements.list(),
+        coinApi.transactions.list(),
+        coinApi.orders.list(),
+      ]);
+      setWallet(w);
+      setProducts(p?.results || p || []);
+      setAchievements(a?.results || a || []);
+      setTransactions((t?.results || t || []).slice(0, 10));
+      setOrders(o?.results || o || []);
+    } catch {
+      // silent
     } finally {
-      setBuying(false);
+      setIsLoading(false);
     }
   };
 
-  if (!wallet) {
-    return <div className="flex h-64 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  useEffect(() => { loadData(); }, []);
+
+  const canBuy = (product: any) =>
+    (wallet?.balance || 0) >= product.price_coins &&
+    (wallet?.level || 1) >= (product.min_level || 1);
+
+  const handleBuy = async (product: any) => {
+    const confirmed = window.confirm(
+      lang === "uz"
+        ? `"${product.name_uz}" uchun ${product.price_coins} coin sarflaysizmi?`
+        : `Потратить ${product.price_coins} монет на "${product.name_ru}"?`
+    );
+    if (!confirmed) return;
+    try {
+      await coinApi.products.buy(product.id);
+      toast.success(lang === "uz" ? "Xarid muvaffaqiyatli!" : "Покупка успешна!");
+      loadData();
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("Insufficient")) {
+        toast.error(lang === "uz" ? "Coin yetarli emas" : "Недостаточно монет");
+      } else if (msg.includes("Level")) {
+        toast.error(lang === "uz" ? "Daraja yetarli emas" : "Уровень недостаточный");
+      } else if (msg.includes("limit")) {
+        toast.error(lang === "uz" ? "Limit tugagan" : "Лимит исчерпан");
+      } else {
+        toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+      }
+    }
+  };
+
+  const balance = wallet?.balance || 0;
+  const xp = wallet?.xp || 0;
+  const level = wallet?.level || 1;
+  const streak = wallet?.streak || 0;
+  const nextLevelXp: number | null = wallet?.next_level_xp ?? null;
+  const xpProgress = nextLevelXp ? Math.min(100, Math.round((xp / nextLevelXp) * 100)) : 100;
+
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
+  const totalCount = achievements.length;
+
+  const levelLabel = levelLabels[level]
+    ? (lang === "uz" ? levelLabels[level].uz : levelLabels[level].ru)
+    : (lang === "uz" ? `Daraja ${level}` : `Уровень ${level}`);
+
+  const studentName = user?.fullName || "";
+  const initials = initialsOf(studentName);
+  const activeOrders = orders.filter((o) => o.status !== "cancelled").length;
+
+  if (isLoading) {
+    return (
+      <div className="p-4 space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />
+        ))}
+      </div>
+    );
   }
 
-  const levelName = wallet.level_thresholds?.find((l) => l.level === wallet.level);
-  const currentThreshold = wallet.level_thresholds?.find((l) => l.level === wallet.level)?.xp ?? 0;
-  const nextXp = wallet.next_level_xp ?? null;
-  const progressPct = nextXp && nextXp > currentThreshold
-    ? Math.min(100, Math.round(((wallet.xp - currentThreshold) / (nextXp - currentThreshold)) * 100))
-    : 100;
-
   return (
-    <div className="mx-auto max-w-md space-y-4 px-4 py-5 pb-24">
-      {/* HEADER */}
-      <Card className="overflow-hidden bg-gradient-primary p-5 text-primary-foreground shadow-glow">
+    <div className="p-4 pb-24 space-y-4 max-w-lg mx-auto">
+
+      {/* ── HERO CARD ── */}
+      <div
+        className="rounded-2xl p-5 text-white space-y-4"
+        style={{ background: "linear-gradient(135deg, #0077b6 0%, #00b4d8 100%)" }}
+      >
+        {/* Avatar + Name + Level */}
         <div className="flex items-center gap-3">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-white/20 text-xl font-bold">
-            {(student?.fullName ?? "").split(" ").slice(0, 2).map((p) => p[0]).join("")}
+          <div
+            className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+            style={{
+              width: 52,
+              height: 52,
+              background: "rgba(255,255,255,0.2)",
+              fontSize: 18,
+            }}
+          >
+            {initials}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-lg font-bold">{student?.fullName}</div>
-            <div className="mt-1 inline-flex items-center gap-1.5">
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold text-white ${LEVEL_COLORS[(wallet.level - 1) % LEVEL_COLORS.length]}`}>
-                {tr("Daraja", "Уровень")} {wallet.level}{levelName ? ` · ${lang === "uz" ? levelName.name_uz : levelName.name_ru}` : ""}
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-base truncate">{studentName}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <span
+                className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(255,255,255,0.25)" }}
+              >
+                {lang === "uz" ? `Daraja ${level}` : `Уровень ${level}`}
+              </span>
+              <span className="text-xs" style={{ opacity: 0.8 }}>
+                {levelLabel}
               </span>
             </div>
           </div>
         </div>
 
-        {/* XP progress */}
-        <div className="mt-4">
-          <div className="mb-1 flex items-center justify-between text-[11px] opacity-90">
-            <span>{wallet.xp} XP</span>
-            <span>{nextXp ? `${nextXp} XP` : tr("Maksimal", "Максимум")}</span>
+        {/* XP Progress */}
+        <div className="space-y-1.5">
+          <div
+            className="h-2.5 rounded-full overflow-hidden"
+            style={{ background: "rgba(255,255,255,0.2)" }}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${xpProgress}%`,
+                background: "rgba(255,255,255,0.9)",
+              }}
+            />
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/20">
-            <div className="h-full rounded-full bg-white transition-all" style={{ width: `${progressPct}%` }} />
+          <div className="text-xs" style={{ opacity: 0.8 }}>
+            {nextLevelXp
+              ? (lang === "uz"
+                  ? `${xp} / ${nextLevelXp} XP — keyingi darajaga`
+                  : `${xp} / ${nextLevelXp} XP — до следующего уровня`)
+              : (lang === "uz"
+                  ? `${xp} XP — maksimal daraja!`
+                  : `${xp} XP — максимальный уровень!`)}
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <Coins className="size-6" />
-            <span className="text-2xl font-bold tabular-nums">{wallet.balance}</span>
+        {/* Balance + Streak */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Coins className="h-5 w-5" style={{ opacity: 0.9 }} />
+            <span className="text-2xl font-bold">{balance}</span>
+            <span className="text-sm" style={{ opacity: 0.8 }}>
+              {lang === "uz" ? "coin" : "монет"}
+            </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Flame className="size-5 text-orange-300" />
-            <span className="text-lg font-semibold tabular-nums">{wallet.streak}</span>
-            <span className="text-xs opacity-80">{tr("kun", "дн")}</span>
+          <div
+            className="w-px self-stretch"
+            style={{ background: "rgba(255,255,255,0.3)" }}
+          />
+          <div className="flex items-center gap-2">
+            <Flame className="h-5 w-5" style={{ opacity: 0.9 }} />
+            <span className="text-lg font-bold">{streak}</span>
+            <span className="text-sm" style={{ opacity: 0.8 }}>
+              {lang === "uz" ? "kun seriya" : "дней серия"}
+            </span>
           </div>
         </div>
-      </Card>
+      </div>
 
-      {/* МАГАЗИН */}
-      <section>
-        <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <ShoppingBag className="size-4 text-primary" />{tr("Do'kon", "Магазин")}
-        </h2>
+      {/* ── QUICK STATS ── */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="bg-card border border-border rounded-xl p-3 text-center">
+          <Star className="h-5 w-5 text-[#0077b6] mx-auto mb-1" />
+          <div className="text-xl font-bold text-foreground">{level}</div>
+          <div className="text-xs text-muted-foreground">
+            {lang === "uz" ? "Daraja" : "Уровень"}
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-3 text-center">
+          <Package className="h-5 w-5 text-amber-500 mx-auto mb-1" />
+          <div className="text-xl font-bold text-foreground">{activeOrders}</div>
+          <div className="text-xs text-muted-foreground">
+            {lang === "uz" ? "Xaridlar" : "Покупки"}
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-3 text-center">
+          <Trophy className="h-5 w-5 text-emerald-500 mx-auto mb-1" />
+          <div className="text-xl font-bold text-foreground">
+            {unlockedCount}/{totalCount || "?"}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {lang === "uz" ? "Yutuqlar" : "Достижения"}
+          </div>
+        </div>
+      </div>
+
+      {/* ── SHOP ── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-foreground flex items-center gap-2">
+            <ShoppingBag className="h-5 w-5 text-[#0077b6]" />
+            {lang === "uz" ? "Do'kon" : "Магазин"}
+          </h2>
+          <span className="text-sm text-muted-foreground flex items-center gap-1">
+            <Coins className="h-3.5 w-3.5" />
+            {balance} {lang === "uz" ? "coin" : "монет"}
+          </span>
+        </div>
+
         {products.length === 0 ? (
-          <Card className="p-6 text-center text-xs text-muted-foreground shadow-elegant">{tr("Mahsulotlar yo'q", "Товаров нет")}</Card>
+          <div className="bg-card border border-border rounded-xl p-8 text-center text-muted-foreground">
+            <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">
+              {lang === "uz"
+                ? "Do'kon hozircha bo'sh. Tez orada yangi sovg'alar!"
+                : "Магазин пока пуст. Скоро появятся новые призы!"}
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {products.map((p) => {
-              const locked = wallet.level < p.min_level;
-              const tooExpensive = wallet.balance < p.price_coins;
-              const soldOut = p.stock === 0;
+            {products.map((product) => {
+              const buyable = canBuy(product);
+              const noCoins = (wallet?.balance || 0) < product.price_coins;
               return (
-                <Card key={p.id} className="flex flex-col p-3 shadow-elegant">
-                  <div className="mb-2 flex h-16 items-center justify-center rounded-xl bg-primary/5">
-                    {p.image_url ? (
-                      <img src={p.image_url} alt="" className="h-full w-full rounded-xl object-cover" />
-                    ) : (
-                      <Star className="size-7 text-primary/40" />
+                <div
+                  key={product.id}
+                  className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3"
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto"
+                    style={{ background: "#e0f2fe" }}
+                  >
+                    <ShoppingBag className="h-6 w-6 text-[#0077b6]" />
+                  </div>
+
+                  <div className="text-center">
+                    <div className="font-semibold text-sm text-foreground leading-tight">
+                      {lang === "uz" ? product.name_uz : product.name_ru}
+                    </div>
+                    {(product.min_level || 1) > 1 && (
+                      <div className="text-xs text-amber-500 mt-0.5 flex items-center justify-center gap-0.5">
+                        <Star className="h-3 w-3" />
+                        {lang === "uz"
+                          ? `Daraja ${product.min_level}+`
+                          : `Уровень ${product.min_level}+`}
+                      </div>
+                    )}
+                    {product.stock !== -1 && product.stock !== null && (
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {lang === "uz"
+                          ? `${product.stock} ta qoldi`
+                          : `Осталось: ${product.stock}`}
+                      </div>
                     )}
                   </div>
-                  <div className="min-h-8 text-sm font-medium leading-tight">{lang === "uz" ? p.name_uz : p.name_ru}</div>
-                  {p.min_level > 1 && (
-                    <div className="mt-1 text-[10px] text-muted-foreground">★ {tr("Daraja", "Уровень")} {p.min_level}+</div>
-                  )}
-                  <div className="mt-1 inline-flex items-center gap-1 text-sm font-bold text-amber-600">
-                    <Coins className="size-3.5" />{p.price_coins}
+
+                  <div className="mt-auto">
+                    <div className="text-center font-bold text-[#0077b6] mb-2 flex items-center justify-center gap-1">
+                      <Coins className="h-4 w-4" />
+                      <span className="text-lg">{product.price_coins}</span>
+                    </div>
+                    <button
+                      onClick={() => handleBuy(product)}
+                      disabled={!buyable}
+                      className={`w-full py-2 rounded-xl text-sm font-semibold transition-colors ${
+                        buyable
+                          ? "text-white hover:opacity-90"
+                          : "bg-muted text-muted-foreground cursor-not-allowed"
+                      }`}
+                      style={buyable ? { background: "#0077b6" } : undefined}
+                    >
+                      {!buyable
+                        ? (noCoins
+                            ? (lang === "uz" ? "Coin yetarli emas" : "Мало монет")
+                            : (lang === "uz" ? "Daraja past" : "Уровень низкий"))
+                        : (lang === "uz" ? "Sotib olish" : "Купить")}
+                    </button>
                   </div>
-                  <Button
-                    size="sm"
-                    className="mt-2 h-8 w-full text-xs"
-                    disabled={locked || tooExpensive || soldOut}
-                    onClick={() => setBuyTarget(p)}
-                  >
-                    {locked ? <><Lock className="mr-1 size-3" />{tr("Yopiq", "Закрыто")}</>
-                      : soldOut ? tr("Tugagan", "Нет")
-                      : tooExpensive ? tr("Yetarli emas", "Недостаточно")
-                      : tr("Sotib olish", "Купить")}
-                  </Button>
-                </Card>
+                </div>
               );
             })}
           </div>
         )}
-      </section>
+      </div>
 
-      {/* МОИ ЗАКАЗЫ */}
-      {orders.length > 0 && (
-        <section>
-          <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
-            <ShoppingBag className="size-4 text-primary" />{tr("Mening xaridlarim", "Мои покупки")}
+      {/* ── ACHIEVEMENTS ── */}
+      {achievements.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="font-bold text-foreground flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-amber-500" />
+            {lang === "uz" ? "Yutuqlar" : "Достижения"}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({unlockedCount}/{totalCount})
+            </span>
           </h2>
-          <div className="space-y-2">
-            {orders.map((o) => {
-              const st = ORDER_STATUS[o.status] ?? ORDER_STATUS.new;
-              return (
-                <Card key={o.id} className="flex items-center gap-3 p-3 shadow-elegant">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">{lang === "uz" ? o.product_name.uz : o.product_name.ru}</div>
-                    <div className="text-[10px] text-muted-foreground">{formatDate(o.created_at, lang)}</div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {achievements.map((ach) =>
+              ach.unlocked ? (
+                <div
+                  key={ach.id}
+                  className="bg-card border border-border rounded-xl p-3 text-center"
+                >
+                  <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-2">
+                    <Trophy className="h-5 w-5 text-amber-500" />
                   </div>
-                  <span className="inline-flex items-center gap-1 text-sm font-semibold text-amber-600"><Coins className="size-3.5" />{o.coins_spent}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${st.cls}`}>{tr(st.uz, st.ru)}</span>
-                </Card>
-              );
-            })}
+                  <div className="text-xs font-semibold text-foreground leading-tight">
+                    {lang === "uz" ? ach.title_uz : ach.title_ru}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  key={ach.id}
+                  className="bg-card border border-border rounded-xl p-3 text-center opacity-40"
+                >
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
+                    <Lock className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="text-xs text-muted-foreground">???</div>
+                </div>
+              )
+            )}
           </div>
-        </section>
+        </div>
       )}
 
-      {/* АЧИВКИ */}
-      {achievements.length > 0 && (
-        <section>
-          <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
-            <Trophy className="size-4 text-primary" />{tr("Yutuqlar", "Достижения")}
-          </h2>
-          <div className="grid grid-cols-3 gap-2">
-            {achievements.map((a) => (
-              <Card key={a.id} className={`flex flex-col items-center gap-1 p-3 text-center shadow-elegant ${a.unlocked ? "" : "opacity-50"}`}>
-                <div className={`flex size-10 items-center justify-center rounded-xl ${a.unlocked ? "bg-amber-500/15 text-amber-600" : "bg-muted text-muted-foreground"}`}>
-                  {a.unlocked ? <Trophy className="size-5" /> : <Lock className="size-5" />}
+      {/* ── TRANSACTION HISTORY ── */}
+      <div className="space-y-2">
+        <h2 className="font-bold text-foreground flex items-center gap-2">
+          <History className="h-5 w-5 text-[#0077b6]" />
+          {lang === "uz" ? "So'nggi faollik" : "Последняя активность"}
+        </h2>
+
+        {transactions.length === 0 ? (
+          <div className="bg-card border border-border rounded-xl p-8 text-center text-muted-foreground">
+            <History className="h-10 w-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">
+              {lang === "uz"
+                ? "Hali faollik yo'q. Darslarga qatnashing!"
+                : "Активности пока нет. Посещайте уроки!"}
+            </p>
+          </div>
+        ) : (
+          <div className="bg-card border border-border rounded-xl px-4 py-1">
+            {transactions.map((tx) => (
+              <div
+                key={tx.id}
+                className="flex items-center gap-3 py-2.5 border-b border-border/50 last:border-0"
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    tx.amount > 0 ? "bg-emerald-500/10" : "bg-red-500/10"
+                  }`}
+                >
+                  {tx.amount > 0 ? (
+                    <TrendingUp className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4 text-red-600" />
+                  )}
                 </div>
-                <div className="text-[10px] font-medium leading-tight">{lang === "uz" ? a.title_uz : a.title_ru}</div>
-              </Card>
+
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-foreground">
+                    {getReasonLabel(tx.reason, lang)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatDate(tx.created_at, lang)}
+                  </div>
+                </div>
+
+                <div
+                  className={`text-sm font-bold flex-shrink-0 flex items-center gap-0.5 ${
+                    tx.amount > 0 ? "text-emerald-600" : "text-red-600"
+                  }`}
+                >
+                  {tx.amount > 0 ? "+" : ""}
+                  {tx.amount}
+                  <Coins className="h-3.5 w-3.5 ml-0.5" />
+                </div>
+              </div>
             ))}
           </div>
-        </section>
-      )}
-
-      {/* ИСТОРИЯ */}
-      <section>
-        <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <History className="size-4 text-primary" />{tr("Tarix", "История")}
-        </h2>
-        {transactions.length === 0 ? (
-          <Card className="p-6 text-center text-xs text-muted-foreground shadow-elegant">{tr("Tarix yo'q", "Истории нет")}</Card>
-        ) : (
-          <div className="space-y-1.5">
-            {transactions.map((tx) => {
-              const positive = tx.amount > 0;
-              const reason = REASON_LABEL[tx.reason];
-              return (
-                <Card key={tx.id} className="flex items-center justify-between p-2.5 shadow-elegant">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`flex size-7 items-center justify-center rounded-md text-xs font-bold ${positive ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"}`}>
-                      {positive ? "+" : "−"}
-                    </div>
-                    <div>
-                      <div className="text-xs font-medium">{reason ? tr(reason.uz, reason.ru) : tx.reason}</div>
-                      <div className="text-[10px] text-muted-foreground">{formatDate(tx.created_at, lang)}</div>
-                    </div>
-                  </div>
-                  <div className={`text-sm font-bold tabular-nums ${positive ? "text-emerald-600" : "text-red-600"}`}>
-                    {positive ? "+" : ""}{tx.amount}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
         )}
-      </section>
-
-      {/* BUY CONFIRM */}
-      <Dialog open={buyTarget !== null} onOpenChange={(v) => !v && setBuyTarget(null)}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader>
-            <DialogTitle>{tr("Sotib olishni tasdiqlang", "Подтвердите покупку")}</DialogTitle>
-            <DialogDescription>
-              {buyTarget && (
-                <>
-                  {lang === "uz" ? buyTarget.name_uz : buyTarget.name_ru}
-                  {" — "}
-                  <span className="font-semibold text-amber-600">{buyTarget.price_coins} coin</span>
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBuyTarget(null)} disabled={buying}>{tr("Bekor", "Отмена")}</Button>
-            <Button onClick={confirmBuy} disabled={buying}>{tr("Sotib olish", "Купить")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </div>
     </div>
   );
 }
