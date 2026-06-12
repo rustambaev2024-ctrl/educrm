@@ -16,6 +16,10 @@ class CoinSetting(models.Model):
     coins_streak_7 = models.PositiveIntegerField(default=50)
     coins_streak_30 = models.PositiveIntegerField(default=200)
 
+    # Штрафы/бонусы за посещаемость (положительное = бонус, отрицательное = штраф, 0 = ничего)
+    coins_late_penalty = models.IntegerField(default=0)
+    coins_absent_penalty = models.IntegerField(default=0)
+
     # XP курс
     xp_per_coin = models.PositiveIntegerField(default=3)
 

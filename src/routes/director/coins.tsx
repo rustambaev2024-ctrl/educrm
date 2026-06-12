@@ -31,6 +31,7 @@ interface CoinSettingData {
   coins_present: number; coins_late: number; coins_grade_perfect: number;
   coins_grade_good: number; coins_homework_done: number; coins_quiz_correct: number;
   coins_streak_7: number; coins_streak_30: number; xp_per_coin: number;
+  coins_late_penalty: number; coins_absent_penalty: number;
   level_thresholds: LevelThreshold[]; store_open_days: number[];
   max_purchases_per_week: number; max_purchases_per_month: number;
 }
@@ -122,6 +123,14 @@ function SettingsTab() {
     </div>
   );
 
+  const PenaltyField = ({ label, hint, k }: { label: string; hint: string; k: keyof CoinSettingData }) => (
+    <div>
+      <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Input type="number" value={data[k] as number} onChange={(e) => num(k, e.target.value)} autoComplete="off" placeholder="0" />
+      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+    </div>
+  );
+
   const updateLevel = (idx: number, field: keyof LevelThreshold, v: string) => {
     const levels = [...data.level_thresholds];
     levels[idx] = { ...levels[idx], [field]: field === "name_uz" || field === "name_ru" ? v : Number(v) || 0 };
@@ -150,11 +159,21 @@ function SettingsTab() {
         <h3 className="mb-4 text-sm font-semibold">{tr("Avtomatik mukofotlar", "Автоматические начисления")}</h3>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <NumberField label={tr("Darsga kelganlik", "Присутствие")} k="coins_present" />
-          <NumberField label={tr("Kechikish", "Опоздание")} k="coins_late" />
+          <NumberField label={tr("Kechikish (bonus)", "Опоздание (бонус)")} k="coins_late" />
           <NumberField label={tr("10/10 baho", "Оценка 100%")} k="coins_grade_perfect" />
           <NumberField label={tr("8-9/10 baho", "Оценка 80%+")} k="coins_grade_good" />
           <NumberField label={tr("Uy vazifasi", "Домашка вовремя")} k="coins_homework_done" />
           <NumberField label={tr("Test (to'g'ri javob)", "Тест (верный ответ)")} k="coins_quiz_correct" />
+          <PenaltyField
+            label={tr("Kechikish jarima/bonus", "Опоздание штраф/бонус")}
+            hint={tr("Masalan: -5 = 5 coin jarima, 0 = hech narsa", "Например: -5 = штраф 5 монет, 0 = ничего")}
+            k="coins_late_penalty"
+          />
+          <PenaltyField
+            label={tr("Kelmagan jarima/bonus", "Пропуск штраф/бонус")}
+            hint={tr("Masalan: -10 = 10 coin jarima, 0 = hech narsa", "Например: -10 = штраф 10 монет, 0 = ничего")}
+            k="coins_absent_penalty"
+          />
         </div>
       </Card>
 

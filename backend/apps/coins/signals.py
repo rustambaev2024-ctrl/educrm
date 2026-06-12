@@ -4,11 +4,10 @@ from django.dispatch import receiver
 
 @receiver(post_save, sender="lessons.Attendance")
 def award_coins_for_attendance(sender, instance, created, **kwargs):
-    # Начисляем только за present/late
-    if instance.status not in ("present", "late"):
+    if instance.status not in ("present", "late", "absent"):
         return
     try:
-        from apps.coins.services import award_coins
+        from apps.coins.services import award_coins, deduct_coins
         from apps.coins.models import CoinSetting, CoinTransaction
         from django.utils import timezone
 
@@ -21,7 +20,7 @@ def award_coins_for_attendance(sender, instance, created, **kwargs):
         if instance.lesson_id:
             already = CoinTransaction.objects.filter(
                 wallet__student=student,
-                reason="attendance",
+                reason__in=("attendance", "penalty"),
                 comment__contains=str(instance.lesson_id),
                 created_at__date=timezone.now().date(),
             ).exists()
@@ -29,18 +28,32 @@ def award_coins_for_attendance(sender, instance, created, **kwargs):
                 return
 
         setting = CoinSetting.get_or_create_default()
-        coins = (
-            setting.coins_present
-            if instance.status == "present"
-            else setting.coins_late
-        )
+        lesson_tag = f"(lesson {instance.lesson_id})"
 
-        award_coins(
-            student=student,
-            amount=coins,
-            reason="attendance",
-            comment=f"Attendance: {instance.status} (lesson {instance.lesson_id})",
-        )
+        if instance.status == "present":
+            if setting.coins_present > 0:
+                award_coins(student, setting.coins_present,
+                            "attendance", f"Present at lesson {lesson_tag}")
+
+        elif instance.status == "late":
+            if setting.coins_late > 0:
+                award_coins(student, setting.coins_late,
+                            "attendance", f"Late to lesson {lesson_tag}")
+            if setting.coins_late_penalty > 0:
+                award_coins(student, setting.coins_late_penalty,
+                            "attendance", f"Late bonus {lesson_tag}")
+            elif setting.coins_late_penalty < 0:
+                deduct_coins(student, abs(setting.coins_late_penalty),
+                             "penalty", f"Late to lesson {lesson_tag}")
+
+        elif instance.status == "absent":
+            if setting.coins_absent_penalty > 0:
+                award_coins(student, setting.coins_absent_penalty,
+                            "attendance", f"Absent bonus {lesson_tag}")
+            elif setting.coins_absent_penalty < 0:
+                deduct_coins(student, abs(setting.coins_absent_penalty),
+                             "penalty", f"Absent from lesson {lesson_tag}")
+
     except Exception:
         pass
 
