@@ -655,7 +655,7 @@ export function StudentDetailSheet({
               {lang === "ru" ? "Код для родителя" : "Ota-ona kodi"}
             </Button>
             <Button variant="outline" className="text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive/20" onClick={() => setShowDeleteConfirm(true)}>
-              O'quvchini o'chirish
+              {lang === "ru" ? "Архивировать" : "Arxivlash"}
             </Button>
             {student.status !== "archived" && (
               <Button variant="outline" onClick={() => onArchive(student.id)}>
@@ -689,20 +689,18 @@ export function StudentDetailSheet({
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>O'quvchini o'chirish</DialogTitle>
+            <DialogTitle>{lang === "ru" ? "Архивировать ученика" : "O'quvchini arxivlash"}</DialogTitle>
             <DialogDescription>
-              Rostdan ham o'quvchi <b>{student.fullName}</b> o'chirilsinmi? Bu amalni bekor qilib bo'lmaydi.
+              {lang === "ru"
+                ? <>Ученик <b>{student.fullName}</b> будет архивирован. Все данные сохранятся.</>
+                : <>O'quvchi <b>{student.fullName}</b> arxivlanadi. Barcha ma'lumotlar saqlanadi.</>}
             </DialogDescription>
           </DialogHeader>
-          {parent && (
-            <label className="flex items-center gap-2 cursor-pointer px-1 py-2">
-              <Checkbox checked={deleteParentToo} onCheckedChange={(v) => setDeleteParentToo(v === true)} />
-              <span className="text-sm">Ota-onani ham o'chirish ({parent.fullName})</span>
-            </label>
-          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowDeleteConfirm(false); setDeleteParentToo(false); }}>{t("common.cancel")}</Button>
-            <Button variant="destructive" onClick={() => { onDelete(student.id, deleteParentToo); onClose(); setShowDeleteConfirm(false); setDeleteParentToo(false); }}>O'chirish</Button>
+            <Button variant="destructive" onClick={() => { onDelete(student.id, deleteParentToo); onClose(); setShowDeleteConfirm(false); setDeleteParentToo(false); }}>
+              {lang === "ru" ? "Архивировать" : "Arxivlash"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

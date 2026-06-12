@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Play, ArrowRight, Trophy, Users, RotateCcw, Loader2 } from "lucide-react";
+import { Play, ArrowRight, Trophy, Users, RotateCcw, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { quizApi, readAccessToken, getTenantSchema } from "@/lib/api";
@@ -194,8 +194,22 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             {participants.map((p) => (
-              <span key={p.id} className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium">
+              <span key={p.id} className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-sm font-medium">
                 {p.name}
+                <button
+                  className="ml-1 rounded-full p-0.5 opacity-60 hover:opacity-100 hover:bg-white/20"
+                  onClick={async () => {
+                    if (!session) return;
+                    try {
+                      await quizApi.sessions.kickParticipant(session.id, p.id);
+                      setParticipants((prev) => prev.filter((x) => x.id !== p.id));
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                >
+                  <X className="size-3" />
+                </button>
               </span>
             ))}
             {participants.length === 0 && (

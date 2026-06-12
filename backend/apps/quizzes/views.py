@@ -192,6 +192,35 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response({"error": "Session not found"}, status=404)
 
+    @action(detail=True, methods=["post"], url_path="force-finish")
+    def force_finish(self, request, pk=None):
+        session = self.get_object()
+        if session.status == "finished":
+            return Response({"detail": "Already finished"}, status=400)
+        from django.utils import timezone
+        session.status = "finished"
+        session.ended_at = timezone.now()
+        session.save(update_fields=["status", "ended_at"])
+        from .models import SessionParticipant
+        participants = list(SessionParticipant.objects.filter(session=session).order_by("-score"))
+        for rank, p in enumerate(participants, 1):
+            p.rank = rank
+        SessionParticipant.objects.bulk_update(participants, ["rank"])
+        return Response({"status": "finished"})
+
+    @action(detail=True, methods=["delete"], url_path=r"participants/(?P<participant_id>[^/.]+)")
+    def kick_participant(self, request, pk=None, participant_id=None):
+        session = self.get_object()
+        if session.status != "waiting":
+            return Response({"detail": "Can only kick from waiting session"}, status=400)
+        from .models import SessionParticipant
+        try:
+            participant = SessionParticipant.objects.get(id=participant_id, session=session)
+        except SessionParticipant.DoesNotExist:
+            return Response({"detail": "Participant not found"}, status=404)
+        participant.delete()
+        return Response(status=204)
+
     @action(
         detail=True,
         methods=["post"],

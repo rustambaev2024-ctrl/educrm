@@ -172,25 +172,30 @@ class StudentViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def destroy(self, request, *args, **kwargs):
         student = self.get_object()
-        user = student.user
-        delete_parent = request.query_params.get("delete_parent", "").lower() == "true"
+        user = request.user
 
-        parent_user_to_delete = None
-        if delete_parent:
-            from .models import Parent, ParentStudentLink
-            links = ParentStudentLink.objects.filter(student=student).select_related("parent__user")
-            for link in links:
-                parent = link.parent
-                # Only delete if this parent has no other children
-                other_children = ParentStudentLink.objects.filter(parent=parent).exclude(student=student).count()
-                if other_children == 0:
-                    parent_user_to_delete = parent.user
-                    parent.delete()
+        # Только superadmin может физически удалить
+        if getattr(user, "role", None) == "superadmin":
+            su = student.user
+            delete_parent = request.query_params.get("delete_parent", "").lower() == "true"
+            if delete_parent:
+                from .models import Parent, ParentStudentLink
+                links = ParentStudentLink.objects.filter(student=student).select_related("parent__user")
+                for link in links:
+                    parent = link.parent
+                    other_children = ParentStudentLink.objects.filter(parent=parent).exclude(student=student).count()
+                    if other_children == 0:
+                        parent.user.delete()
+                        parent.delete()
+            student.delete()
+            su.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
-        student.delete()
-        user.delete()
-        if parent_user_to_delete:
-            parent_user_to_delete.delete()
+        # Все остальные — архивируют
+        student.status = "archived"
+        student.save(update_fields=["status"])
+        student.user.is_active = False
+        student.user.save(update_fields=["is_active"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -410,6 +415,18 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
             serializer.save(created_by=user, branch=user.staff_profile.branch)
             return
         serializer.save(created_by=user)
+
+    def update(self, request, *args, **kwargs):
+        lead = self.get_object()
+        if lead.status == "won":
+            return Response({"detail": "Won lead cannot be edited"}, status=status.HTTP_400_BAD_REQUEST)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        lead = self.get_object()
+        if lead.status == "won":
+            return Response({"detail": "Won lead cannot be edited"}, status=status.HTTP_400_BAD_REQUEST)
+        return super().partial_update(request, *args, **kwargs)
 
     @action(detail=True, methods=["post"], url_path="convert")
     @transaction.atomic

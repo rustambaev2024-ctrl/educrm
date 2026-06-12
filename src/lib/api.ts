@@ -665,6 +665,12 @@ export const quizApi = {
         body: JSON.stringify(data),
       });
     },
+
+    forceFinish: (sessionId: string) =>
+      requestJson(`/quiz-sessions/${sessionId}/force-finish/`, { method: "POST" }),
+
+    kickParticipant: (sessionId: string, participantId: string) =>
+      requestJson(`/quiz-sessions/${sessionId}/participants/${participantId}/`, { method: "DELETE" }),
   },
 };
 

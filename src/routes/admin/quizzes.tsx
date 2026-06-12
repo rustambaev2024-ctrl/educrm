@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, FileText, Play, Pencil, Users, Layers } from "lucide-react";
+import { Plus, FileText, Play, Pencil, Users, Layers, StopCircle } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +106,16 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const forceFinishSession = async (sessionId: string) => {
+    try {
+      await quizApi.sessions.forceFinish(sessionId);
+      toast.success(tr("Sessiya tugatildi", "Сессия завершена"));
+      void loadAll();
+    } catch {
+      toast.error(tr("Xatolik", "Ошибка"));
+    }
+  };
+
   const startSession = async (quizId: string) => {
     try {
       const session = (await quizApi.createSession(quizId)) as QuizSessionRow;
@@ -196,6 +206,7 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
                   <TableHead className="text-center">{tr("Ishtirokchilar", "Участники")}</TableHead>
                   <TableHead>{tr("Holat", "Статус")}</TableHead>
                   <TableHead>{tr("Sana", "Дата")}</TableHead>
+                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -206,6 +217,18 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
                     <TableCell className="text-center tabular-nums">{s.participants_count}</TableCell>
                     <TableCell>{statusBadge(s.status)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatDate(s.created_at, lang)}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {(s.status === "waiting" || s.status === "active") && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => forceFinishSession(s.id)}
+                        >
+                          <StopCircle className="size-4" />
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
