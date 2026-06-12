@@ -9,13 +9,13 @@ export const Route = createFileRoute("/student")({
 });
 
 function StudentLayout() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const NAV: MobileNavItem[] = [
     { to: "/student", label: t("nav.home"), icon: Home },
     { to: "/student/schedule", label: t("nav.schedule"), icon: Calendar },
     { to: "/student/homework", label: t("nav.homework"), icon: BookOpen },
     { to: "/student/grades", label: t("nav.grades"), icon: Award },
-    { to: "/student/coins", label: "Coins", icon: Coins },
+    { to: "/student/coins", label: lang === "uz" ? "Coinlar" : "Монеты", icon: Coins },
     { to: "/student/profile", label: t("nav.profile"), icon: User },
     { to: "/student/messages", label: t("nav.messages"), icon: MessageSquare },
   ];

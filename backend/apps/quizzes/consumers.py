@@ -273,6 +273,23 @@ class QuizConsumer(AsyncWebsocketConsumer):
                     participant.score += score_delta
                     participant.save(update_fields=["score"])
 
+                    # Начислить монеты студенту за правильный ответ
+                    try:
+                        from apps.coins.models import CoinSetting
+                        from apps.coins.services import award_coins
+
+                        if participant.student_id:
+                            setting = CoinSetting.get_or_create_default()
+                            if setting.coins_quiz_correct > 0:
+                                award_coins(
+                                    participant.student,
+                                    setting.coins_quiz_correct,
+                                    "quiz",
+                                    "Quiz correct answer",
+                                )
+                    except Exception:
+                        pass
+
                 # БАГ 4: считаем сколько ответило на этот вопрос
                 session = participant.session
                 total_participants = session.participants.count()

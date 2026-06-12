@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Plus, Minus, Search, Phone, Calendar as CalendarIcon, Copy,
-  ArrowDownCircle, ArrowUpCircle, Key, Pencil,
+  ArrowDownCircle, ArrowUpCircle, Key, Pencil, Coins,
 } from "lucide-react";
 import { PasswordInput } from "@/components/edu/password-input";
 import { PhoneInput } from "@/components/edu/phone-input";
@@ -49,7 +49,7 @@ import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
 import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
 import type { Student } from "@/lib/data/types";
-import { transferApi, paymentApi, studentApi } from "@/lib/api";
+import { transferApi, paymentApi, studentApi, coinApi } from "@/lib/api";
 import { mapPayments } from "@/lib/data/mappers";
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -107,6 +107,10 @@ export function StudentDetailSheet({
 
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [chargeOpen, setChargeOpen] = useState(false);
+  const [coinDialogOpen, setCoinDialogOpen] = useState(false);
+  const [coinAmount, setCoinAmount] = useState(10);
+  const [coinComment, setCoinComment] = useState("");
+  const [coinAction, setCoinAction] = useState<"award" | "deduct">("award");
   const [topUpForm, setTopUpForm] = useState({ amount: "", method: "cash", comment: "" });
   const [chargeForm, setChargeForm] = useState({ amount: "", comment: "", reason: "" });
   const [newStudentPassword, setNewStudentPassword] = useState("");
@@ -370,6 +374,10 @@ export function StudentDetailSheet({
                 </Button>
                 <Button variant="outline" size="sm" className="text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" onClick={() => setChargeOpen(true)}>
                   <ArrowUpCircle className="size-3.5 mr-1" /> Yechish
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1 border-amber-300 text-amber-600 hover:bg-amber-50" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
+                  <Coins className="size-3.5" />
+                  {lang === "uz" ? "Coin" : "Монеты"}
                 </Button>
               </div>
             </div>
@@ -949,6 +957,100 @@ export function StudentDetailSheet({
           <DialogFooter>
             <Button variant="outline" onClick={() => setChargeOpen(false)}>Bekor qilish</Button>
             <Button variant="destructive" onClick={handleCharge}>Yechish</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Coin Dialog */}
+      <Dialog open={coinDialogOpen} onOpenChange={setCoinDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {lang === "uz" ? "Coin berish / olish" : "Начислить / снять монеты"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCoinAction("award")}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  coinAction === "award"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                + {lang === "uz" ? "Berish" : "Начислить"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCoinAction("deduct")}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  coinAction === "deduct"
+                    ? "bg-red-600 text-white"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                − {lang === "uz" ? "Olish" : "Снять"}
+              </button>
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {lang === "uz" ? "Miqdor" : "Количество"}
+              </Label>
+              <Input
+                type="number"
+                min={1}
+                value={coinAmount}
+                onChange={(e) => setCoinAmount(Number(e.target.value) || 1)}
+                className="mt-1"
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {lang === "uz" ? "Sabab (ixtiyoriy)" : "Причина (необязательно)"}
+              </Label>
+              <Input
+                value={coinComment}
+                onChange={(e) => setCoinComment(e.target.value)}
+                className="mt-1"
+                autoComplete="off"
+                placeholder={lang === "uz" ? "Masalan: Olimpiada g'olibi" : "Например: Победитель олимпиады"}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setCoinDialogOpen(false)}>
+              {lang === "uz" ? "Bekor" : "Отмена"}
+            </Button>
+            <Button
+              className={coinAction === "award" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}
+              onClick={async () => {
+                if (!student) return;
+                try {
+                  if (coinAction === "award") {
+                    await coinApi.wallet.award(student.id, coinAmount, coinComment);
+                  } else {
+                    await coinApi.wallet.deduct(student.id, coinAmount, coinComment);
+                  }
+                  toast.success(
+                    lang === "uz"
+                      ? `${coinAmount} coin ${coinAction === "award" ? "berildi" : "olindi"}`
+                      : `${coinAmount} монет ${coinAction === "award" ? "начислено" : "снято"}`
+                  );
+                  setCoinDialogOpen(false);
+                  setCoinAmount(10);
+                  setCoinComment("");
+                } catch {
+                  toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+                }
+              }}
+            >
+              {coinAction === "award"
+                ? (lang === "uz" ? "Berish" : "Начислить")
+                : (lang === "uz" ? "Olish" : "Снять")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

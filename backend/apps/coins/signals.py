@@ -123,3 +123,15 @@ def award_coins_for_homework(sender, instance, created, **kwargs):
         )
     except Exception:
         pass
+
+
+@receiver(post_save, sender="students.Student")
+def create_wallet_for_new_student(sender, instance, created, **kwargs):
+    """Создать кошелёк автоматически при создании студента"""
+    if not created:
+        return
+    try:
+        from apps.coins.models import CoinWallet
+        CoinWallet.objects.get_or_create(student=instance)
+    except Exception:
+        pass
