@@ -16,15 +16,25 @@ def award_coins_for_attendance(sender, instance, created, **kwargs):
         if not student:
             return
 
-        # Защита от двойного начисления за один и тот же урок (при повторном save)
+        # Защита от двойного начисления за один и тот же урок
         if instance.lesson_id:
             already = CoinTransaction.objects.filter(
                 wallet__student=student,
                 reason__in=("attendance", "penalty"),
                 comment__contains=str(instance.lesson_id),
-                created_at__date=timezone.now().date(),
             ).exists()
             if already:
+                return
+
+        # Монеты начисляются только за уроки не старше 2 дней
+        if instance.lesson_id:
+            from apps.lessons.models import Lesson
+            try:
+                lesson = Lesson.objects.get(id=instance.lesson_id)
+                lesson_date = lesson.datetime.date()
+                if (timezone.now().date() - lesson_date).days > 2:
+                    return
+            except Lesson.DoesNotExist:
                 return
 
         setting = CoinSetting.get_or_create_default()

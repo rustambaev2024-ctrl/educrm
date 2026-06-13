@@ -44,6 +44,12 @@ class StaffViewSet(viewsets.ModelViewSet):
         from apps.courses.models import Group
         from rest_framework.exceptions import ValidationError
 
+        if instance.user == self.request.user:
+            raise ValidationError({
+                "uz": "O'zingizni o'chira olmaysiz",
+                "ru": "Нельзя удалить свой собственный аккаунт",
+            })
+
         active_groups = Group.objects.filter(teacher=instance, status="active")
         if active_groups.exists():
             group_names = ", ".join(active_groups.values_list("name", flat=True)[:3])

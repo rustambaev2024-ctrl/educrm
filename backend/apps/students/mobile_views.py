@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsParent, IsStudent
@@ -413,8 +414,14 @@ class ParentMeChildrenView(APIView):
         return Response({"children": results}, status=status.HTTP_200_OK)
 
 
+class ParentLinkCodeThrottle(UserRateThrottle):
+    rate = "5/hour"
+    scope = "parent_link_code"
+
+
 class ParentLinkChildView(APIView):
     permission_classes = [IsParent]
+    throttle_classes = [ParentLinkCodeThrottle]
 
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def post(self, request):

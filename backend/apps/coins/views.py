@@ -100,10 +100,23 @@ class CoinWalletViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"error": "Invalid data"}, status=400)
         try:
             student = Student.objects.get(id=student_id)
-            tx = award_coins(student, amount, "manual", comment, request.user)
-            return Response({"success": True, "transaction_id": str(tx.id)})
         except Student.DoesNotExist:
             return Response({"error": "Student not found"}, status=404)
+
+        if request.user.role == "support_teacher":
+            from apps.staff.utils import get_support_teacher_group_ids
+            from apps.courses.models import GroupMembership
+            allowed_ids = get_support_teacher_group_ids(request.user)
+            in_group = GroupMembership.objects.filter(
+                student=student,
+                group_id__in=allowed_ids,
+                left_at__isnull=True,
+            ).exists()
+            if not in_group:
+                return Response({"error": "Student not in your groups"}, status=403)
+
+        tx = award_coins(student, amount, "manual", comment, request.user)
+        return Response({"success": True, "transaction_id": str(tx.id)})
 
     @action(detail=False, methods=["post"], url_path="deduct")
     def deduct(self, request):

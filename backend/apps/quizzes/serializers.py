@@ -16,6 +16,19 @@ class QuestionSerializer(serializers.ModelSerializer):
         model = Question
         fields = ["id", "text", "order", "time_limit", "answers"]
 
+    def validate(self, data):
+        answers = data.get("answers", [])
+        if len(answers) < 2:
+            raise serializers.ValidationError(
+                "Kamida 2 ta javob varianti kerak / Нужно минимум 2 варианта ответа"
+            )
+        correct = [a for a in answers if a.get("is_correct")]
+        if not correct:
+            raise serializers.ValidationError(
+                "Kamida 1 ta to'g'ri javob belgilanishi kerak / Нужен хотя бы 1 правильный ответ"
+            )
+        return data
+
     def create(self, validated_data):
         answers_data = validated_data.pop("answers")
         question = Question.objects.create(**validated_data)

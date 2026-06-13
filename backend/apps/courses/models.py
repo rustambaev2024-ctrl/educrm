@@ -96,6 +96,13 @@ class GroupMembership(models.Model):
     class Meta:
         db_table = "courses_group_membership"
         ordering = ["-enrolled_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["group", "student"],
+                condition=models.Q(left_at__isnull=True),
+                name="unique_active_group_membership",
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.student_id} -> {self.group_id}"
