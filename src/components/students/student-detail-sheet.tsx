@@ -342,8 +342,13 @@ export function StudentDetailSheet({
       toast.success(lang === "uz" ? "O'quvchi o'chirildi" : "Студент удалён");
       onClose();
       onUpdate?.();
-    } catch {
-      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+    } catch (err: unknown) {
+      const body = (err as { body?: Record<string, unknown> })?.body;
+      const detail = body?.detail ?? body?.message;
+      const msg = typeof detail === "string"
+        ? detail
+        : (lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+      toast.error(msg);
     }
   };
 
