@@ -7,7 +7,7 @@
   useState,
   type ReactNode,
 } from "react";
-import { authApi, setTenantSchema, setTenantSlug, saveTokens, AUTH_KEY, TENANT_SCHEMA_KEY, TENANT_SLUG_KEY, type AuthUser as ApiAuthUser } from "@/lib/api";
+import { authApi, setTenantSchema, saveTokens, AUTH_KEY, TENANT_SCHEMA_KEY, type AuthUser as ApiAuthUser } from "@/lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   /** true пока идёт первичная проверка сессии */
   isHydrating: boolean;
-  login: (phone: string, password: string, slug?: string) => Promise<void>;
+  login: (phone: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -70,7 +70,6 @@ function clearStorage() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(AUTH_KEY);
   localStorage.removeItem(TENANT_SCHEMA_KEY);
-  localStorage.removeItem(TENANT_SLUG_KEY);
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -143,17 +142,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── Login ───────────────────────────────────────────────────────────────────
-  const login = async (phone: string, password: string, slug?: string) => {
+  const login = async (phone: string, password: string) => {
     clearStorage();
-    // Сохраняем slug до логина, чтобы buildTenantHeaders() использовал его в запросе
-    if (slug) setTenantSlug(slug);
-    const payload = await authApi.login({ phone, password, slug });
+    const payload = await authApi.login(phone, password);
 
     const loginUser: AuthUser = payload.user as AuthUser;
     const schema = loginUser.schemaName ?? payload.schemaName;
     if (schema) setTenantSchema(schema);
-    const responseSlug = (payload as { tenantSlug?: string }).tenantSlug;
-    if (responseSlug) setTenantSlug(responseSlug);
 
     saveTokens(payload.access, payload.refresh);
     const user = (await authApi.me()) as AuthUser;

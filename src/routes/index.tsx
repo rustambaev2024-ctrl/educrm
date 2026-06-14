@@ -4,6 +4,7 @@ import { ArrowRight, GraduationCap, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -19,7 +20,6 @@ import { PasswordInput } from "@/components/edu/password-input";
 import { PhoneInput } from "@/components/edu/phone-input";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { getSlugFromUrl } from "@/lib/api";
 import { ROLE_HOMES } from "@/lib/roles";
 import { useTheme } from "@/lib/theme";
 
@@ -35,8 +35,6 @@ export function LoginPage() {
   const [remember, setRemember] = useState(true);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const urlSlug = getSlugFromUrl();
 
   useEffect(() => {
     if (!isHydrating && user) {
@@ -54,7 +52,7 @@ export function LoginPage() {
 
     try {
       setIsSubmitting(true);
-      await login(phone.trim(), password.trim(), urlSlug || undefined);
+      await login(phone.trim(), password.trim());
       toast.success(t("toast.welcome"));
     } catch (error) {
       const message =
