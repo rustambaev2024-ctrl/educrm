@@ -1,19 +1,17 @@
-import logging
-
 from django.db import connection, transaction
 from django_tenants.utils import get_public_schema_name, get_tenant_model, schema_context
 from drf_spectacular.utils import OpenApiResponse, OpenApiTypes, extend_schema
 from rest_framework import permissions, status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
 from .models import User
 from .permissions import IsBranchAdmin
 from .serializers import (
     ChangePasswordSerializer,
+    CustomTokenObtainPairSerializer,
     LogoutSerializer,
     MeUpdateSerializer,
     ResetPasswordSerializer,
@@ -22,135 +20,97 @@ from .serializers import (
     normalize_phone,
 )
 
-logger = logging.getLogger(__name__)
 
-
-class LoginView(APIView):
-    permission_classes = [AllowAny]
+class LoginView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        phone = normalize_phone(request.data.get("phone", "").strip())
-        password = request.data.get("password", "")
-        slug = (request.data.get("slug") or "").strip() or None
+        data = request.data.copy()
+        if data.get("phone"):
+            data["phone"] = normalize_phone(data["phone"])
 
-        if not phone or not password:
-            return Response(
-                {"detail": "Telefon raqam va parol kiritilishi shart"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        phone = data.get("phone")
+        if not phone:
+            return Response({"phone": ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ШАГ 1: Суперадмин в public схеме
-        try:
-            with schema_context(get_public_schema_name()):
-                superadmin = User.objects.filter(phone=phone, role="superadmin").first()
-                if superadmin and superadmin.check_password(password):
-                    connection.set_schema_to_public()
-                    request.tenant = None
-                    refresh = RefreshToken.for_user(superadmin)
-                    create_user_session(superadmin, str(refresh["jti"]), request)
-                    return Response({
-                        "access": str(refresh.access_token),
-                        "refresh": str(refresh),
-                        "user": {
-                            "id": str(superadmin.id),
-                            "phone": superadmin.phone,
-                            "fullName": superadmin.full_name,
-                            "role": superadmin.role,
-                            "schemaName": get_public_schema_name(),
-                        },
-                        "schemaName": get_public_schema_name(),
-                        "tenantSlug": None,
-                    })
-        except Exception as exc:
-            logger.error("Superadmin login check failed: %s", exc)
+        tenant = self._resolve_tenant_by_phone(phone, request)
+        if tenant is None:
+            # Суперадмин — логинимся в public схеме
+            connection.set_schema_to_public()
+            request.tenant = None
+        else:
+            connection.set_tenant(tenant)
+            request.tenant = tenant
 
-        # ШАГ 2: Найти тенант
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+        refresh = RefreshToken(data["refresh"])
+        create_user_session(serializer.user, str(refresh["jti"]), request)
+
+        user = serializer.user
+        if hasattr(user, "student_profile"):
+            student_status = user.student_profile.status
+            if student_status in ("expelled", "archived"):
+                return Response(
+                    {
+                        "detail": {
+                            "uz": "Siz tizimdan chiqarilgansiz. Administrator bilan bog'laning.",
+                            "ru": "Вы отчислены из системы. Обратитесь к администратору.",
+                        }
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    def _resolve_tenant_by_phone(self, phone, request):
+        phone = normalize_phone(phone)
         tenant_model = get_tenant_model()
-        tenant = None
+        from rest_framework.exceptions import ValidationError
 
+        # 0. Суперадмин живёт в public схеме — проверяем первым
+        with schema_context(get_public_schema_name()):
+            if User.objects.filter(phone=phone, role="superadmin").exists():
+                from apps.tenants.models import Institution
+                try:
+                    public_tenant = tenant_model.objects.get(schema_name=get_public_schema_name())
+                except tenant_model.DoesNotExist:
+                    public_tenant = None
+                return public_tenant  # может быть None — LoginView обработает
+
+        # 1. Slug в теле запроса (новый механизм — точный, O(1))
+        slug = request.data.get("slug") if hasattr(request, "data") else None
         if slug:
             try:
                 tenant = tenant_model.objects.get(slug=slug)
             except tenant_model.DoesNotExist:
-                return Response(
-                    {"detail": "Muassasa topilmadi / Учреждение не найдено"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-        else:
-            # Header совместимость (старый фронтенд)
-            schema_header = request.META.get("HTTP_X_TENANT_SCHEMA")
-            slug_header = request.META.get("HTTP_X_TENANT_SLUG")
-            if slug_header:
-                tenant = tenant_model.objects.filter(slug=slug_header).first()
-            elif schema_header and schema_header != get_public_schema_name():
-                tenant = tenant_model.objects.filter(schema_name=schema_header).first()
-
-            if not tenant:
-                # Перебор тенантов по номеру телефона
-                for t in tenant_model.objects.exclude(schema_name=get_public_schema_name()).iterator():
-                    try:
-                        with schema_context(t.schema_name):
-                            if User.objects.filter(phone=phone).exists():
-                                tenant = t
-                                break
-                    except Exception:
-                        continue
-
-        if not tenant:
-            return Response(
-                {"detail": "Telefon raqam yoki parol noto'g'ri / Неверный телефон или пароль"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # ШАГ 3: Аутентификация в тенанте
-        try:
+                raise ValidationError({"detail": "Institution not found"})
             with schema_context(tenant.schema_name):
-                user = User.objects.filter(phone=phone).first()
-                if not user or not user.check_password(password):
-                    return Response(
-                        {"detail": "Telefon raqam yoki parol noto'g'ri / Неверный телефон или пароль"},
-                        status=status.HTTP_401_UNAUTHORIZED,
-                    )
-                if not user.is_active:
-                    return Response(
-                        {"detail": "Akkaunt bloklangan / Аккаунт заблокирован"},
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
-                if hasattr(user, "student_profile") and user.student_profile.status in ("expelled", "archived"):
-                    return Response(
-                        {
-                            "detail": {
-                                "uz": "Siz tizimdan chiqarilgansiz. Administrator bilan bog'laning.",
-                                "ru": "Вы отчислены из системы. Обратитесь к администратору.",
-                            }
-                        },
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
+                if not User.objects.filter(phone=phone).exists():
+                    raise ValidationError({"detail": "Invalid credentials"})
+            return tenant
 
-                connection.set_tenant(tenant)
-                request.tenant = tenant
-                refresh = RefreshToken.for_user(user)
-                create_user_session(user, str(refresh["jti"]), request)
+        # 2. X-Tenant-Schema header (старый механизм — совместимость)
+        schema_header = request.META.get("HTTP_X_TENANT_SCHEMA")
+        if schema_header and schema_header != get_public_schema_name():
+            try:
+                requested_tenant = tenant_model.objects.get(schema_name=schema_header)
+            except tenant_model.DoesNotExist:
+                raise ValidationError({"detail": "Institution not found"})
+            with schema_context(requested_tenant.schema_name):
+                if not User.objects.filter(phone=phone).exists():
+                    raise ValidationError({"detail": "Invalid credentials"})
+            return requested_tenant
 
-                return Response({
-                    "access": str(refresh.access_token),
-                    "refresh": str(refresh),
-                    "user": {
-                        "id": str(user.id),
-                        "phone": user.phone,
-                        "fullName": user.full_name,
-                        "role": user.role,
-                        "schemaName": tenant.schema_name,
-                    },
-                    "schemaName": tenant.schema_name,
-                    "tenantSlug": tenant.slug,
-                })
-        except Exception as exc:
-            logger.error("Tenant login failed (schema=%s): %s", tenant.schema_name, exc)
-            return Response(
-                {"detail": "Ichki xatolik / Внутренняя ошибка"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        # 3. Fallback: перебор всех тенантов (для обратной совместимости)
+        tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
+        for tenant in tenants.iterator():
+            with schema_context(tenant.schema_name):
+                if User.objects.filter(phone=phone).exists():
+                    return tenant
+        raise ValidationError({"detail": "Invalid credentials"})
 
 
 class LogoutView(APIView):
