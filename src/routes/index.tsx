@@ -4,7 +4,6 @@ import { ArrowRight, GraduationCap, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -20,7 +19,7 @@ import { PasswordInput } from "@/components/edu/password-input";
 import { PhoneInput } from "@/components/edu/phone-input";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { getTenantSlug, getSlugFromUrl } from "@/lib/api";
+import { getSlugFromUrl } from "@/lib/api";
 import { ROLE_HOMES } from "@/lib/roles";
 import { useTheme } from "@/lib/theme";
 
@@ -29,7 +28,7 @@ export const Route = createFileRoute("/")({ component: LoginPage });
 export function LoginPage() {
   const { user, login, isHydrating } = useAuth();
   const { theme, toggle } = useTheme();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -37,11 +36,7 @@ export function LoginPage() {
   const [forgotOpen, setForgotOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Slug тенанта: сначала из URL, потом из localStorage
   const urlSlug = getSlugFromUrl();
-  const storedSlug = getTenantSlug();
-  const knownSlug = urlSlug ?? storedSlug;
-  const [institutionSlug, setInstitutionSlug] = useState(knownSlug ?? "");
 
   useEffect(() => {
     if (!isHydrating && user) {
@@ -59,7 +54,7 @@ export function LoginPage() {
 
     try {
       setIsSubmitting(true);
-      await login(phone.trim(), password.trim(), institutionSlug.trim() || undefined);
+      await login(phone.trim(), password.trim(), urlSlug || undefined);
       toast.success(t("toast.welcome"));
     } catch (error) {
       const message =
@@ -133,27 +128,6 @@ export function LoginPage() {
                   disabled={isSubmitting}
                 />
               </div>
-              {!urlSlug && (
-                <div className="space-y-2">
-                  <Label htmlFor="institution-slug" className="text-xs text-muted-foreground uppercase tracking-wider">
-                    {lang === "uz" ? "Muassasa kodi (ixtiyoriy)" : "Код учреждения (необязательно)"}
-                  </Label>
-                  <Input
-                    id="institution-slug"
-                    value={institutionSlug}
-                    onChange={(e) => setInstitutionSlug(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
-                    placeholder="kelajak"
-                    autoComplete="off"
-                    disabled={isSubmitting}
-                    className="font-mono text-sm"
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    {lang === "uz"
-                      ? "Bir nechta muassasaga tegishli bo'lsangiz kiriting"
-                      : "Заполните, если вы относитесь к конкретному учреждению"}
-                  </p>
-                </div>
-              )}
               <div className="flex items-center justify-between">
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
                   <Checkbox
