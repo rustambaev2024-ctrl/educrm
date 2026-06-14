@@ -11,7 +11,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -116,7 +115,6 @@ export function StudentDetailSheet({
   const [newStudentPassword, setNewStudentPassword] = useState("");
   const [newParentPassword, setNewParentPassword] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteParentToo, setDeleteParentToo] = useState(false);
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferForm, setTransferForm] = useState({
@@ -316,6 +314,27 @@ export function StudentDetailSheet({
     updateStudentPasswords(student.id, undefined, newParentPassword.trim());
     toast.success("Ota-ona paroli yangilandi");
     setNewParentPassword("");
+  };
+
+  const handleArchive = async () => {
+    if (!student) return;
+    try {
+      await studentApi.updateStatus(student.id, "archived");
+      toast.success(lang === "uz" ? "Arxivlandi" : "Архивирован");
+      setShowDeleteConfirm(false);
+      reload();
+      onClose();
+    } catch {
+      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+    }
+  };
+
+  const handleDelete = () => {
+    toast.error(
+      lang === "uz"
+        ? "O'chirish faqat superadmin uchun mavjud"
+        : "Удаление доступно только суперадмину"
+    );
   };
 
   if (!student) {
@@ -654,17 +673,23 @@ export function StudentDetailSheet({
               <Key className="mr-1 h-3.5 w-3.5" />
               {lang === "ru" ? "Код для родителя" : "Ota-ona kodi"}
             </Button>
-            <Button variant="outline" className="text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive/20" onClick={() => setShowDeleteConfirm(true)}>
-              {lang === "ru" ? "Архивировать" : "Arxivlash"}
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive/20"
+              onClick={handleDelete}
+            >
+              {lang === "ru" ? "Удалить" : "O'chirish"}
             </Button>
             {student.status !== "archived" && (
-              <Button variant="outline" onClick={() => onArchive(student.id)}>
-                {t("students.archive")}
+              <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(true)}>
+                {lang === "ru" ? "Архивировать" : "Arxivlash"}
               </Button>
             )}
             {student.status !== "archived" && (
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => {
                   setTransferForm({
                     fromGroupId: studentGroups[0]?.id ?? "",
@@ -677,7 +702,7 @@ export function StudentDetailSheet({
                 }}
                 disabled={studentGroups.length === 0}
               >
-                Ko'chirish
+                {lang === "ru" ? "Перевести" : "Ko'chirish"}
               </Button>
             )}
           </div>
@@ -697,8 +722,8 @@ export function StudentDetailSheet({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowDeleteConfirm(false); setDeleteParentToo(false); }}>{t("common.cancel")}</Button>
-            <Button variant="destructive" onClick={() => { onDelete(student.id, deleteParentToo); onClose(); setShowDeleteConfirm(false); setDeleteParentToo(false); }}>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>{t("common.cancel")}</Button>
+            <Button variant="destructive" onClick={handleArchive}>
               {lang === "ru" ? "Архивировать" : "Arxivlash"}
             </Button>
           </DialogFooter>
