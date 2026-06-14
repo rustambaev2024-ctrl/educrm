@@ -71,14 +71,17 @@ class LoginView(TokenObtainPairView):
         from rest_framework.exceptions import ValidationError
 
         # 0. Суперадмин живёт в public схеме — проверяем первым
-        with schema_context(get_public_schema_name()):
-            if User.objects.filter(phone=phone, role="superadmin").exists():
-                from apps.tenants.models import Institution
-                try:
-                    public_tenant = tenant_model.objects.get(schema_name=get_public_schema_name())
-                except tenant_model.DoesNotExist:
-                    public_tenant = None
-                return public_tenant  # может быть None — LoginView обработает
+        # Таблица accounts_user может не существовать в public схеме — защищаемся
+        try:
+            with schema_context(get_public_schema_name()):
+                if User.objects.filter(phone=phone, role="superadmin").exists():
+                    try:
+                        public_tenant = tenant_model.objects.get(schema_name=get_public_schema_name())
+                    except tenant_model.DoesNotExist:
+                        public_tenant = None
+                    return public_tenant  # может быть None — LoginView обработает
+        except Exception:
+            pass  # таблицы нет в public — значит суперадмина нет, продолжаем
 
         # 1. Slug в теле запроса (новый механизм — точный, O(1))
         slug = request.data.get("slug") if hasattr(request, "data") else None
