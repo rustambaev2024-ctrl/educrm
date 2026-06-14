@@ -187,8 +187,24 @@ class StudentViewSet(viewsets.ModelViewSet):
                     if other_children == 0:
                         parent.user.delete()
                         parent.delete()
-            student.delete()
-            su.delete()
+            try:
+                student.delete()
+                su.delete()
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).error("Delete student error: %s", exc)
+                # Связанные объекты не дают удалить — архивируем как fallback
+                student.status = "archived"
+                student.save(update_fields=["status"])
+                su.is_active = False
+                su.save(update_fields=["is_active"])
+                return Response(
+                    {"detail": {
+                        "uz": "Arxivlandi (o'chirib bo'lmadi)",
+                        "ru": "Архивирован (удаление невозможно)",
+                    }},
+                    status=status.HTTP_200_OK,
+                )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         # Admin / branch_admin — архивируют
