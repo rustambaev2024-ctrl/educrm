@@ -329,12 +329,22 @@ export function StudentDetailSheet({
     }
   };
 
-  const handleDelete = () => {
-    toast.error(
+  const handleDelete = async () => {
+    if (!student) return;
+    const confirmed = window.confirm(
       lang === "uz"
-        ? "O'chirish faqat superadmin uchun mavjud"
-        : "Удаление доступно только суперадмину"
+        ? "O'quvchini arxivlashni tasdiqlaysizmi?"
+        : "Архивировать студента?"
     );
+    if (!confirmed) return;
+    try {
+      await studentApi.delete(student.id);
+      toast.success(lang === "uz" ? "Arxivlandi" : "Архивирован");
+      reload();
+      onClose();
+    } catch {
+      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+    }
   };
 
   if (!student) {

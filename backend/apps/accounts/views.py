@@ -35,9 +35,12 @@ class LoginView(TokenObtainPairView):
 
         tenant = self._resolve_tenant_by_phone(phone, request)
         if tenant is None:
-            return Response({"detail": "Invalid phone or password"}, status=status.HTTP_401_UNAUTHORIZED)
-        connection.set_tenant(tenant)
-        request.tenant = tenant
+            # Суперадмин — логинимся в public схеме
+            connection.set_schema_to_public()
+            request.tenant = None
+        else:
+            connection.set_tenant(tenant)
+            request.tenant = tenant
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -66,6 +69,16 @@ class LoginView(TokenObtainPairView):
         phone = normalize_phone(phone)
         tenant_model = get_tenant_model()
         from rest_framework.exceptions import ValidationError
+
+        # 0. Суперадмин живёт в public схеме — проверяем первым
+        with schema_context(get_public_schema_name()):
+            if User.objects.filter(phone=phone, role="superadmin").exists():
+                from apps.tenants.models import Institution
+                try:
+                    public_tenant = tenant_model.objects.get(schema_name=get_public_schema_name())
+                except tenant_model.DoesNotExist:
+                    public_tenant = None
+                return public_tenant  # может быть None — LoginView обработает
 
         # 1. Slug в теле запроса (новый механизм — точный, O(1))
         slug = request.data.get("slug") if hasattr(request, "data") else None

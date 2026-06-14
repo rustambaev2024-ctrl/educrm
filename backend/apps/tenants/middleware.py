@@ -24,6 +24,7 @@ class HeaderOrDomainTenantMiddleware:
     PUBLIC_PATH_PREFIXES = (
         "/api/v1/quiz-sessions/by-code/",
         "/api/v1/superadmin/",
+        "/api/v1/auth/",
     )
     PUBLIC_PATH_SUFFIXES = (
         "/join/",
