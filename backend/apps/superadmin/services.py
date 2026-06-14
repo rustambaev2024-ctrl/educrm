@@ -82,6 +82,14 @@ def create_institution_with_bootstrap(serializer, user):
     director_password = serializer.validated_data.get("director_password", "")
 
     institution = serializer.save()
+
+    # Если Domain не создан через serializer — создаём по умолчанию из slug
+    if institution.slug and not institution.domains.exists():
+        from apps.tenants.models import Domain
+        Domain.objects.get_or_create(
+            tenant=institution,
+            defaults={"domain": f"{institution.slug}.educrm.uz", "is_primary": True},
+        )
     director_created = False
     try:
         director = create_director_in_tenant(

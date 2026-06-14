@@ -7,6 +7,7 @@ if (!RAW_BASE_URL) {
 export const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 
 export const TENANT_SCHEMA_KEY = "educrm.tenant_schema";
+export const TENANT_SLUG_KEY = "educrm.tenant_slug";
 export const AUTH_KEY = "educrm.auth";
 
 export type UserRole = "superadmin" | "director" | "admin" | "branch_admin" | "teacher" | "support_teacher" | "student" | "parent";
@@ -31,6 +32,7 @@ export interface AuthUser {
 export interface LoginRequest {
   phone: string;
   password: string;
+  slug?: string;
 }
 
 export interface LoginResponse {
@@ -38,6 +40,7 @@ export interface LoginResponse {
   refresh: string;
   user: AuthUser;
   schemaName?: string;
+  tenantSlug?: string;
 }
 
 export interface RefreshResponse {
@@ -70,6 +73,25 @@ export function setTenantSchema(schema: string | null) {
   if (typeof window === "undefined") return;
   if (schema) localStorage.setItem(TENANT_SCHEMA_KEY, schema);
   else localStorage.removeItem(TENANT_SCHEMA_KEY);
+}
+
+export function getTenantSlug(): string | null {
+  if (typeof window === "undefined") return import.meta.env.VITE_DEFAULT_TENANT_SLUG ?? null;
+  return localStorage.getItem(TENANT_SLUG_KEY) ?? import.meta.env.VITE_DEFAULT_TENANT_SLUG ?? null;
+}
+
+export function setTenantSlug(slug: string | null) {
+  if (typeof window === "undefined") return;
+  if (slug) localStorage.setItem(TENANT_SLUG_KEY, slug);
+  else localStorage.removeItem(TENANT_SLUG_KEY);
+}
+
+/** Slug из первого сегмента URL (для мультитенант-роутинга через pathname). */
+export function getSlugFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  const NON_SLUG = new Set(["login", "join", "apply", "admin", "api", "static", "media"]);
+  const first = window.location.pathname.split("/").filter(Boolean)[0];
+  return first && !NON_SLUG.has(first) ? first : null;
 }
 
 export function normalizePhone(phone: string): string {
@@ -119,6 +141,15 @@ export function saveTokens(access: string, refresh: string) {
 let isRefreshing = false;
 let refreshQueue: Array<(token: string) => void> = [];
 
+function buildTenantHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "X-Tenant-Schema": getTenantSchema(),
+  };
+  const slug = getTenantSlug();
+  if (slug) headers["X-Tenant-Slug"] = slug;
+  return headers;
+}
+
 async function doRefresh(): Promise<string | null> {
   const refresh = readRefreshToken();
   if (!refresh) return null;
@@ -127,7 +158,7 @@ async function doRefresh(): Promise<string | null> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Tenant-Schema": getTenantSchema(),
+      ...buildTenantHeaders(),
     },
     body: JSON.stringify({ refresh }),
   });
@@ -141,7 +172,7 @@ async function doRefresh(): Promise<string | null> {
 export async function requestJson<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-Tenant-Schema": getTenantSchema(),
+    ...buildTenantHeaders(),
     ...((init.headers as Record<string, string>) ?? {}),
   };
 
@@ -191,7 +222,7 @@ export async function requestJson<T>(path: string, init: RequestInit = {}): Prom
 
 export async function requestForm<T>(path: string, formData: FormData, init: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
-    "X-Tenant-Schema": getTenantSchema(),
+    ...buildTenantHeaders(),
     ...((init.headers as Record<string, string>) ?? {}),
   };
 
@@ -259,14 +290,20 @@ export const authApi = {
         ? { phone: normalizePhone(phoneOrBody), password: password?.trim() }
         : { ...phoneOrBody, phone: normalizePhone(phoneOrBody.phone), password: phoneOrBody.password.trim() };
 
-    // Send X-Tenant-Schema so the backend can resolve the correct tenant.
-    // If no tenant is stored (first visit), send "public" to trigger superadmin
-    // lookup or prompt the user to select an institution first.
+    // Send both X-Tenant-Schema (legacy) and X-Tenant-Slug (new) so backend resolves correctly.
+    // Also include slug in body if present (new O(1) login path).
     const schema = getTenantSchema() || "public";
+    const slug = getTenantSlug() ?? getSlugFromUrl();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Tenant-Schema": schema,
+    };
+    if (slug) headers["X-Tenant-Slug"] = slug;
+    const payload = slug ? { ...body, slug } : body;
     return fetch(`${API_BASE_URL}/auth/token/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Tenant-Schema": schema },
-      body: JSON.stringify(body),
+      headers,
+      body: JSON.stringify(payload),
     }).then(async (res) => {
       if (!res.ok) {
         const errorBody = await res.json().catch(() => ({}));

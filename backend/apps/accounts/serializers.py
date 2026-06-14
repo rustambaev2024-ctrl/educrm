@@ -112,6 +112,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
         data["schemaName"] = connection.schema_name
+        # Добавляем slug тенанта для фронтенда (URL-роутинг)
+        try:
+            from apps.tenants.models import Institution
+            institution = Institution.objects.get(schema_name=connection.schema_name)
+            data["tenantSlug"] = institution.slug
+        except Exception:
+            data["tenantSlug"] = None
         return data
 
 

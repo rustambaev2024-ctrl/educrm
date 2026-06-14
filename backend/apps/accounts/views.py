@@ -66,32 +66,38 @@ class LoginView(TokenObtainPairView):
         phone = normalize_phone(phone)
         tenant_model = get_tenant_model()
         from rest_framework.exceptions import ValidationError
-        
+
+        # 1. Slug в теле запроса (новый механизм — точный, O(1))
+        slug = request.data.get("slug") if hasattr(request, "data") else None
+        if slug:
+            try:
+                tenant = tenant_model.objects.get(slug=slug)
+            except tenant_model.DoesNotExist:
+                raise ValidationError({"detail": "Institution not found"})
+            with schema_context(tenant.schema_name):
+                if not User.objects.filter(phone=phone).exists():
+                    raise ValidationError({"detail": "Invalid credentials"})
+            return tenant
+
+        # 2. X-Tenant-Schema header (старый механизм — совместимость)
         schema_header = request.META.get("HTTP_X_TENANT_SCHEMA")
+        if schema_header and schema_header != get_public_schema_name():
+            try:
+                requested_tenant = tenant_model.objects.get(schema_name=schema_header)
+            except tenant_model.DoesNotExist:
+                raise ValidationError({"detail": "Institution not found"})
+            with schema_context(requested_tenant.schema_name):
+                if not User.objects.filter(phone=phone).exists():
+                    raise ValidationError({"detail": "Invalid credentials"})
+            return requested_tenant
 
-        if not schema_header:
-            raise ValidationError({"detail": "X-Tenant-Schema header is required"})
-
-        if schema_header == get_public_schema_name():
-            # "public" means the frontend doesn't know the tenant yet (first login).
-            # Search across all tenants to find where this phone exists.
-            tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
-            for tenant in tenants.iterator():
-                with schema_context(tenant.schema_name):
-                    if User.objects.filter(phone=phone).exists():
-                        return tenant
-            raise ValidationError({"detail": "Invalid credentials"})
-
-        try:
-            requested_tenant = tenant_model.objects.get(schema_name=schema_header)
-        except tenant_model.DoesNotExist:
-            raise ValidationError({"detail": "Institution not found"})
-
-        with schema_context(requested_tenant.schema_name):
-            if not User.objects.filter(phone=phone).exists():
-                raise ValidationError({"detail": "Invalid credentials"})
-
-        return requested_tenant
+        # 3. Fallback: перебор всех тенантов (для обратной совместимости)
+        tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
+        for tenant in tenants.iterator():
+            with schema_context(tenant.schema_name):
+                if User.objects.filter(phone=phone).exists():
+                    return tenant
+        raise ValidationError({"detail": "Invalid credentials"})
 
 
 class LogoutView(APIView):
