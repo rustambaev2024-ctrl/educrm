@@ -174,8 +174,8 @@ class StudentViewSet(viewsets.ModelViewSet):
         student = self.get_object()
         user = request.user
 
-        # Только superadmin может физически удалить
-        if getattr(user, "role", None) == "superadmin":
+        # Superadmin и Director → физическое удаление
+        if getattr(user, "role", None) in ("superadmin", "director"):
             su = student.user
             delete_parent = request.query_params.get("delete_parent", "").lower() == "true"
             if delete_parent:
@@ -191,12 +191,15 @@ class StudentViewSet(viewsets.ModelViewSet):
             su.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        # Все остальные — архивируют
-        student.status = "archived"
-        student.save(update_fields=["status"])
-        student.user.is_active = False
-        student.user.save(update_fields=["is_active"])
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        # Admin / branch_admin — архивируют
+        if getattr(user, "role", None) in ("admin", "branch_admin"):
+            student.status = "archived"
+            student.save(update_fields=["status"])
+            student.user.is_active = False
+            student.user.save(update_fields=["is_active"])
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
     @action(
         detail=True,

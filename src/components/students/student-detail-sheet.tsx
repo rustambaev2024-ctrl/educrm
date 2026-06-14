@@ -333,15 +333,15 @@ export function StudentDetailSheet({
     if (!student) return;
     const confirmed = window.confirm(
       lang === "uz"
-        ? "O'quvchini arxivlashni tasdiqlaysizmi?"
-        : "Архивировать студента?"
+        ? "O'quvchini o'chirishni tasdiqlaysizmi? Bu amalni qaytarib bo'lmaydi!"
+        : "Удалить студента? Это действие необратимо!"
     );
     if (!confirmed) return;
     try {
       await studentApi.delete(student.id);
-      toast.success(lang === "uz" ? "Arxivlandi" : "Архивирован");
-      reload();
+      toast.success(lang === "uz" ? "O'quvchi o'chirildi" : "Студент удалён");
       onClose();
+      onUpdate?.();
     } catch {
       toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
     }
