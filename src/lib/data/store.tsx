@@ -335,8 +335,12 @@ function toGradeKind(value: unknown): Grade["kind"] {
 }
 
 function toStaffRole(value: unknown): Staff["role"] {
-  if (value === "director" || value === "teacher") return value;
-  return "admin";
+  if (value === "director") return "director";
+  if (value === "teacher") return "teacher";
+  if (value === "support_teacher") return "support_teacher";
+  if (value === "admin") return "admin";
+  if (value === "branch_admin") return "branch_admin";
+  return "admin"; // fallback
 }
 
 function toPaymentMethod(value: unknown): Payment["method"] {
