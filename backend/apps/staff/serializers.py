@@ -219,10 +219,23 @@ class SupportTeacherLinkSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request = self.context.get("request")
+        support_teacher = attrs.get("support_teacher") or getattr(self.instance, "support_teacher", None)
         teacher = attrs.get("teacher") or getattr(self.instance, "teacher", None)
         user = getattr(request, "user", None)
 
-        # superadmin/director видят все филиалы — без ограничений по филиалу.
+        # Проверка совпадения филиалов support_teacher и teacher
+        if support_teacher and teacher:
+            st_branch_id = getattr(
+                getattr(support_teacher, "staff_profile", None), "branch_id", None
+            )
+            if st_branch_id and teacher.branch_id and st_branch_id != teacher.branch_id:
+                raise serializers.ValidationError({
+                    "detail": {
+                        "uz": "Yordamchi o'qituvchi va o'qituvchi bir filialdan bo'lishi kerak",
+                        "ru": "Помощник и учитель должны быть из одного филиала",
+                    }
+                })
+
         # admin/branch_admin может привязывать только учителей своего филиала.
         if user and user.role in ("admin", "branch_admin"):
             admin_branch_id = getattr(

@@ -50,13 +50,27 @@ class StaffViewSet(viewsets.ModelViewSet):
                 "ru": "Нельзя удалить свой собственный аккаунт",
             })
 
-        active_groups = Group.objects.filter(teacher=instance, status="active")
-        if active_groups.exists():
-            group_names = ", ".join(active_groups.values_list("name", flat=True)[:3])
-            raise ValidationError({
-                "uz": f"O'qituvchini o'chirib bo'lmaydi — faol guruhlar mavjud: {group_names}",
-                "ru": f"Нельзя удалить учителя — есть активные группы: {group_names}",
-            })
+        if instance.user.role == "support_teacher":
+            active_links = SupportTeacherLink.objects.filter(
+                support_teacher=instance.user,
+                teacher__teaching_groups__status="active",
+            ).distinct()
+            if active_links.exists():
+                teacher_names = ", ".join(
+                    active_links.values_list("teacher__user__full_name", flat=True)[:3]
+                )
+                raise ValidationError({
+                    "uz": f"Bu yordamchi o'qituvchini o'chib bo'lmaydi — faol dars o'qituvchilari bilan bog'langan: {teacher_names}",
+                    "ru": f"Нельзя удалить этого помощника — он привязан к активным учителям: {teacher_names}",
+                })
+        else:
+            active_groups = Group.objects.filter(teacher=instance, status="active")
+            if active_groups.exists():
+                group_names = ", ".join(active_groups.values_list("name", flat=True)[:3])
+                raise ValidationError({
+                    "uz": f"O'qituvchini o'chirib bo'lmaydi — faol guruhlar mavjud: {group_names}",
+                    "ru": f"Нельзя удалить учителя — есть активные группы: {group_names}",
+                })
         instance.delete()
 
 
@@ -77,6 +91,13 @@ class SupportTeacherViewSet(viewsets.ModelViewSet):
             pass
         elif user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
+            if branch_id:
+                qs = qs.filter(teacher__branch_id=branch_id)
+            else:
+                return qs.none()
+        elif user.role == "support_teacher":
+            # Может видеть все привязки своего филиала (чтобы знать коллег)
+            branch_id = getattr(getattr(user, "staff_profile", None), "branch_id", None)
             if branch_id:
                 qs = qs.filter(teacher__branch_id=branch_id)
             else:

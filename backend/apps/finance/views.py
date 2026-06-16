@@ -1,6 +1,7 @@
 from django.db.models import Q
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes as perm_classes
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -54,6 +55,11 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
             scoped = qs.filter(student=user.student_profile)
         elif user.role == "parent" and hasattr(user, "parent_profile"):
             scoped = qs.filter(student__parents=user.parent_profile)
+        elif user.role == "support_teacher":
+            raise PermissionDenied({
+                "uz": "Siz moliyaviy ma'lumotlarga kirishga ruxsatingiz yo'q",
+                "ru": "У вас нет доступа к финансовым данным",
+            })
         else:
             return qs.none()
 
