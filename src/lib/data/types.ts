@@ -299,6 +299,7 @@ export interface AuditEntry {
 
 // Institution (superadmin level)
 export type InstitutionStatus = "active" | "frozen" | "archived";
+export type SubscriptionStatus = "active" | "expiring_soon" | "expired" | "no_subscription";
 
 export interface Institution {
   id: string;
@@ -311,6 +312,7 @@ export interface Institution {
   branchesCount: number;
   staffCount: number;
   status: InstitutionStatus;
+  subscriptionStatus?: SubscriptionStatus;
   monthlyRevenue: number;  // UZS
   expiresAt: string;       // ISO date
   createdAt: string;       // ISO date

@@ -296,7 +296,21 @@ function SuperadminHome() {
                     <TableCell className="text-right tabular-nums">{i.branchesCount}</TableCell>
                     <TableCell><Badge variant="outline" className={STATUS_TONE[i.status]}>{t(`sa.istatus.${i.status}`)}</Badge></TableCell>
                     <TableCell className="text-right tabular-nums font-medium">{formatMoney(i.monthlyRevenue, lang)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{formatDate(i.expiresAt, lang)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      <div className="flex flex-col gap-1">
+                        <span>{formatDate(i.expiresAt, lang)}</span>
+                        {i.subscriptionStatus === "expired" && (
+                          <Badge variant="outline" className="w-fit bg-destructive/10 text-destructive border-destructive/30 text-[10px]">
+                            {lang === "uz" ? "Muddati o'tgan" : "Истёк"}
+                          </Badge>
+                        )}
+                        {i.subscriptionStatus === "expiring_soon" && (
+                          <Badge variant="outline" className="w-fit bg-warning/10 text-warning border-warning/30 text-[10px]">
+                            {lang === "uz" ? "Tez orada tugaydi" : "Истекает скоро"}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button size="icon" variant="ghost" onClick={() => { setBranchInst(i); setBranchForm({ name: "", address: "" }); }} title={t("sa.viewBranches")}>

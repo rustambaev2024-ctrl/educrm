@@ -1,12 +1,6 @@
 from django.contrib import admin
 
-from .models import InstitutionActionLog, InstitutionNotice, SuperAdmin
-
-
-@admin.register(SuperAdmin)
-class SuperAdminAdmin(admin.ModelAdmin):
-    list_display = ("phone", "full_name", "is_active", "created_at")
-    search_fields = ("phone", "full_name")
+from .models import InstitutionActionLog, InstitutionNotice
 
 
 @admin.register(InstitutionActionLog)

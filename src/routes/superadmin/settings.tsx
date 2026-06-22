@@ -135,7 +135,15 @@ function SaSettings() {
 
           <TabsContent value="security">
             <Card className="space-y-5 p-6 shadow-elegant">
-              <Toggle label={t("sa.settings.twoFactor")} checked={twoFactor} onChange={setTwoFactor} />
+              <div className="flex items-center justify-between rounded-lg border border-border p-4 opacity-60">
+                <div>
+                  <div className="text-sm font-medium">{t("sa.settings.twoFactor")}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {twoFactor ? "Включено в настройках" : "Выключено"} — полноценная 2FA будет доступна в следующем обновлении
+                  </div>
+                </div>
+                <Switch checked={twoFactor} onCheckedChange={setTwoFactor} disabled />
+              </div>
               <Toggle label={t("sa.settings.passwordPolicy")} checked={strongPwd} onChange={setStrongPwd} />
               <Field label={t("sa.settings.sessionTimeout")}>
                 <Input type="number" min={5} max={480} value={sessionTimeout} onChange={(e) => setSessionTimeout(Number(e.target.value))} className="max-w-xs" />

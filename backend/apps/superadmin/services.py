@@ -119,10 +119,18 @@ def create_institution_with_bootstrap(serializer, user):
     return institution
 
 
+_STATUS_TO_ACTION = {
+    "frozen": "freeze",
+    "active": "unfreeze",
+    "archived": "archive",
+}
+
+
 def set_institution_status(institution: Institution, status: str, user, message: str = ""):
     institution.status = status
     institution.save(update_fields=["status"])
-    write_institution_log(institution, status, user=user, message=message)
+    action = _STATUS_TO_ACTION.get(status, status)
+    write_institution_log(institution, action, user=user, message=message)
     return institution
 
 

@@ -1,3 +1,5 @@
+from django.db.models import Sum
+from django.utils import timezone
 from django.utils.text import slugify
 from django_tenants.utils import schema_context
 from drf_spectacular.utils import OpenApiTypes, extend_schema_field
@@ -25,6 +27,7 @@ class InstitutionSerializer(serializers.ModelSerializer):
     branch_count = serializers.SerializerMethodField()
     staff_count = serializers.SerializerMethodField()
     monthly_revenue = serializers.SerializerMethodField()
+    subscription_status = serializers.SerializerMethodField()
     notices_count = serializers.IntegerField(read_only=True, required=False)
     logs_count = serializers.IntegerField(read_only=True, required=False)
 
@@ -55,6 +58,7 @@ class InstitutionSerializer(serializers.ModelSerializer):
             "branch_count",
             "staff_count",
             "monthly_revenue",
+            "subscription_status",
             "notices_count",
             "logs_count",
         )
@@ -70,6 +74,7 @@ class InstitutionSerializer(serializers.ModelSerializer):
             "branch_count",
             "staff_count",
             "monthly_revenue",
+            "subscription_status",
         )
 
     @extend_schema_field(OpenApiTypes.STR)
@@ -120,16 +125,28 @@ class InstitutionSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.NUMBER)
     def get_monthly_revenue(self, obj):
+        start_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         return self._with_tenant(
             obj,
             lambda: str(
-                sum(
-                    payment.amount
-                    for payment in Payment.objects.filter(payment_type="top_up")
-                )
+                Payment.objects.filter(
+                    payment_type="top_up",
+                    created_at__gte=start_of_month,
+                ).aggregate(total=Sum("amount"))["total"] or 0
             ),
             "0.00",
         )
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_subscription_status(self, obj):
+        if not obj.subscription_end:
+            return "no_subscription"
+        days_left = (obj.subscription_end - timezone.now().date()).days
+        if days_left < 0:
+            return "expired"
+        if days_left <= 7:
+            return "expiring_soon"
+        return "active"
 
     def validate_slug(self, value):
         normalized = slugify(value).replace("-", "_")

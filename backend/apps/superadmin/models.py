@@ -3,27 +3,18 @@ import uuid
 from django.db import models
 
 
-class SuperAdmin(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    phone = models.CharField(max_length=20, unique=True)
-    full_name = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = "superadmin_super_admin"
-
-    def __str__(self):
-        return self.full_name
-
-
 class InstitutionActionLog(models.Model):
     ACTION_CHOICES = [
         ("create", "Create"),
+        ("update", "Update"),
+        ("delete", "Delete"),
         ("freeze", "Freeze"),
         ("unfreeze", "Unfreeze"),
         ("archive", "Archive"),
         ("notify", "Notify"),
+        ("branch_create", "Branch Create"),
+        ("branch_update", "Branch Update"),
+        ("branch_delete", "Branch Delete"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

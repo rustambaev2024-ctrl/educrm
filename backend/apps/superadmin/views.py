@@ -1,5 +1,8 @@
 import logging
+import os
+import shutil
 
+from django.conf import settings as django_settings
 from django.db.models import Count, Q
 
 logger = logging.getLogger(__name__)
@@ -63,6 +66,19 @@ class SuperadminInstitutionViewSet(
                         },
                         status=status.HTTP_409_CONFLICT,
                     )
+
+            # Log before deletion so the record survives even if DROP fails.
+            write_institution_log(institution, "delete", user=request.user, message="Institution deleted")
+
+            # Remove institution logo file if it exists.
+            if institution.logo:
+                logo_path = os.path.join(str(django_settings.MEDIA_ROOT), institution.logo.name)
+                if os.path.exists(logo_path):
+                    try:
+                        os.remove(logo_path)
+                        logger.info("Removed logo for %s", schema_name)
+                    except Exception as e:
+                        logger.error("Failed to remove logo for %s: %s", schema_name, e)
 
             try:
                 institution.delete(force_drop=True)
@@ -189,6 +205,11 @@ class SuperadminInstitutionViewSet(
             serializer = BranchSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             branch = serializer.save()
+            write_institution_log(
+                institution, "branch_create", user=request.user,
+                message=f"Branch '{branch.name}' created",
+                metadata={"branch_id": str(branch.id), "branch_name": branch.name},
+            )
             return Response(BranchSerializer(branch).data, status=status.HTTP_201_CREATED)
 
     @action(
@@ -207,12 +228,23 @@ class SuperadminInstitutionViewSet(
                 return Response({"detail": "Branch not found"}, status=status.HTTP_404_NOT_FOUND)
 
             if request.method == "DELETE":
+                branch_name = branch.name
                 branch.delete()
+                write_institution_log(
+                    institution, "branch_delete", user=request.user,
+                    message=f"Branch '{branch_name}' deleted",
+                    metadata={"branch_id": branch_id, "branch_name": branch_name},
+                )
                 return Response(status=status.HTTP_204_NO_CONTENT)
 
             serializer = BranchSerializer(branch, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+            write_institution_log(
+                institution, "branch_update", user=request.user,
+                message=f"Branch '{branch.name}' updated",
+                metadata={"branch_id": branch_id, "branch_name": branch.name},
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 

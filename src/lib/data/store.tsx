@@ -628,6 +628,7 @@ function institutionFromRaw(raw: InstitutionRaw): Institution {
     branchesCount: mapped.branchesCount,
     staffCount: Number(source.staff_count ?? source.staffCount ?? 0),
     status: toInstitutionStatus(mapped.status),
+    subscriptionStatus: (source.subscription_status as Institution["subscriptionStatus"]) ?? undefined,
     monthlyRevenue: Number(source.monthly_revenue ?? source.monthlyRevenue ?? 0),
     expiresAt: String(source.expires_at ?? source.subscription_end ?? getLocalDateString()),
     createdAt: mapped.createdAt,

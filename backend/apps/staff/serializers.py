@@ -46,6 +46,18 @@ class StaffSerializer(serializers.ModelSerializer):
     def validate_phone(self, value):
         return normalize_phone(value)
 
+    def validate_password(self, value):
+        from apps.superadmin.models import PlatformSettings
+        settings = PlatformSettings.get()
+        if settings.strong_password:
+            if len(value) < 8:
+                raise serializers.ValidationError("Password must be at least 8 characters")
+            if not any(c.isdigit() for c in value):
+                raise serializers.ValidationError("Password must contain at least one digit")
+            if not any(c.isupper() for c in value):
+                raise serializers.ValidationError("Password must contain at least one uppercase letter")
+        return value
+
     @transaction.atomic
     def create(self, validated_data):
         user_data = validated_data.pop("user")
