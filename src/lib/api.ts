@@ -578,7 +578,11 @@ export const transferApi = {
 
 
 export const superadminApi = {
-  institutions: crudApi("/superadmin/institutions/"),
+  institutions: {
+    ...crudApi("/superadmin/institutions/"),
+    deleteForce: (id: string) =>
+      requestJson<void>(`/superadmin/institutions/${id}/?force=true`, { method: "DELETE" }),
+  },
   branches: {
     list: (institutionId: string) =>
       requestJson<ApiList<unknown> | unknown[]>(`/superadmin/institutions/${institutionId}/branches/`),
@@ -599,10 +603,10 @@ export const superadminApi = {
   },
   freeze: (id: string, reason: string) =>
     requestJson(`/superadmin/institutions/${id}/freeze/`, {
-      method: "POST",
-      body: JSON.stringify({ reason }),
+      method: "PATCH",
+      body: JSON.stringify({ message: reason }),
     }),
-  unfreeze: (id: string) => requestJson(`/superadmin/institutions/${id}/unfreeze/`, { method: "POST" }),
+  unfreeze: (id: string) => requestJson(`/superadmin/institutions/${id}/unfreeze/`, { method: "PATCH" }),
   logs: (params?: Record<string, string>) =>
     requestJson(`/superadmin/logs/${params ? `?${new URLSearchParams(params)}` : ""}`),
   settings: {

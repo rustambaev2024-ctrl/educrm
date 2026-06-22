@@ -21,6 +21,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useData } from "@/lib/data/store";
+import { superadminApi, ApiError } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
 import type { Institution, InstitutionPlan, InstitutionStatus, Branch } from "@/lib/data/types";
@@ -86,6 +87,7 @@ function SuperadminHome() {
   const [deleteTarget, setDeleteTarget] = useState<Institution | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [forceDeleteTarget, setForceDeleteTarget] = useState<{ inst: Institution; activeCount: number } | null>(null);
   const activeBranchInst = useMemo(() => {
     if (!branchInst) return null;
     return (
@@ -167,13 +169,31 @@ function SuperadminHome() {
     setOpenInst(false);
   };
 
-  const handleDelete = (i: Institution) => {
+  const handleDelete = async (i: Institution, force = false) => {
     setDeleting(true);
-    deleteInstitution(i.id);
-    toast.success(t("sa.deleted"));
-    setDeleteTarget(null);
-    setDeleteConfirmText("");
-    setDeleting(false);
+    try {
+      if (force) {
+        await superadminApi.institutions.deleteForce(i.id);
+      } else {
+        await superadminApi.institutions.delete(i.id);
+      }
+      deleteInstitution(i.id);
+      toast.success(t("sa.deleted"));
+      setDeleteTarget(null);
+      setDeleteConfirmText("");
+      setForceDeleteTarget(null);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        const activeCount = (err.body as { active_students_count?: number }).active_students_count ?? 0;
+        setForceDeleteTarget({ inst: i, activeCount });
+        setDeleteTarget(null);
+        setDeleteConfirmText("");
+      } else {
+        toast.error(lang === "uz" ? "O'chirishda xatolik" : "Ошибка при удалении");
+      }
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const submitBranch = () => {
@@ -464,6 +484,32 @@ function SuperadminHome() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Force-delete confirmation when active students exist */}
+      <AlertDialog open={!!forceDeleteTarget} onOpenChange={(o) => !o && setForceDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lang === "uz" ? "Faol o'quvchilar bor!" : "Есть активные студенты!"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {lang === "uz"
+                ? `"${forceDeleteTarget?.inst.name}" tashkilotida ${forceDeleteTarget?.activeCount} faol o'quvchi bor. Barchasini o'chirib yuborasizmi? Bu amalni qaytarib bo'lmaydi.`
+                : `В организации "${forceDeleteTarget?.inst.name}" есть ${forceDeleteTarget?.activeCount} активных студентов. Удалить всё равно? Это действие необратимо.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setForceDeleteTarget(null)}>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => forceDeleteTarget && handleDelete(forceDeleteTarget.inst, true)}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "..." : lang === "uz" ? "Ha, o'chirib yuborish" : "Да, удалить всё"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageShell>
   );
 }

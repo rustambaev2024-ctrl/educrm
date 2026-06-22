@@ -298,7 +298,7 @@ export interface AuditEntry {
 }
 
 // Institution (superadmin level)
-export type InstitutionPlan = "basic" | "standard" | "pro";
+export type InstitutionPlan = "standard" | "premium" | "enterprise";
 export type InstitutionStatus = "active" | "frozen" | "archived";
 
 export interface Institution {

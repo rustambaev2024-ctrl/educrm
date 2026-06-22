@@ -46,11 +46,28 @@ class SuperadminInstitutionViewSet(
         with schema_context("public"):
             institution = self.get_object()
             schema_name = institution.schema_name
+            force = request.query_params.get("force") == "true"
+
+            if not force:
+                from apps.students.models import Student
+                with schema_context(schema_name):
+                    active_count = Student.objects.filter(status="active").count()
+                if active_count > 0:
+                    return Response(
+                        {
+                            "detail": {
+                                "uz": f"Bu tashkilotda {active_count} faol o'quvchi bor. O'chirish uchun ?force=true qo'shing",
+                                "ru": f"В организации {active_count} активных студентов. Добавьте ?force=true для принудительного удаления",
+                            },
+                            "active_students_count": active_count,
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
             try:
                 institution.delete(force_drop=True)
             except Exception as e:
                 logger.error("Institution.delete(force_drop=True) failed for schema %s: %s", schema_name, e)
-                # If delete fails due to active connections, forcefully drop it or delete the record anyway
                 from django.db import connection
                 try:
                     with connection.cursor() as cursor:
@@ -91,9 +108,7 @@ class SuperadminInstitutionViewSet(
                     status=status.HTTP_201_CREATED,
                 )
             except Exception as e:
-                import traceback
-                with open("create_error.log", "a") as f:
-                    f.write(traceback.format_exc() + "\n")
+                logger.error("Institution creation failed: %s", e, exc_info=True)
                 return Response(
                     {"detail": str(e)},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -102,7 +117,7 @@ class SuperadminInstitutionViewSet(
     def partial_update(self, request, *args, **kwargs):
         with schema_context("public"):
             institution = self.get_object()
-            allowed = {"name", "address", "phone", "status", "subscription_end"}
+            allowed = {"name", "address", "phone", "plan", "status", "subscription_end"}
             data = {k: v for k, v in request.data.items() if k in allowed}
             for key, value in data.items():
                 setattr(institution, key, value)

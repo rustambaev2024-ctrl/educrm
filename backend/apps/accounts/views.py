@@ -21,6 +21,11 @@ from .serializers import (
 )
 
 
+class _PublicTenant:
+    """Sentinel returned when login resolves to the public schema (superadmin)."""
+    schema_name = "public"
+
+
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
@@ -36,7 +41,11 @@ class LoginView(TokenObtainPairView):
         tenant = self._resolve_tenant_by_phone(phone, request)
         if tenant is None:
             return Response({"detail": "Invalid phone or password"}, status=status.HTTP_401_UNAUTHORIZED)
-        connection.set_tenant(tenant)
+        if isinstance(tenant, _PublicTenant):
+            # Superadmin lives in public schema — set schema directly without a tenant object.
+            connection.set_schema_to_public()
+        else:
+            connection.set_tenant(tenant)
         request.tenant = tenant
 
         serializer = self.get_serializer(data=data)
@@ -66,15 +75,20 @@ class LoginView(TokenObtainPairView):
         phone = normalize_phone(phone)
         tenant_model = get_tenant_model()
         from rest_framework.exceptions import ValidationError
-        
+
         schema_header = request.META.get("HTTP_X_TENANT_SCHEMA")
 
         if not schema_header:
             raise ValidationError({"detail": "X-Tenant-Schema header is required"})
 
         if schema_header == get_public_schema_name():
-            # "public" means the frontend doesn't know the tenant yet (first login).
-            # Search across all tenants to find where this phone exists.
+            # Step 1: check superadmin in public schema first.
+            with schema_context("public"):
+                if User.objects.filter(phone=phone, role="superadmin").exists():
+                    # Return a sentinel — superadmin lives in public, no tenant object needed.
+                    return _PublicTenant()
+
+            # Step 2: search all tenant schemas.
             tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
             for tenant in tenants.iterator():
                 with schema_context(tenant.schema_name):

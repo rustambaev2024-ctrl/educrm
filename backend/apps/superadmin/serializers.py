@@ -42,6 +42,7 @@ class InstitutionSerializer(serializers.ModelSerializer):
             "phone",
             "currency",
             "language",
+            "plan",
             "status",
             "subscription_start",
             "subscription_end",
@@ -136,7 +137,11 @@ class InstitutionSerializer(serializers.ModelSerializer):
         if not normalized:
             raise serializers.ValidationError("Slug is required")
         if normalized == "public":
-            raise serializers.ValidationError("Slug public is reserved")
+            raise serializers.ValidationError("Slug 'public' is reserved")
+        if Institution.objects.filter(schema_name=normalized).exists():
+            raise serializers.ValidationError(
+                f"Organization with slug '{normalized}' already exists"
+            )
         return normalized
 
     def create(self, validated_data):

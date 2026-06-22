@@ -349,7 +349,7 @@ function toPaymentMethod(value: unknown): Payment["method"] {
 }
 
 function toInstitutionPlan(value: unknown): Institution["plan"] {
-  const allowed: Institution["plan"][] = ["basic", "standard", "pro"];
+  const allowed: Institution["plan"][] = ["standard", "premium", "enterprise"];
   return allowed.includes(value as Institution["plan"]) ? (value as Institution["plan"]) : "standard";
 }
 
