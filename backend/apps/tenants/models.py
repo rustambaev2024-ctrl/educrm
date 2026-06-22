@@ -19,11 +19,6 @@ class Institution(TenantMixin):
         choices=[("active", "Active"), ("frozen", "Frozen"), ("archived", "Archived")],
         default="active",
     )
-    plan = models.CharField(
-        max_length=20,
-        choices=[("standard", "Standard"), ("premium", "Premium"), ("enterprise", "Enterprise")],
-        default="standard",
-    )
     subscription_start = models.DateField(null=True, blank=True)
     subscription_end = models.DateField(null=True, blank=True)
     meta_pixel_id = models.CharField(max_length=100, blank=True, default="")

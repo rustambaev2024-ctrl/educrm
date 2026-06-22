@@ -42,7 +42,6 @@ class InstitutionSerializer(serializers.ModelSerializer):
             "phone",
             "currency",
             "language",
-            "plan",
             "status",
             "subscription_start",
             "subscription_end",

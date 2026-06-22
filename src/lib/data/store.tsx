@@ -348,11 +348,6 @@ function toPaymentMethod(value: unknown): Payment["method"] {
   return allowed.includes(value as Payment["method"]) ? (value as Payment["method"]) : "cash";
 }
 
-function toInstitutionPlan(value: unknown): Institution["plan"] {
-  const allowed: Institution["plan"][] = ["standard", "premium", "enterprise"];
-  return allowed.includes(value as Institution["plan"]) ? (value as Institution["plan"]) : "standard";
-}
-
 function toInstitutionStatus(value: unknown): Institution["status"] {
   const allowed: Institution["status"][] = ["active", "frozen", "archived"];
   return allowed.includes(value as Institution["status"]) ? (value as Institution["status"]) : "active";
@@ -632,7 +627,6 @@ function institutionFromRaw(raw: InstitutionRaw): Institution {
     studentsCount: mapped.studentsCount,
     branchesCount: mapped.branchesCount,
     staffCount: Number(source.staff_count ?? source.staffCount ?? 0),
-    plan: toInstitutionPlan(source.plan),
     status: toInstitutionStatus(mapped.status),
     monthlyRevenue: Number(source.monthly_revenue ?? source.monthlyRevenue ?? 0),
     expiresAt: String(source.expires_at ?? source.subscription_end ?? getLocalDateString()),
@@ -1587,7 +1581,6 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       schemaName: input.slug,
       domain: input.domain,
       city: input.city,
-      plan: input.plan,
       status: input.status,
       expiresAt: input.expiresAt,
       studentsCount: input.studentsCount ?? 0,

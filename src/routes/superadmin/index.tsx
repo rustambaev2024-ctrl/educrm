@@ -24,7 +24,7 @@ import { useData } from "@/lib/data/store";
 import { superadminApi, ApiError } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
-import type { Institution, InstitutionPlan, InstitutionStatus, Branch } from "@/lib/data/types";
+import type { Institution, InstitutionStatus, Branch } from "@/lib/data/types";
 
 export const Route = createFileRoute("/superadmin/")({ component: SuperadminHome });
 
@@ -39,7 +39,6 @@ interface InstitutionFormState {
   slug: string;
   city: string;
   domain: string;
-  plan: InstitutionPlan;
   status: InstitutionStatus;
   expiresAt: string;
   directorName: string;
@@ -48,7 +47,7 @@ interface InstitutionFormState {
 }
 
 const emptyForm: InstitutionFormState = {
-  name: "", slug: "", city: "", domain: "", plan: "standard", status: "active",
+  name: "", slug: "", city: "", domain: "", status: "active",
   expiresAt: getLocalDateString(new Date(Date.now() + 365 * 86400000)),
   directorName: "", directorPhone: "", directorPassword: "",
 };
@@ -126,7 +125,7 @@ function SuperadminHome() {
   const openEdit = (i: Institution) => {
     setEditing(i);
     setForm({
-      name: i.name, slug: i.slug ?? i.schemaName ?? "", city: i.city, domain: i.domain ?? "", plan: i.plan, status: i.status, expiresAt: i.expiresAt,
+      name: i.name, slug: i.slug ?? i.schemaName ?? "", city: i.city, domain: i.domain ?? "", status: i.status, expiresAt: i.expiresAt,
       directorName: i.directorName ?? "", directorPhone: i.directorPhone ?? "", directorPassword: "",
     });
     setOpenInst(true);
@@ -149,7 +148,7 @@ function SuperadminHome() {
     }
     if (editing) {
       updateInstitution(editing.id, {
-        name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), plan: form.plan, status: form.status,
+        name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), status: form.status,
         expiresAt: form.expiresAt,
         directorName: form.directorName.trim() || undefined,
         directorPhone: form.directorPhone.trim() || undefined,
@@ -158,7 +157,7 @@ function SuperadminHome() {
       toast.success(t("sa.updated"));
     } else {
       addInstitution({
-        name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), plan: form.plan, status: form.status,
+        name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), status: form.status,
         expiresAt: form.expiresAt,
         directorName: form.directorName.trim() || undefined,
         directorPhone: form.directorPhone.trim() || undefined,

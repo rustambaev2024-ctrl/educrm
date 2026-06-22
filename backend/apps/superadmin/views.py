@@ -117,7 +117,7 @@ class SuperadminInstitutionViewSet(
     def partial_update(self, request, *args, **kwargs):
         with schema_context("public"):
             institution = self.get_object()
-            allowed = {"name", "address", "phone", "plan", "status", "subscription_end"}
+            allowed = {"name", "address", "phone", "status", "subscription_end"}
             data = {k: v for k, v in request.data.items() if k in allowed}
             for key, value in data.items():
                 setattr(institution, key, value)

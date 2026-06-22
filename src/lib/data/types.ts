@@ -298,7 +298,6 @@ export interface AuditEntry {
 }
 
 // Institution (superadmin level)
-export type InstitutionPlan = "standard" | "premium" | "enterprise";
 export type InstitutionStatus = "active" | "frozen" | "archived";
 
 export interface Institution {
@@ -311,7 +310,6 @@ export interface Institution {
   studentsCount: number;
   branchesCount: number;
   staffCount: number;
-  plan: InstitutionPlan;
   status: InstitutionStatus;
   monthlyRevenue: number;  // UZS
   expiresAt: string;       // ISO date
