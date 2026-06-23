@@ -26,19 +26,24 @@ function DirectorFinancePage() {
   const { payments, students, branches, reversePayment, isLoading } = useData();
 
   const [walletsLimit, setWalletsLimit] = useState(50);
+  const [reversingId, setReversingId] = useState<string | null>(null);
 
   const handleReversePayment = async (paymentId: string, amount: number) => {
+    if (reversingId) return;
     const confirmed = window.confirm(
       lang === "uz"
         ? `${formatMoney(amount, lang)} miqdordagi to'lovni bekor qilishni tasdiqlaysizmi?`
         : `Подтвердите отмену платежа на сумму ${formatMoney(amount, lang)}`,
     );
     if (!confirmed) return;
+    setReversingId(paymentId);
     try {
       await reversePayment(paymentId);
       toast.success(lang === "uz" ? "To'lov bekor qilindi" : "Платёж отменён");
     } catch {
       toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+    } finally {
+      setReversingId(null);
     }
   };
 
@@ -259,8 +264,8 @@ function DirectorFinancePage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {["manual_charge", "manual_top_up", "top_up"].includes(p.type) && (
-                      <Button variant="ghost" size="icon" onClick={() => handleReversePayment(p.id, p.amount)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                        <RotateCcw className="size-4" />
+                      <Button variant="ghost" size="icon" onClick={() => handleReversePayment(p.id, p.amount)} disabled={reversingId === p.id} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                        <RotateCcw className={`size-4 ${reversingId === p.id ? "animate-spin" : ""}`} />
                       </Button>
                     )}
                   </TableCell>

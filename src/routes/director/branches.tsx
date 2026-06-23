@@ -30,6 +30,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
+import { branchApi, ApiError } from "@/lib/api";
 import type { Branch, Room } from "@/lib/data/types";
 
 export const Route = createFileRoute("/director/branches")({ component: BranchesPage });
@@ -47,6 +48,8 @@ function BranchesPage() {
   const [openBranch, setOpenBranch] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [deletingBranch, setDeletingBranch] = useState<Branch | null>(null);
+  const [forceDeleteBranch, setForceDeleteBranch] = useState<Branch | null>(null);
+  const [activeCounts, setActiveCounts] = useState<{ students: number; staff: number; groups: number } | null>(null);
 
   const openCreateBranch = () => {
     setEditingBranch(null);
@@ -58,22 +61,38 @@ function BranchesPage() {
     setOpenBranch(true);
   };
 
-  const confirmDeleteBranch = () => {
+  const confirmDeleteBranch = async () => {
     if (!deletingBranch) return;
-    const hasRooms = rooms.some((r) => r.branchId === deletingBranch.id);
-    const hasGroups = groups.some((g) => g.branchId === deletingBranch.id);
-    if (hasRooms || hasGroups) {
-      toast.error(
-        lang === "uz"
-          ? "Bu filialda kabinet yoki guruh bor. Avval ularni o'chiring yoki ko'chiring."
-          : "В этом филиале есть кабинеты или группы. Сначала удалите или перенесите их.",
-      );
+    try {
+      await branchApi.delete(deletingBranch.id);
+      deleteBranch(deletingBranch.id);
+      toast.success(lang === "uz" ? "Filial o'chirildi" : "Филиал удалён");
       setDeletingBranch(null);
-      return;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 400 && e.body?.active_counts) {
+        const counts = e.body.active_counts as { students: number; staff: number; groups: number };
+        setActiveCounts(counts);
+        setForceDeleteBranch(deletingBranch);
+        setDeletingBranch(null);
+      } else {
+        toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+        setDeletingBranch(null);
+      }
     }
-    deleteBranch(deletingBranch.id);
-    toast.success(lang === "uz" ? "Filial o'chirildi" : "Филиал удалён");
-    setDeletingBranch(null);
+  };
+
+  const confirmForceDeleteBranch = async () => {
+    if (!forceDeleteBranch) return;
+    try {
+      await branchApi.deleteForce(forceDeleteBranch.id);
+      deleteBranch(forceDeleteBranch.id);
+      toast.success(lang === "uz" ? "Filial o'chirildi" : "Филиал удалён");
+    } catch {
+      toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+    } finally {
+      setForceDeleteBranch(null);
+      setActiveCounts(null);
+    }
   };
 
   const stats = useMemo(() => {
@@ -248,6 +267,25 @@ function BranchesPage() {
             <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteBranch} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {lang === "uz" ? "O'chirish" : "Удалить"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!forceDeleteBranch} onOpenChange={(nextOpen) => { if (!nextOpen) { setForceDeleteBranch(null); setActiveCounts(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{lang === "uz" ? "Filialni majburiy o'chirish" : "Принудительное удаление филиала"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {activeCounts && (lang === "uz"
+                ? `Bu filialda: ${activeCounts.students} faol o'quvchi, ${activeCounts.staff} xodim, ${activeCounts.groups} guruh mavjud. Barchasini o'chirishni tasdiqlaysizmi?`
+                : `В филиале: ${activeCounts.students} активных студентов, ${activeCounts.staff} сотрудников, ${activeCounts.groups} групп. Подтвердите удаление всего?`)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmForceDeleteBranch} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {lang === "uz" ? "Baribir o'chirish" : "Всё равно удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

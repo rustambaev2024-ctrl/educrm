@@ -37,6 +37,19 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
     @action(detail=True, methods=["post"], permission_classes=[IsBranchAdmin])
     def reverse(self, request, pk=None):
         payment = self.get_object()
+        already_reversed = Payment.objects.filter(
+            comment=f"Reversal of payment {payment.id}"
+        ).exists()
+        if already_reversed:
+            return Response(
+                {
+                    "detail": {
+                        "uz": "Bu to'lov allaqachon bekor qilingan",
+                        "ru": "Этот платёж уже отменён",
+                    }
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
         try:
             result = reverse_payment(payment, created_by=request.user)
             return Response(PaymentSerializer(result.payment).data)

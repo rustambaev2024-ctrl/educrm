@@ -102,16 +102,29 @@ class GroupViewSet(
         return [permission() for permission in permission_classes]
 
     def destroy(self, request, *args, **kwargs):
+        from apps.lessons.models import Lesson
+        from django.utils import timezone
+
         group = self.get_object()
         active_students_count = group.memberships.filter(left_at__isnull=True).count()
-        if active_students_count:
+        future_lessons_count = Lesson.objects.filter(
+            group=group,
+            date__gte=timezone.now().date(),
+            status__in=["scheduled", "in_progress"],
+        ).count()
+
+        if active_students_count or future_lessons_count:
+            parts = []
+            if active_students_count:
+                parts.append(
+                    f"{active_students_count} faol o'quvchi / {active_students_count} активных студентов"
+                )
+            if future_lessons_count:
+                parts.append(
+                    f"{future_lessons_count} rejalashtirilgan dars / {future_lessons_count} запланированных уроков"
+                )
             return Response(
-                {
-                    "detail": (
-                        "Group has active students and cannot be deleted. "
-                        "Remove students from the group first."
-                    )
-                },
+                {"detail": f"Guruhni o'chib bo'lmaydi — {'; '.join(parts)}."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return super().destroy(request, *args, **kwargs)
@@ -167,6 +180,19 @@ class GroupViewSet(
         serializer = GroupAddStudentSerializer(data=request.data, context={"group": group})
         serializer.is_valid(raise_exception=True)
         student = serializer.context["student"]
+
+        if group.capacity:
+            current_count = group.memberships.filter(left_at__isnull=True).count()
+            if current_count >= group.capacity:
+                return Response(
+                    {
+                        "detail": {
+                            "uz": f"Guruh to'lgan ({current_count}/{group.capacity})",
+                            "ru": f"Группа заполнена ({current_count}/{group.capacity})",
+                        }
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         active_exists = GroupMembership.objects.filter(
             group=group,

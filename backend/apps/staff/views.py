@@ -44,6 +44,14 @@ class StaffViewSet(viewsets.ModelViewSet):
         from apps.courses.models import Group
         from rest_framework.exceptions import ValidationError
 
+        if instance.user.role == "director" and self.request.user.role != "superadmin":
+            raise ValidationError({
+                "detail": {
+                    "uz": "Direktorni faqat superadmin o'chira oladi",
+                    "ru": "Удалить директора может только суперадмин",
+                }
+            })
+
         if instance.user == self.request.user:
             raise ValidationError({
                 "uz": "O'zingizni o'chira olmaysiz",

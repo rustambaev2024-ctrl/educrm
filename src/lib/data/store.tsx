@@ -340,7 +340,9 @@ function toStaffRole(value: unknown): Staff["role"] {
   if (value === "support_teacher") return "support_teacher";
   if (value === "admin") return "admin";
   if (value === "branch_admin") return "branch_admin";
-  return "admin"; // fallback
+  if (value === "superadmin") return "superadmin";
+  console.error(`toStaffRole: unknown role value "${value}", defaulting to least-privileged`);
+  return "support_teacher";
 }
 
 function toPaymentMethod(value: unknown): Payment["method"] {

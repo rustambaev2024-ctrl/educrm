@@ -148,11 +148,24 @@ export async function requestJson<T>(path: string, init: RequestInit = {}): Prom
   const access = readAccessToken();
   if (access) headers.Authorization = `Bearer ${access}`;
 
-  const makeRequest = (token: string | null) =>
-    fetch(`${API_BASE_URL}${path}`, {
+  const makeRequest = (token: string | null) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    return fetch(`${API_BASE_URL}${path}`, {
       ...init,
+      signal: controller.signal,
       headers: token ? { ...headers, Authorization: `Bearer ${token}` } : headers,
-    });
+    }).then(
+      (res) => { clearTimeout(timeoutId); return res; },
+      (e) => {
+        clearTimeout(timeoutId);
+        if (e instanceof Error && e.name === "AbortError") {
+          throw new Error("Request timed out — server took too long to respond");
+        }
+        throw e;
+      },
+    );
+  };
 
   let res = await makeRequest(access);
 
@@ -317,6 +330,7 @@ export const authApi = {
 
 export const branchApi = {
   ...crudApi("/branches/"),
+  deleteForce: (id: string) => requestJson<void>(`/branches/${id}/?force=true`, { method: "DELETE" }),
   metaSettings: () => requestJson<{ meta_pixel_id: string; meta_access_token: string }>("/branches/meta-settings/"),
   updateMetaSettings: (data: { meta_pixel_id?: string; meta_access_token?: string }) =>
     requestJson("/branches/meta-settings/", {

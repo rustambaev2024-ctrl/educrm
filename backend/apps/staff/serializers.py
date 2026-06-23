@@ -44,7 +44,24 @@ class StaffSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "user_id")
 
     def validate_phone(self, value):
-        return normalize_phone(value)
+        value = normalize_phone(value)
+        if self.instance is None:
+            from django.db import connection
+            from django_tenants.utils import get_tenant_model, schema_context, get_public_schema_name
+            from apps.accounts.models import User
+
+            current_schema = connection.schema_name
+            Institution = get_tenant_model()
+            conflicts = []
+            for tenant in Institution.objects.exclude(schema_name__in=["public", current_schema]):
+                with schema_context(tenant.schema_name):
+                    if User.objects.filter(phone=value).exists():
+                        conflicts.append(tenant.name)
+            if conflicts:
+                raise serializers.ValidationError(
+                    f"Phone {value} already registered in: {', '.join(conflicts)}"
+                )
+        return value
 
     def validate_password(self, value):
         from apps.superadmin.models import PlatformSettings

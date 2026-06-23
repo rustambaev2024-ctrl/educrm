@@ -50,7 +50,7 @@ export interface Staff {
   fullName: string;
   phone: string;
   password?: string;
-  role: "director" | "admin" | "teacher" | "support_teacher";
+  role: "director" | "admin" | "branch_admin" | "teacher" | "support_teacher" | "superadmin";
   branchId?: string;
   salaryPercent?: number | null;
   fixedSalary?: number;

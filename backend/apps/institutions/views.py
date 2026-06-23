@@ -7,6 +7,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.db import connection
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
+from apps.staff.models import Staff
 from apps.students.models import Student
 from apps.tenants.models import Institution
 
@@ -47,6 +48,29 @@ class BranchViewSet(viewsets.ModelViewSet):
             return qs.filter(students__parents=user.parent_profile).distinct()
 
         return qs
+
+    def perform_destroy(self, instance):
+        from apps.courses.models import Group
+
+        force = self.request.query_params.get("force") == "true"
+        if not force:
+            active_students = Student.objects.filter(branch=instance, status="active").count()
+            active_staff = Staff.objects.filter(branch=instance, status="active").count()
+            active_groups = Group.objects.filter(branch=instance, status__in=["recruiting", "active"]).count()
+
+            if active_students or active_staff or active_groups:
+                raise ValidationError({
+                    "detail": {
+                        "uz": f"Bu filialda {active_students} o'quvchi, {active_staff} xodim, {active_groups} guruh bor",
+                        "ru": f"В филиале {active_students} студентов, {active_staff} сотрудников, {active_groups} групп",
+                    },
+                    "active_counts": {
+                        "students": active_students,
+                        "staff": active_staff,
+                        "groups": active_groups,
+                    },
+                })
+        instance.delete()
 
     @action(detail=True, methods=["get"], url_path="debtors", permission_classes=[IsBranchAdmin])
     def debtors(self, request, pk=None):

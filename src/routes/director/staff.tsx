@@ -58,6 +58,8 @@ function StaffPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Staff | null>(null);
   const [form, setForm] = useState<FormState>(empty);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
   const branchById = useMemo(() => Object.fromEntries(branches.map((b) => [b.id, b])), [branches]);
 
@@ -107,7 +109,8 @@ function StaffPage() {
     setOpen(true);
   };
 
-  const submit = () => {
+  const submit = async () => {
+    if (isSubmitting) return;
     if (!form.fullName.trim() || !form.phone.trim() || (!editing && !form.password.trim())) {
       toast.error(t("common.required"));
       return;
@@ -127,19 +130,34 @@ function StaffPage() {
       salaryPercent: form.role === "teacher" ? Number(form.salaryPercent) || 40 : undefined,
       fixedSalary: form.role !== "teacher" ? (Number(form.fixedSalary) || undefined) : undefined,
     };
-    if (editing) {
-      updateStaff(editing.id, payload);
-      toast.success(t("staff.updated"));
-    } else {
-      addStaff(payload);
-      toast.success(t("staff.created"));
+    setIsSubmitting(true);
+    try {
+      if (editing) {
+        await updateStaff(editing.id, payload);
+        toast.success(t("staff.updated"));
+      } else {
+        await addStaff(payload);
+        toast.success(t("staff.created"));
+      }
+      setOpen(false);
+    } catch {
+      toast.error(t("common.error") ?? "Xatolik yuz berdi");
+    } finally {
+      setIsSubmitting(false);
     }
-    setOpen(false);
   };
 
-  const remove = (s: Staff) => {
-    deleteStaff(s.id);
-    toast.success(t("staff.deleted"));
+  const remove = async (s: Staff) => {
+    if (isDeletingId) return;
+    setIsDeletingId(s.id);
+    try {
+      await deleteStaff(s.id);
+      toast.success(t("staff.deleted"));
+    } catch {
+      toast.error(t("common.error") ?? "Xatolik yuz berdi");
+    } finally {
+      setIsDeletingId(null);
+    }
   };
 
   if (isLoading) {
@@ -244,8 +262,8 @@ function StaffPage() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => remove(s)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                {t("common.delete")}
+                              <AlertDialogAction onClick={() => remove(s)} disabled={isDeletingId === s.id} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                {isDeletingId === s.id ? "..." : t("common.delete")}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -340,8 +358,8 @@ function StaffPage() {
             ) : null}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
-            <Button onClick={submit}>{editing ? t("common.save") : t("common.create")}</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>{t("common.cancel")}</Button>
+            <Button onClick={submit} disabled={isSubmitting}>{isSubmitting ? "..." : (editing ? t("common.save") : t("common.create"))}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
