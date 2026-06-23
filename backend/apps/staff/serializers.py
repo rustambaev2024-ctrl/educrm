@@ -107,6 +107,24 @@ class StaffSerializer(serializers.ModelSerializer):
         user_data = validated_data.pop("user", None)
         password = validated_data.pop("password", None)
 
+        new_role = (user_data or {}).get("role")
+        if new_role and new_role != instance.user.role:
+            actor = self.context["request"].user
+            if actor.role not in ("superadmin", "director"):
+                raise serializers.ValidationError({
+                    "detail": {
+                        "uz": "Faqat direktor xodim rolini o'zgartira oladi",
+                        "ru": "Только директор может изменить роль сотрудника",
+                    }
+                })
+            if new_role in ("superadmin", "director") and actor.role != "superadmin":
+                raise serializers.ValidationError({
+                    "detail": {
+                        "uz": "Bu rolni faqat superadmin belgilay oladi",
+                        "ru": "Эту роль может назначить только суперадмин",
+                    }
+                })
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()

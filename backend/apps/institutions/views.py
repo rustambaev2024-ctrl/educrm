@@ -41,6 +41,7 @@ class BranchViewSet(viewsets.ModelViewSet):
             branch_id = user.staff_profile.branch_id
             if branch_id:
                 return qs.filter(id=branch_id)
+            return qs.none()
         if user.role == "student" and hasattr(user, "student_profile"):
             branch_id = user.student_profile.branch_id
             return qs.filter(id=branch_id) if branch_id else qs.none()

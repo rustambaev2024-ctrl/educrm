@@ -658,7 +658,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
   const emptyForm = { staffId: "", branchId: "", amount: "", reason: "", date: getLocalDateString(), status: "active", comment: "" };
   const [form, setForm] = useState(emptyForm);
 
-  const isWriteAllowed = user?.role === "director" || user?.role === "superadmin" || user?.role === "admin";
+  const isWriteAllowed = user?.role === "director" || user?.role === "superadmin" || user?.role === "admin" || user?.role === "branch_admin";
   const apiCall = type === "penalty" ? penaltyApi : bonusApi;
 
   const staffList = useMemo(() => staff.filter((item) => item.role !== "director"), [staff]);

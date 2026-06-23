@@ -83,7 +83,7 @@ function StaffPage() {
   const filtered = useMemo(() => {
     let list = enriched;
     if (tab === "teachers") list = list.filter((s) => s.role === "teacher");
-    if (tab === "admins") list = list.filter((s) => s.role === "admin" || s.role === "director");
+    if (tab === "admins") list = list.filter((s) => s.role === "admin" || s.role === "branch_admin" || s.role === "director");
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((s) => s.fullName.toLowerCase().includes(q) || s.phone.includes(q));
     return list;
@@ -182,7 +182,7 @@ function StaffPage() {
         <div className="grid grid-cols-3 gap-3">
           <KpiCard label={t("staff.title")} value={staff.length} icon={Briefcase} iconColor="blue" />
           <KpiCard label={lang === "uz" ? "O'qituvchilar" : "Учителя"} value={staff.filter((s) => s.role === "teacher").length} icon={GraduationCap} iconColor="green" />
-          <KpiCard label={lang === "uz" ? "Adminlar" : "Админы"} value={staff.filter((s) => s.role === "admin" || s.role === "director").length} icon={UserCog} iconColor="violet" />
+          <KpiCard label={lang === "uz" ? "Adminlar" : "Админы"} value={staff.filter((s) => s.role === "admin" || s.role === "branch_admin" || s.role === "director").length} icon={UserCog} iconColor="violet" />
         </div>
         <Card className="overflow-hidden shadow-elegant">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center md:justify-between">

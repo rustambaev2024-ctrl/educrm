@@ -149,7 +149,7 @@ function AdminLayout() {
   ];
 
   return (
-    <RoleGuard allow="admin">
+    <RoleGuard allow={["admin", "branch_admin"]}>
       <EnterpriseLayout
         railItems={groups.map((g) => g.rail)}
         activeRailId={activeRailId}
