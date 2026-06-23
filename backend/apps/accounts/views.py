@@ -73,11 +73,11 @@ class LoginView(TokenObtainPairView):
             raise ValidationError({"detail": "X-Tenant-Schema header is required"})
 
         if schema_header == get_public_schema_name():
-            # Superadmin lives in a tenant schema (not public) — search all tenants.
+            # Superadmin lives in a tenant schema — find the one where this phone has role=superadmin.
             tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
             for tenant in tenants.iterator():
                 with schema_context(tenant.schema_name):
-                    if User.objects.filter(phone=phone).exists():
+                    if User.objects.filter(phone=phone, role="superadmin").exists():
                         return tenant
             raise ValidationError({"detail": "Invalid credentials"})
 

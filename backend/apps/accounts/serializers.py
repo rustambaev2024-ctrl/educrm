@@ -97,10 +97,6 @@ class UserSerializer(serializers.ModelSerializer):
         return str(branch_id) if branch_id else None
 
 
-import logging as _logging
-_logger = _logging.getLogger(__name__)
-
-
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
@@ -113,35 +109,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         if "phone" in attrs:
             attrs["phone"] = normalize_phone(attrs["phone"])
-
-        _logger.error(f"[LOGIN DEBUG] schema before authenticate: {connection.schema_name}")
-        _logger.error(f"[LOGIN DEBUG] phone being used: {attrs.get('phone')!r}")
-        _logger.error(f"[LOGIN DEBUG] username_field: {self.username_field!r}")
-
-        from django.contrib.auth import authenticate, get_user_model
-        _User = get_user_model()
-        try:
-            direct_user = _User.objects.get(phone=attrs.get("phone"))
-            _logger.error(f"[LOGIN DEBUG] direct ORM found: id={direct_user.id} is_active={direct_user.is_active} role={direct_user.role}")
-            _logger.error(f"[LOGIN DEBUG] check_password result: {direct_user.check_password(attrs.get('password'))}")
-        except _User.DoesNotExist:
-            _logger.error(f"[LOGIN DEBUG] direct ORM: DoesNotExist for phone={attrs.get('phone')!r}")
-        except Exception as e:
-            _logger.error(f"[LOGIN DEBUG] direct ORM raised: {type(e).__name__}: {e}")
-
-        auth_user = authenticate(
-            request=self.context.get("request"),
-            phone=attrs.get("phone"),
-            password=attrs.get("password"),
-        )
-        _logger.error(f"[LOGIN DEBUG] authenticate() returned: {auth_user!r}")
-
-        try:
-            data = super().validate(attrs)
-        except Exception as e:
-            _logger.error(f"[LOGIN DEBUG] super().validate() raised: {type(e).__name__}: {e}")
-            raise
-
+        data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
         data["schemaName"] = connection.schema_name
         # Добавляем slug тенанта для фронтенда (URL-роутинг)
