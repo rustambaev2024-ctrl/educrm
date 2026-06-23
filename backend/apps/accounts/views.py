@@ -67,30 +67,22 @@ class LoginView(TokenObtainPairView):
         tenant_model = get_tenant_model()
         from rest_framework.exceptions import ValidationError
 
-        schema_header = request.META.get("HTTP_X_TENANT_SCHEMA")
+        matches = []
+        tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
+        for tenant in tenants.iterator():
+            with schema_context(tenant.schema_name):
+                user = User.objects.filter(phone=phone).first()
+                if user:
+                    matches.append((tenant, user))
 
-        if not schema_header:
-            raise ValidationError({"detail": "X-Tenant-Schema header is required"})
-
-        if schema_header == get_public_schema_name():
-            # Superadmin lives in a tenant schema — find the one where this phone has role=superadmin.
-            tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
-            for tenant in tenants.iterator():
-                with schema_context(tenant.schema_name):
-                    if User.objects.filter(phone=phone, role="superadmin").exists():
-                        return tenant
+        if not matches:
             raise ValidationError({"detail": "Invalid credentials"})
 
-        try:
-            requested_tenant = tenant_model.objects.get(schema_name=schema_header)
-        except tenant_model.DoesNotExist:
-            raise ValidationError({"detail": "Institution not found"})
+        for tenant, user in matches:
+            if user.role == "superadmin":
+                return tenant
 
-        with schema_context(requested_tenant.schema_name):
-            if not User.objects.filter(phone=phone).exists():
-                raise ValidationError({"detail": "Invalid credentials"})
-
-        return requested_tenant
+        return matches[0][0]
 
 
 class LogoutView(APIView):
