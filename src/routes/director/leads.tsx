@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calendar, CheckCircle2, Clock3, GraduationCap, Layers, MessageSquarePlus, Phone, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
@@ -188,26 +188,6 @@ function DirectorLeadsPage() {
     groupId: "",
   });
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (e.deltaY === 0) return;
-
-      // Allow vertical scrolling inside the columns
-      const target = e.target as HTMLElement | null;
-      if (target && target.closest(".kanban-column-scroll")) {
-        return;
-      }
-
-      e.preventDefault();
-      el.scrollTo({ left: el.scrollLeft + e.deltaY * 2, behavior: "auto" });
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
 
   const t = labels(lang);
   const selected = useMemo(() => leads.find((lead) => lead.id === selectedId) ?? null, [leads, selectedId]);
@@ -481,7 +461,7 @@ function DirectorLeadsPage() {
             </div>
           </div>
 
-          <div ref={scrollRef} className="flex gap-4 overflow-x-auto overflow-y-hidden p-4 pb-6 min-h-[520px] h-[calc(100vh-280px)]">
+          <div className="grid grid-cols-5 gap-3 p-4 pb-6 h-[calc(100vh-280px)] min-h-[520px]">
             {STATUS_OPTIONS.map(status => {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
@@ -496,7 +476,7 @@ function DirectorLeadsPage() {
               const isDraggingOver = dragOverStatus === status;
 
               return (
-                <div key={status} className={`flex flex-col w-72 shrink-0 rounded-2xl bg-card border shadow-sm overflow-hidden h-full transition-colors ${
+                <div key={status} className={`flex flex-col min-w-0 rounded-2xl bg-card border shadow-sm overflow-hidden h-full transition-colors ${
                   isDraggingOver
                     ? isDialogDrop
                       ? "border-amber-400 bg-amber-50/30 dark:bg-amber-950/20"
@@ -553,9 +533,9 @@ function DirectorLeadsPage() {
                         onClick={() => setSelectedId(lead.id)}
                         className="bg-card border border-border/60 rounded-xl p-4 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing hover:border-primary/40 transition-all"
                       >
-                        <div className="font-semibold text-[15px] text-foreground leading-tight mb-1.5">{lead.fullName}</div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2 mb-3">
-                          <Phone className="size-3.5" /> {lead.phone}
+                        <div className="font-semibold text-[15px] text-foreground leading-tight mb-1.5 truncate">{lead.fullName}</div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-2 mb-3 min-w-0">
+                          <Phone className="size-3.5 shrink-0" /> <span className="truncate">{lead.phone}</span>
                         </div>
                         {lead.interestedCourseId && (
                           <div className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-md w-fit mb-3">
