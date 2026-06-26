@@ -105,29 +105,32 @@ class GroupViewSet(
         from apps.lessons.models import Lesson
         from django.utils import timezone
 
-        group = self.get_object()
-        active_students_count = group.memberships.filter(left_at__isnull=True).count()
-        future_lessons_count = Lesson.objects.filter(
-            group=group,
-            datetime__date__gte=timezone.now().date(),
-            status__in=["scheduled", "in_progress"],
-        ).count()
+        instance = self.get_object()
+        force = request.query_params.get("force") == "true"
 
-        if active_students_count or future_lessons_count:
-            parts = []
-            if active_students_count:
-                parts.append(
-                    f"{active_students_count} faol o'quvchi / {active_students_count} активных студентов"
-                )
-            if future_lessons_count:
-                parts.append(
-                    f"{future_lessons_count} rejalashtirilgan dars / {future_lessons_count} запланированных уроков"
-                )
+        active_students = instance.memberships.filter(left_at__isnull=True).count()
+
+        if active_students > 0 and not force:
+            future_lessons = Lesson.objects.filter(
+                group=instance,
+                datetime__date__gte=timezone.now().date(),
+                status__in=["scheduled", "in_progress"],
+            ).count()
             return Response(
-                {"detail": f"Guruhni o'chib bo'lmaydi — {'; '.join(parts)}."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {
+                    "detail": {
+                        "uz": f"Bu guruhda {active_students} faol o'quvchi va {future_lessons} kelajakdagi dars bor",
+                        "ru": f"В группе {active_students} активных студентов и {future_lessons} будущих уроков",
+                    },
+                    "active_students": active_students,
+                    "future_lessons": future_lessons,
+                },
+                status=status.HTTP_409_CONFLICT,
             )
-        return super().destroy(request, *args, **kwargs)
+
+        # on_delete=CASCADE на Lesson.group — уроки удалятся автоматически
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):
         user = self.request.user
