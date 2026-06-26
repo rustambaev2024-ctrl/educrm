@@ -142,6 +142,19 @@ function payloadFromForm(form: LeadForm) {
   };
 }
 
+function payloadFromPatch(patch: Partial<LeadForm>) {
+  const result: Record<string, unknown> = {};
+  if (patch.fullName !== undefined) result.full_name = patch.fullName.trim();
+  if (patch.phone !== undefined) result.phone = patch.phone.trim();
+  if (patch.branchId !== undefined) result.branch = patch.branchId || null;
+  if (patch.interestedCourseId !== undefined) result.interested_course = patch.interestedCourseId === NONE ? null : patch.interestedCourseId;
+  if (patch.source !== undefined) result.source = patch.source;
+  if (patch.status !== undefined) result.status = patch.status;
+  if (patch.nextFollowUp !== undefined) result.next_follow_up = patch.nextFollowUp || null;
+  if (patch.notes !== undefined) result.notes = patch.notes.trim();
+  return result;
+}
+
 function formFromLead(lead: StudentLead): LeadForm {
   return {
     fullName: lead.fullName,
@@ -174,6 +187,7 @@ function AdminLeadsPage() {
     date: "",
     groupId: "",
   });
+  const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -241,6 +255,8 @@ function AdminLeadsPage() {
     });
   }, [courseById, leads, search, showWon, sourceFilter, statusFilter]);
 
+  const wonCount = leads.filter((l) => l.status === "won").length;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const dueFollowUps = leads.filter((lead) => {
@@ -273,11 +289,12 @@ function AdminLeadsPage() {
   };
 
   const updateLead = async (leadId: string, patch: Partial<LeadForm>) => {
-    const nextForm = { ...detailForm, ...patch };
-    const raw = await leadApi.update(leadId, payloadFromForm(nextForm)) as LeadRaw;
+    const raw = await leadApi.update(leadId, payloadFromPatch(patch)) as LeadRaw;
     const updated = mapLead(raw);
     setLeads((prev) => prev.map((lead) => (lead.id === updated.id ? updated : lead)));
-    setDetailForm(formFromLead(updated));
+    if (selectedId === leadId) {
+      setDetailForm(formFromLead(updated));
+    }
     return updated;
   };
 
@@ -344,7 +361,10 @@ function AdminLeadsPage() {
       return;
     }
     try {
-      await updateLead(selected.id, {});
+      const raw = await leadApi.update(selected.id, payloadFromForm(detailForm)) as LeadRaw;
+      const updated = mapLead(raw);
+      setLeads((prev) => prev.map((lead) => (lead.id === updated.id ? updated : lead)));
+      setDetailForm(formFromLead(updated));
       toast.success(t.saved);
     } catch (err) {
       console.error("[leads] update failed", err);
@@ -448,7 +468,7 @@ function AdminLeadsPage() {
                 <GraduationCap className="mr-1.5 size-3.5" />
                 {showWon
                   ? (lang === "uz" ? "Won yashirish" : "Скрыть конвертированных")
-                  : (lang === "uz" ? "Won ko'rsatish" : "Показать конвертированных")}
+                  : (lang === "uz" ? `Won ko'rsatish (${wonCount})` : `Показать конвертированных (${wonCount})`)}
               </button>
             </div>
           </div>
@@ -464,25 +484,46 @@ function AdminLeadsPage() {
                 lost: "bg-destructive/10 text-red-400 border-destructive/20",
               }[status] || "bg-muted text-foreground border-border";
 
+              const isDialogDrop = status === "won" || status === "trial";
+              const isDraggingOver = dragOverStatus === status;
+
               return (
-                <div key={status} className="flex flex-col w-72 shrink-0 rounded-2xl bg-card border border-border shadow-sm overflow-hidden h-full"
-                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                <div key={status} className={`flex flex-col w-72 shrink-0 rounded-2xl bg-card border shadow-sm overflow-hidden h-full transition-colors ${
+                  isDraggingOver
+                    ? isDialogDrop
+                      ? "border-amber-400 bg-amber-50/30 dark:bg-amber-950/20"
+                      : "border-primary/60 bg-primary/5"
+                    : "border-border"
+                }`}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = isDialogDrop ? "copy" : "move"; setDragOverStatus(status); }}
+                  onDragLeave={() => setDragOverStatus(null)}
                   onDrop={async (e) => {
+                    setDragOverStatus(null);
                     e.preventDefault();
                     const id = e.dataTransfer.getData("text/plain");
                     if (!id) return;
                     if (status === "won") {
                       setSelectedId(id);
                       setConvertSheetOpen(true);
-                    } else if (status === "trial") {
+                      return;
+                    }
+                    if (status === "trial") {
                       const lead = leads.find((l) => l.id === id) ?? null;
                       setTrialDialog({
                         lead,
                         date: lead?.trialLessonDate ? lead.trialLessonDate.slice(0, 16) : "",
                         groupId: lead?.trialLessonGroup ?? "",
                       });
-                    } else {
+                      return;
+                    }
+                    const previousLeads = leads;
+                    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
+                    try {
                       await updateLead(id, { status });
+                    } catch (err) {
+                      console.error("[leads] status change failed", err);
+                      setLeads(previousLeads);
+                      toast.error(t.saveError);
                     }
                   }}
                 >
@@ -490,6 +531,11 @@ function AdminLeadsPage() {
                     <span className="text-[15px] tracking-tight">{t.status[status]}</span>
                     <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-background/50 backdrop-blur-sm">{columnLeads.length}</Badge>
                   </div>
+                  {isDialogDrop && isDraggingOver && (
+                    <div className="mx-3 mt-2 rounded-md bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                      {lang === "uz" ? "Dialog oynasi ochiladi" : "Откроется диалог"}
+                    </div>
+                  )}
                   <div className="kanban-column-scroll flex flex-col gap-3 p-3 flex-1 overflow-y-auto bg-muted/20">
                     {columnLeads.map(lead => (
                       <div
