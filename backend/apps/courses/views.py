@@ -109,7 +109,7 @@ class GroupViewSet(
         active_students_count = group.memberships.filter(left_at__isnull=True).count()
         future_lessons_count = Lesson.objects.filter(
             group=group,
-            date__gte=timezone.now().date(),
+            datetime__date__gte=timezone.now().date(),
             status__in=["scheduled", "in_progress"],
         ).count()
 
