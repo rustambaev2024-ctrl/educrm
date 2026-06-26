@@ -181,6 +181,13 @@ function DirectorLeadsPage() {
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       if (e.deltaY === 0) return;
+
+      // Allow vertical scrolling inside the columns
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest(".kanban-column-scroll")) {
+        return;
+      }
+
       e.preventDefault();
       el.scrollTo({ left: el.scrollLeft + e.deltaY * 2, behavior: "auto" });
     };
@@ -347,6 +354,12 @@ function DirectorLeadsPage() {
 
   const deleteSelected = async () => {
     if (!selected) return;
+    const confirmed = window.confirm(
+      lang === "uz"
+        ? `"${selected.fullName}" murojaatini o'chirishni tasdiqlaysizmi?`
+        : `Удалить заявку "${selected.fullName}"? Это действие нельзя отменить.`,
+    );
+    if (!confirmed) return;
     try {
       await leadApi.delete(selected.id);
       setLeads((prev) => prev.filter((lead) => lead.id !== selected.id));
@@ -408,11 +421,11 @@ function DirectorLeadsPage() {
           <KpiCard icon={CheckCircle2} label={t.kpiWon} value={leads.filter((lead) => lead.status === "won").length} iconColor="green" />
         </div>
 
-        <Card className="overflow-hidden shadow-elegant">
+        <Card className="shadow-elegant">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="relative flex-1 xl:max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} className="pl-9" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} className="pl-9" autoComplete="off" />
             </div>
             <div className="grid gap-2 sm:grid-cols-4 xl:flex xl:items-center">
               <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as FilterStatus)}>
@@ -429,22 +442,26 @@ function DirectorLeadsPage() {
                   {SOURCE_OPTIONS.map((source) => <SelectItem key={source} value={source}>{t.source[source]}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Button
-                variant={showWon ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowWon(!showWon)}
-                className="h-9 gap-1.5"
-              >
-                <GraduationCap className="size-4" />
-                {t.status.won}
-              </Button>
               <div className="flex h-9 items-center justify-center rounded-md border border-border px-3 text-xs text-muted-foreground">
                 {isLoading ? t.loading : `${filtered.length} / ${leads.length}`}
               </div>
+              <button
+                onClick={() => setShowWon(!showWon)}
+                className={`flex h-9 items-center rounded-md border px-3 text-xs transition-colors ${
+                  showWon
+                    ? "border-[#0077b6] bg-[#0077b6] text-white"
+                    : "border-border bg-background text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <GraduationCap className="mr-1.5 size-3.5" />
+                {showWon
+                  ? (lang === "uz" ? "Won yashirish" : "Скрыть конвертированных")
+                  : (lang === "uz" ? "Won ko'rsatish" : "Показать конвертированных")}
+              </button>
             </div>
           </div>
 
-          <div ref={scrollRef} className="flex gap-4 overflow-x-auto p-4 pb-8 min-h-[500px]">
+          <div ref={scrollRef} className="flex gap-4 overflow-x-auto overflow-y-hidden p-4 pb-6 min-h-[520px] h-[calc(100vh-280px)]">
             {STATUS_OPTIONS.map(status => {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
@@ -456,7 +473,7 @@ function DirectorLeadsPage() {
               }[status] || "bg-muted text-foreground border-border";
 
               return (
-                <div key={status} className="flex flex-col w-[340px] shrink-0 rounded-2xl bg-card border border-border shadow-sm overflow-hidden"
+                <div key={status} className="flex flex-col w-72 shrink-0 rounded-2xl bg-card border border-border shadow-sm overflow-hidden h-full"
                   onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
                   onDrop={async (e) => {
                     e.preventDefault();
@@ -481,7 +498,7 @@ function DirectorLeadsPage() {
                     <span className="text-[15px] tracking-tight">{t.status[status]}</span>
                     <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-background/50 backdrop-blur-sm">{columnLeads.length}</Badge>
                   </div>
-                  <div className="flex flex-col gap-3 p-3 flex-1 overflow-y-auto bg-muted/20">
+                  <div className="kanban-column-scroll flex flex-col gap-3 p-3 flex-1 overflow-y-auto bg-muted/20">
                     {columnLeads.map(lead => (
                       <div
                         key={lead.id}
@@ -783,7 +800,7 @@ function LeadFormFields({
         </div>
         <div className="space-y-1.5">
           <Label>{labels.nextFollowUp}</Label>
-          <Input type="date" value={form.nextFollowUp} onChange={(event) => onChange({ ...form, nextFollowUp: event.target.value })} />
+          <Input type="date" value={form.nextFollowUp} onChange={(event) => onChange({ ...form, nextFollowUp: event.target.value })} autoComplete="off" />
         </div>
       </div>
 
