@@ -229,6 +229,38 @@ async function safe<T>(promise: Promise<T>, fallback: T, label: string): Promise
   }
 }
 
+// Догружает ВСЕ страницы DRF-пагинации пока есть next, чтобы серверный
+// max_page_size не обрезал глобальный список молча (баг с 230 студентов → 200).
+async function fetchAllPages<T>(
+  endpoint: string,
+  params: Record<string, string | number> = {},
+): Promise<{ results: T[]; count: number }> {
+  const results: T[] = [];
+  let page = 1;
+  let hasNext = true;
+  while (hasNext) {
+    const qs = new URLSearchParams({
+      ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
+      page_size: "1000",
+      page: String(page),
+    });
+    const data = await requestJson<
+      { results: T[]; count?: number; next?: string | null } | T[]
+    >(`${endpoint}?${qs}`);
+    if (Array.isArray(data)) {
+      // непагинированный ответ — весь список разом
+      results.push(...data);
+      hasNext = false;
+    } else {
+      results.push(...(data.results ?? []));
+      hasNext = Boolean(data.next);
+    }
+    page += 1;
+    if (page > 50) break; // защита от бесконечного цикла при аномалии
+  }
+  return { results, count: results.length };
+}
+
 function snake(obj: AnyRecord): AnyRecord {
   const result: AnyRecord = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -774,9 +806,9 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         safe(roomApi.list() as Promise<ListResponse<RoomRaw>>, [], "rooms"),
         safe(courseApi.list() as Promise<ListResponse<CourseRaw>>, [], "courses"),
         safe(groupApi.list() as Promise<ListResponse<GroupRaw>>, [], "groups"),
-        canSeeStudents ? safe(studentApi.list({ page_size: 1000 }) as Promise<ListResponse<StudentRaw>>, [], "students") : Promise.resolve([]),
-        canSeeStaff ? safe(staffApi.list({ page_size: 1000 }) as Promise<ListResponse<StaffRaw>>, [], "staff") : Promise.resolve([]),
-        canSeeStudents ? safe(parentApi.list({ page_size: 1000 }) as Promise<ListResponse<ParentRaw>>, [], "parents") : Promise.resolve([]),
+        canSeeStudents ? safe(fetchAllPages<StudentRaw>("/students/") as Promise<ListResponse<StudentRaw>>, [], "students") : Promise.resolve([]),
+        canSeeStaff ? safe(fetchAllPages<StaffRaw>("/staff/") as Promise<ListResponse<StaffRaw>>, [], "staff") : Promise.resolve([]),
+        canSeeStudents ? safe(fetchAllPages<ParentRaw>("/parents/") as Promise<ListResponse<ParentRaw>>, [], "parents") : Promise.resolve([]),
         safe(lessonApi.list() as Promise<ListResponse<LessonRaw>>, [], "lessons"),
         safe(attendanceApi.list() as Promise<ListResponse<AttendanceRaw>>, [], "attendance"),
         (canSeeFinance || user?.role === "student" || user?.role === "parent")
