@@ -286,6 +286,43 @@ class StudentViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @action(detail=True, methods=["get"], url_path="closed-memberships")
+    def closed_memberships(self, request, pk=None):
+        """Группы, из которых студента выписали последним bulk-закрытием.
+
+        Сигнал close_memberships_on_status_change закрывает все открытые
+        memberships одним .update() — у них одинаковый left_at. Берём
+        последний left_at и все записи с ровно этим значением, чтобы не
+        путать с группами, покинутыми ранее через обычный перевод.
+        """
+        student = self.get_object()
+        from apps.courses.models import GroupMembership
+
+        last_closed = (
+            GroupMembership.objects.filter(student=student, left_at__isnull=False)
+            .order_by("-left_at")
+            .first()
+        )
+
+        if not last_closed:
+            return Response({"groups": []})
+
+        batch = GroupMembership.objects.filter(
+            student=student, left_at=last_closed.left_at
+        ).select_related("group")
+
+        groups = [
+            {
+                "group_id": str(m.group.id),
+                "group_name": m.group.name,
+                "group_status": m.group.status,
+                "current_count": m.group.memberships.filter(left_at__isnull=True).count(),
+                "capacity": getattr(m.group, "capacity", None),
+            }
+            for m in batch
+        ]
+        return Response({"groups": groups, "closed_at": last_closed.left_at})
+
     @action(detail=True, methods=["post"], url_path="assign-parent")
     @transaction.atomic
     def assign_parent(self, request, pk=None):

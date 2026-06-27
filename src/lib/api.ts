@@ -428,6 +428,17 @@ export const studentApi = {
       `/students/${studentId}/generate-link-code/`,
       { method: "POST" },
     ),
+  closedMemberships: (studentId: string) =>
+    requestJson<{
+      groups: {
+        group_id: string;
+        group_name: string;
+        group_status: string;
+        current_count: number;
+        capacity: number | null;
+      }[];
+      closed_at?: string;
+    }>(`/students/${studentId}/closed-memberships/`),
   updateStatus: (id: string, status: string) =>
     requestJson(`/students/${id}/`, { method: "PATCH", body: JSON.stringify({ status }) }),
   me: () => requestJson("/student/me/"),

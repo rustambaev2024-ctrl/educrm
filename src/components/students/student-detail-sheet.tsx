@@ -72,7 +72,7 @@ export function StudentDetailSheet({
   onDelete: (id: string, deleteParent: boolean) => void;
 }) {
   const { t, lang } = useI18n();
-  const { groups, parents, payments, updateStudentPasswords, assignParent, reload } = useData();
+  const { groups, parents, payments, updateStudentPasswords, assignParent, addStudentToGroup, reload } = useData();
 
   const STATUS_OPTIONS = [
     { value: "active",   uz: "Faol",        ru: "Активный",    color: "bg-emerald-500/10 text-emerald-600", textColor: "text-emerald-600" },
@@ -104,9 +104,42 @@ export function StudentDetailSheet({
       await studentApi.updateStatus(student.id, newStatus);
       toast.success(lang === "uz" ? "Holat yangilandi" : "Статус обновлён");
       reload();
+      if (isReturningToActive) {
+        try {
+          const resp = await studentApi.closedMemberships(student.id);
+          if (resp.groups.length > 0) {
+            setReconnectGroups(resp.groups);
+            setReconnectChecked({});
+            setReconnectOpen(true);
+          }
+        } catch (e) {
+          console.error("Failed to load closed memberships", e);
+        }
+      }
     } catch {
       toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
     }
+  };
+
+  const handleReconnect = async () => {
+    if (!student) return;
+    const ids = Object.entries(reconnectChecked)
+      .filter(([, v]) => v)
+      .map(([gid]) => gid);
+    if (ids.length === 0) {
+      setReconnectOpen(false);
+      return;
+    }
+    for (const gid of ids) {
+      addStudentToGroup(gid, student.id);
+    }
+    toast.success(
+      lang === "uz"
+        ? `${ids.length} ta guruhga qayta qo'shildi`
+        : `Восстановлен в ${ids.length} групп(ах)`
+    );
+    setReconnectOpen(false);
+    reload();
   };
   const open = student !== null;
 
@@ -121,6 +154,17 @@ export function StudentDetailSheet({
   const [newStudentPassword, setNewStudentPassword] = useState("");
   const [newParentPassword, setNewParentPassword] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  type ClosedGroup = {
+    group_id: string;
+    group_name: string;
+    group_status: string;
+    current_count: number;
+    capacity: number | null;
+  };
+  const [reconnectGroups, setReconnectGroups] = useState<ClosedGroup[]>([]);
+  const [reconnectChecked, setReconnectChecked] = useState<Record<string, boolean>>({});
+  const [reconnectOpen, setReconnectOpen] = useState(false);
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferForm, setTransferForm] = useState({
@@ -730,6 +774,67 @@ export function StudentDetailSheet({
           <Button onClick={onClose}>{t("common.back")}</Button>
         </SheetFooter>
       </SheetContent>
+
+      {/* Reconnect Groups Dialog */}
+      <Dialog open={reconnectOpen} onOpenChange={setReconnectOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>
+              {lang === "uz" ? "Guruhlarni qayta tiklash" : "Восстановить группы"}
+            </DialogTitle>
+            <DialogDescription>
+              {lang === "uz"
+                ? "O'quvchi quyidagi guruhlardan chiqarilgan edi. Qaytarmoqchi bo'lganlaringizni belgilang."
+                : "Студент был выписан из этих групп. Отметьте те, в которые нужно вернуть."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2 max-h-80 overflow-y-auto">
+            {reconnectGroups.map((g) => {
+              const isFull = g.capacity != null && g.current_count >= g.capacity;
+              const isInactive = g.group_status !== "active" && g.group_status !== "recruiting";
+              const disabled = isFull || isInactive;
+              const hint = isInactive
+                ? (lang === "uz" ? "Guruh endi faol emas" : "Группа больше не активна")
+                : isFull
+                ? (lang === "uz" ? "Guruh to'lgan" : "Группа заполнена")
+                : null;
+              return (
+                <label
+                  key={g.group_id}
+                  className={`flex items-center gap-3 rounded-lg border p-3 ${
+                    disabled ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/40"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    disabled={disabled}
+                    checked={!!reconnectChecked[g.group_id]}
+                    onChange={(e) =>
+                      setReconnectChecked((prev) => ({ ...prev, [g.group_id]: e.target.checked }))
+                    }
+                    className="size-4 shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{g.group_name}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {g.current_count}{g.capacity != null ? ` / ${g.capacity}` : ""}
+                      {hint ? ` · ${hint}` : ""}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReconnectOpen(false)}>
+              {lang === "uz" ? "O'tkazib yuborish" : "Пропустить"}
+            </Button>
+            <Button onClick={handleReconnect}>
+              {lang === "uz" ? "Tanlanganlarni tiklash" : "Восстановить выбранные"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirm Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
