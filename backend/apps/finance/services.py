@@ -107,6 +107,7 @@ def apply_payment(
     method: str = "",
     category: str = "tuition",
     comment: str = "",
+    suppress_notifications: bool = False,
 ) -> PaymentResult:
     amount = Decimal(amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     if amount <= 0:
@@ -149,7 +150,7 @@ def apply_payment(
     )
 
     status_changed = _status_changed_for_balance(student, balance_after)
-    if status_changed and student.status == "debtor":
+    if status_changed and student.status == "debtor" and not suppress_notifications:
         _notify_student_became_debtor(student)
 
     return PaymentResult(payment=payment, status_changed=status_changed)
