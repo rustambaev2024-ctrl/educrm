@@ -88,11 +88,17 @@ export function StudentDetailSheet({
     if (!student || newStatus === student.status) return;
     const opt = STATUS_OPTIONS.find((s) => s.value === newStatus);
     const label = opt ? (lang === "uz" ? opt.uz : opt.ru) : newStatus;
-    const confirmed = window.confirm(
-      lang === "uz"
-        ? `Holatni "${label}" ga o'zgartirishni tasdiqlaysizmi?`
-        : `Изменить статус на "${label}"?`
-    );
+    const CLOSING_STATUSES = ["archived", "graduate", "expelled"];
+    const isReturningToActive =
+      CLOSING_STATUSES.includes(student.status) && newStatus === "active";
+    const confirmMessage = isReturningToActive
+      ? (lang === "uz"
+          ? "Diqqat: o'quvchi avval guruhlardan chiqarilgan edi. Statusni \"Faol\"ga qaytarish guruhlarni AVTOMATIK qaytarmaydi — kerakli guruhlarga qayta qo'shishingiz kerak bo'ladi. Davom etasizmi?"
+          : "Внимание: студент ранее был выписан из групп. Возврат статуса в \"Активный\" НЕ восстановит группы автоматически — нужно будет заново добавить его в нужные группы. Продолжить?")
+      : (lang === "uz"
+          ? `Holatni "${label}" ga o'zgartirishni tasdiqlaysizmi?`
+          : `Изменить статус на "${label}"?`);
+    const confirmed = window.confirm(confirmMessage);
     if (!confirmed) return;
     try {
       await studentApi.updateStatus(student.id, newStatus);

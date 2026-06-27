@@ -609,6 +609,7 @@ const UZ: Dict = {
   "staff.field.name": "F.I.Sh.",
   "staff.field.phone": "Telefon",
   "staff.field.role": "Lavozim",
+  "staff.field.status": "Holati",
   "staff.field.branch": "Filial",
   
   "settings.page.title": "Sozlamalar va Personallashtirish",
@@ -1245,6 +1246,7 @@ const RU: Dict = {
   "staff.field.name": "Ф.И.О.",
   "staff.field.phone": "Телефон",
   "staff.field.role": "Должность",
+  "staff.field.status": "Статус",
   "staff.field.branch": "Филиал",
 
   "settings.page.title": "Настройки и Персонализация",

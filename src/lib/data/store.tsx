@@ -1800,6 +1800,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
           phone: staffPatch.phone,
           role: staffPatch.role,
           branch: staffPatch.branchId,
+          status: staffPatch.status,
           salary_percent: staffPatch.salaryPercent ?? null,
           fixed_salary: staffPatch.fixedSalary ?? null,
         } as never),

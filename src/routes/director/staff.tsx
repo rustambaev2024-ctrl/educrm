@@ -46,9 +46,10 @@ interface FormState {
   branchId: string;
   salaryPercent: string;
   fixedSalary: string;
+  status: Staff["status"];
 }
 
-const empty: FormState = { fullName: "", phone: "", password: "", role: "teacher", branchId: "", salaryPercent: "40", fixedSalary: "2000000" };
+const empty: FormState = { fullName: "", phone: "", password: "", role: "teacher", branchId: "", salaryPercent: "40", fixedSalary: "2000000", status: "active" };
 
 function StaffPage() {
   const { t, lang } = useI18n();
@@ -105,6 +106,7 @@ function StaffPage() {
       branchId: s.branchId ?? "",
       salaryPercent: String(s.salaryPercent ?? 40),
       fixedSalary: String(s.fixedSalary ?? 2000000),
+      status: s.status ?? "active",
     });
     setOpen(true);
   };
@@ -129,6 +131,7 @@ function StaffPage() {
       branchId: form.role === "director" ? undefined : form.branchId || undefined,
       salaryPercent: form.role === "teacher" ? Number(form.salaryPercent) || 40 : undefined,
       fixedSalary: form.role !== "teacher" ? (Number(form.fixedSalary) || undefined) : undefined,
+      status: form.status,
     };
     setIsSubmitting(true);
     try {
@@ -323,6 +326,17 @@ function StaffPage() {
                     {branches.map((b) => (
                       <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={t("staff.field.status")}>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Staff["status"] })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">{lang === "uz" ? "Faol" : "Активный"}</SelectItem>
+                    <SelectItem value="vacation">{lang === "uz" ? "Ta'tilda" : "В отпуске"}</SelectItem>
+                    <SelectItem value="fired">{lang === "uz" ? "Bo'shatilgan" : "Уволен"}</SelectItem>
+                    <SelectItem value="blocked">{lang === "uz" ? "Bloklangan" : "Заблокирован"}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>

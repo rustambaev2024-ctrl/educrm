@@ -23,6 +23,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -62,7 +69,7 @@ const AVATAR_COLORS = [
 
 function DirectorCoursesPage() {
   const { lang } = useI18n();
-  const { courses, groups, staff, students, payments, addCourse, updateCourse, deleteCourse, isLoading } = useData();
+  const { courses, groups, staff, students, payments, addCourse, updateCourse, deleteCourse, updateGroup, isLoading } = useData();
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -443,17 +450,23 @@ function DirectorCoursesPage() {
                         <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                           {lang === "uz" ? "Holati" : "Статус"}
                         </div>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                            selectedGroup.status === "active"
-                              ? "bg-emerald-500/10 text-emerald-600"
-                              : "bg-muted text-muted-foreground"
-                          }`}
+                        <Select
+                          value={selectedGroup.status}
+                          onValueChange={(v) => {
+                            updateGroup(selectedGroup.id, { status: v as typeof selectedGroup.status });
+                            toast.success(lang === "uz" ? "Holat yangilandi" : "Статус обновлён");
+                          }}
                         >
-                          {selectedGroup.status === "active"
-                            ? lang === "uz" ? "Faol" : "Активная"
-                            : lang === "uz" ? "Nofaol" : "Неактивная"}
-                        </span>
+                          <SelectTrigger className="h-7 w-[150px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="recruiting">{lang === "uz" ? "Qabul ochiq" : "Набор открыт"}</SelectItem>
+                            <SelectItem value="active">{lang === "uz" ? "Faol" : "Активная"}</SelectItem>
+                            <SelectItem value="frozen">{lang === "uz" ? "Muzlatilgan" : "Заморожена"}</SelectItem>
+                            <SelectItem value="completed">{lang === "uz" ? "Tugallangan" : "Завершена"}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
