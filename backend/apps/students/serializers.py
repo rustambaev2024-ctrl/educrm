@@ -1,11 +1,23 @@
-from django.db import transaction
+import logging
+import secrets
+import string
+
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
 
 from apps.accounts.models import User
+from apps.accounts.managers import UserManager
 
 from .models import Certificate, Parent, ParentStudentLink, Student, StudentDocument, StudentLead
+
+logger = logging.getLogger(__name__)
+
+
+def generate_temp_password():
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(10))
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -56,14 +68,16 @@ class StudentSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         user_data = attrs.get("user", {})
-        phone = user_data.get("phone")
-        if phone and self.instance is None:
-            if User.objects.filter(phone=phone).exists():
-                raise serializers.ValidationError({"phone": "This phone number is already registered."})
-        elif phone and self.instance:
-            if User.objects.filter(phone=phone).exclude(id=self.instance.user.id).exists():
-                raise serializers.ValidationError({"phone": "This phone number is already registered."})
-                
+        phone = UserManager.normalize_phone(user_data.get("phone", ""))
+        if phone:
+            user_data["phone"] = phone  # нормализованный телефон уходит дальше в create/update
+            dup = User.objects.filter(phone=phone)
+            if self.instance:
+                dup = dup.exclude(id=self.instance.user.id)
+            if dup.exists():
+                raise serializers.ValidationError({
+                    "detail": {"uz": "Bu telefon raqami band", "ru": "Этот номер телефона уже занят"}
+                })
         return attrs
 
     @extend_schema_field(serializers.ListField(child=serializers.UUIDField()))
@@ -99,13 +113,19 @@ class StudentSerializer(serializers.ModelSerializer):
         try:
             user_data = validated_data.pop("user")
             photo = user_data.pop("photo", None)
-            password = validated_data.pop("password", None) or "ChangeMe123"
+
+            generated_password = None
+            password = validated_data.pop("password", None)
+            if not password:
+                password = generate_temp_password()
+                generated_password = password
+
             parent_full_name = validated_data.pop("parent_full_name", "")
             parent_phone = validated_data.pop("parent_phone", "")
             parent_password = validated_data.pop("parent_password", "") or "ChangeMe123"
             document_file = validated_data.pop("document_file", None)
             document_type = validated_data.pop("document_type", "passport")
-            
+
             user = User.objects.create_user(
                 phone=user_data["phone"],
                 full_name=user_data["full_name"],
@@ -125,8 +145,8 @@ class StudentSerializer(serializers.ModelSerializer):
                     uploaded_by=self.context["request"].user if self.context.get("request") else None,
                 )
 
+            warnings = []
             if parent_full_name and parent_phone:
-                from apps.accounts.managers import UserManager
                 parent_phone = UserManager.normalize_phone(parent_phone)
                 parent_user, created = User.objects.get_or_create(
                     phone=parent_phone,
@@ -138,14 +158,40 @@ class StudentSerializer(serializers.ModelSerializer):
                 if created:
                     parent_user.set_password(parent_password)
                     parent_user.save(update_fields=["password"])
+                else:
+                    warnings.append({
+                        "uz": f"Ota-ona {parent_phone} allaqachon mavjud — yangi parol qo'llanilmadi, eski parol ishlatiladi",
+                        "ru": f"Родитель {parent_phone} уже существует — новый пароль не применён, используется старый",
+                    })
                 parent, _ = Parent.objects.get_or_create(user=parent_user)
                 ParentStudentLink.objects.get_or_create(parent=parent, student=student)
 
+            # передаём контекст наружу для to_representation
+            self._creation_extra = {}
+            if generated_password:
+                self._creation_extra["generated_password"] = generated_password
+            if warnings:
+                self._creation_extra["warnings"] = warnings
+
             return student
+        except IntegrityError as e:
+            if "phone" in str(e).lower():
+                raise serializers.ValidationError({
+                    "detail": {"uz": "Telefon raqami band", "ru": "Номер телефона уже используется"}
+                })
+            raise
+        except serializers.ValidationError:
+            raise
         except Exception as e:
-            import traceback
-            traceback.print_exc()
-            raise serializers.ValidationError({"detail": f"Ошибка сервера: {str(e)}"})
+            logger.error(f"Student creation failed: {e}", exc_info=True)
+            raise serializers.ValidationError({"detail": "Server error during creation"})
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        extra = getattr(self, "_creation_extra", None)
+        if extra:
+            data.update(extra)
+        return data
 
     @transaction.atomic
     def update(self, instance, validated_data):

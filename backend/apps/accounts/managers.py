@@ -6,13 +6,17 @@ class UserManager(BaseUserManager):
 
     @staticmethod
     def normalize_phone(value: str) -> str:
-        """Strip everything except digits, then prepend +."""
-        value = (value or "").strip()
-        has_plus = value.startswith("+")
+        """Normalize any Uzbek phone to a single canonical form +998XXXXXXXXX."""
+        if not value:
+            return value
+        value = value.strip()
         digits = "".join(ch for ch in value if ch.isdigit())
-        if has_plus or digits.startswith("998"):
+        if digits.startswith("998"):
             return f"+{digits}"
-        return digits
+        if len(digits) == 9:  # короткий локальный номер без кода страны
+            return f"+998{digits}"
+        # неоднозначный формат — возвращаем с + если был, иначе как есть
+        return f"+{digits}" if value.startswith("+") else digits
 
     def create_user(self, phone, password=None, **extra_fields):
         if not phone:
