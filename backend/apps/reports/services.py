@@ -453,7 +453,7 @@ def calculate_teacher_salary(
         gid = str(row["group_id"]) if row["group_id"] else "__deleted__"
         if gid not in groups_map:
             if gid == "__deleted__":
-                group_name = {"uz": "O'chirilgan guruh", "ru": "Удалённая группа"}
+                group_name = "O'chirilgan guruh / Удалённая группа"
             else:
                 group_name = row["group__name"] or "Unnamed group"
             groups_map[gid] = {

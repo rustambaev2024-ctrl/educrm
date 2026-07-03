@@ -207,7 +207,7 @@ function TeacherFinancePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {data.groups?.length > 0 ? (
                 data.groups.map((group) => (
-                  <Card key={group.group_id} className="shadow-sm border-border/60 overflow-hidden hover:shadow-md transition-shadow">
+                  <Card key={group.group_id ?? "__deleted__"} className="shadow-sm border-border/60 overflow-hidden hover:shadow-md transition-shadow">
                     <div className="bg-muted/30 px-4 py-3 border-b flex justify-between items-center">
                       <h4 className="font-semibold">{group.group_name}</h4>
                       <span className="text-primary font-bold">{formatMoney(Number(group.group_total) * (Number(data.salary_percent) / 100))}</span>
