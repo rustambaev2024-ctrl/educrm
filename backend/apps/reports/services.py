@@ -429,7 +429,7 @@ def calculate_teacher_salary(
     # за пропуск без уважительной причины не идут в долю учителя.
     payments_qs = Payment.objects.filter(
         payment_type="charge",
-        group__teacher=teacher,
+        teacher=teacher,
         created_at__date__gte=period_start,
         created_at__date__lte=period_end,
     ).exclude(
@@ -438,7 +438,6 @@ def calculate_teacher_salary(
 
     students_data = (
         payments_qs
-        .exclude(group_id__isnull=True)
         .values(
             "group_id",
             "group__name",
@@ -451,11 +450,15 @@ def calculate_teacher_salary(
 
     groups_map: dict = {}
     for row in students_data:
-        gid = str(row["group_id"])
+        gid = str(row["group_id"]) if row["group_id"] else "__deleted__"
         if gid not in groups_map:
+            if gid == "__deleted__":
+                group_name = {"uz": "O'chirilgan guruh", "ru": "Удалённая группа"}
+            else:
+                group_name = row["group__name"] or "Unnamed group"
             groups_map[gid] = {
-                "group_id": gid,
-                "group_name": row["group__name"] or "Unnamed group",
+                "group_id": gid if gid != "__deleted__" else None,
+                "group_name": group_name,
                 "students": [],
                 "group_total": Decimal("0.00"),
             }

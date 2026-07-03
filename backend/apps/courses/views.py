@@ -102,6 +102,7 @@ class GroupViewSet(
         return [permission() for permission in permission_classes]
 
     def destroy(self, request, *args, **kwargs):
+        from apps.finance.models import Payment
         from apps.lessons.models import Lesson
         from django.utils import timezone
 
@@ -109,8 +110,9 @@ class GroupViewSet(
         force = request.query_params.get("force") == "true"
 
         active_students = instance.memberships.filter(left_at__isnull=True).count()
+        payments_count = Payment.objects.filter(group=instance).count()
 
-        if active_students > 0 and not force:
+        if not force and (active_students > 0 or payments_count > 0):
             future_lessons = Lesson.objects.filter(
                 group=instance,
                 datetime__date__gte=timezone.now().date(),
@@ -119,11 +121,12 @@ class GroupViewSet(
             return Response(
                 {
                     "detail": {
-                        "uz": f"Bu guruhda {active_students} faol o'quvchi va {future_lessons} kelajakdagi dars bor",
-                        "ru": f"В группе {active_students} активных студентов и {future_lessons} будущих уроков",
+                        "uz": f"Bu guruhda {active_students} faol o'quvchi, {future_lessons} kelajakdagi dars va {payments_count} to'lov mavjud",
+                        "ru": f"В группе {active_students} активных студентов, {future_lessons} будущих уроков и {payments_count} платежей",
                     },
                     "active_students": active_students,
                     "future_lessons": future_lessons,
+                    "payments_count": payments_count,
                 },
                 status=status.HTTP_409_CONFLICT,
             )

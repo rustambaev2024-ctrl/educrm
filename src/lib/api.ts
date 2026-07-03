@@ -403,6 +403,8 @@ export const groupApi = {
     requestJson(`/groups/${groupId}/students/${studentId}/`, {
       method: "DELETE",
     }),
+  deleteForce: (id: string) =>
+    requestJson<void>(`/groups/${id}/?force=true`, { method: "DELETE" }),
 };
 
 export const studentApi = {

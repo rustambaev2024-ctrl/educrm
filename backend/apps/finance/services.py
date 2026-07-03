@@ -133,12 +133,15 @@ def apply_payment(
     student.wallet_balance = balance_after
     student.save(update_fields=["wallet_balance"])
 
+    teacher_id = group.teacher_id if group and group.teacher_id else None
+
     payment = Payment.objects.create(
         wallet=wallet,
         student=student,
         branch=student.branch,
         group=group,
         lesson=lesson,
+        teacher_id=teacher_id,
         payment_type=payment_type,
         amount=amount,
         balance_before=balance_before,

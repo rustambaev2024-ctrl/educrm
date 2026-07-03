@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
+import { groupApi } from "@/lib/api";
 import { dayLabel, formatDate, formatMoney, getLocalDateString } from "@/lib/format";
 import type { DayOfWeek, Group, ScheduleSlot, StudentStatus } from "@/lib/data/types";
 import { GroupReportSheet } from "@/components/edu/group-report-sheet";
@@ -328,6 +329,8 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
   const { students, courses, staff, rooms, addStudentToGroup, removeStudentFromGroup, lessons, deleteGroup, updateGroup } = useData();
   const [studentSearch, setStudentSearch] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [forceDeleteOpen, setForceDeleteOpen] = useState(false);
+  const [paymentsCount, setPaymentsCount] = useState(0);
   const open = group !== null;
   if (!group) return <Sheet open={open} onOpenChange={(v) => !v && onClose()}><SheetContent /></Sheet>;
 
@@ -357,10 +360,33 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
   };
   const handleDeleteGroup = () => {
     if (enrolled.length > 0) {
-      toast.warning("Avval guruhdagi o'quvchilarni olib tashlang.");
+      toast.warning(lang === "uz" ? "Avval guruhdagi o'quvchilarni olib tashlang." : "Сначала уберите студентов из группы.");
       return;
     }
     setConfirmDeleteOpen(true);
+  };
+
+  const doDelete = async (force = false) => {
+    try {
+      if (force) {
+        await groupApi.deleteForce(group.id);
+      } else {
+        await groupApi.delete(group.id);
+      }
+      deleteGroup(group.id);
+      toast.success(lang === "uz" ? "Guruh o'chirildi" : "Группа удалена");
+      onClose();
+    } catch (err: unknown) {
+      const status = (err as { status?: number })?.status;
+      if (status === 409) {
+        const body = (err as { body?: { payments_count?: number } })?.body;
+        setPaymentsCount(body?.payments_count ?? 0);
+        setConfirmDeleteOpen(false);
+        setForceDeleteOpen(true);
+      } else {
+        toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+      }
+    }
   };
 
   return (
@@ -540,13 +566,33 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
     <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Guruhni o'chirish</AlertDialogTitle>
-          <AlertDialogDescription>Guruhni butunlay o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.</AlertDialogDescription>
+          <AlertDialogTitle>{lang === "uz" ? "Guruhni o'chirish" : "Удалить группу?"}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {lang === "uz" ? "Guruhni butunlay o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi." : "Удалить группу полностью? Это действие необратимо."}
+          </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
-          <AlertDialogAction onClick={() => { deleteGroup(group.id); toast.success("Guruh o'chirildi"); onClose(); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            O'chirish
+          <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
+          <AlertDialogAction onClick={() => doDelete(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            {lang === "uz" ? "O'chirish" : "Удалить"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    <AlertDialog open={forceDeleteOpen} onOpenChange={setForceDeleteOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{lang === "uz" ? "To'lovlar bor — baribir o'chirasizmi?" : "В группе есть платежи — продолжить?"}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {lang === "uz"
+              ? `Bu guruhda ${paymentsCount} ta to'lov mavjud. O'chirilsa, o'qituvchi daromadi hisobidan bu to'lovlar tushib qoladi.`
+              : `В этой группе ${paymentsCount} платежей. При удалении они выпадут из расчёта дохода учителя.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
+          <AlertDialogAction onClick={() => doDelete(true)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            {lang === "uz" ? "Baribir o'chirish" : "Всё равно удалить"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
