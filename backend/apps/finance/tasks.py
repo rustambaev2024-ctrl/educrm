@@ -33,7 +33,9 @@ def daily_lesson_charge():
 
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
-            active_groups = Group.objects.filter(status="active").prefetch_related("students")
+            active_groups = Group.objects.filter(
+                status__in=["active", "recruiting"]
+            ).prefetch_related("students")
 
             for group in active_groups:
                 lesson_days = {

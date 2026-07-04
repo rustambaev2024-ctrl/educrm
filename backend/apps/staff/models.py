@@ -108,7 +108,13 @@ class StaffPenalty(models.Model):
 
 class StaffBonus(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name="bonuses")
+    staff = models.ForeignKey(
+        Staff,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bonuses",
+    )
     branch = models.ForeignKey(
         "institutions.Branch", 
         on_delete=models.SET_NULL,
