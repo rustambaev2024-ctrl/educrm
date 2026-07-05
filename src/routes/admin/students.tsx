@@ -7,6 +7,7 @@ import { KpiCard } from "@/components/edu/kpi-card";
 import { StudentStatusBadge } from "@/components/edu/status-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -204,7 +205,20 @@ export function StudentsPage() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="p-12 text-center text-sm text-muted-foreground">{t("students.empty")}</div>
+            debouncedSearch.trim() ? (
+              <EmptyState
+                icon={<Search className="size-7" />}
+                title={lang === "uz" ? "Hech narsa topilmadi" : "Ничего не найдено"}
+                description={lang === "uz" ? "Boshqa so'rov bilan urinib ko'ring" : "Попробуйте изменить запрос"}
+              />
+            ) : (
+              <EmptyState
+                icon={<Users className="size-7" />}
+                title={t("students.empty")}
+                description={lang === "uz" ? "Hozircha o'quvchilar qo'shilmagan" : "Пока нет добавленных учеников"}
+                action={{ label: t("students.add"), onClick: () => setCreateOpen(true) }}
+              />
+            )
           ) : (
             <Table className="edu-table">
               <TableHeader>

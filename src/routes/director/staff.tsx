@@ -9,6 +9,7 @@ import { PhoneInput } from "@/components/edu/phone-input";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -203,7 +204,20 @@ function StaffPage() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="p-12 text-center text-sm text-muted-foreground">{t("staff.empty")}</div>
+            search.trim() ? (
+              <EmptyState
+                icon={<Search className="size-7" />}
+                title={lang === "uz" ? "Hech narsa topilmadi" : "Ничего не найдено"}
+                description={lang === "uz" ? "Boshqa so'rov bilan urinib ko'ring" : "Попробуйте изменить запрос"}
+              />
+            ) : (
+              <EmptyState
+                icon={<UserCog className="size-7" />}
+                title={t("staff.empty")}
+                description={lang === "uz" ? "Hozircha xodimlar qo'shilmagan" : "Пока нет добавленных сотрудников"}
+                action={{ label: t("staff.add"), onClick: openCreate }}
+              />
+            )
           ) : (
             <div className="overflow-x-auto"><Table>
               <TableHeader>

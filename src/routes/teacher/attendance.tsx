@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Select,
@@ -191,11 +192,14 @@ function AttendancePage() {
     <PageShell title={t("att.title")} subtitle={t("att.subtitle")}>
       <div className="space-y-4">
         {myLessons.length === 0 ? (
-          <Card className="flex flex-col items-center gap-3 p-12 text-center shadow-elegant">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-accent text-primary">
-              <ClipboardCheck className="size-6" />
-            </div>
-            <div className="text-base font-semibold">{t("att.noLesson")}</div>
+          <Card className="shadow-elegant">
+            <EmptyState
+              icon={<ClipboardCheck className="size-7" />}
+              title={t("att.noLesson")}
+              description={lang === "uz"
+                ? "Bugun uchun belgilanadigan darslar yo'q"
+                : "На сегодня нет уроков для отметки"}
+            />
           </Card>
         ) : (
           <>

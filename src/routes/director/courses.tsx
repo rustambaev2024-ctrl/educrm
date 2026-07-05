@@ -18,6 +18,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -229,20 +230,22 @@ function DirectorCoursesPage() {
             </div>
 
             {filtered.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-accent text-primary">
-                  <BookOpen className="size-7" />
-                </div>
-                <h3 className="mt-4 font-semibold">{lang === "uz" ? "Hali kurs yo'q" : "Курсов пока нет"}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {lang === "uz"
+              search.trim() ? (
+                <EmptyState
+                  icon={<Search className="size-7" />}
+                  title={lang === "uz" ? "Hech narsa topilmadi" : "Ничего не найдено"}
+                  description={lang === "uz" ? "Boshqa so'rov bilan urinib ko'ring" : "Попробуйте изменить запрос"}
+                />
+              ) : (
+                <EmptyState
+                  icon={<BookOpen className="size-7" />}
+                  title={lang === "uz" ? "Hali kurs yo'q" : "Курсов пока нет"}
+                  description={lang === "uz"
                     ? "Birinchi kursni yarating: masalan English A1, Math Foundation yoki IELTS."
                     : "Создайте первый курс: например English A1, Math Foundation или IELTS."}
-                </p>
-                <Button onClick={openCreate} className="mt-4 gap-2">
-                  <Plus className="size-4" /> {lang === "uz" ? "Kurs qo'shish" : "Добавить курс"}
-                </Button>
-              </div>
+                  action={{ label: lang === "uz" ? "Kurs qo'shish" : "Добавить курс", onClick: openCreate }}
+                />
+              )
             ) : (
               <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((course) => {

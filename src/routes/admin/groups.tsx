@@ -7,6 +7,7 @@ import { KpiCard } from "@/components/edu/kpi-card";
 import { GroupStatusBadge } from "@/components/edu/status-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -113,7 +114,22 @@ function GroupsPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <Card className="p-12 text-center text-sm text-muted-foreground">{t("groups.empty")}</Card>
+          <Card>
+            {search.trim() ? (
+              <EmptyState
+                icon={<Search className="size-7" />}
+                title={lang === "uz" ? "Hech narsa topilmadi" : "Ничего не найдено"}
+                description={lang === "uz" ? "Boshqa so'rov bilan urinib ko'ring" : "Попробуйте изменить запрос"}
+              />
+            ) : (
+              <EmptyState
+                icon={<Layers className="size-7" />}
+                title={t("groups.empty")}
+                description={lang === "uz" ? "Hozircha guruhlar yaratilmagan" : "Пока нет созданных групп"}
+                action={{ label: t("groups.add"), onClick: () => setCreateOpen(true) }}
+              />
+            )}
+          </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((g) => {

@@ -6,6 +6,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -89,7 +90,16 @@ function TeacherHomework() {
 
   const renderList = (list: Homework[]) => {
     if (list.length === 0) {
-      return <Card className="flex flex-col items-center gap-2 p-12 text-center shadow-elegant"><BookOpen className="size-8 text-muted-foreground" /><div className="text-sm text-muted-foreground">{t("hw.empty")}</div></Card>;
+      return (
+        <Card className="shadow-elegant">
+          <EmptyState
+            icon={<BookOpen className="size-7" />}
+            title={t("hw.empty")}
+            description={lang === "uz" ? "Hozircha vazifalar yaratilmagan" : "Пока нет созданных заданий"}
+            action={{ label: t("hw.add"), onClick: () => setCreateOpen(true) }}
+          />
+        </Card>
+      );
     }
     return (
       <div className="grid gap-3 lg:grid-cols-2">
