@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { Clock, MapPin, Users, ChevronRight, ClipboardCheck, Calendar, TrendingUp, Star } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
+import { StatCardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { LessonStatusBadge } from "@/components/edu/status-badge";
 import { useData } from "@/lib/data/store";
@@ -52,9 +53,13 @@ function TeacherHome() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
-      </div>
+      <PageShell title={tr("Bugun", "Сегодня")} subtitle={formatDate(today.toISOString(), lang)}>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+      </PageShell>
     );
   }
 

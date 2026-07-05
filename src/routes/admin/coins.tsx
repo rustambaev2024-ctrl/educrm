@@ -6,6 +6,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { apiErrorText } from "@/lib/api-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -104,8 +105,8 @@ function StudentsTab() {
       toast.success(tr("Bajarildi", "Выполнено"));
       setMode(null);
       load();
-    } catch {
-      toast.error(tr("Xatolik", "Ошибка"));
+    } catch (err) {
+      toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
   };
 
@@ -215,8 +216,8 @@ function OrdersTab() {
       await coinApi.orders.updateStatus(id, status);
       toast.success(tr("Yangilandi", "Обновлено"));
       load();
-    } catch {
-      toast.error(tr("Xatolik", "Ошибка"));
+    } catch (err) {
+      toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
   };
 

@@ -8,6 +8,7 @@ import { StudentStatusBadge } from "@/components/edu/status-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -146,13 +147,7 @@ export function StudentsPage() {
       ?? null;
   }, [students, pageStudents, selectedId]);
 
-  if (isLoading && !pageStudents.length) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
+  const showSkeleton = isLoading && !pageStudents.length;
 
   return (
     <PageShell
@@ -204,7 +199,9 @@ export function StudentsPage() {
             </div>
           </div>
 
-          {filtered.length === 0 ? (
+          {showSkeleton ? (
+            <ListSkeleton rows={6} />
+          ) : filtered.length === 0 ? (
             debouncedSearch.trim() ? (
               <EmptyState
                 icon={<Search className="size-7" />}

@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -164,14 +165,6 @@ function StaffPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
   return (
     <PageShell
       title={t("staff.title")}
@@ -203,7 +196,9 @@ function StaffPage() {
             </Tabs>
           </div>
 
-          {filtered.length === 0 ? (
+          {isLoading && staff.length === 0 ? (
+            <ListSkeleton rows={6} />
+          ) : filtered.length === 0 ? (
             search.trim() ? (
               <EmptyState
                 icon={<Search className="size-7" />}

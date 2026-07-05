@@ -6,6 +6,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { apiErrorText } from "@/lib/api-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -110,8 +111,8 @@ function SettingsTab() {
     try {
       await coinApi.settings.update(data as unknown as Record<string, unknown>);
       toast.success(tr("Saqlandi", "Сохранено"));
-    } catch {
-      toast.error(tr("Xatolik", "Ошибка"));
+    } catch (err) {
+      toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     } finally {
       setSaving(false);
     }
@@ -309,8 +310,8 @@ function StoreTab() {
       toast.success(tr("Saqlandi", "Сохранено"));
       setDialogOpen(false);
       load();
-    } catch {
-      toast.error(tr("Xatolik", "Ошибка"));
+    } catch (err) {
+      toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
   };
 
@@ -322,8 +323,8 @@ function StoreTab() {
       toast.success(tr("O'chirildi", "Удалено"));
       setRemoveId(null);
       load();
-    } catch {
-      toast.error(tr("Xatolik", "Ошибка"));
+    } catch (err) {
+      toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     } finally {
       setRemoving(false);
     }
@@ -441,8 +442,8 @@ function OrdersTab() {
       await coinApi.orders.updateStatus(id, status);
       toast.success(tr("Yangilandi", "Обновлено"));
       load();
-    } catch {
-      toast.error(tr("Xatolik", "Ошибка"));
+    } catch (err) {
+      toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
   };
 
@@ -570,8 +571,8 @@ function AchievementsTab() {
       toast.success(tr("Saqlandi", "Сохранено"));
       setDialogOpen(false);
       load();
-    } catch {
-      toast.error(tr("Xatolik", "Ошибка"));
+    } catch (err) {
+      toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
   };
 
@@ -583,8 +584,8 @@ function AchievementsTab() {
       toast.success(tr("O'chirildi", "Удалено"));
       setRemoveId(null);
       load();
-    } catch {
-      toast.error(tr("Xatolik", "Ошибка"));
+    } catch (err) {
+      toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     } finally {
       setRemoving(false);
     }

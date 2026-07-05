@@ -8,6 +8,7 @@ import { GroupStatusBadge } from "@/components/edu/status-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CardGridSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -78,14 +79,6 @@ function GroupsPage() {
     return { total: groups.length, active: active.length, students: studentSet.size, avgFill };
   }, [groups]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
   return (
     <PageShell
       title={t("groups.title")}
@@ -113,7 +106,9 @@ function GroupsPage() {
           />
         </div>
 
-        {filtered.length === 0 ? (
+        {isLoading && groups.length === 0 ? (
+          <CardGridSkeleton count={6} />
+        ) : filtered.length === 0 ? (
           <Card>
             {search.trim() ? (
               <EmptyState

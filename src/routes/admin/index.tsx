@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { AlertCircle, Clock, DollarSign, MapPin, TrendingUp, UserPlus, Users } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
+import { StatCardSkeleton } from "@/components/ui/skeleton";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
@@ -77,9 +78,13 @@ function AdminHome() {
 
   if (isLoading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 256 }}>
-        <div style={{ width: 28, height: 28, borderRadius: "50%", borderBottom: "2px solid #0077b6", animation: "spin 1s linear infinite" }} />
-      </div>
+      <PageShell title={tr("Boshqaruv paneli", "Панель управления")} subtitle={todayLabel}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }} className="md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+      </PageShell>
     );
   }
 

@@ -19,6 +19,7 @@ import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CardGridSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -172,13 +173,6 @@ function DirectorCoursesPage() {
     setDeleteCourseId(null);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
 
   return (
     <>
@@ -229,7 +223,9 @@ function DirectorCoursesPage() {
               </div>
             </div>
 
-            {filtered.length === 0 ? (
+            {isLoading && courses.length === 0 ? (
+              <CardGridSkeleton count={6} className="p-4" />
+            ) : filtered.length === 0 ? (
               search.trim() ? (
                 <EmptyState
                   icon={<Search className="size-7" />}

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { apiErrorText } from "@/lib/api-error";
 import { Plus, FileText, Play, Pencil, Users, Layers, StopCircle } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { Button } from "@/components/ui/button";
@@ -111,8 +112,8 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
       await quizApi.sessions.forceFinish(sessionId);
       toast.success(tr("Sessiya tugatildi", "Сессия завершена"));
       void loadAll();
-    } catch {
-      toast.error(tr("Xatolik", "Ошибка"));
+    } catch (err) {
+      toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
   };
 

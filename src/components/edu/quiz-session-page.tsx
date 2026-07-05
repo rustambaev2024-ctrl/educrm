@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { apiErrorText } from "@/lib/api-error";
 import { Play, ArrowRight, Trophy, Users, RotateCcw, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -158,8 +159,8 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
       const fresh = (await quizApi.createSession(session.quiz)) as QuizSessionRow;
       navigate({ to: `${basePath}/quiz-session/${fresh.id}` as string });
       window.location.reload();
-    } catch {
-      toast.error(tr("Xatolik", "Ошибка"));
+    } catch (err) {
+      toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
   };
 
