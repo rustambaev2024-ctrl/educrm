@@ -191,7 +191,7 @@ function DirectorFinancePage() {
         <Card className="p-6 shadow-elegant">
           <div className="mb-4 text-sm font-semibold">{lang === "uz" ? "Hamyonlar" : "Кошельки"}</div>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("finance.col.student")}</TableHead>
@@ -237,7 +237,7 @@ function DirectorFinancePage() {
 
         <Card className="overflow-hidden shadow-elegant">
           <div className="border-b border-border/60 px-5 py-3 text-sm font-semibold">{t("finance.tab.payments")}</div>
-          <Table>
+          <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow>
                 <TableHead>{t("finance.col.date")}</TableHead>

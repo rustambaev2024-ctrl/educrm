@@ -79,7 +79,7 @@ function AdminHome() {
   if (isLoading) {
     return (
       <PageShell title={tr("Boshqaruv paneli", "Панель управления")} subtitle={todayLabel}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }} className="md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <StatCardSkeleton key={i} />
           ))}
@@ -100,8 +100,7 @@ function AdminHome() {
       }
     >
       {/* KPI grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 16 }}
-           className="md:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <KpiCard label={tr("O'quvchilar", "Ученики")}      value={activeStudents}            icon={Users}       color="blue" />
         <KpiCard label={tr("Davomat", "Посещаемость")}     value={`${todayAttendancePct}%`}  icon={TrendingUp}  color="green" />
         <KpiCard label={tr("Oylik tushum", "Доход/месяц")} value={formatMoney(monthRevenue, lang)} icon={DollarSign} color="cyan" />
@@ -109,7 +108,7 @@ function AdminHome() {
       </div>
 
       {/* Two-column cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }} className="lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
         {/* Today's lessons */}
         <div className="edu-card" style={{ overflow: "hidden" }}>

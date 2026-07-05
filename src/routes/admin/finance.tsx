@@ -267,7 +267,7 @@ function FinancePage() {
 
           <TabsContent value="wallets" className="mt-4">
             <div className="edu-card overflow-hidden">
-              <Table>
+              <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("finance.col.student")}</TableHead>
@@ -317,7 +317,7 @@ function FinancePage() {
             </div>
 
             <div className="edu-card overflow-hidden">
-              <Table className="edu-table">
+              <Table className="edu-table min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("finance.col.student")}</TableHead>
@@ -403,7 +403,7 @@ function FinancePage() {
 
           <TabsContent value="history" className="mt-4">
             <div className="edu-card overflow-hidden">
-              <Table>
+              <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("finance.col.student")}</TableHead>
@@ -472,7 +472,7 @@ function FinancePage() {
 
           <TabsContent value="expenses" className="mt-4">
             <div className="edu-card overflow-hidden">
-              <Table>
+              <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("finance.col.category")}</TableHead>

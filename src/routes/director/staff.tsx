@@ -263,7 +263,7 @@ function StaffPage() {
                       <div className="flex justify-end gap-1">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="icon" variant="ghost" onClick={() => openEdit(s)}>
+                            <Button size="icon" variant="ghost" className="max-sm:size-11" onClick={() => openEdit(s)}>
                               <Pencil className="size-4" />
                             </Button>
                           </TooltipTrigger>
@@ -273,7 +273,7 @@ function StaffPage() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <AlertDialogTrigger asChild>
-                                <Button size="icon" variant="ghost" className="text-destructive">
+                                <Button size="icon" variant="ghost" className="text-destructive max-sm:size-11">
                                   <Trash2 className="size-4" />
                                 </Button>
                               </AlertDialogTrigger>
