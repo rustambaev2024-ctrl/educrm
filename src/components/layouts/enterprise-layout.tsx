@@ -483,10 +483,10 @@ export function EnterpriseLayout({
         </div>
       </header>
 
-      {/* Main content — полупрозрачный фон, чтобы просвечивали лучи BeamsBackground */}
+      {/* Main content */}
       <main
         style={{
-          background: "rgba(248, 250, 252, 0.82)",
+          background: "#f8fafc",
           overflowY: "auto",
           overflowX: "hidden",
         }}
