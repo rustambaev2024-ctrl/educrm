@@ -418,7 +418,7 @@ export function StudentDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent className="w-full sm:w-[400px] sm:max-w-[400px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="text-left">{student.fullName}</SheetTitle>
           <SheetDescription className="text-left">

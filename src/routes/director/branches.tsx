@@ -194,7 +194,7 @@ function BranchesPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2 p-4">
+                  <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-4">
                     <Mini icon={Users} value={`${branchStudents.length}`} label={t("branches.col.students")} />
                     <Mini icon={Layers} value={`${branchGroups.length}`} label={t("branches.col.groups")} />
                     <Mini icon={DoorOpen} value={`${capacity}`} label={t("branches.field.capacity")} />

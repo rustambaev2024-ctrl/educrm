@@ -179,7 +179,7 @@ function StaffPage() {
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <KpiCard label={t("staff.title")} value={staff.length} icon={Briefcase} iconColor="blue" />
           <KpiCard label={lang === "uz" ? "O'qituvchilar" : "Учителя"} value={staff.filter((s) => s.role === "teacher").length} icon={GraduationCap} iconColor="green" />
           <KpiCard label={lang === "uz" ? "Adminlar" : "Админы"} value={staff.filter((s) => s.role === "admin" || s.role === "branch_admin" || s.role === "director").length} icon={UserCog} iconColor="violet" />
