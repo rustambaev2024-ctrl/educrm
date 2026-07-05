@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { DataStoreProvider } from "@/lib/data/store";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 function NotFoundComponent() {
   const { t } = useI18n();
@@ -94,7 +95,9 @@ function RootComponent() {
       <I18nProvider>
         <AuthProvider>
           <DataStoreProvider>
-            <Outlet />
+            <TooltipProvider delayDuration={300}>
+              <Outlet />
+            </TooltipProvider>
             <Toaster />
           </DataStoreProvider>
         </AuthProvider>

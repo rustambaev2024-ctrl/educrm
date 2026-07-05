@@ -249,7 +249,7 @@ function DirectorCoursesPage() {
                   return (
                     <div
                       key={course.id}
-                      className="rounded-2xl border border-border bg-background/70 p-4 transition hover:border-primary/40 hover:shadow-elegant cursor-pointer"
+                      className="rounded-2xl border border-border bg-background/70 p-4 transition-all duration-200 hover:border-primary/40 hover:shadow-elegant hover:-translate-y-0.5 cursor-pointer"
                       onClick={() => setSelectedCourse(course)}
                     >
                       <div className="flex items-start gap-3">

@@ -3,6 +3,8 @@ import { Plus, Trash2, GraduationCap, UserPlus, Users, AlertCircle } from "lucid
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getAvatarColor } from "@/lib/avatar-color";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -129,7 +131,7 @@ export function SupportTeacherLinks() {
             <div key={st.id} className="p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex size-9 items-center justify-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
+                  <div className={cn("flex size-9 items-center justify-center rounded-full text-xs font-semibold text-white", getAvatarColor(st.fullName))}>
                     {st.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
                   </div>
                   <div>

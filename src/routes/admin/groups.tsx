@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CardGridSkeleton } from "@/components/ui/skeleton";
+import { getAvatarColor } from "@/lib/avatar-color";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -138,7 +140,7 @@ function GroupsPage() {
                   role="button"
                   tabIndex={0}
                   onClick={() => setSelectedId(g.id)}
-                  className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-5 text-left shadow-sm transition-all hover:border-primary/40 hover:shadow-elegant cursor-pointer"
+                  className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-5 text-left shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-elegant hover:-translate-y-0.5 cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -461,9 +463,9 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
                 {enrolled.length === 0 ? (
                   <div className="p-6 text-center text-sm text-muted-foreground">{t("common.empty")}</div>
                 ) : (
-                  enrolled.map((s) => (
-                    <div key={s.id} className="flex items-center gap-3 p-3">
-                      <div className="flex size-8 items-center justify-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
+                  enrolled.map((s, index) => (
+                    <div key={s.id} className={cn("flex items-center gap-3 p-3 transition-colors hover:bg-muted/50", index % 2 === 1 && "bg-muted/20")}>
+                      <div className={cn("flex size-8 items-center justify-center rounded-full text-xs font-semibold text-white", getAvatarColor(s.fullName))}>
                         {s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
                       </div>
                       <div className="min-w-0 flex-1">

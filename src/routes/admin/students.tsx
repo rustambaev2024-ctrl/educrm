@@ -228,7 +228,7 @@ export function StudentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((s) => {
+                {filtered.map((s, index) => {
                   const groupNames = s.groupIds
                     .map((gid) => groups.find((g) => g.id === gid)?.name)
                     .filter(Boolean)
@@ -236,10 +236,10 @@ export function StudentsPage() {
                   return (
                     <TableRow
                       key={s.id}
-                      className="cursor-pointer transition-colors"
-                      style={{ cursor: "pointer" }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#f8fafc"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}
+                      className={cn(
+                        "cursor-pointer transition-colors hover:bg-muted/50",
+                        index % 2 === 1 && "bg-muted/20",
+                      )}
                       onClick={() => setSelectedId(s.id)}
                     >
                       <TableCell>

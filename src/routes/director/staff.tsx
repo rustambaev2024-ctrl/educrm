@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListSkeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getAvatarColor } from "@/lib/avatar-color";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -228,11 +231,11 @@ function StaffPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((s) => (
-                  <TableRow key={s.id}>
+                {filtered.map((s, index) => (
+                  <TableRow key={s.id} className={cn("transition-colors", index % 2 === 1 && "bg-muted/20")}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="flex size-9 items-center justify-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
+                        <div className={cn("flex size-9 items-center justify-center rounded-full text-xs font-semibold text-white", getAvatarColor(s.fullName))}>
                           {s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
                         </div>
                         <div>
@@ -258,15 +261,25 @@ function StaffPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(s)} title={t("staff.edit")}>
-                          <Pencil className="size-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="ghost" className="text-destructive" title={t("staff.delete")}>
-                              <Trash2 className="size-4" />
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" onClick={() => openEdit(s)}>
+                              <Pencil className="size-4" />
                             </Button>
-                          </AlertDialogTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>{t("staff.edit")}</TooltipContent>
+                        </Tooltip>
+                        <AlertDialog>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertDialogTrigger asChild>
+                                <Button size="icon" variant="ghost" className="text-destructive">
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>{t("staff.delete")}</TooltipContent>
+                          </Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>{t("staff.delete")}</AlertDialogTitle>

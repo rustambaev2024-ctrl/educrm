@@ -18,7 +18,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/data/store";
 import { formatTime, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 import { useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { openChatSocket } from "@/lib/realtime";
 import type { ChatThread } from "@/lib/data/types";
 
@@ -267,7 +269,7 @@ export function MessengerPanel({
                 className="flex w-full items-center gap-3 rounded-3xl p-3 text-left transition hover:bg-accent/55 disabled:opacity-60"
               >
                 <Avatar className="size-12 rounded-2xl">
-                  <AvatarFallback className="rounded-2xl bg-muted text-sm font-semibold">{initialsOf(contact.name)}</AvatarFallback>
+                  <AvatarFallback className={cn("rounded-2xl text-sm font-semibold text-white", getAvatarColor(contact.name))}>{initialsOf(contact.name)}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{contact.name}</div>
