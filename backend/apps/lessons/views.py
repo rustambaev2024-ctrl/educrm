@@ -48,7 +48,7 @@ class LessonViewSet(
 
         if user.role in ("superadmin", "director"):
             scoped = qs
-        elif user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
+        elif user.role == "branch_admin" and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             scoped = qs.filter(group__branch_id=branch_id) if branch_id else qs.none()
         elif user.role == "teacher" and hasattr(user, "staff_profile"):
@@ -217,7 +217,7 @@ class AttendanceViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets
 
         if user.role in ("superadmin", "director"):
             scoped = qs
-        elif user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
+        elif user.role == "branch_admin" and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             scoped = qs.filter(lesson__group__branch_id=branch_id) if branch_id else qs.none()
         elif user.role == "teacher" and hasattr(user, "staff_profile"):

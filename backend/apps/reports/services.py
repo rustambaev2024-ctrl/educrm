@@ -56,7 +56,7 @@ def _branch_ids_for_user(user, branch_id: str | None = None) -> list:
         return list(queryset.values_list("id", flat=True))
 
     if (
-        user.role in ("admin", "branch_admin", "teacher")
+        user.role in ("branch_admin", "teacher")
         and hasattr(user, "staff_profile")
         and user.staff_profile.branch_id
     ):

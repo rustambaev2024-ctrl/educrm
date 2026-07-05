@@ -102,7 +102,7 @@ class PaymentCreateSerializer(serializers.Serializer):
                 branch = user.staff_profile.branch
             if branch is None:
                 raise serializers.ValidationError({"branch_id": "Branch is required for expenses."})
-            if user is not None and user.role in ("admin", "branch_admin"):
+            if user is not None and user.role == "branch_admin":
                 staff_branch_id = getattr(getattr(user, "staff_profile", None), "branch_id", None)
                 if staff_branch_id and staff_branch_id != branch.id:
                     raise serializers.ValidationError({"branch_id": "You can create expenses only for your branch."})

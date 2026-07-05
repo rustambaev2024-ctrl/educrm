@@ -134,7 +134,7 @@ class StudentViewSet(viewsets.ModelViewSet):
 
         if user.role in ("superadmin", "director"):
             scoped = qs
-        elif user.role in ("admin", "branch_admin", "teacher") and hasattr(user, "staff_profile"):
+        elif user.role in ("branch_admin", "teacher") and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             scoped = qs.filter(branch_id=branch_id) if branch_id else qs.none()
         elif user.role == "support_teacher":
@@ -208,7 +208,7 @@ class StudentViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         # Admin / branch_admin — архивируют
-        if getattr(user, "role", None) in ("admin", "branch_admin"):
+        if getattr(user, "role", None) == "branch_admin":
             student.status = "archived"
             student.save(update_fields=["status"])
             student.user.is_active = False
@@ -387,7 +387,7 @@ class StudentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="generate-link-code")
     def generate_link_code(self, request, pk=None):
         student = self.get_object()
-        if request.user.role not in ("admin", "branch_admin", "director", "superadmin"):
+        if request.user.role not in ("branch_admin", "director", "superadmin"):
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         code_obj = ParentLinkCode.generate_for_student(student)
         return Response({
@@ -410,7 +410,7 @@ class ParentViewSet(viewsets.ReadOnlyModelViewSet):
 
         if user.role in ("superadmin", "director"):
             scoped = qs
-        elif user.role in ("admin", "branch_admin", "teacher") and hasattr(user, "staff_profile"):
+        elif user.role in ("branch_admin", "teacher") and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             scoped = qs.filter(children__branch_id=branch_id) if branch_id else qs.none()
         elif user.role == "parent" and hasattr(user, "parent_profile"):
@@ -442,7 +442,7 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
 
         if user.role in ("superadmin", "director"):
             scoped = qs
-        elif user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
+        elif user.role == "branch_admin" and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             scoped = qs.filter(branch_id=branch_id) if branch_id else qs.none()
         else:

@@ -31,7 +31,7 @@ class HomeworkViewSet(
         user = self.request.user
         qs = super().get_queryset()
 
-        if user.role in ("superadmin", "director", "admin", "branch_admin"):
+        if user.role in ("superadmin", "director", "branch_admin"):
             scoped = qs
         elif user.role == "teacher" and hasattr(user, "staff_profile"):
             scoped = qs.filter(group__teacher_id=user.staff_profile.id)
@@ -128,7 +128,7 @@ class HomeworkStatusViewSet(
 
         is_write = self.action in ("update", "partial_update")
 
-        if user.role in ("superadmin", "director", "admin", "branch_admin"):
+        if user.role in ("superadmin", "director", "branch_admin"):
             if is_write:
                 return qs.none()
             scoped = qs

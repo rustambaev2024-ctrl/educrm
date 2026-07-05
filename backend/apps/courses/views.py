@@ -53,7 +53,7 @@ class CourseViewSet(
         if search:
             qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search))
         user = self.request.user
-        if user.role in ("superadmin", "director", "admin", "branch_admin"):
+        if user.role in ("superadmin", "director", "branch_admin"):
             return qs
         if user.role == "teacher" and hasattr(user, "staff_profile"):
             return qs.filter(groups__teacher=user.staff_profile).distinct()
@@ -143,7 +143,7 @@ class GroupViewSet(
 
         if user.role in ("superadmin", "director"):
             scoped = qs
-        elif user.role in ("admin", "branch_admin", "teacher") and hasattr(user, "staff_profile"):
+        elif user.role in ("branch_admin", "teacher") and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             scoped = qs.filter(branch_id=branch_id) if branch_id else qs.none()
             if user.role == "teacher":
@@ -311,7 +311,7 @@ class StudentTransferView(APIView):
 
     def post(self, request):
         """Выполнить перевод ученика."""
-        if request.user.role not in ("director", "admin", "branch_admin", "superadmin"):
+        if request.user.role not in ("director", "branch_admin", "superadmin"):
             return Response({"detail": "Permission denied"}, status=403)
 
         serializer = TransferInputSerializer(data=request.data)

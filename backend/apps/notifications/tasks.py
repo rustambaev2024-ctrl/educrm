@@ -33,7 +33,7 @@ def lead_follow_up_reminder():
             if not overdue_leads.exists():
                 continue
             count = overdue_leads.count()
-            admins = list(User.objects.filter(role__in=["admin", "director"]))
+            admins = list(User.objects.filter(role__in=["branch_admin", "director"]))
             if admins:
                 NotificationService.notify(
                     recipients=admins,
@@ -123,7 +123,7 @@ def trial_lesson_reminder():
             ).select_related("trial_lesson_group")
             if not upcoming.exists():
                 continue
-            admins = list(User.objects.filter(role__in=["admin", "director"]))
+            admins = list(User.objects.filter(role__in=["branch_admin", "director"]))
             if not admins:
                 continue
             for lead in upcoming:

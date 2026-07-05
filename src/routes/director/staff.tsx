@@ -331,7 +331,7 @@ function StaffPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="director">{t("role.director")}</SelectItem>
-                    <SelectItem value="admin">{t("role.admin")}</SelectItem>
+                    <SelectItem value="branch_admin">{t("role.admin")}</SelectItem>
                     <SelectItem value="teacher">{t("role.teacher")}</SelectItem>
                     <SelectItem value="support_teacher">{lang === "uz" ? "Yordamchi o'qituvchi" : "Помощник учителя"}</SelectItem>
                   </SelectContent>

@@ -58,7 +58,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.UUID)
     def get_profileId(self, obj):
-        if obj.role in ("director", "admin", "branch_admin", "teacher", "support_teacher"):
+        if obj.role in ("director", "branch_admin", "teacher", "support_teacher"):
             profile = self._staff_profile(obj)
         elif obj.role == "student":
             profile = self._student_profile(obj)
@@ -87,7 +87,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.UUID)
     def get_branchId(self, obj):
-        if obj.role in ("director", "admin", "branch_admin", "teacher", "support_teacher"):
+        if obj.role in ("director", "branch_admin", "teacher", "support_teacher"):
             profile = self._staff_profile(obj)
         elif obj.role == "student":
             profile = self._student_profile(obj)
@@ -178,7 +178,7 @@ class ResetPasswordSerializer(serializers.Serializer):
         request = self.context.get("request")
         actor = getattr(request, "user", None)
         if actor and actor.is_authenticated:
-            if actor.role in ("admin", "branch_admin"):
+            if actor.role == "branch_admin":
                 if user.role not in ("teacher", "student", "parent"):
                     raise serializers.ValidationError("You can reset only teacher, student and parent passwords")
                 actor_branch = getattr(getattr(actor, "staff_profile", None), "branch_id", None)

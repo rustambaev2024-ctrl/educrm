@@ -61,7 +61,7 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
         qs = super().get_queryset()
         if user.role in ("superadmin", "director"):
             scoped = qs
-        elif user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
+        elif user.role == "branch_admin" and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             scoped = qs.filter(Q(student__branch_id=branch_id) | Q(branch_id=branch_id)) if branch_id else qs.none()
         elif user.role == "student" and hasattr(user, "student_profile"):
@@ -86,7 +86,7 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
 @perm_classes([IsAuthenticated])
 def trigger_daily_charge(request):
     """Manual trigger for daily_lesson_charge task (director/admin only)."""
-    if request.user.role not in ("director", "admin", "branch_admin", "superadmin"):
+    if request.user.role not in ("director", "branch_admin", "superadmin"):
         return Response({"detail": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
 
     from .tasks import daily_lesson_charge

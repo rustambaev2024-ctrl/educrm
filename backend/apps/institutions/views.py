@@ -37,7 +37,7 @@ class BranchViewSet(viewsets.ModelViewSet):
         if user.role in ("superadmin", "director"):
             return qs
 
-        if user.role in ("admin", "branch_admin", "teacher") and hasattr(user, "staff_profile"):
+        if user.role in ("branch_admin", "teacher") and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             if branch_id:
                 return qs.filter(id=branch_id)
@@ -238,7 +238,7 @@ class RoomViewSet(viewsets.ModelViewSet):
 
         if user.role in ("superadmin", "director"):
             scoped = qs
-        elif user.role in ("admin", "branch_admin", "teacher") and hasattr(user, "staff_profile"):
+        elif user.role in ("branch_admin", "teacher") and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             scoped = qs.filter(branch_id=branch_id) if branch_id else qs.none()
         elif user.role == "student" and hasattr(user, "student_profile"):

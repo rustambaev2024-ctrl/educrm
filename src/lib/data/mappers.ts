@@ -86,7 +86,7 @@ export function mapStaff(r: StaffRaw) {
     userId: r.user_id ?? "",
     fullName: r.full_name,
     phone: r.phone,
-    role: r.role === "branch_admin" ? "admin" : r.role,
+    role: r.role,
     branchId: extractId(r.branch),
     status: r.status,
     photo: r.photo ?? null,

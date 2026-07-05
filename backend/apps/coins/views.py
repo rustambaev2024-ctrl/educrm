@@ -61,7 +61,7 @@ class CoinWalletViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ("director", "admin", "branch_admin", "superadmin"):
+        if user.role in ("director", "branch_admin", "superadmin"):
             return CoinWallet.objects.select_related("student__user").order_by("-balance")
         if user.role == "student":
             return CoinWallet.objects.filter(student__user=user)
@@ -87,7 +87,7 @@ class CoinWalletViewSet(viewsets.ReadOnlyModelViewSet):
     def award(self, request):
         """Ручное начисление монет (admin/teacher)"""
         if request.user.role not in (
-            "director", "admin", "branch_admin", "teacher", "support_teacher"
+            "director", "branch_admin", "teacher", "support_teacher"
         ):
             return Response(status=403)
         from apps.students.models import Student
@@ -121,7 +121,7 @@ class CoinWalletViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=["post"], url_path="deduct")
     def deduct(self, request):
         """Ручное списание монет"""
-        if request.user.role not in ("director", "admin", "branch_admin"):
+        if request.user.role not in ("director", "branch_admin"):
             return Response(status=403)
         from apps.students.models import Student
         from .services import deduct_coins
@@ -147,7 +147,7 @@ class CoinTransactionViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         if user.role == "student":
             return CoinTransaction.objects.filter(wallet__student__user=user)
-        if user.role in ("director", "admin", "branch_admin", "superadmin"):
+        if user.role in ("director", "branch_admin", "superadmin"):
             student_id = self.request.query_params.get("student_id")
             qs = CoinTransaction.objects.select_related("wallet__student__user")
             if student_id:
@@ -161,7 +161,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        if self.request.user.role in ("director", "admin", "branch_admin"):
+        if self.request.user.role in ("director", "branch_admin"):
             return Product.objects.select_related("category").all()
         return Product.objects.filter(is_active=True).select_related("category")
 
@@ -206,7 +206,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Order.objects.filter(
                 wallet__student__user=user
             ).select_related("product")
-        if user.role in ("director", "admin", "branch_admin", "superadmin"):
+        if user.role in ("director", "branch_admin", "superadmin"):
             return Order.objects.select_related(
                 "product", "wallet__student__user"
             ).order_by("-created_at")
@@ -215,7 +215,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["patch"], url_path="status")
     def update_status(self, request, pk=None):
         """Изменить статус заказа (admin/director)"""
-        if request.user.role not in ("director", "admin", "branch_admin"):
+        if request.user.role not in ("director", "branch_admin"):
             return Response(status=403)
         order = self.get_object()
         new_status = request.data.get("status")
@@ -242,7 +242,7 @@ class AchievementViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        if self.request.user.role in ("director", "admin", "branch_admin"):
+        if self.request.user.role in ("director", "branch_admin"):
             return Achievement.objects.all()
         return Achievement.objects.filter(is_active=True)
 

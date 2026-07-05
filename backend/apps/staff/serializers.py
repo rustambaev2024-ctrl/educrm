@@ -21,7 +21,7 @@ class StaffSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(source="user.phone")
     role = serializers.ChoiceField(
         source="user.role",
-        choices=["director", "admin", "branch_admin", "teacher", "support_teacher"],
+        choices=["director", "branch_admin", "teacher", "support_teacher"],
     )
     password = serializers.CharField(write_only=True, required=False)
 
@@ -284,7 +284,7 @@ class SupportTeacherLinkSerializer(serializers.ModelSerializer):
                 })
 
         # admin/branch_admin может привязывать только учителей своего филиала.
-        if user and user.role in ("admin", "branch_admin"):
+        if user and user.role == "branch_admin":
             admin_branch_id = getattr(
                 getattr(user, "staff_profile", None), "branch_id", None
             )

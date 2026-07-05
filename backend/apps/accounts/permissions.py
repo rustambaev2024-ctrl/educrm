@@ -24,7 +24,7 @@ class IsBranchAdmin(BasePermission):
         return bool(
             request.user
             and request.user.is_authenticated
-            and request.user.role in ("superadmin", "director", "admin", "branch_admin")
+            and request.user.role in ("superadmin", "director", "branch_admin")
         )
 
 
@@ -36,7 +36,6 @@ class IsTeacher(BasePermission):
             and request.user.role in (
                 "superadmin",
                 "director",
-                "admin",
                 "branch_admin",
                 "teacher",
             )

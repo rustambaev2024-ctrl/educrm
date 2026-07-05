@@ -33,7 +33,7 @@ class StaffViewSet(viewsets.ModelViewSet):
         if user.role in ("superadmin", "director"):
             return qs
 
-        if user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
+        if user.role == "branch_admin" and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             if branch_id:
                 return qs.filter(branch_id=branch_id)
@@ -97,7 +97,7 @@ class SupportTeacherViewSet(viewsets.ModelViewSet):
 
         if user.role in ("superadmin", "director"):
             pass
-        elif user.role in ("admin", "branch_admin") and hasattr(user, "staff_profile"):
+        elif user.role == "branch_admin" and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             if branch_id:
                 qs = qs.filter(teacher__branch_id=branch_id)
@@ -134,7 +134,7 @@ class StaffPenaltyViewSet(viewsets.ModelViewSet):
 
         if user.role in ("superadmin", "director"):
             pass
-        elif user.role in ("admin", "branch_admin"):
+        elif user.role == "branch_admin":
             if hasattr(user, "staff_profile") and user.staff_profile.branch_id:
                 qs = qs.filter(branch_id=user.staff_profile.branch_id)
             else:
@@ -202,7 +202,7 @@ class StaffBonusViewSet(viewsets.ModelViewSet):
 
         if user.role in ("superadmin", "director"):
             pass
-        elif user.role in ("admin", "branch_admin"):
+        elif user.role == "branch_admin":
             if hasattr(user, "staff_profile") and user.staff_profile.branch_id:
                 qs = qs.filter(branch_id=user.staff_profile.branch_id)
             else:
@@ -235,17 +235,17 @@ class StaffBonusViewSet(viewsets.ModelViewSet):
         return qs.distinct().order_by("-bonus_date", "-created_at")
 
     def create(self, request, *args, **kwargs):
-        if request.user.role not in ("director", "superadmin", "admin", "branch_admin"):
+        if request.user.role not in ("director", "superadmin", "branch_admin"):
             return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        if request.user.role not in ("director", "superadmin", "admin", "branch_admin"):
+        if request.user.role not in ("director", "superadmin", "branch_admin"):
             return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
-        if request.user.role not in ("director", "superadmin", "admin", "branch_admin"):
+        if request.user.role not in ("director", "superadmin", "branch_admin"):
             return Response({"detail": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 

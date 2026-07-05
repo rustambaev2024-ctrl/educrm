@@ -70,7 +70,7 @@ class QuizViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Quiz.objects.prefetch_related("questions__answers")
-        if user.role in ("director", "admin", "branch_admin", "superadmin"):
+        if user.role in ("director", "branch_admin", "superadmin"):
             return qs
         return qs.filter(created_by=user)
 
@@ -146,7 +146,7 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         qs = QuizSession.objects.prefetch_related("participants").select_related("quiz", "host")
         if not user.is_authenticated:
             return qs.none()
-        if user.role in ("director", "admin", "branch_admin", "superadmin"):
+        if user.role in ("director", "branch_admin", "superadmin"):
             return qs
         return qs.filter(host=user)
 

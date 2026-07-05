@@ -87,7 +87,7 @@ class ChatViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
             return "parent_teacher"
         if "student" in roles and "teacher" in roles:
             return "student_teacher"
-        if "director" in roles and ("admin" in roles or "branch_admin" in roles):
+        if "director" in roles and "branch_admin" in roles:
             return "director_admin"
         if "director" in roles:
             return "director_staff"

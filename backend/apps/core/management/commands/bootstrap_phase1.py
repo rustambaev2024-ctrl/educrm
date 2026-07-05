@@ -43,7 +43,7 @@ class Command(BaseCommand):
             users = [
                 ("superadmin", "+998900000001", "Super Admin"),
                 ("director", "+998900000002", "Director User"),
-                ("admin", "+998900000003", "Branch Admin"),
+                ("branch_admin", "+998900000003", "Branch Admin"),
                 ("teacher", "+998900000004", "Teacher User"),
                 ("student", "+998900000005", "Student User"),
                 ("parent", "+998900000006", "Parent User"),
@@ -55,7 +55,7 @@ class Command(BaseCommand):
                     defaults={
                         "full_name": full_name,
                         "role": role,
-                        "is_staff": role in ("superadmin", "director", "admin"),
+                        "is_staff": role in ("superadmin", "director", "branch_admin"),
                     },
                 )
                 user.set_password(password)
