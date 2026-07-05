@@ -259,8 +259,8 @@ export function StudentsPage() {
                             );
                           })()}
                           <div className="min-w-0">
-                            <div style={{ fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.fullName}</div>
-                            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>{s.phone}</div>
+                            <div className="truncate font-semibold text-foreground">{s.fullName}</div>
+                            <div className="mt-px text-[11px] text-muted-foreground">{s.phone}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -279,12 +279,7 @@ export function StudentsPage() {
                         )}
                       </TableCell>
                       <TableCell
-                        style={{
-                          textAlign: "right",
-                          fontWeight: 700,
-                          fontVariantNumeric: "tabular-nums",
-                          color: s.balance > 0 ? "#16a34a" : s.balance < 0 ? "#dc2626" : "#94a3b8",
-                        }}
+                        className={`text-right font-bold tabular-nums ${s.balance > 0 ? "text-emerald-600" : s.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}
                       >
                         {s.balance > 0 ? "+" : ""}{formatMoney(s.balance, lang)}
                       </TableCell>

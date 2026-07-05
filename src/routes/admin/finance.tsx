@@ -80,15 +80,15 @@ const isOutgoingPayment = (payment: Payment) =>
 
 const paymentVisual = (payment: Payment) => {
   if (isManualPayment(payment)) {
-    return { icon: Wallet, bg: "#e0f2fe", text: "#0077b6" };
+    return { icon: Wallet, cls: "bg-sky-500/10 text-sky-600" };
   }
   if (isOutgoingPayment(payment)) {
-    return { icon: TrendingDown, bg: "#fee2e2", text: "#dc2626" };
+    return { icon: TrendingDown, cls: "bg-destructive/10 text-destructive" };
   }
   if (payment.type === "refund" || payment.type === "discount") {
-    return { icon: Receipt, bg: "#fef3c7", text: "#d97706" };
+    return { icon: Receipt, cls: "bg-amber-500/10 text-amber-600" };
   }
-  return { icon: TrendingUp, bg: "#dcfce7", text: "#16a34a" };
+  return { icon: TrendingUp, cls: "bg-emerald-500/10 text-emerald-600" };
 };
 
 const methodBadgeClass = (method: PaymentMethod) => {
@@ -290,7 +290,7 @@ function FinancePage() {
                       <TableCell className="font-medium">{w.fullName}</TableCell>
                       <TableCell className="text-muted-foreground">{w.phone}</TableCell>
                       <TableCell><Badge variant={w.status === "debtor" ? "destructive" : "outline"}>{t(`status.${w.status}`)}</Badge></TableCell>
-                      <TableCell style={{ textAlign: "right", fontWeight: 700, color: w.balance < 0 ? "#dc2626" : w.balance > 0 ? "#16a34a" : "#94a3b8" }}>{formatMoney(w.balance, lang)}</TableCell>
+                      <TableCell className={`text-right font-bold ${w.balance < 0 ? "text-destructive" : w.balance > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>{formatMoney(w.balance, lang)}</TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
                         {w.lastPaymentDate ? `${formatDate(w.lastPaymentDate, lang)} (+${formatMoney(w.lastPaymentAmount || 0, lang)})` : "—"}
                       </TableCell>
@@ -356,8 +356,8 @@ function FinancePage() {
                               </div>
                             ); })()}
                             <div className="min-w-0">
-                              <div style={{ fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
-                              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              <div className="truncate font-semibold text-foreground">{name}</div>
+                              <div className="mt-px truncate text-[11px] text-muted-foreground">
                                 {student?.phone ?? group?.name ?? "-"}
                               </div>
                             </div>
@@ -365,8 +365,8 @@ function FinancePage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div style={{ display: "flex", width: 30, height: 30, alignItems: "center", justifyContent: "center", borderRadius: 8, background: visual.bg }}>
-                              <Icon style={{ width: 14, height: 14, color: visual.text }} />
+                            <div className={`flex size-[30px] items-center justify-center rounded-lg ${visual.cls}`}>
+                              <Icon className="size-3.5" />
                             </div>
                             <div className="min-w-0">
                               <div className="truncate text-sm font-medium text-foreground">
@@ -376,7 +376,7 @@ function FinancePage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell style={{ textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: outgoing ? "#dc2626" : "#16a34a" }}>
+                        <TableCell className={`text-right font-bold tabular-nums ${outgoing ? "text-destructive" : "text-emerald-600"}`}>
                           {sign}{formatMoney(p.amount, lang)}
                         </TableCell>
                         <TableCell>
@@ -443,25 +443,25 @@ function FinancePage() {
           <TabsContent value="debtors" className="mt-4">
             {debtors.length === 0 ? (
               <div className="edu-card flex flex-col items-center gap-3 p-12 text-center">
-                <div style={{ display: "flex", width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, background: "#dcfce7", color: "#16a34a" }}>
+                <div className="flex size-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
                   <Wallet className="size-6" />
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "#0f172a" }}>{t("finance.emptyDebtors")}</div>
+                <div className="text-[15px] font-semibold text-foreground">{t("finance.emptyDebtors")}</div>
               </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {debtors.map((student) => {
                   return (
-                    <div key={student.id} className="edu-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 16 }}>
-                      <div style={{ display: "flex", width: 40, height: 40, flexShrink: 0, alignItems: "center", justifyContent: "center", borderRadius: 8, background: "#fee2e2", color: "#dc2626" }}>
+                    <div key={student.id} className="edu-card flex items-center gap-3 p-4">
+                      <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
                         <AlertTriangle className="size-5" />
                       </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.fullName}</div>
-                        <div style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.phone}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-semibold text-foreground">{student.fullName}</div>
+                        <div className="truncate text-[11px] text-muted-foreground">{student.phone}</div>
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>{formatMoney(Math.abs(student.balance), lang)}</div>
+                      <div className="text-right">
+                        <div className="text-[13px] font-bold text-destructive">{formatMoney(Math.abs(student.balance), lang)}</div>
                       </div>
                     </div>
                   );

@@ -128,7 +128,7 @@ function AdminHome() {
           </div>
 
           {todayLessons.length === 0 ? (
-            <div style={{ padding: "36px 14px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+            <div style={{ padding: "36px 14px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 13 }}>
               {tr("Bugun darslar yo'q", "Сегодня уроков нет")}
             </div>
           ) : (
@@ -156,7 +156,7 @@ function AdminHome() {
                         {course?.name ?? group.name}
                         {" "}<span style={{ fontWeight: 400, color: "#64748b" }}>{group.name}</span>
                       </div>
-                      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1, display: "flex", gap: 8 }}>
+                      <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1, display: "flex", gap: 8 }}>
                         {teacher?.fullName && <span>{teacher.fullName.split(" ")[0]}</span>}
                         {room?.name && (
                           <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
@@ -190,7 +190,7 @@ function AdminHome() {
           </div>
 
           {recentPayments.length === 0 ? (
-            <div style={{ padding: "36px 14px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+            <div style={{ padding: "36px 14px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 13 }}>
               {tr("To'lovlar yo'q", "Платежей нет")}
             </div>
           ) : (
@@ -215,11 +215,11 @@ function AdminHome() {
                       <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {name}
                       </div>
-                      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
+                      <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1 }}>
                         {formatTime(payment.date)} · {payment.method ?? tr(typeLabel.uz, typeLabel.ru)}
                       </div>
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: 13, flexShrink: 0, color: isCharge ? "#dc2626" : "#16a34a" }}>
+                    <div className={`flex-shrink-0 text-[13px] font-bold ${isCharge ? "text-destructive" : "text-emerald-600"}`}>
                       {isCharge ? "−" : "+"}{formatMoney(payment.amount, lang)}
                     </div>
                   </div>
