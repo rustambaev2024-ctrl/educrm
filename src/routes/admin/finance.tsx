@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -120,19 +121,20 @@ function FinancePage() {
   const { payments, students, groups, reversePayment, isLoading } = useData();
   const [payOpen, setPayOpen] = useState(false);
   const [reversingId, setReversingId] = useState<string | null>(null);
+  const [reverseTarget, setReverseTarget] = useState<{ id: string; amount: number } | null>(null);
 
-  const handleReverse = async (paymentId: string, amount: number) => {
+  const handleReverse = (paymentId: string, amount: number) => {
     if (reversingId) return;
-    const confirmed = window.confirm(
-      lang === "uz"
-        ? `${formatMoney(amount, lang)} miqdordagi to'lovni bekor qilishni tasdiqlaysizmi?`
-        : `Отменить платёж на сумму ${formatMoney(amount, lang)}?`
-    );
-    if (!confirmed) return;
-    setReversingId(paymentId);
+    setReverseTarget({ id: paymentId, amount });
+  };
+
+  const confirmReverse = async () => {
+    if (!reverseTarget) return;
+    setReversingId(reverseTarget.id);
     try {
-      await reversePayment(paymentId);
+      await reversePayment(reverseTarget.id);
       toast.success(lang === "uz" ? "To'lov bekor qilindi" : "Платёж отменён");
+      setReverseTarget(null);
     } catch {
       toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
     } finally {
@@ -506,6 +508,23 @@ function FinancePage() {
 
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} />
       <ExpenseDialog open={expenseOpen} onOpenChange={setExpenseOpen} />
+      <ConfirmDialog
+        open={reverseTarget !== null}
+        onOpenChange={(open) => !open && setReverseTarget(null)}
+        title={lang === "uz" ? "To'lovni bekor qilish" : "Отменить платёж"}
+        description={
+          reverseTarget
+            ? (lang === "uz"
+                ? `${formatMoney(reverseTarget.amount, lang)} miqdordagi to'lov bekor qilinadi.`
+                : `Платёж на сумму ${formatMoney(reverseTarget.amount, lang)} будет отменён.`)
+            : undefined
+        }
+        confirmText={lang === "uz" ? "Bekor qilish" : "Отменить платёж"}
+        cancelText={lang === "uz" ? "Yopish" : "Закрыть"}
+        variant="destructive"
+        onConfirm={confirmReverse}
+        isLoading={reversingId !== null}
+      />
     </PageShell>
   );
 }

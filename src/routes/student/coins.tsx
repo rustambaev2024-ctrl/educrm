@@ -13,6 +13,7 @@ import {
   Package,
 } from "lucide-react";
 import { coinApi } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDate, initialsOf } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -54,6 +55,8 @@ function StudentCoins() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [buyTarget, setBuyTarget] = useState<any>(null);
+  const [buying, setBuying] = useState(false);
 
   const loadData = async () => {
     try {
@@ -82,16 +85,17 @@ function StudentCoins() {
     (wallet?.balance || 0) >= product.price_coins &&
     (wallet?.level || 1) >= (product.min_level || 1);
 
-  const handleBuy = async (product: any) => {
-    const confirmed = window.confirm(
-      lang === "uz"
-        ? `"${product.name_uz}" uchun ${product.price_coins} coin sarflaysizmi?`
-        : `Потратить ${product.price_coins} монет на "${product.name_ru}"?`
-    );
-    if (!confirmed) return;
+  const handleBuy = (product: any) => {
+    setBuyTarget(product);
+  };
+
+  const confirmBuy = async () => {
+    if (!buyTarget) return;
+    setBuying(true);
     try {
-      await coinApi.products.buy(product.id);
+      await coinApi.products.buy(buyTarget.id);
       toast.success(lang === "uz" ? "Xarid muvaffaqiyatli!" : "Покупка успешна!");
+      setBuyTarget(null);
       loadData();
     } catch (err: any) {
       const msg = err?.message || "";
@@ -104,6 +108,8 @@ function StudentCoins() {
       } else {
         toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
       }
+    } finally {
+      setBuying(false);
     }
   };
 
@@ -136,6 +142,7 @@ function StudentCoins() {
   }
 
   return (
+    <>
     <div className="p-4 pb-24 space-y-4 max-w-lg mx-auto">
 
       {/* ── HERO CARD ── */}
@@ -436,5 +443,22 @@ function StudentCoins() {
         )}
       </div>
     </div>
+    <ConfirmDialog
+      open={buyTarget !== null}
+      onOpenChange={(open) => !open && setBuyTarget(null)}
+      title={lang === "uz" ? "Xaridni tasdiqlash" : "Подтвердите покупку"}
+      description={
+        buyTarget
+          ? (lang === "uz"
+              ? `"${buyTarget.name_uz}" uchun ${buyTarget.price_coins} coin sarflanadi.`
+              : `На "${buyTarget.name_ru}" будет потрачено ${buyTarget.price_coins} монет.`)
+          : undefined
+      }
+      confirmText={lang === "uz" ? "Sotib olish" : "Купить"}
+      cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+      onConfirm={confirmBuy}
+      isLoading={buying}
+    />
+    </>
   );
 }

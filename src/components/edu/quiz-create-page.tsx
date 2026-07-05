@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ChevronLeft, Clock, Copy, Plus, Trash2, Check, ClipboardCheck } from "lucide-react";
 import { quizApi } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useI18n } from "@/lib/i18n";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -59,6 +60,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
   const [questions, setQuestions] = useState<QuestionDraft[]>([createEmptyQuestion()]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [hasUnsaved, setHasUnsaved] = useState(false);
 
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
@@ -246,14 +248,14 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
 
   const handleBack = () => {
     if (hasUnsaved) {
-      const ok = window.confirm(
-        tr(
-          "Saqlashtirilmagan o'zgarishlar yo'qoladi. Davom etasizmi?",
-          "Несохранённые изменения будут потеряны. Продолжить?"
-        )
-      );
-      if (!ok) return;
+      setLeaveConfirmOpen(true);
+      return;
     }
+    navigate({ to: `${basePath}/quizzes` as string });
+  };
+
+  const confirmLeave = () => {
+    setLeaveConfirmOpen(false);
     navigate({ to: `${basePath}/quizzes` as string });
   };
 
@@ -263,6 +265,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
+    <>
     <div
       style={{
         display: "grid",
@@ -530,6 +533,20 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
         )}
       </div>
     </div>
+    <ConfirmDialog
+      open={leaveConfirmOpen}
+      onOpenChange={setLeaveConfirmOpen}
+      title={tr("Chiqishni tasdiqlash", "Подтвердите выход")}
+      description={tr(
+        "Saqlanmagan o'zgarishlar yo'qoladi.",
+        "Несохранённые изменения будут потеряны."
+      )}
+      confirmText={tr("Chiqish", "Выйти")}
+      cancelText={tr("Qolish", "Остаться")}
+      variant="destructive"
+      onConfirm={confirmLeave}
+    />
+    </>
   );
 }
 

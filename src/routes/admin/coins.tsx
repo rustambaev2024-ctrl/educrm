@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -197,6 +198,8 @@ function OrdersTab() {
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -207,8 +210,7 @@ function OrdersTab() {
   };
   useEffect(load, []);
 
-  const setStatus = async (id: string, status: string) => {
-    if (status === "cancelled" && !window.confirm(tr("Bekor qilib, coinlarni qaytarishni tasdiqlaysizmi?", "Отменить и вернуть монеты?"))) return;
+  const applyStatus = async (id: string, status: string) => {
     try {
       await coinApi.orders.updateStatus(id, status);
       toast.success(tr("Yangilandi", "Обновлено"));
@@ -218,9 +220,29 @@ function OrdersTab() {
     }
   };
 
+  const setStatus = (id: string, status: string) => {
+    if (status === "cancelled") {
+      setCancelId(id);
+      return;
+    }
+    void applyStatus(id, status);
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelId) return;
+    setCancelling(true);
+    try {
+      await applyStatus(cancelId, "cancelled");
+      setCancelId(null);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (loading) return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
   return (
+    <>
     <Card className="overflow-hidden shadow-elegant">
       <Table>
         <TableHeader>
@@ -259,6 +281,18 @@ function OrdersTab() {
         </TableBody>
       </Table>
     </Card>
+    <ConfirmDialog
+      open={cancelId !== null}
+      onOpenChange={(open) => !open && setCancelId(null)}
+      title={tr("Buyurtmani bekor qilish", "Отменить заказ")}
+      description={tr("Bekor qilinsa, coinlar o'quvchiga qaytariladi.", "При отмене монеты вернутся ученику.")}
+      confirmText={tr("Bekor qilish", "Отменить")}
+      cancelText={tr("Yopish", "Закрыть")}
+      variant="destructive"
+      onConfirm={confirmCancel}
+      isLoading={cancelling}
+    />
+    </>
   );
 }
 

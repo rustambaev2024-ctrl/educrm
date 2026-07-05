@@ -6,6 +6,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +40,14 @@ function TeacherGrades() {
 
   const myGroups = useMemo(() => groups.filter((g) => g.teacherId === teacherId), [groups, teacherId]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const [deleteGradeId, setDeleteGradeId] = useState<string | null>(null);
+
+  const confirmDeleteGrade = () => {
+    if (!deleteGradeId) return;
+    deleteGrade(deleteGradeId);
+    setDeleteGradeId(null);
+    toast.success(t("grades.deleted"));
+  };
   useEffect(() => {
     if (!selectedGroupId && myGroups.length > 0) {
       setSelectedGroupId(myGroups[0].id);
@@ -194,16 +203,7 @@ function TeacherGrades() {
                         variant="ghost"
                         size="icon"
                         className="size-8"
-                        onClick={() => {
-                          const confirmed = window.confirm(
-                            lang === "uz"
-                              ? "Bu bahoni o'chirishni tasdiqlaysizmi?"
-                              : "Удалить эту оценку?"
-                          );
-                          if (!confirmed) return;
-                          deleteGrade(g.id);
-                          toast.success(t("grades.deleted"));
-                        }}
+                        onClick={() => setDeleteGradeId(g.id)}
                       >
                         <Trash2 className="size-4 text-muted-foreground" />
                       </Button>
@@ -251,6 +251,16 @@ function TeacherGrades() {
           </div>
         </SheetContent>
       </Sheet>
+      <ConfirmDialog
+        open={deleteGradeId !== null}
+        onOpenChange={(open) => !open && setDeleteGradeId(null)}
+        title={lang === "uz" ? "Bahoni o'chirish" : "Удалить оценку"}
+        description={lang === "uz" ? "Bu amalni ortga qaytarib bo'lmaydi." : "Это действие необратимо."}
+        confirmText={lang === "uz" ? "O'chirish" : "Удалить"}
+        cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+        variant="destructive"
+        onConfirm={confirmDeleteGrade}
+      />
     </PageShell>
   );
 }

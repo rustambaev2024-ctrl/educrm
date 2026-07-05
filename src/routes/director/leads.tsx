@@ -7,6 +7,7 @@ import { KpiCard } from "@/components/edu/kpi-card";
 import { PhoneInput } from "@/components/edu/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card } from "@/components/ui/card";
 import {
   Dialog,
@@ -352,22 +353,23 @@ function DirectorLeadsPage() {
     }
   };
 
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const deleteSelected = async () => {
     if (!selected) return;
-    const confirmed = window.confirm(
-      lang === "uz"
-        ? `"${selected.fullName}" murojaatini o'chirishni tasdiqlaysizmi?`
-        : `Удалить заявку "${selected.fullName}"? Это действие нельзя отменить.`,
-    );
-    if (!confirmed) return;
+    setIsDeleting(true);
     try {
       await leadApi.delete(selected.id);
       setLeads((prev) => prev.filter((lead) => lead.id !== selected.id));
+      setDeleteConfirmOpen(false);
       setSelectedId(null);
       toast.success(t.deleted);
     } catch (err) {
       console.error("[leads] delete failed", err);
       toast.error(t.saveError);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -647,7 +649,7 @@ function DirectorLeadsPage() {
           </div>
 
           <SheetFooter className="mt-6 gap-2 sm:justify-between sm:space-x-0">
-            <Button variant="destructive" onClick={deleteSelected}>
+            <Button variant="destructive" onClick={() => setDeleteConfirmOpen(true)}>
               <Trash2 className="mr-1 size-4" /> {t.delete}
             </Button>
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -720,6 +722,23 @@ function DirectorLeadsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title={lang === "uz" ? "Murojaatni o'chirish" : "Удалить заявку"}
+        description={
+          selected
+            ? (lang === "uz"
+                ? `"${selected.fullName}" murojaati o'chiriladi. Bu amalni ortga qaytarib bo'lmaydi.`
+                : `Заявка "${selected.fullName}" будет удалена. Это действие нельзя отменить.`)
+            : undefined
+        }
+        confirmText={lang === "uz" ? "O'chirish" : "Удалить"}
+        cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+        variant="destructive"
+        onConfirm={deleteSelected}
+        isLoading={isDeleting}
+      />
     </PageShell>
   );
 }

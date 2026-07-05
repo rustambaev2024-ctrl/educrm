@@ -9,6 +9,7 @@ import { PhoneInput } from "@/components/edu/phone-input";
 import { StudentStatusBadge } from "@/components/edu/status-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -84,25 +85,31 @@ export function StudentDetailSheet({
 
   const currentStatusOpt = STATUS_OPTIONS.find((s) => s.value === student?.status);
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = (newStatus: string) => {
     if (!student || newStatus === student.status) return;
     const opt = STATUS_OPTIONS.find((s) => s.value === newStatus);
     const label = opt ? (lang === "uz" ? opt.uz : opt.ru) : newStatus;
     const CLOSING_STATUSES = ["archived", "graduate", "expelled"];
     const isReturningToActive =
       CLOSING_STATUSES.includes(student.status) && newStatus === "active";
-    const confirmMessage = isReturningToActive
+    const message = isReturningToActive
       ? (lang === "uz"
           ? "Diqqat: o'quvchi avval guruhlardan chiqarilgan edi. Statusni \"Faol\"ga qaytarish guruhlarni AVTOMATIK qaytarmaydi — kerakli guruhlarga qayta qo'shishingiz kerak bo'ladi. Davom etasizmi?"
           : "Внимание: студент ранее был выписан из групп. Возврат статуса в \"Активный\" НЕ восстановит группы автоматически — нужно будет заново добавить его в нужные группы. Продолжить?")
       : (lang === "uz"
           ? `Holatni "${label}" ga o'zgartirishni tasdiqlaysizmi?`
           : `Изменить статус на "${label}"?`);
-    const confirmed = window.confirm(confirmMessage);
-    if (!confirmed) return;
+    setStatusConfirm({ open: true, newStatus, message, isReturningToActive });
+  };
+
+  const handleStatusConfirm = async () => {
+    if (!student) return;
+    const { newStatus, isReturningToActive } = statusConfirm;
+    setIsChangingStatus(true);
     try {
       await studentApi.updateStatus(student.id, newStatus);
       toast.success(lang === "uz" ? "Holat yangilandi" : "Статус обновлён");
+      setStatusConfirm((prev) => ({ ...prev, open: false }));
       reload();
       if (isReturningToActive) {
         try {
@@ -118,6 +125,8 @@ export function StudentDetailSheet({
       }
     } catch {
       toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+    } finally {
+      setIsChangingStatus(false);
     }
   };
 
@@ -154,6 +163,14 @@ export function StudentDetailSheet({
   const [newStudentPassword, setNewStudentPassword] = useState("");
   const [newParentPassword, setNewParentPassword] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [statusConfirm, setStatusConfirm] = useState<{
+    open: boolean;
+    newStatus: string;
+    message: string;
+    isReturningToActive: boolean;
+  }>({ open: false, newStatus: "", message: "", isReturningToActive: false });
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
 
   type ClosedGroup = {
     group_id: string;
@@ -379,27 +396,13 @@ export function StudentDetailSheet({
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteConfirm = () => {
     if (!student) return;
-    const confirmed = window.confirm(
-      lang === "uz"
-        ? "O'quvchini o'chirishni tasdiqlaysizmi? Bu amalni qaytarib bo'lmaydi!"
-        : "Удалить студента? Это действие необратимо!"
-    );
-    if (!confirmed) return;
-    try {
-      await studentApi.delete(student.id);
-      toast.success(lang === "uz" ? "O'quvchi o'chirildi" : "Студент удалён");
-      onClose();
-      onUpdate?.();
-    } catch (err: unknown) {
-      const body = (err as { body?: Record<string, unknown> })?.body;
-      const detail = body?.detail ?? body?.message;
-      const msg = typeof detail === "string"
-        ? detail
-        : (lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
-      toast.error(msg);
-    }
+    // Удаление делегируется родителю (onDelete → deleteStudent в сторе),
+    // который делает оптимистичное обновление и сам вызывает DELETE.
+    onDelete(student.id, false);
+    setDeleteConfirmOpen(false);
+    onClose();
   };
 
   if (!student) {
@@ -742,7 +745,7 @@ export function StudentDetailSheet({
               variant="outline"
               size="sm"
               className="text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive/20"
-              onClick={handleDelete}
+              onClick={() => setDeleteConfirmOpen(true)}
             >
               {lang === "ru" ? "Удалить" : "O'chirish"}
             </Button>
@@ -855,6 +858,35 @@ export function StudentDetailSheet({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete (permanent) Confirm */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title={lang === "uz" ? "O'quvchini o'chirish" : "Удалить студента"}
+        description={
+          lang === "uz"
+            ? "Bu amalni ortga qaytarib bo'lmaydi!"
+            : "Это действие необратимо!"
+        }
+        confirmText={lang === "uz" ? "O'chirish" : "Удалить"}
+        cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+        variant="destructive"
+        onConfirm={handleDeleteConfirm}
+      />
+
+      {/* Status Change Confirm */}
+      <ConfirmDialog
+        open={statusConfirm.open}
+        onOpenChange={(open) => setStatusConfirm((prev) => ({ ...prev, open }))}
+        title={lang === "uz" ? "Holatni tasdiqlash" : "Подтвердите изменение статуса"}
+        description={statusConfirm.message}
+        confirmText={lang === "uz" ? "Davom etish" : "Продолжить"}
+        cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+        variant={statusConfirm.isReturningToActive ? "destructive" : "default"}
+        onConfirm={handleStatusConfirm}
+        isLoading={isChangingStatus}
+      />
 
       {/* Transfer Dialog */}
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
