@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LessonStatusBadge } from "@/components/edu/status-badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentStudentId } from "@/lib/data/identity";
@@ -45,8 +46,11 @@ function StudentSchedulePage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="mx-auto max-w-md space-y-4 px-4 py-5">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-16 w-full rounded-xl" />
+        <Skeleton className="h-24 w-full rounded-xl" />
+        <Skeleton className="h-24 w-full rounded-xl" />
       </div>
     );
   }

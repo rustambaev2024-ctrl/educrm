@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { BookOpen, Calendar, ChevronRight, Clock, MapPin, Wallet } from "lucide-react";
+import { BookOpen, Calendar, ChevronRight, Clock, MapPin, Wallet, Layers, Receipt } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentStudentId } from "@/lib/data/identity";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/data/store";
@@ -79,8 +81,15 @@ function StudentHome() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="mx-auto max-w-md space-y-4 px-4 py-5">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
+        <Skeleton className="h-40 w-full rounded-xl" />
       </div>
     );
   }
@@ -159,9 +168,11 @@ function StudentHome() {
         </div>
         <div className="space-y-2">
           {myGroups.length === 0 ? (
-            <div className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
-              {t("studentHome.noGroups")}
-            </div>
+            <EmptyState
+              className="min-h-0 py-6"
+              icon={<Layers className="size-6" />}
+              title={t("studentHome.noGroups")}
+            />
           ) : (
             myGroups.map((group) => {
               const course = courseById[group.courseId];
@@ -206,9 +217,11 @@ function StudentHome() {
               .slice(0, 10);
             if (myPayments.length === 0) {
               return (
-                <div className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
-                  {t("studentHome.noPayments")}
-                </div>
+                <EmptyState
+                  className="min-h-0 py-6"
+                  icon={<Receipt className="size-6" />}
+                  title={t("studentHome.noPayments")}
+                />
               );
             }
             return myPayments.map((p) => {

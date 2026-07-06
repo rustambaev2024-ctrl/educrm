@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Clock, MapPin, Wallet, BookOpen, ChevronRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Clock, MapPin, Wallet, BookOpen, ChevronRight, AlertCircle, CheckCircle2, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { parentApi } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
@@ -35,8 +37,10 @@ function ParentHome() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="mx-auto max-w-md space-y-4 px-4 py-5">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-44 w-full rounded-xl" />
       </div>
     );
   }
@@ -50,7 +54,15 @@ function ParentHome() {
       </div>
 
       {children.length === 0 && (
-        <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{t("parent.noChildren")}</Card>
+        <Card className="shadow-elegant">
+          <EmptyState
+            icon={<Users className="size-7" />}
+            title={t("parent.noChildren")}
+            description={lang === "uz"
+              ? "Quyidagi kod orqali farzandingizni ulang"
+              : "Привяжите ребёнка по коду ниже"}
+          />
+        </Card>
       )}
 
       <Card className="space-y-3 p-4 shadow-elegant">

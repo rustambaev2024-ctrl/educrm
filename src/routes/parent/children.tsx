@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, BookOpen, Award, Wallet, Star, Clock, MapPin } from "lucide-react";
+import { Calendar, BookOpen, Award, Wallet, Star, Clock, MapPin, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
@@ -43,8 +45,11 @@ function ParentChildren() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="mx-auto max-w-md space-y-4 px-4 py-5">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-10 w-full rounded-lg" />
+        <Skeleton className="h-44 w-full rounded-xl" />
       </div>
     );
   }
@@ -52,7 +57,9 @@ function ParentChildren() {
   if (!child) {
     return (
       <div className="mx-auto max-w-md px-4 py-5">
-        <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{t("parent.noChildren")}</Card>
+        <Card className="shadow-elegant">
+          <EmptyState icon={<Users className="size-7" />} title={t("parent.noChildren")} />
+        </Card>
       </div>
     );
   }
