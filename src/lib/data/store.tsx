@@ -1493,13 +1493,39 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         };
         return [...prev, created];
       });
+
+      const apiPatch = submissionPatchToApi(patch);
+
       if (existing) {
         fireAndForget(
           "updateSubmission",
-          homeworkApi.gradeSubmission(existing.id, submissionPatchToApi(patch)),
+          homeworkApi.gradeSubmission(existing.id, apiPatch),
           () => setSubmissions(snapshot),
         );
+        return;
       }
+
+      // Локальной записи нет (устаревший стор / студент вступил в группу позже).
+      // Бэкенд гарантирует наличие HomeworkStatus — подтягиваем её id с сервера
+      // и делаем PATCH. Если строки реально нет — откатываемся и показываем ошибку,
+      // а не делаем вид, что сдача сохранена.
+      fireAndForget(
+        "updateSubmission",
+        homeworkApi.submissions(homeworkId).then((raw) => {
+          const rows = mapHomeworkSubmissions(raw as { results: HomeworkSubmissionRaw[] } | HomeworkSubmissionRaw[]);
+          const match = rows.find((r) => r.studentId === studentId);
+          if (!match?.id) {
+            throw new Error("Homework status not found on server");
+          }
+          setSubmissions((prev) =>
+            prev.map((s) =>
+              s.homeworkId === homeworkId && s.studentId === studentId ? { ...s, id: match.id } : s,
+            ),
+          );
+          return homeworkApi.gradeSubmission(match.id, apiPatch);
+        }),
+        () => setSubmissions(snapshot),
+      );
     },
     [submissions],
   );
