@@ -20,6 +20,7 @@ import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentTeacherId } from "@/lib/data/identity";
 import { formatDate, getLocalDateString, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 import type { GradeKind } from "@/lib/data/types";
 
 export const Route = createFileRoute("/teacher/grades")({ component: TeacherGrades });
@@ -163,7 +164,7 @@ function TeacherGrades() {
                   }}
                 >
                   <Avatar className="size-8">
-                    <AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
+                    <AvatarFallback className={`text-[11px] font-semibold text-white ${getAvatarColor(stu?.fullName ?? "?")}`}>
                       {initialsOf(stu?.fullName ?? "?")}
                     </AvatarFallback>
                   </Avatar>
@@ -187,7 +188,8 @@ function TeacherGrades() {
           {groupGrades.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">{t("grades.empty")}</div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto">
+            <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("grades.col.student")}</TableHead>
@@ -222,6 +224,7 @@ function TeacherGrades() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </Card>
       </div>

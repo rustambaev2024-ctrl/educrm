@@ -72,7 +72,8 @@ function AttendancePage() {
   const myLessons = useMemo(
     () =>
       lessons
-        .filter((l) => myGroupIds.has(l.groupId))
+        // Отменённые уроки нельзя отмечать (бэкенд их отклоняет) — убираем из селектора.
+        .filter((l) => myGroupIds.has(l.groupId) && l.status !== "cancelled")
         .sort((a, b) => Math.abs(new Date(a.datetime).getTime() - Date.now()) - Math.abs(new Date(b.datetime).getTime() - Date.now())),
     [lessons, myGroupIds],
   );
