@@ -11,6 +11,7 @@ import {
   Flame,
   Star,
   Package,
+  X,
 } from "lucide-react";
 import { coinApi } from "@/lib/api";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -21,29 +22,67 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/student/coins")({ component: StudentCoins });
 
-/** Миниатюра товара: показывает изображение по image_url, при пустом/битом URL — иконка. */
+/**
+ * Изображение товара: крупная картинка по image_url (клик — просмотр во весь экран).
+ * При пустом/битом URL — иконка-заглушка.
+ */
 function ProductThumb({ src, alt }: { src?: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
-  if (src && !failed) {
+  const [zoom, setZoom] = useState(false);
+
+  if (!src || failed) {
     return (
-      <div className="mx-auto h-16 w-16 overflow-hidden rounded-xl border border-border bg-white">
+      <div
+        className="flex h-24 w-full items-center justify-center rounded-xl"
+        style={{ background: "#e0f2fe" }}
+      >
+        <ShoppingBag className="h-8 w-8 text-[#0077b6]" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setZoom(true)}
+        className="group block h-24 w-full overflow-hidden rounded-xl border border-border bg-white transition-transform active:scale-95"
+        aria-label={alt}
+        title={alt}
+      >
         <img
           src={src}
           alt={alt}
           loading="lazy"
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain transition-transform duration-200 group-hover:scale-105"
           onError={() => setFailed(true)}
         />
-      </div>
-    );
-  }
-  return (
-    <div
-      className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl"
-      style={{ background: "#e0f2fe" }}
-    >
-      <ShoppingBag className="h-6 w-6 text-[#0077b6]" />
-    </div>
+      </button>
+
+      {zoom && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 animate-in fade-in"
+          onClick={() => setZoom(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            onClick={() => setZoom(false)}
+            className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            aria-label={alt}
+          >
+            <X className="size-5" />
+          </button>
+          <img
+            src={src}
+            alt={alt}
+            className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
   );
 }
 
