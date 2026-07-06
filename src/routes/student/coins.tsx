@@ -21,6 +21,32 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/student/coins")({ component: StudentCoins });
 
+/** Миниатюра товара: показывает изображение по image_url, при пустом/битом URL — иконка. */
+function ProductThumb({ src, alt }: { src?: string | null; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (src && !failed) {
+    return (
+      <div className="mx-auto h-16 w-16 overflow-hidden rounded-xl border border-border bg-white">
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      </div>
+    );
+  }
+  return (
+    <div
+      className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl"
+      style={{ background: "#e0f2fe" }}
+    >
+      <ShoppingBag className="h-6 w-6 text-[#0077b6]" />
+    </div>
+  );
+}
+
 const getReasonLabel = (reason: string, lang: string) => {
   const labels: Record<string, { uz: string; ru: string }> = {
     attendance: { uz: "Darsga kelish",  ru: "Посещение урока" },
@@ -286,12 +312,10 @@ function StudentCoins() {
                   key={product.id}
                   className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3"
                 >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto"
-                    style={{ background: "#e0f2fe" }}
-                  >
-                    <ShoppingBag className="h-6 w-6 text-[#0077b6]" />
-                  </div>
+                  <ProductThumb
+                    src={product.image_url}
+                    alt={lang === "uz" ? product.name_uz : product.name_ru}
+                  />
 
                   <div className="text-center">
                     <div className="font-semibold text-sm text-foreground leading-tight">
