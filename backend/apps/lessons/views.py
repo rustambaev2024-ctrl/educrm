@@ -112,6 +112,18 @@ class LessonViewSet(
             serializer = AttendanceSerializer(attendance_qs, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
+        # Нельзя отмечать посещаемость для отменённого урока.
+        if lesson.status == "cancelled":
+            return Response(
+                {
+                    "detail": {
+                        "uz": "Bekor qilingan dars uchun davomat belgilab bo'lmaydi",
+                        "ru": "Нельзя отметить посещаемость для отменённого урока",
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = BulkAttendanceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         records = serializer.validated_data["records"]

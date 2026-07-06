@@ -7,6 +7,7 @@ import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CardGridSkeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,9 +83,16 @@ function TeacherHomework() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t("hw.title")} subtitle={t("hw.subtitle")}>
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-2 min-[360px]:gap-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <StatCardSkeleton key={i} />
+            ))}
+          </div>
+          <CardGridSkeleton count={4} className="lg:grid-cols-2" />
+        </div>
+      </PageShell>
     );
   }
 

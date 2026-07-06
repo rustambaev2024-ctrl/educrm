@@ -6,6 +6,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton, ListSkeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Select,
@@ -60,7 +61,7 @@ const STATUS_META: Record<AttendanceStatus, { icon: typeof Check; tone: string; 
 
 function AttendancePage() {
   const { t, lang } = useI18n();
-  const { groups, lessons, students, getAttendanceFor, setAttendance } = useData();
+  const { groups, lessons, students, getAttendanceFor, setAttendance, isLoading } = useData();
   const teacherId = useCurrentTeacherId();
 
   const myGroupIds = useMemo(
@@ -187,6 +188,21 @@ function AttendancePage() {
     const late = Object.values(marks).filter((s) => s === "late").length;
     return { present, absent, late };
   }, [marks]);
+
+  if (isLoading) {
+    return (
+      <PageShell title={t("att.title")} subtitle={t("att.subtitle")}>
+        <div className="space-y-4">
+          <Card className="p-4 shadow-elegant">
+            <Skeleton className="h-9 w-full max-w-md" />
+          </Card>
+          <Card className="p-5 shadow-elegant">
+            <ListSkeleton rows={6} />
+          </Card>
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell title={t("att.title")} subtitle={t("att.subtitle")}>

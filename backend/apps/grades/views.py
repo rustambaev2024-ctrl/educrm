@@ -55,7 +55,39 @@ class GradeViewSet(
         return scoped.order_by("-graded_at")
 
     def perform_create(self, serializer):
-        serializer.save(graded_by=self.request.user)
+        from rest_framework.exceptions import ValidationError
+
+        user = self.request.user
+        group = serializer.validated_data.get("group")
+
+        # Учитель может оценивать только студентов своих групп.
+        if user.role == "teacher":
+            teacher = getattr(user, "staff_profile", None)
+            if not group or not teacher or group.teacher_id != teacher.id:
+                raise ValidationError(
+                    {
+                        "detail": {
+                            "uz": "Siz faqat o'z guruhingiz o'quvchilarini baholay olasiz",
+                            "ru": "Вы можете оценивать только студентов своей группы",
+                        }
+                    }
+                )
+        # Помощник учителя — только закреплённые за ним группы.
+        elif user.role == "support_teacher":
+            from apps.staff.utils import get_support_teacher_group_ids
+
+            allowed = {str(gid) for gid in get_support_teacher_group_ids(user)}
+            if not group or str(group.id) not in allowed:
+                raise ValidationError(
+                    {
+                        "detail": {
+                            "uz": "Siz faqat biriktirilgan guruhlarni baholay olasiz",
+                            "ru": "Вы можете оценивать только закреплённые за вами группы",
+                        }
+                    }
+                )
+
+        serializer.save(graded_by=user)
 
     def perform_destroy(self, instance):
         user = self.request.user

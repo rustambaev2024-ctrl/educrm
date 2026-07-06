@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Calendar, DollarSign, Users, Wallet, MinusCircle } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { analyticsApi } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney as _formatMoney } from "@/lib/format";
@@ -230,8 +231,17 @@ function TeacherFinancePage() {
                   </Card>
                 ))
               ) : (
-                <div className="col-span-full bg-muted/20 rounded-lg p-8 text-center text-muted-foreground">
-                  {tr("Tanlangan davr uchun guruhlardan tushumlar mavjud emas", "За выбранный период поступлений от групп нет")}
+                <div className="col-span-full">
+                  <Card className="shadow-sm border-border/60">
+                    <EmptyState
+                      icon={<DollarSign className="size-7" />}
+                      title={tr("Hali daromad ma'lumotlari yo'q", "Данные о доходах пока отсутствуют")}
+                      description={tr(
+                        "Tanlangan davr uchun guruhlardan tushumlar mavjud emas",
+                        "За выбранный период поступлений от групп нет",
+                      )}
+                    />
+                  </Card>
                 </div>
               )}
             </div>
