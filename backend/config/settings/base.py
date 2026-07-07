@@ -131,7 +131,11 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# На Railway диск контейнера эфемерный — загруженные файлы (логотипы, фото,
+# файлы ДЗ) стираются при каждом редеплое. Чтобы они сохранялись, монтируем
+# постоянный Railway Volume и указываем на него через MEDIA_ROOT.
+# По умолчанию — прежний путь (для локальной разработки).
+MEDIA_ROOT = os.getenv("MEDIA_ROOT", str(BASE_DIR / "media"))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
