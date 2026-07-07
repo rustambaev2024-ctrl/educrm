@@ -418,7 +418,7 @@ export function StudentDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:w-[400px] sm:max-w-[400px] overflow-y-auto">
+      <SheetContent className="w-full sm:w-[560px] sm:max-w-[560px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="text-left">{student.fullName}</SheetTitle>
           <SheetDescription className="text-left">
@@ -459,14 +459,14 @@ export function StudentDetailSheet({
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] text-success border-success/20 hover:bg-success hover:text-success-foreground" onClick={() => setTopUpOpen(true)}>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none text-success border-success/20 hover:bg-success hover:text-success-foreground" onClick={() => setTopUpOpen(true)}>
                 <ArrowDownCircle className="size-3.5 mr-1" /> To'ldirish
               </Button>
-              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" onClick={() => setChargeOpen(true)}>
+              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" onClick={() => setChargeOpen(true)}>
                 <ArrowUpCircle className="size-3.5 mr-1" /> Yechish
               </Button>
-              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] gap-1 border-amber-300 text-amber-600 hover:bg-amber-50" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
+              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none gap-1 border-amber-300 text-amber-600 hover:bg-amber-50" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
                 <Coins className="size-3.5" />
                 {lang === "uz" ? "Coin" : "Монеты"}
               </Button>
