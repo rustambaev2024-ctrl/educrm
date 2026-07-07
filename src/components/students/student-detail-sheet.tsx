@@ -427,46 +427,49 @@ export function StudentDetailSheet({
         </SheetHeader>
 
         <div className="space-y-5 px-4 py-6">
-          <div className="flex items-center gap-4">
-            <div className="flex size-20 items-center justify-center overflow-hidden rounded-2xl bg-gradient-primary text-lg font-semibold text-primary-foreground shadow-elegant">
-              {student.photo ? (
-                <a href={student.photo} target="_blank" rel="noreferrer" className="size-full hover:opacity-80 transition-opacity">
-                  <img src={student.photo} alt={student.fullName} className="size-full object-cover" />
-                </a>
-              ) : (
-                student.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")
-              )}
-            </div>
-            <div className="space-y-1">
-              <span className={`text-sm font-medium ${currentStatusOpt?.textColor ?? "text-muted-foreground"}`}>
-                {currentStatusOpt ? (lang === "uz" ? currentStatusOpt.uz : currentStatusOpt.ru) : student.status}
-              </span>
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Phone className="size-3.5" /> {student.phone}
+          <div className="space-y-4">
+            <div className="flex items-start gap-4">
+              <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-primary text-lg font-semibold text-primary-foreground shadow-elegant sm:size-20">
+                {student.photo ? (
+                  <a href={student.photo} target="_blank" rel="noreferrer" className="size-full hover:opacity-80 transition-opacity">
+                    <img src={student.photo} alt={student.fullName} className="size-full object-cover" />
+                  </a>
+                ) : (
+                  student.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")
+                )}
               </div>
-              {student.birthDate && (
+              <div className="min-w-0 flex-1 space-y-1">
+                <span className={`block text-sm font-medium ${currentStatusOpt?.textColor ?? "text-muted-foreground"}`}>
+                  {currentStatusOpt ? (lang === "uz" ? currentStatusOpt.uz : currentStatusOpt.ru) : student.status}
+                </span>
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <CalendarIcon className="size-3.5" /> {formatDate(student.birthDate, lang)}
+                  <Phone className="size-3.5 shrink-0" /> <span className="truncate">{student.phone}</span>
                 </div>
-              )}
+                {student.birthDate && (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <CalendarIcon className="size-3.5 shrink-0" /> <span className="truncate">{formatDate(student.birthDate, lang)}</span>
+                  </div>
+                )}
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-xs text-muted-foreground">{t("students.col.balance")}</div>
+                <div className={`text-lg font-semibold tabular-nums sm:text-xl ${student.balance < 0 ? "text-destructive" : "text-foreground"}`}>
+                  {formatMoney(student.balance, lang)}
+                </div>
+              </div>
             </div>
-            <div className="ml-auto text-right">
-              <div className="text-xs text-muted-foreground">{t("students.col.balance")}</div>
-              <div className={`text-xl font-semibold tabular-nums ${student.balance < 0 ? "text-destructive" : "text-foreground"}`}>
-                {formatMoney(student.balance, lang)}
-              </div>
-              <div className="flex gap-2 mt-2 justify-end">
-                <Button variant="outline" size="sm" className="text-success border-success/20 hover:bg-success hover:text-success-foreground" onClick={() => setTopUpOpen(true)}>
-                  <ArrowDownCircle className="size-3.5 mr-1" /> To'ldirish
-                </Button>
-                <Button variant="outline" size="sm" className="text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" onClick={() => setChargeOpen(true)}>
-                  <ArrowUpCircle className="size-3.5 mr-1" /> Yechish
-                </Button>
-                <Button variant="outline" size="sm" className="gap-1 border-amber-300 text-amber-600 hover:bg-amber-50" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
-                  <Coins className="size-3.5" />
-                  {lang === "uz" ? "Coin" : "Монеты"}
-                </Button>
-              </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] text-success border-success/20 hover:bg-success hover:text-success-foreground" onClick={() => setTopUpOpen(true)}>
+                <ArrowDownCircle className="size-3.5 mr-1" /> To'ldirish
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" onClick={() => setChargeOpen(true)}>
+                <ArrowUpCircle className="size-3.5 mr-1" /> Yechish
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] gap-1 border-amber-300 text-amber-600 hover:bg-amber-50" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
+                <Coins className="size-3.5" />
+                {lang === "uz" ? "Coin" : "Монеты"}
+              </Button>
             </div>
           </div>
 
