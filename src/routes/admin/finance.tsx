@@ -388,7 +388,7 @@ function FinancePage() {
                         <TableCell className="max-w-[220px] truncate text-xs text-muted-foreground">{p.comment ?? "-"}</TableCell>
                         <TableCell className="text-right">
                           {["manual_charge", "manual_top_up", "top_up"].includes(p.type) && (
-                            <Button variant="ghost" size="icon" onClick={() => handleReverse(p.id, p.amount)} disabled={reversingId === p.id} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Button variant="ghost" size="icon" title={lang === "uz" ? "To'lovni bekor qilish" : "Отменить платёж"} onClick={() => handleReverse(p.id, p.amount)} disabled={reversingId === p.id} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                               <RotateCcw className={`size-4 ${reversingId === p.id ? "animate-spin" : ""}`} />
                             </Button>
                           )}
@@ -428,7 +428,7 @@ function FinancePage() {
                       <TableCell className="text-xs text-muted-foreground">{p.comment ?? "—"}</TableCell>
                       <TableCell className="text-right">
                         {["manual_charge", "manual_top_up", "top_up"].includes(p.type) && (
-                          <Button variant="ghost" size="icon" onClick={() => handleReverse(p.id, p.amount)} disabled={reversingId === p.id} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                          <Button variant="ghost" size="icon" title={lang === "uz" ? "To'lovni bekor qilish" : "Отменить платёж"} onClick={() => handleReverse(p.id, p.amount)} disabled={reversingId === p.id} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                             <RotateCcw className={`size-4 ${reversingId === p.id ? "animate-spin" : ""}`} />
                           </Button>
                         )}

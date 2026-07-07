@@ -439,7 +439,7 @@ function RoomColumn({
                   </div>
                   <div className="flex items-center gap-1 opacity-70 transition group-hover:opacity-100">
                     <GripVertical className="size-4 text-muted-foreground" />
-                    <Button variant="ghost" size="icon" className="size-7 text-destructive" onClick={() => onDelete(room)}>
+                    <Button variant="ghost" size="icon" title={lang === "uz" ? "O'chirish" : "Удалить"} className="size-7 text-destructive" onClick={() => onDelete(room)}>
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>

@@ -211,7 +211,7 @@ function SettingsTab() {
                   <TableCell><Input className="h-8" value={lvl.name_ru} onChange={(e) => updateLevel(idx, "name_ru", e.target.value)} autoComplete="off" /></TableCell>
                   <TableCell><Input type="number" className="h-8 w-24" value={lvl.xp} onChange={(e) => updateLevel(idx, "xp", e.target.value)} /></TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive" onClick={() => removeLevel(idx)}>
+                    <Button variant="ghost" size="icon" title={lang === "uz" ? "O'chirish" : "Удалить"} className="size-8 text-destructive hover:text-destructive" onClick={() => removeLevel(idx)}>
                       <Trash2 className="size-4" />
                     </Button>
                   </TableCell>
@@ -363,8 +363,8 @@ function StoreTab() {
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{lang === "uz" ? p.description_uz : p.description_ru}</p>
                 </div>
                 <div className="flex shrink-0 gap-1">
-                  <Button variant="ghost" size="icon" className="size-8" onClick={() => openEdit(p)}><Pencil className="size-4" /></Button>
-                  <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive" onClick={() => setRemoveId(p.id)}><Trash2 className="size-4" /></Button>
+                  <Button variant="ghost" size="icon" title={lang === "uz" ? "Tahrirlash" : "Изменить"} className="size-8" onClick={() => openEdit(p)}><Pencil className="size-4" /></Button>
+                  <Button variant="ghost" size="icon" title={lang === "uz" ? "O'chirish" : "Удалить"} className="size-8 text-destructive hover:text-destructive" onClick={() => setRemoveId(p.id)}><Trash2 className="size-4" /></Button>
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -627,8 +627,8 @@ function AchievementsTab() {
                 </p>
               </div>
               <div className="flex shrink-0 gap-1">
-                <Button variant="ghost" size="icon" className="size-8" onClick={() => openEdit(a)}><Pencil className="size-4" /></Button>
-                <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive" onClick={() => setRemoveId(a.id)}><Trash2 className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title={lang === "uz" ? "Tahrirlash" : "Изменить"} className="size-8" onClick={() => openEdit(a)}><Pencil className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title={lang === "uz" ? "O'chirish" : "Удалить"} className="size-8 text-destructive hover:text-destructive" onClick={() => setRemoveId(a.id)}><Trash2 className="size-4" /></Button>
               </div>
             </Card>
           ))}

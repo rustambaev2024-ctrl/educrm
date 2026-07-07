@@ -266,7 +266,7 @@ function DirectorFinancePage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {["manual_charge", "manual_top_up", "top_up"].includes(p.type) && (
-                      <Button variant="ghost" size="icon" onClick={() => handleReversePayment(p.id, p.amount)} disabled={reversingId === p.id} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                      <Button variant="ghost" size="icon" title={lang === "uz" ? "To'lovni bekor qilish" : "Отменить платёж"} onClick={() => handleReversePayment(p.id, p.amount)} disabled={reversingId === p.id} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                         <RotateCcw className={`size-4 ${reversingId === p.id ? "animate-spin" : ""}`} />
                       </Button>
                     )}

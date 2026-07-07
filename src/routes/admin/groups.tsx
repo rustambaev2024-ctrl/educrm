@@ -415,9 +415,9 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
                   <CheckCircle2 className="size-4" />
                 </Button>
               )}
-              <Button variant="ghost" size="icon" onClick={onEdit} className="text-muted-foreground hover:text-foreground"><Edit className="size-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={handleDeleteGroup} className="text-destructive hover:text-destructive/80"><Trash className="size-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={onClose}><X className="size-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={onEdit} className="text-muted-foreground hover:text-foreground" title={lang === "uz" ? "Tahrirlash" : "Изменить"}><Edit className="size-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={handleDeleteGroup} className="text-destructive hover:text-destructive/80" title={lang === "uz" ? "O'chirish" : "Удалить"}><Trash className="size-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={onClose} title={lang === "uz" ? "Yopish" : "Закрыть"}><X className="size-4" /></Button>
             </div>
           </div>
           <SheetDescription className="text-left">{course?.name}</SheetDescription>

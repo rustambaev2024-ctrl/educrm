@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -123,6 +124,23 @@ class LessonViewSet(
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Лимит backdating: учитель/помощник не могут отмечать посещаемость
+        # для урока старше 14 дней. Админ/директор/суперадмин правят без лимита
+        # (легитимная коррекция старых данных).
+        ATTENDANCE_BACKDATE_DAYS = 14
+        if request.user.role in ("teacher", "support_teacher"):
+            age_days = (timezone.now() - lesson.datetime).days
+            if age_days > ATTENDANCE_BACKDATE_DAYS:
+                return Response(
+                    {
+                        "detail": {
+                            "uz": f"Davomatni {ATTENDANCE_BACKDATE_DAYS} kundan eski dars uchun belgilab bo'lmaydi. Administratorga murojaat qiling.",
+                            "ru": f"Нельзя отметить посещаемость для урока старше {ATTENDANCE_BACKDATE_DAYS} дней. Обратитесь к администратору.",
+                        }
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer = BulkAttendanceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

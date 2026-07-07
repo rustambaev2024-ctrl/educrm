@@ -327,6 +327,7 @@ function DirectorCoursesPage() {
                     variant="ghost"
                     size="icon"
                     className="size-8 shrink-0"
+                    title={lang === "uz" ? "Kursni tahrirlash" : "Редактировать курс"}
                     onClick={(e) => { openEdit(selectedCourse, e); setSelectedCourse(null); }}
                   >
                     <Pencil className="size-4" />

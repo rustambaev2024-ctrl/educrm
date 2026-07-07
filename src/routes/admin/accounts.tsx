@@ -195,10 +195,10 @@ function AccountsPage() {
                           {visible[key] ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                         </button>
                       </div>
-                      <Button variant="outline" size="icon" onClick={() => setDrafts((prev) => ({ ...prev, [key]: makePassword() }))}>
+                      <Button variant="outline" size="icon" title={lang === "uz" ? "Yangi parol yaratish" : "Сгенерировать пароль"} onClick={() => setDrafts((prev) => ({ ...prev, [key]: makePassword() }))}>
                         <RefreshCw className="size-4" />
                       </Button>
-                      <Button size="icon" onClick={() => savePassword(row)} disabled={!drafts[key]?.trim() || (drafts[key]?.trim().length ?? 0) < 6}>
+                      <Button size="icon" title={lang === "uz" ? "Saqlash" : "Сохранить"} onClick={() => savePassword(row)} disabled={!drafts[key]?.trim() || (drafts[key]?.trim().length ?? 0) < 6}>
                         <Save className="size-4" />
                       </Button>
                     </div>
