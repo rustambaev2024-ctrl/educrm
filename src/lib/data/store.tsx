@@ -292,6 +292,23 @@ function apiErrorMessage(err: unknown): string {
   return "Amalni bajarib bo'lmadi. Ma'lumotlarni tekshirib, qayta urinib ko'ring.";
 }
 
+/** Локализованный текст ошибки из объекта вида { uz, ru }. */
+function localizedText(obj: Record<string, unknown>): string | null {
+  const hasLocale = typeof obj.uz === "string" || typeof obj.ru === "string";
+  if (!hasLocale) return null;
+  let lang = "uz";
+  try {
+    lang = localStorage.getItem("educrm.lang") || "uz";
+  } catch {
+    /* SSR / no localStorage — оставляем uz */
+  }
+  const preferred = obj[lang];
+  if (typeof preferred === "string" && preferred.trim()) return preferred;
+  if (typeof obj.ru === "string" && obj.ru.trim()) return obj.ru;
+  if (typeof obj.uz === "string" && obj.uz.trim()) return obj.uz;
+  return null;
+}
+
 function firstText(value: unknown): string | null {
   if (typeof value === "string" && value.trim()) return value;
   if (Array.isArray(value)) {
@@ -299,6 +316,13 @@ function firstText(value: unknown): string | null {
       const found = firstText(item);
       if (found) return found;
     }
+  }
+  // Бэкенд часто отдаёт причину как { uz, ru } (в т.ч. вложенную в detail).
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const localized = localizedText(record);
+    if (localized) return localized;
+    if ("detail" in record) return firstText(record.detail);
   }
   return null;
 }
