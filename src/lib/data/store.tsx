@@ -148,7 +148,7 @@ interface DataStoreActions {
   addGroup: (input: Omit<Group, "id" | "studentIds" | "status"> & { status?: Group["status"] }) => Group;
   updateGroup: (id: string, patch: Partial<Group>) => void;
   deleteGroup: (id: string) => void;
-  addStudentToGroup: (groupId: string, studentId: string) => void;
+  addStudentToGroup: (groupId: string, studentId: string) => Promise<boolean>;
   removeStudentFromGroup: (groupId: string, studentId: string) => void;
   setLessonStatus: (id: string, status: Lesson["status"], cancelReason?: string) => void;
   rescheduleLesson: (id: string, datetime: string) => void;
@@ -1134,10 +1134,14 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         : s,
       ),
     );
-    fireAndForget("addStudentToGroup", groupApi.addStudent(groupId, studentId), () => {
+    const task = groupApi.addStudent(groupId, studentId);
+    fireAndForget("addStudentToGroup", task, () => {
       setGroups(prevGroups);
       setStudents(prevStudents);
     });
+    // Возвращаем результат, чтобы вызывающий показал success только при успехе.
+    // Промис никогда не реджектится — ошибку уже покажет fireAndForget.
+    return task.then(() => true).catch(() => false);
   }, [groups, students]);
 
   const removeStudentFromGroup: DataStoreActions["removeStudentFromGroup"] = useCallback((groupId, studentId) => {

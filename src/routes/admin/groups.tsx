@@ -510,10 +510,12 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
                           <button
                             key={s.id}
                             type="button"
-                            onClick={() => {
-                              addStudentToGroup(group.id, s.id);
-                              setStudentSearch("");
-                              toast.success(t("groups.studentAdded"));
+                            onClick={async () => {
+                              const ok = await addStudentToGroup(group.id, s.id);
+                              if (ok) {
+                                setStudentSearch("");
+                                toast.success(t("groups.studentAdded"));
+                              }
                             }}
                             className="flex w-full items-center gap-3 p-3 text-left hover:bg-accent/40"
                           >

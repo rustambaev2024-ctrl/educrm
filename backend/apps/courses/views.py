@@ -211,21 +211,9 @@ class GroupViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        same_course = GroupMembership.objects.filter(
-            student=student,
-            left_at__isnull=True,
-            group__course=group.course,
-        ).exclude(group=group).select_related("group").first()
-        if same_course:
-            return Response(
-                {
-                    "detail": {
-                        "uz": f"O'quvchi '{same_course.group.name}' guruhida allaqachon o'qiydi (bir xil kurs)",
-                        "ru": f"Студент уже обучается в группе '{same_course.group.name}' (тот же курс)",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Студент может учиться в любом числе групп (разные курсы и даже
+        # несколько групп одного курса). Дубль в этой же группе отсекается
+        # проверкой active_exists выше.
 
         membership = GroupMembership.objects.create(
             group=group,
