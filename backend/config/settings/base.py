@@ -107,20 +107,8 @@ TENANT_MODEL = "tenants.Institution"
 TENANT_DOMAIN_MODEL = "tenants.Domain"
 PUBLIC_SCHEMA_NAME = "public"
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
-]
+# Ограничения на пароль сняты по требованию — любой пароль допускается.
+AUTH_PASSWORD_VALIDATORS = []
 
 LANGUAGE_CODE = "ru"
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")
