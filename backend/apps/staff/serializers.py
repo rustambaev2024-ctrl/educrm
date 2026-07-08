@@ -64,15 +64,7 @@ class StaffSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
-        from apps.superadmin.models import PlatformSettings
-        settings = PlatformSettings.get()
-        if settings.strong_password:
-            if len(value) < 8:
-                raise serializers.ValidationError("Password must be at least 8 characters")
-            if not any(c.isdigit() for c in value):
-                raise serializers.ValidationError("Password must contain at least one digit")
-            if not any(c.isupper() for c in value):
-                raise serializers.ValidationError("Password must contain at least one uppercase letter")
+        # Ограничения на пароль сняты — любой пароль допускается.
         return value
 
     @transaction.atomic

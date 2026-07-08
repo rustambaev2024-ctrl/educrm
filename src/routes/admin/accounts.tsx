@@ -107,7 +107,7 @@ function AccountsPage() {
 
   const savePassword = (row: AccountRow) => {
     const password = drafts[`${row.type}-${row.id}`]?.trim();
-    if (!password || password.length < 6) return;
+    if (!password) return;
     if (row.type === "teacher") updateStaff(row.id, { password });
     if (row.type === "student") updateStudentPasswords(row.id, password);
     if (row.type === "parent") updateParentPassword(row.id, password);
@@ -198,7 +198,7 @@ function AccountsPage() {
                       <Button variant="outline" size="icon" title={lang === "uz" ? "Yangi parol yaratish" : "Сгенерировать пароль"} onClick={() => setDrafts((prev) => ({ ...prev, [key]: makePassword() }))}>
                         <RefreshCw className="size-4" />
                       </Button>
-                      <Button size="icon" title={lang === "uz" ? "Saqlash" : "Сохранить"} onClick={() => savePassword(row)} disabled={!drafts[key]?.trim() || (drafts[key]?.trim().length ?? 0) < 6}>
+                      <Button size="icon" title={lang === "uz" ? "Saqlash" : "Сохранить"} onClick={() => savePassword(row)} disabled={!drafts[key]?.trim()}>
                         <Save className="size-4" />
                       </Button>
                     </div>
