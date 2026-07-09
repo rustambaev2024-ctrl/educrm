@@ -22,6 +22,10 @@ if not SECRET_KEY or SECRET_KEY in {
 if not ALLOWED_HOSTS:
     raise RuntimeError("ALLOWED_HOSTS must be set for staging.")
 
+# Внутренний хост healthcheck'а Railway — не публичный, всегда разрешён.
+if "healthcheck.railway.app" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS = [*ALLOWED_HOSTS, "healthcheck.railway.app"]
+
 if not CORS_ALLOWED_ORIGINS:
     raise RuntimeError("CORS_ALLOWED_ORIGINS must be set for staging.")
 
