@@ -13,7 +13,7 @@ import {
   Package,
   X,
 } from "lucide-react";
-import { coinApi } from "@/lib/api";
+import { coinApi, ApiError } from "@/lib/api";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDate, initialsOf } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -160,21 +160,26 @@ function StudentCoins() {
     try {
       await coinApi.products.buy(buyTarget.id);
       toast.success(lang === "uz" ? "Xarid muvaffaqiyatli!" : "Покупка успешна!");
-      setBuyTarget(null);
       loadData();
-    } catch (err: any) {
-      const msg = err?.message || "";
+    } catch (err) {
+      const msg = err instanceof ApiError ? String((err.body as { error?: string })?.error ?? "") : "";
       if (msg.includes("Insufficient")) {
         toast.error(lang === "uz" ? "Coin yetarli emas" : "Недостаточно монет");
       } else if (msg.includes("Level")) {
         toast.error(lang === "uz" ? "Daraja yetarli emas" : "Уровень недостаточный");
-      } else if (msg.includes("limit")) {
+      } else if (msg.includes("limit") || msg.includes("Limit")) {
         toast.error(lang === "uz" ? "Limit tugagan" : "Лимит исчерпан");
+      } else if (msg.includes("Store is closed")) {
+        toast.error(lang === "uz" ? "Do'kon bugun yopiq" : "Магазин сегодня закрыт");
+      } else if (msg.includes("not available") || msg.includes("Out of stock")) {
+        toast.error(lang === "uz" ? "Mahsulot mavjud emas — ro'yxat yangilandi" : "Товар больше недоступен — список обновлён");
+        loadData();
       } else {
         toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
       }
     } finally {
       setBuying(false);
+      setBuyTarget(null);
     }
   };
 
