@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { Building2, Users, Activity, AlertTriangle, Search, Plus, Pencil, Trash2, MapPin, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
@@ -46,6 +47,13 @@ interface InstitutionFormState {
   directorPassword: string;
 }
 
+const CREATION_STEPS = [
+  { id: "schema", label: "Sxema yaratilmoqda..." },
+  { id: "migrate", label: "Bazalar sozlanmoqda..." },
+  { id: "director", label: "Direktor yaratilmoqda..." },
+  { id: "branch", label: "Filial yaratilmoqda..." },
+];
+
 const emptyForm: InstitutionFormState = {
   name: "", slug: "", city: "", domain: "", status: "active",
   expiresAt: getLocalDateString(new Date(Date.now() + 365 * 86400000)),
@@ -80,6 +88,26 @@ function SuperadminHome() {
   const [openInst, setOpenInst] = useState(false);
   const [editing, setEditing] = useState<Institution | null>(null);
   const [form, setForm] = useState<InstitutionFormState>(emptyForm);
+  const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [creationStep, setCreationStep] = useState<number>(-1);
+
+  // Проверка доступности slug (debounce 500ms) — только при создании
+  useEffect(() => {
+    if (editing || !openInst || !form.slug) {
+      setSlugStatus("idle");
+      return;
+    }
+    setSlugStatus("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const r = await superadminApi.institutions.checkSlug(form.slug);
+        setSlugStatus(r.available ? "available" : "taken");
+      } catch {
+        setSlugStatus("idle");
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [form.slug, editing, openInst]);
 
   const [branchInst, setBranchInst] = useState<Institution | null>(null);
   const [branchForm, setBranchForm] = useState({ name: "", address: "" });
@@ -131,7 +159,7 @@ function SuperadminHome() {
     setOpenInst(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name.trim() || !form.city.trim()) {
       toast.error(t("common.required"));
       return;
@@ -155,17 +183,33 @@ function SuperadminHome() {
         directorPassword: form.directorPassword.trim() || undefined,
       });
       toast.success(t("sa.updated"));
-    } else {
-      addInstitution({
-        name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), status: form.status,
-        expiresAt: form.expiresAt,
-        directorName: form.directorName.trim() || undefined,
-        directorPhone: form.directorPhone.trim() || undefined,
-        directorPassword: form.directorPassword.trim() || undefined,
-      });
-      toast.success(t("sa.created"));
+      setOpenInst(false);
+      return;
     }
-    setOpenInst(false);
+    if (slugStatus === "taken") {
+      toast.error(lang === "uz" ? "Bu slug band — boshqa nom tanlang" : "Этот slug занят — выберите другое название");
+      return;
+    }
+    // Прогресс: реального статуса с бэка нет, шаги имитируются таймером,
+    // но завершение/ошибка — по реальному ответу API.
+    setCreationStep(0);
+    const timer = setInterval(() => {
+      setCreationStep((prev) => Math.min(prev + 1, CREATION_STEPS.length - 1));
+    }, 2000);
+    const ok = await addInstitution({
+      name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), status: form.status,
+      expiresAt: form.expiresAt,
+      directorName: form.directorName.trim() || undefined,
+      directorPhone: form.directorPhone.trim() || undefined,
+      directorPassword: form.directorPassword.trim() || undefined,
+    });
+    clearInterval(timer);
+    setCreationStep(-1);
+    if (ok) {
+      toast.success(t("sa.created"));
+      setOpenInst(false);
+    }
+    // Ошибку с деталями показывает store через apiErrorMessage
   };
 
   const handleDelete = async (i: Institution, force = false) => {
@@ -362,7 +406,7 @@ function SuperadminHome() {
       </div>
 
       {/* Institution create/edit dialog */}
-      <Dialog open={openInst} onOpenChange={setOpenInst}>
+      <Dialog open={openInst} onOpenChange={(o) => { if (creationStep >= 0) return; setOpenInst(o); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? t("sa.edit") : t("sa.add")}</DialogTitle>
@@ -383,6 +427,14 @@ function SuperadminHome() {
                   }));
                 }}
               />
+              {!editing && form.slug && (
+                <div className="mt-1.5 flex items-center gap-2 text-xs">
+                  <span className="font-mono text-muted-foreground">{form.slug}</span>
+                  {slugStatus === "checking" && <span className="text-muted-foreground">{lang === "uz" ? "Tekshirilmoqda..." : "Проверяется..."}</span>}
+                  {slugStatus === "available" && <span className="text-success">✓ {lang === "uz" ? "Mavjud" : "Свободен"}</span>}
+                  {slugStatus === "taken" && <span className="text-destructive">✗ {lang === "uz" ? "Band" : "Занят"}</span>}
+                </div>
+              )}
             </Field>
             <Field label={t("sa.field.city")}>
               <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
@@ -422,9 +474,27 @@ function SuperadminHome() {
               </div>
             </div>
           </div>
+          {creationStep >= 0 && (
+            <div className="space-y-2 rounded-xl border border-border/60 bg-accent/30 p-4">
+              {CREATION_STEPS.map((step, i) => (
+                <div
+                  key={step.id}
+                  className={cn(
+                    "flex items-center gap-2 text-sm transition-colors",
+                    i < creationStep ? "text-success" : i === creationStep ? "text-foreground font-medium" : "text-muted-foreground",
+                  )}
+                >
+                  <span className="w-4 text-center">{i < creationStep ? "✓" : i === creationStep ? "⏳" : "○"}</span>
+                  {step.label}
+                </div>
+              ))}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenInst(false)}>{t("common.cancel")}</Button>
-            <Button onClick={handleSubmit}>{editing ? t("common.save") : t("common.create")}</Button>
+            <Button variant="outline" onClick={() => setOpenInst(false)} disabled={creationStep >= 0}>{t("common.cancel")}</Button>
+            <Button onClick={handleSubmit} disabled={creationStep >= 0 || (!editing && slugStatus === "taken")}>
+              {creationStep >= 0 ? "..." : editing ? t("common.save") : t("common.create")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

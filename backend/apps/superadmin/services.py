@@ -43,12 +43,28 @@ def write_institution_log(
     )
 
 
+def create_default_branch_in_tenant(institution: Institution):
+    """Первый филиал новой организации — без него директор не видит данные,
+    т.к. почти все списки скопированы по branch_id."""
+    from apps.institutions.models import Branch
+
+    with schema_context(institution.schema_name):
+        existing = Branch.objects.first()
+        if existing:
+            return existing
+        return Branch.objects.create(
+            name=f"{institution.name} — Asosiy filial",
+            address=institution.address or "",
+        )
+
+
 def create_director_in_tenant(
     institution: Institution,
     *,
     phone: str,
     full_name: str,
     password: str,
+    branch=None,
 ):
     phone = normalize_phone(phone)
     if not phone or not full_name or not password:
@@ -71,7 +87,10 @@ def create_director_in_tenant(
         user.is_staff = True
         user.set_password(password)
         user.save(update_fields=["full_name", "role", "is_active", "is_staff", "password"])
-        Staff.objects.get_or_create(user=user)
+        staff, _ = Staff.objects.get_or_create(user=user)
+        if branch is not None and staff.branch_id is None:
+            staff.branch = branch
+            staff.save(update_fields=["branch"])
         return user
 
 
@@ -91,12 +110,16 @@ def create_institution_with_bootstrap(serializer, user):
             defaults={"domain": f"{institution.slug}.educrm.uz", "is_primary": True},
         )
     director_created = False
+    branch_created = False
     try:
+        branch = create_default_branch_in_tenant(institution)
+        branch_created = branch is not None
         director = create_director_in_tenant(
             institution,
             phone=director_phone,
             full_name=director_full_name,
             password=director_password,
+            branch=branch,
         )
         director_created = director is not None
     except Exception as exc:
@@ -104,8 +127,8 @@ def create_institution_with_bootstrap(serializer, user):
             institution,
             "create",
             user=user,
-            message="Institution created, director bootstrap failed",
-            metadata={"director_error": str(exc)},
+            message="Institution created, tenant bootstrap failed",
+            metadata={"bootstrap_error": str(exc), "branch_created": branch_created},
         )
         return institution
 
@@ -114,7 +137,7 @@ def create_institution_with_bootstrap(serializer, user):
         "create",
         user=user,
         message="Institution created",
-        metadata={"director_created": director_created},
+        metadata={"director_created": director_created, "branch_created": branch_created},
     )
     return institution
 

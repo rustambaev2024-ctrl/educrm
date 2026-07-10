@@ -195,7 +195,7 @@ interface DataStoreActions {
     branchesCount?: number;
     staffCount?: number;
     monthlyRevenue?: number;
-  }) => Institution;
+  }) => Promise<boolean>;
   updateInstitution: (id: string, patch: Partial<Institution>) => void;
   deleteInstitution: (id: string) => void;
   // Branches (superadmin)
@@ -1683,29 +1683,30 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       directorPassword: input.directorPassword,
     };
     setInstitutions((prev) => [created, ...prev]);
+    const task = superadminApi.institutions.create({
+      name: created.name,
+      slug: created.slug,
+      domain: created.domain,
+      address: created.city,
+      subscription_end: created.expiresAt,
+      director_full_name: created.directorName,
+      director_phone: created.directorPhone,
+      director_password: created.directorPassword,
+    } as never).then((raw) => {
+      const persisted = institutionFromRaw(raw as InstitutionRaw);
+      setInstitutions((prev) => prev.map((i) => (i.id === id ? { ...created, ...persisted } : i)));
+      setBranches((prev) =>
+        prev.map((branch) =>
+          branch.institutionId === id ? { ...branch, institutionId: persisted.id } : branch,
+        ),
+      );
+    });
     fireAndForget(
       "addInstitution",
-      superadminApi.institutions.create({
-        name: created.name,
-        slug: created.slug,
-        domain: created.domain,
-        address: created.city,
-        subscription_end: created.expiresAt,
-        director_full_name: created.directorName,
-        director_phone: created.directorPhone,
-        director_password: created.directorPassword,
-      } as never).then((raw) => {
-        const persisted = institutionFromRaw(raw as InstitutionRaw);
-        setInstitutions((prev) => prev.map((i) => (i.id === id ? { ...created, ...persisted } : i)));
-        setBranches((prev) =>
-          prev.map((branch) =>
-            branch.institutionId === id ? { ...branch, institutionId: persisted.id } : branch,
-          ),
-        );
-      }),
+      task,
       () => setInstitutions((prev) => prev.filter((i) => i.id !== id)),
     );
-    return created;
+    return task.then(() => true).catch(() => false);
   }, []);
 
   const updateInstitution: DataStoreActions["updateInstitution"] = useCallback((id, patch) => {
