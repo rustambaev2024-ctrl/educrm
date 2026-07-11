@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { groupApi, attendanceApi } from "@/lib/api";
+import { groupApi, attendanceApi, ApiError } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentTeacherId } from "@/lib/data/identity";
@@ -177,7 +177,18 @@ function AttendancePage() {
       toast.success(t("att.saved"));
     } catch (err) {
       console.error("[attendance] save failed:", err);
-      toast.error(lang === "uz" ? "Davomatni saqlashda xatolik" : "Ошибка сохранения посещаемости");
+      const fallback = lang === "uz" ? "Davomatni saqlashda xatolik" : "Ошибка сохранения посещаемости";
+      let message = fallback;
+      if (err instanceof ApiError) {
+        const detail = err.body?.detail;
+        if (typeof detail === "string") {
+          message = detail;
+        } else if (detail && typeof detail === "object") {
+          const d = detail as Record<string, string>;
+          message = d[lang] ?? d.ru ?? fallback;
+        }
+      }
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }

@@ -58,9 +58,6 @@ class AttendanceSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         status = attrs.get("status", getattr(self.instance, "status", None))
-        late_minutes = attrs.get("late_minutes", getattr(self.instance, "late_minutes", None))
-        if status == "late" and not late_minutes:
-            raise serializers.ValidationError({"late_minutes": "Required when status is late"})
         if status != "late":
             attrs["late_minutes"] = None
         return attrs
@@ -78,11 +75,7 @@ class AttendanceRecordInputSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        status = attrs["status"]
-        late_minutes = attrs.get("late_minutes")
-        if status == "late" and not late_minutes:
-            raise serializers.ValidationError({"late_minutes": "Required when status is late"})
-        if status != "late":
+        if attrs["status"] != "late":
             attrs["late_minutes"] = None
         return attrs
 
