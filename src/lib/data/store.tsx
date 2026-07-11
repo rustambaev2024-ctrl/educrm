@@ -220,11 +220,17 @@ const uid = (prefix: string) => `${prefix}_${Math.random().toString(36).slice(2,
 type ListResponse<T> = { results: T[]; count?: number } | T[];
 type AnyRecord = Record<string, unknown>;
 
+// Подписи загрузок, упавших в текущей волне reload() — чтобы не молчать,
+// а показать пользователю ошибку и дать повторить. Одна волна за раз
+// (reload защищён loadingRef), поэтому модульный массив безопасен.
+const pendingLoadFailures: string[] = [];
+
 async function safe<T>(promise: Promise<T>, fallback: T, label: string): Promise<T> {
   try {
     return await promise;
   } catch (err) {
     console.warn(`[store] failed to load ${label}:`, err);
+    pendingLoadFailures.push(label);
     return fallback;
   }
 }
@@ -769,12 +775,14 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadingRef = useRef(false);
   const lastReloadAtRef = useRef(0);
+  const reloadRef = useRef<() => void>(() => {});
 
   const reload = useCallback(async () => {
     if (!isAuthenticated || loadingRef.current) return;
     loadingRef.current = true;
     setIsLoading(true);
     setLoadError(null);
+    pendingLoadFailures.length = 0;
 
     try {
       if (user?.role === "superadmin") {
@@ -875,13 +883,28 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setAuditLog(toResults(auditRaw).map(auditFromRaw));
     } catch (err) {
       console.error("[store] reload failed:", err);
-      setLoadError("Ma'lumotlarni yuklab bo'lmadi");
+      pendingLoadFailures.push("store");
     } finally {
+      if (pendingLoadFailures.length > 0) {
+        const failed = [...new Set(pendingLoadFailures)].join(", ");
+        const message = "Ma'lumotlarning bir qismi yuklanmadi / Часть данных не загрузилась";
+        setLoadError(`${message} (${failed})`);
+        // Один toast на волну; фиксированный id — sonner заменяет, не стекает.
+        toast.error(message, {
+          id: "store-load-error",
+          action: {
+            label: "Qayta urinish / Повторить",
+            onClick: () => reloadRef.current(),
+          },
+        });
+      }
       lastReloadAtRef.current = Date.now();
       setIsLoading(false);
       loadingRef.current = false;
     }
   }, [currentAudience, isAuthenticated, user?.role]);
+
+  reloadRef.current = () => void reload();
 
   useEffect(() => {
     if (isAuthenticated) void reload();
