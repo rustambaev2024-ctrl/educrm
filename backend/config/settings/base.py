@@ -98,7 +98,10 @@ DATABASES = {
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "educrm"),
         "HOST": os.getenv("POSTGRES_HOST", "localhost"),
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
-        "CONN_MAX_AGE": 600,
+        # 0, не 600: под ASGI (Daphne) sync-ORM работает в эфемерных потоках,
+        # персистентное соединение привязывается к потоку и не переиспользуется —
+        # соединения копятся до "FATAL: sorry, too many clients already".
+        "CONN_MAX_AGE": 0,
     }
 }
 DATABASE_ROUTERS = ("django_tenants.routers.TenantSyncRouter",)
