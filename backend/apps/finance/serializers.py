@@ -111,6 +111,18 @@ class PaymentCreateSerializer(serializers.Serializer):
 
         if "student" not in self.context:
             raise serializers.ValidationError({"student_id": "Student is required for student payments."})
+
+        # branch_admin может проводить платежи только по студентам своего филиала
+        if user is not None and user.role == "branch_admin":
+            student = self.context["student"]
+            staff_branch_id = getattr(getattr(user, "staff_profile", None), "branch_id", None)
+            if not staff_branch_id or student.branch_id != staff_branch_id:
+                raise serializers.ValidationError({
+                    "student_id": {
+                        "uz": "Siz faqat o'z filialingiz o'quvchilari uchun to'lov qila olasiz",
+                        "ru": "Вы можете проводить платежи только по студентам своего филиала",
+                    }
+                })
         return attrs
 
     def create(self, validated_data):
