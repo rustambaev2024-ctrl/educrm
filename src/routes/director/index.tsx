@@ -20,7 +20,7 @@ import { formatMoney, formatDateTime } from "@/lib/format";
 export const Route = createFileRoute("/director/")({ component: DirectorHome });
 
 function DirectorHome() {
-  const { t, lang } = useI18n();
+  const { t, lang, plural } = useI18n();
   const {
     students, groups, staff, courses, branches, payments, lessons, attendance, auditLog, isLoading,
   } = useData();
@@ -218,7 +218,7 @@ function DirectorHome() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-medium">{tch.name}</div>
-                      <div className="text-xs text-muted-foreground">{tch.subject} · {tch.students} {t("students.count")}</div>
+                      <div className="text-xs text-muted-foreground">{tch.subject} · {tch.students} {lang === "ru" ? plural(tch.students, "ученик", "ученика", "учеников") : t("students.count")}</div>
                     </div>
                     <Badge className="bg-success/10 text-success hover:bg-success/15">{tch.attendance}%</Badge>
                   </div>

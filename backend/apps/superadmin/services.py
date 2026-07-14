@@ -53,7 +53,7 @@ def create_default_branch_in_tenant(institution: Institution):
         if existing:
             return existing
         return Branch.objects.create(
-            name=f"{institution.name} — Asosiy filial",
+            name="Основной филиал",
             address=institution.address or "",
         )
 

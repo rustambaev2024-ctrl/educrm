@@ -1,15 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Phone, Users, LogOut, Moon, Sun } from "lucide-react";
+import { Phone, Users, LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { useTheme } from "@/lib/theme";
 import { useCurrentParentId } from "@/lib/data/identity";
 import { LangToggle } from "@/components/edu/lang-toggle";
 import { initialsOf } from "@/lib/format";
@@ -18,7 +16,6 @@ export const Route = createFileRoute("/parent/profile")({ component: ParentProfi
 
 function ParentProfile() {
   const { t } = useI18n();
-  const { theme, toggle } = useTheme();
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const parentId = useCurrentParentId();
@@ -93,13 +90,6 @@ function ParentProfile() {
           <div className="flex items-center justify-between">
             <span className="text-sm">{t("profile.lang")}</span>
             <LangToggle />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <span className="text-sm">{t("profile.theme")}</span>
-            <Button variant="outline" size="sm" onClick={toggle}>
-              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-            </Button>
           </div>
         </div>
       </Card>

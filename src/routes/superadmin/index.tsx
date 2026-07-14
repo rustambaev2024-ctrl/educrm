@@ -48,10 +48,10 @@ interface InstitutionFormState {
 }
 
 const CREATION_STEPS = [
-  { id: "schema", label: "Sxema yaratilmoqda..." },
-  { id: "migrate", label: "Bazalar sozlanmoqda..." },
-  { id: "director", label: "Direktor yaratilmoqda..." },
-  { id: "branch", label: "Filial yaratilmoqda..." },
+  { id: "schema", labelKey: "sa.step.schema" },
+  { id: "migrate", labelKey: "sa.step.migrate" },
+  { id: "director", labelKey: "sa.step.director" },
+  { id: "branch", labelKey: "sa.step.branch" },
 ];
 
 const emptyForm: InstitutionFormState = {
@@ -80,7 +80,7 @@ function makeSchemaSlug(value: string) {
 }
 
 function SuperadminHome() {
-  const { t, lang } = useI18n();
+  const { t, tf, lang } = useI18n();
   const { institutions, branches, addInstitution, updateInstitution, deleteInstitution, addBranch, deleteBranch, isLoading } = useData();
   const [search, setSearch] = useState("");
   const [statusF, setStatusF] = useState<"all" | InstitutionStatus>("all");
@@ -160,8 +160,17 @@ function SuperadminHome() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.city.trim()) {
-      toast.error(t("common.required"));
+    // Собираем список конкретных незаполненных обязательных полей (BUG-009)
+    const missing: string[] = [];
+    if (!form.name.trim()) missing.push(t("sa.field.name"));
+    if (!form.city.trim()) missing.push(t("sa.field.city"));
+    if (!editing) {
+      if (!form.directorName.trim()) missing.push(t("sa.field.directorName"));
+      if (!form.directorPhone.trim()) missing.push(t("sa.field.directorPhone"));
+      if (!form.directorPassword.trim()) missing.push(t("sa.field.directorPassword"));
+    }
+    if (missing.length) {
+      toast.error(tf("validation.fillField", { fields: missing.join(", ") }));
       return;
     }
     const schemaSlug = editing
@@ -170,10 +179,6 @@ function SuperadminHome() {
     const domain = editing
       ? form.domain.trim() || `${schemaSlug}.localhost`
       : `${schemaSlug}.localhost`;
-    if (!editing && (!form.directorName.trim() || !form.directorPhone.trim() || !form.directorPassword.trim())) {
-      toast.error(t("common.required"));
-      return;
-    }
     if (editing) {
       updateInstitution(editing.id, {
         name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), status: form.status,
@@ -187,7 +192,7 @@ function SuperadminHome() {
       return;
     }
     if (slugStatus === "taken") {
-      toast.error(lang === "uz" ? "Bu slug band — boshqa nom tanlang" : "Этот slug занят — выберите другое название");
+      toast.error(t("sa.slugTaken"));
       return;
     }
     // Прогресс: реального статуса с бэка нет, шаги имитируются таймером,
@@ -232,7 +237,7 @@ function SuperadminHome() {
         setDeleteTarget(null);
         setDeleteConfirmText("");
       } else {
-        toast.error(lang === "uz" ? "O'chirishda xatolik" : "Ошибка при удалении");
+        toast.error(t("sa.deleteError"));
       }
     } finally {
       setDeleting(false);
@@ -242,7 +247,7 @@ function SuperadminHome() {
   const submitBranch = () => {
     if (!activeBranchInst) return;
     if (String(activeBranchInst.id).startsWith("i_")) {
-      toast.warning("Muassasa hali saqlanmoqda. Bir necha soniyadan keyin qayta urinib ko'ring.");
+      toast.warning(t("sa.instSaving"));
       return;
     }
     if (!branchForm.name.trim() || !branchForm.address.trim()) {
@@ -280,10 +285,10 @@ function SuperadminHome() {
     >
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard label={lang === "uz" ? "Jami tashkilotlar" : "Всего организаций"} value={institutions.length} icon={Building2} iconColor="blue" />
-          <KpiCard label={lang === "uz" ? "Faol" : "Активные"} value={totals.active} icon={Activity} iconColor="green" />
-          <KpiCard label={lang === "uz" ? "Muzlatilgan" : "Замороженные"} value={totals.frozen} icon={Users} iconColor="violet" />
-          <KpiCard label={lang === "uz" ? "Muddati tugaydi" : "Истекает срок"} value={totals.expiringSoon} icon={AlertTriangle} iconColor="amber" />
+          <KpiCard label={t("sa.kpi.totalOrg")} value={institutions.length} icon={Building2} iconColor="blue" />
+          <KpiCard label={t("sa.istatus.active")} value={totals.active} icon={Activity} iconColor="green" />
+          <KpiCard label={t("sa.kpi.frozen")} value={totals.frozen} icon={Users} iconColor="violet" />
+          <KpiCard label={t("sa.kpi.expiring2")} value={totals.expiringSoon} icon={AlertTriangle} iconColor="amber" />
         </div>
 
         <Card className="overflow-hidden p-0 shadow-elegant">
@@ -345,12 +350,12 @@ function SuperadminHome() {
                         <span>{formatDate(i.expiresAt, lang)}</span>
                         {i.subscriptionStatus === "expired" && (
                           <Badge variant="outline" className="w-fit bg-destructive/10 text-destructive border-destructive/30 text-[10px]">
-                            {lang === "uz" ? "Muddati o'tgan" : "Истёк"}
+                            {t("sa.sub.expired")}
                           </Badge>
                         )}
                         {i.subscriptionStatus === "expiring_soon" && (
                           <Badge variant="outline" className="w-fit bg-warning/10 text-warning border-warning/30 text-[10px]">
-                            {lang === "uz" ? "Tez orada tugaydi" : "Истекает скоро"}
+                            {t("sa.sub.expiringSoon")}
                           </Badge>
                         )}
                       </div>
@@ -375,11 +380,11 @@ function SuperadminHome() {
                               <AlertDialogDescription>
                                 {t("common.confirmDelete")} — <strong>{i.name}</strong>
                                 <br /><br />
-                                <span className="text-xs">Tasdiqlash uchun &quot;{i.name}&quot; deb yozing:</span>
+                                <span className="text-xs">{tf("sa.confirmDeleteType", { name: i.name })}</span>
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <Input
-                              placeholder={`"${i.name}" deb yozing`}
+                              placeholder={tf("sa.confirmDeletePlaceholder", { name: i.name })}
                               value={deleteTarget?.id === i.id ? deleteConfirmText : ""}
                               onChange={(e) => { setDeleteTarget(i); setDeleteConfirmText(e.target.value); }}
                             />
@@ -430,9 +435,9 @@ function SuperadminHome() {
               {!editing && form.slug && (
                 <div className="mt-1.5 flex items-center gap-2 text-xs">
                   <span className="font-mono text-muted-foreground">{form.slug}</span>
-                  {slugStatus === "checking" && <span className="text-muted-foreground">{lang === "uz" ? "Tekshirilmoqda..." : "Проверяется..."}</span>}
-                  {slugStatus === "available" && <span className="text-success">✓ {lang === "uz" ? "Mavjud" : "Свободен"}</span>}
-                  {slugStatus === "taken" && <span className="text-destructive">✗ {lang === "uz" ? "Band" : "Занят"}</span>}
+                  {slugStatus === "checking" && <span className="text-muted-foreground">{t("sa.slug.checking")}</span>}
+                  {slugStatus === "available" && <span className="text-success">✓ {t("sa.slug.available")}</span>}
+                  {slugStatus === "taken" && <span className="text-destructive">✗ {t("sa.slug.taken")}</span>}
                 </div>
               )}
             </Field>
@@ -463,7 +468,7 @@ function SuperadminHome() {
                   <PhoneInput value={form.directorPhone} onChange={(e) => setForm({ ...form, directorPhone: e.target.value })} />
                 </Field>
                 {!editing && (
-                  <Field label="Director password">
+                  <Field label={t("sa.field.directorPassword")}>
                     <PasswordInput
                       value={form.directorPassword}
                       onChange={(e) => setForm({ ...form, directorPassword: e.target.value })}
@@ -485,7 +490,7 @@ function SuperadminHome() {
                   )}
                 >
                   <span className="w-4 text-center">{i < creationStep ? "✓" : i === creationStep ? "⏳" : "○"}</span>
-                  {step.label}
+                  {t(step.labelKey)}
                 </div>
               ))}
             </div>
@@ -573,12 +578,13 @@ function SuperadminHome() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {lang === "uz" ? "Faol o'quvchilar bor!" : "Есть активные студенты!"}
+              {t("sa.activeStudentsTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {lang === "uz"
-                ? `"${forceDeleteTarget?.inst.name}" tashkilotida ${forceDeleteTarget?.activeCount} faol o'quvchi bor. Barchasini o'chirib yuborasizmi? Bu amalni qaytarib bo'lmaydi.`
-                : `В организации "${forceDeleteTarget?.inst.name}" есть ${forceDeleteTarget?.activeCount} активных студентов. Удалить всё равно? Это действие необратимо.`}
+              {tf("sa.activeStudentsBody", {
+                name: forceDeleteTarget?.inst.name ?? "",
+                count: forceDeleteTarget?.activeCount ?? 0,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -588,7 +594,7 @@ function SuperadminHome() {
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? "..." : lang === "uz" ? "Ha, o'chirib yuborish" : "Да, удалить всё"}
+              {deleting ? "..." : t("sa.forceDelete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

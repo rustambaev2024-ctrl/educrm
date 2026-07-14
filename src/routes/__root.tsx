@@ -62,7 +62,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('educrm.theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}var l=localStorage.getItem('educrm.lang');document.documentElement.lang=(l==='ru'?'ru':'uz');}catch(e){}`,
+            __html: `try{document.documentElement.classList.remove('dark');var l=localStorage.getItem('educrm.lang');document.documentElement.lang=(l==='ru'?'ru':'uz');}catch(e){}`,
           }}
         />
         <script

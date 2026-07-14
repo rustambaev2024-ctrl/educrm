@@ -1,6 +1,4 @@
-import { Moon, Sun, LogOut, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useTheme } from "@/lib/theme";
+import { LogOut, Search } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -19,7 +17,6 @@ import { GlobalSearch } from "@/components/edu/global-search";
 import { useI18n } from "@/lib/i18n";
 
 export function Topbar({ title, showSearch = true }: { title?: string; showSearch?: boolean }) {
-  const { theme, toggle } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { t, lang } = useI18n();
@@ -58,9 +55,6 @@ export function Topbar({ title, showSearch = true }: { title?: string; showSearc
       )}
       <div className="ml-auto flex items-center gap-2">
         <LangToggle />
-        <Button variant="ghost" size="icon" onClick={toggle} aria-label={t("theme.toggle")}>
-          {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        </Button>
         <NotificationsPopover />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

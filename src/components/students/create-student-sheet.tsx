@@ -107,14 +107,14 @@ export function CreateStudentSheet({
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{t("students.add")}</SheetTitle>
-          <SheetDescription>Yangi o'quvchi va uning hujjatlarini tizimga kiritish</SheetDescription>
+          <SheetDescription>{t("students.createSubtitle")}</SheetDescription>
         </SheetHeader>
         <div className="space-y-6 px-1 py-6">
           <section className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="fullName">{t("students.field.fullName")} *</Label>
-                <Input id="fullName" placeholder="F.I.SH." value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                <Input id="fullName" placeholder={t("students.namePlaceholder")} value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="birthDate">{t("students.field.birthDate")}</Label>
@@ -128,9 +128,9 @@ export function CreateStudentSheet({
                 <PhoneInput id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">O'quvchi paroli</Label>
+                <Label htmlFor="password">{t("students.password")}</Label>
                 <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
-                <p className="text-[11px] text-muted-foreground">Avtomatik 6 xonali parol yaratildi. Xohlasangiz o'zgartiring.</p>
+                <p className="text-[11px] text-muted-foreground">{t("students.passwordHint")}</p>
               </div>
             </div>
 
@@ -151,7 +151,7 @@ export function CreateStudentSheet({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="font-medium">{t("students.section.parent")}</div>
-                <p className="text-[11px] text-muted-foreground">Kichik yoshdagi o'quvchilar uchun to'ldiring</p>
+                <p className="text-[11px] text-muted-foreground">{t("students.parentHint")}</p>
               </div>
               <Switch checked={hasParent} onCheckedChange={setHasParent} />
             </div>
@@ -159,18 +159,18 @@ export function CreateStudentSheet({
             {hasParent && (
               <div className="space-y-4 rounded-xl border border-border/50 bg-muted/20 p-4">
                 <div className="space-y-2">
-                  <Label htmlFor="parentName">Ota-onaning F.I.SH. *</Label>
-                  <Input id="parentName" placeholder="F.I.SH." value={parentName} onChange={(e) => setParentName(e.target.value)} />
+                  <Label htmlFor="parentName">{t("students.parentFullName")} *</Label>
+                  <Input id="parentName" placeholder={t("students.namePlaceholder")} value={parentName} onChange={(e) => setParentName(e.target.value)} />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="parentPhone">Ota-onaning telefon raqami *</Label>
+                    <Label htmlFor="parentPhone">{t("students.parentPhoneLabel")} *</Label>
                     <PhoneInput id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="parentPassword">Ota-ona paroli</Label>
+                    <Label htmlFor="parentPassword">{t("students.parentPassword")}</Label>
                     <PasswordInput id="parentPassword" value={parentPassword} onChange={(e) => setParentPassword(e.target.value)} autoComplete="new-password" />
-                    <p className="text-[11px] text-muted-foreground">Avtomatik 6 xonali parol yaratildi.</p>
+                    <p className="text-[11px] text-muted-foreground">{t("students.parentPasswordHint")}</p>
                   </div>
                 </div>
               </div>
@@ -179,7 +179,7 @@ export function CreateStudentSheet({
         </div>
         <SheetFooter className="px-1 mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
-          <Button onClick={submit} className="bg-gradient-primary text-primary-foreground">O'quvchini qo'shish</Button>
+          <Button onClick={submit} className="bg-gradient-primary text-primary-foreground">{t("students.submitAdd")}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

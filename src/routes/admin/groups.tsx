@@ -258,7 +258,7 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
         <div className="space-y-4 px-4 py-6">
           <div className="space-y-2">
             <Label>{t("groups.field.name")} *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Masalan: Matematika — Ertalab" autoComplete="off" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("groups.namePlaceholder")} autoComplete="off" />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
@@ -282,13 +282,13 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
             <div className="space-y-2">
               <Label>{t("groups.field.room")} *</Label>
               <Select value={roomId} onValueChange={setRoomId}>
-                <SelectTrigger><SelectValue placeholder="Kabinet tanlang" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("groups.pickRoom")} /></SelectTrigger>
                 <SelectContent>
                   {rooms.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               {rooms.length === 0 && (
-                <div className="text-[11px] text-destructive">Avval direktor kabinet yaratishi kerak.</div>
+                <div className="text-[11px] text-destructive">{t("groups.roomRequired")}</div>
               )}
             </div>
             <div className="space-y-2">
@@ -338,7 +338,7 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
 }
 
 function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onClose: () => void; onEdit: () => void }) {
-  const { t, lang } = useI18n();
+  const { t, tf, lang } = useI18n();
   const { students, courses, staff, rooms, addStudentToGroup, removeStudentFromGroup, lessons, deleteGroup, updateGroup } = useData();
   const [studentSearch, setStudentSearch] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -486,7 +486,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
                     <div>
                       <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("groups.addStudent")}</div>
                       <div className="text-[11px] text-muted-foreground">
-                        {filteredAvailable.length} ta topildi · {group.capacity - group.studentIds.length} ta joy qoldi
+                        {tf("groups.foundSlots", { found: filteredAvailable.length, slots: group.capacity - group.studentIds.length })}
                       </div>
                     </div>
                   </div>
@@ -495,14 +495,14 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
                     <Input
                       value={studentSearch}
                       onChange={(event) => setStudentSearch(event.target.value)}
-                      placeholder="Ism, telefon yoki ID bo'yicha qidirish"
+                      placeholder={t("students.search")}
                       className="pl-9"
                     />
                   </div>
                   <Card className="max-h-80 overflow-y-auto">
                     {visibleAvailable.length === 0 ? (
                       <div className="p-6 text-center text-sm text-muted-foreground">
-                        Bunday o'quvchi topilmadi.
+                        {t("groups.noSuchStudent")}
                       </div>
                     ) : (
                       <div className="divide-y divide-border">
@@ -526,7 +526,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
                               <div className="truncate text-sm font-medium">{s.fullName}</div>
                               <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                                 <span>{s.phone}</span>
-                                {s.branchId === group.branchId && <span className="rounded-full bg-success/10 px-2 py-0.5 text-success">shu filial</span>}
+                                {s.branchId === group.branchId && <span className="rounded-full bg-success/10 px-2 py-0.5 text-success">{t("groups.sameBranch")}</span>}
                               </div>
                             </div>
                             <UserPlus className="size-4 text-primary" />
@@ -534,7 +534,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
                         ))}
                         {remainingAvailable > 0 && (
                           <div className="p-3 text-center text-xs text-muted-foreground">
-                            Yana {remainingAvailable} ta o'quvchi bor. Aniqroq qidiruv kiriting.
+                            {tf("groups.moreStudents", { n: remainingAvailable })}
                           </div>
                         )}
                       </div>
@@ -544,12 +544,12 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
               )}
               {group.studentIds.length >= group.capacity && (
                 <Card className="p-4 text-center text-sm text-muted-foreground">
-                  Guruh to'lgan. Yangi o'quvchi qo'shish uchun avval joy bo'shating yoki sig'imni oshiring.
+                  {t("groups.groupFull")}
                 </Card>
               )}
               {group.studentIds.length < group.capacity && available.length === 0 && (
                 <Card className="p-4 text-center text-sm text-muted-foreground">
-                  Qo'shish uchun bo'sh o'quvchi yo'q.
+                  {t("groups.noFreeStudents")}
                 </Card>
               )}
             </TabsContent>
@@ -669,7 +669,7 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
       schedule,
       status,
     });
-    toast.success("Guruh yangilandi");
+    toast.success(t("groups.updated"));
     onClose();
   };
 

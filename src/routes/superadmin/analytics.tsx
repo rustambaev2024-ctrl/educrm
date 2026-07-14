@@ -80,7 +80,7 @@ function SaAnalytics() {
 
         <Card className="p-6 shadow-elegant">
           <div className="mb-4">
-            <h3 className="text-base font-semibold">{t("sa.kpi.mrr")} — top muassasalar</h3>
+            <h3 className="text-base font-semibold">{t("sa.topInstitutions")}</h3>
             <p className="text-xs text-muted-foreground">mln UZS</p>
           </div>
           <ResponsiveContainer width="100%" height={300}>

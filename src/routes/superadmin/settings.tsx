@@ -66,7 +66,7 @@ function SaSettings() {
       toast.success(t("sa.settings.saved"));
     } catch (err) {
       console.error(err);
-      toast.error("Sozlamalarni saqlashda xatolik");
+      toast.error(t("sa.settings.saveError"));
     } finally {
       setSaving(false);
     }
@@ -153,21 +153,21 @@ function SaSettings() {
 
           <TabsContent value="brand">
             <Card className="space-y-5 p-6 shadow-elegant">
-              <Field label="Primary color">
+              <Field label={t("sa.settings.primaryColor")}>
                 <div className="flex items-center gap-3">
                   <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-10 w-16 cursor-pointer rounded-md border border-border bg-transparent" />
                   <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="max-w-xs" />
                 </div>
               </Field>
               <div className="rounded-lg border border-border p-4">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">Preview</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("sa.settings.preview")}</div>
                 <div className="mt-3 flex items-center gap-3">
                   <div className="flex size-12 items-center justify-center rounded-xl text-primary-foreground" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` }}>
                     <Palette className="size-5" />
                   </div>
                   <div>
                     <div className="text-base font-semibold">{platformName}</div>
-                    <div className="text-xs text-muted-foreground">Brand preview</div>
+                    <div className="text-xs text-muted-foreground">{t("sa.settings.brandPreview")}</div>
                   </div>
                 </div>
               </div>
