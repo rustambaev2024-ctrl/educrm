@@ -10,6 +10,7 @@ from django_tenants.utils import schema_context
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 
 from apps.accounts.permissions import IsSuperAdmin
 from apps.institutions.models import Branch
@@ -26,6 +27,12 @@ from .serializers import (
 from .services import create_institution_with_bootstrap, create_notice, set_institution_status, write_institution_log
 
 
+class InstitutionCreateThrottle(UserRateThrottle):
+    """Создание организации = новая схема БД, дорогая операция."""
+    scope = "institution_create"
+    rate = "10/hour"
+
+
 class SuperadminInstitutionViewSet(
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
@@ -37,9 +44,38 @@ class SuperadminInstitutionViewSet(
     serializer_class = InstitutionSerializer
     permission_classes = [IsSuperAdmin]
 
+    def get_throttles(self):
+        if self.action == "create":
+            return [InstitutionCreateThrottle()]
+        return []
+
     def list(self, request, *args, **kwargs):
         with schema_context("public"):
             return super().list(request, *args, **kwargs)
+
+    @action(detail=False, methods=["get"], url_path="check_slug")
+    def check_slug(self, request):
+        slug = request.query_params.get("slug", "").strip()
+        if not slug:
+            return Response({"available": False, "normalized": None, "error": "Slug is required"})
+
+        from django.utils.text import slugify
+
+        normalized = slugify(slug).replace("-", "_")
+        if not normalized:
+            return Response({"available": False, "normalized": None, "error": "Slug is required"})
+
+        reserved = {"public", "demo", "information_schema", "pg_catalog"}
+        if normalized in reserved:
+            return Response({"available": False, "normalized": normalized, "error": "This slug is reserved"})
+
+        with schema_context("public"):
+            exists = Institution.objects.filter(schema_name=normalized).exists()
+        return Response({
+            "available": not exists,
+            "normalized": normalized,
+            "error": "Already taken" if exists else None,
+        })
 
     def retrieve(self, request, *args, **kwargs):
         with schema_context("public"):

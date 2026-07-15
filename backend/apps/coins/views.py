@@ -32,6 +32,36 @@ def _get_next_level_xp(xp, current_level, thresholds):
     return None
 
 
+def _can_manage_student_coins(user, student):
+    """Проверяет, вправе ли сотрудник начислять/списывать монеты этому студенту.
+
+    director/superadmin — любой студент центра; branch_admin — только свой филиал;
+    teacher — только студенты своих групп; support_teacher — группы привязанного учителя.
+    """
+    role = getattr(user, "role", None)
+    if role in ("director", "superadmin"):
+        return True
+    if role == "branch_admin":
+        staff_branch_id = getattr(getattr(user, "staff_profile", None), "branch_id", None)
+        return bool(staff_branch_id) and student.branch_id == staff_branch_id
+    from apps.courses.models import GroupMembership
+    if role == "teacher" and hasattr(user, "staff_profile"):
+        return GroupMembership.objects.filter(
+            student=student,
+            group__teacher=user.staff_profile,
+            left_at__isnull=True,
+        ).exists()
+    if role == "support_teacher":
+        from apps.staff.utils import get_support_teacher_group_ids
+        allowed_ids = get_support_teacher_group_ids(user)
+        return GroupMembership.objects.filter(
+            student=student,
+            group_id__in=allowed_ids,
+            left_at__isnull=True,
+        ).exists()
+    return False
+
+
 class CoinSettingViewSet(viewsets.ModelViewSet):
     """Настройки геймификации — только директор"""
     serializer_class = CoinSettingSerializer
@@ -94,7 +124,10 @@ class CoinWalletViewSet(viewsets.ReadOnlyModelViewSet):
         from .services import award_coins
 
         student_id = request.data.get("student_id")
-        amount = int(request.data.get("amount", 0))
+        try:
+            amount = int(request.data.get("amount", 0))
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid data"}, status=400)
         comment = request.data.get("comment", "")
         if not student_id or amount <= 0:
             return Response({"error": "Invalid data"}, status=400)
@@ -103,17 +136,8 @@ class CoinWalletViewSet(viewsets.ReadOnlyModelViewSet):
         except Student.DoesNotExist:
             return Response({"error": "Student not found"}, status=404)
 
-        if request.user.role == "support_teacher":
-            from apps.staff.utils import get_support_teacher_group_ids
-            from apps.courses.models import GroupMembership
-            allowed_ids = get_support_teacher_group_ids(request.user)
-            in_group = GroupMembership.objects.filter(
-                student=student,
-                group_id__in=allowed_ids,
-                left_at__isnull=True,
-            ).exists()
-            if not in_group:
-                return Response({"error": "Student not in your groups"}, status=403)
+        if not _can_manage_student_coins(request.user, student):
+            return Response({"error": "Student not in your scope"}, status=403)
 
         tx = award_coins(student, amount, "manual", comment, request.user)
         return Response({"success": True, "transaction_id": str(tx.id)})
@@ -127,16 +151,21 @@ class CoinWalletViewSet(viewsets.ReadOnlyModelViewSet):
         from .services import deduct_coins
 
         student_id = request.data.get("student_id")
-        amount = int(request.data.get("amount", 0))
+        try:
+            amount = int(request.data.get("amount", 0))
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid data"}, status=400)
         comment = request.data.get("comment", "")
         if not student_id or amount <= 0:
             return Response({"error": "Invalid data"}, status=400)
         try:
             student = Student.objects.get(id=student_id)
-            tx = deduct_coins(student, amount, "penalty", comment, request.user)
-            return Response({"success": True, "transaction_id": str(tx.id)})
         except Student.DoesNotExist:
             return Response({"error": "Student not found"}, status=404)
+        if not _can_manage_student_coins(request.user, student):
+            return Response({"error": "Student not in your scope"}, status=403)
+        tx = deduct_coins(student, amount, "penalty", comment, request.user)
+        return Response({"success": True, "transaction_id": str(tx.id)})
 
 
 class CoinTransactionViewSet(viewsets.ReadOnlyModelViewSet):

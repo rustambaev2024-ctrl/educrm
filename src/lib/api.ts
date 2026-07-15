@@ -607,6 +607,10 @@ export const transferApi = {
 export const superadminApi = {
   institutions: {
     ...crudApi("/superadmin/institutions/"),
+    checkSlug: (slug: string) =>
+      requestJson<{ available: boolean; normalized: string | null; error: string | null }>(
+        `/superadmin/institutions/check_slug/?slug=${encodeURIComponent(slug)}`,
+      ),
     deleteForce: (id: string) =>
       requestJson<void>(`/superadmin/institutions/${id}/?force=true`, { method: "DELETE" }),
   },

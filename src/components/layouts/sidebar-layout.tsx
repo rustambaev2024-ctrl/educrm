@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { GraduationCap, LogOut, Moon, Sun } from "lucide-react";
+import { GraduationCap, LogOut } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { Topbar } from "@/components/edu/topbar";
@@ -9,7 +9,6 @@ import { NotificationsPopover } from "@/components/edu/notifications-popover";
 import { LangToggle } from "@/components/edu/lang-toggle";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { useTheme } from "@/lib/theme";
 import { branchApi } from "@/lib/api";
 
 export interface NavItem {
@@ -31,7 +30,6 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { t } = useI18n();
-  const { theme, toggle } = useTheme();
 
   const [instName, setInstName] = useState(brand);
   const [instLogo, setInstLogo] = useState<string | null>(null);
@@ -140,9 +138,6 @@ export function SidebarLayout({ items, children, brand = "EduCRM", showSearch = 
 
           <div className="ml-auto flex items-center gap-1">
             <LangToggle />
-            <Button variant="ghost" size="icon" className="size-8" onClick={toggle} aria-label={t("theme.toggle")}>
-              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-            </Button>
             <NotificationsPopover size="sm" />
             <Avatar className="size-8">
               <AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">

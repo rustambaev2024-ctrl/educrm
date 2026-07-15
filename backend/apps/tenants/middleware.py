@@ -46,7 +46,11 @@ class HeaderOrDomainTenantMiddleware:
             if request.path in self.PUBLIC_PATHS:
                 request.tenant = None
                 return self.get_response(request)
-            return JsonResponse({"detail": "Tenant not found"}, status=404)
+            # Единый ответ для несуществующего тенанта — тот же, что auth-слой
+            # даёт для чужой валидной схемы (401 "User not found"). Разные
+            # статусы (401 vs 404) позволяли перебирать валидные schema-имена
+            # (information disclosure, BUG-037).
+            return JsonResponse({"detail": "User not found"}, status=401)
 
         connection.set_tenant(tenant)
         request.tenant = tenant

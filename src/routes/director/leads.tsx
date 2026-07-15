@@ -43,7 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { leadApi, studentApi } from "@/lib/api";
+import { leadApi, studentApi, ApiError } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import type { StudentLead, StudentLeadSource, StudentLeadStatus } from "@/lib/data/types";
 import { formatDate } from "@/lib/format";
@@ -386,14 +386,27 @@ function DirectorLeadsPage() {
         parent_phone: payload.parentPhone,
         parent_password: payload.parentPassword,
       });
-      await updateLead(selected.id, { status: "won" });
-      await reload();
+      // convert-endpoint уже проставляет status="won" на сервере. Доска лидов
+      // живёт в локальном стейте (loadLeads), а ученики — в сторе (reload):
+      // перечитываем оба, иначе карточка залипает на доске (BUG-015).
+      // Отдельный PATCH был бы отклонён гардом "Won lead cannot be edited".
+      await Promise.all([loadLeads(), reload()]);
       toast.success(t.converted);
       setConvertSheetOpen(false);
       setSelectedId(null);
     } catch (err) {
       console.error("[leads] convert failed", err);
-      toast.error(t.convertError);
+      let message = t.convertError;
+      if (err instanceof ApiError) {
+        const detail = err.body?.detail;
+        if (typeof detail === "string") {
+          message = detail;
+        } else if (detail && typeof detail === "object") {
+          const d = detail as Record<string, string>;
+          message = d[lang] ?? d.ru ?? t.convertError;
+        }
+      }
+      toast.error(message);
     }
   };
 

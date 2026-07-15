@@ -28,7 +28,7 @@ class LessonViewSet(
     serializer_class = LessonSerializer
 
     def get_permissions(self):
-        if self.action == "substitute_teacher":
+        if self.action in ("substitute_teacher", "cancel", "reschedule"):
             permission_classes = [IsBranchAdmin]
         elif self.action == "attendance":
             if self.request.method == "GET":
@@ -104,6 +104,64 @@ class LessonViewSet(
         lesson = serializer.save()
         if previous_status != "cancelled" and lesson.status == "cancelled":
             NotificationService.on_lesson_cancelled(lesson)
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        lesson = self.get_object()
+        if lesson.status == "cancelled":
+            return Response(
+                {
+                    "detail": {
+                        "uz": "Dars allaqachon bekor qilingan",
+                        "ru": "Урок уже отменён",
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        lesson.status = "cancelled"
+        lesson.cancel_reason = str(request.data.get("reason") or "")[:500]
+        lesson.save(update_fields=["status", "cancel_reason"])
+        NotificationService.on_lesson_cancelled(lesson)
+        return Response(LessonSerializer(lesson).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="reschedule")
+    def reschedule(self, request, pk=None):
+        from rest_framework.exceptions import ValidationError
+        from rest_framework.fields import DateTimeField
+
+        lesson = self.get_object()
+        if lesson.status == "cancelled" or lesson.rescheduled_to_id is not None:
+            return Response(
+                {
+                    "detail": {
+                        "uz": "Bu darsni ko'chirib bo'lmaydi",
+                        "ru": "Этот урок нельзя перенести",
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            new_datetime = DateTimeField().to_internal_value(request.data.get("datetime"))
+        except ValidationError:
+            return Response(
+                {"datetime": ["Invalid or missing datetime"]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            new_lesson = Lesson.objects.create(
+                group=lesson.group,
+                datetime=new_datetime,
+                room=lesson.room,
+                teacher=lesson.teacher,
+                topic=lesson.topic,
+                notes=lesson.notes,
+                status="scheduled",
+            )
+            lesson.status = "rescheduled"
+            lesson.rescheduled_to = new_lesson
+            lesson.save(update_fields=["status", "rescheduled_to"])
+        return Response(LessonSerializer(lesson).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get", "post"], url_path="attendance")
     def attendance(self, request, pk=None):

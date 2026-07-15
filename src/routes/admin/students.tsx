@@ -79,7 +79,7 @@ const studentStatusClass = (status: StudentStatus) => {
 };
 
 export function StudentsPage() {
-  const { t, lang } = useI18n();
+  const { t, lang, plural } = useI18n();
   const { students, groups, addStudent, archiveStudent, deleteStudent, isLoading } = useData();
 
   const [search, setSearch] = useState("");
@@ -183,7 +183,7 @@ export function StudentsPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{totalCount} {t("students.count")}</span>
+              <span className="text-xs text-muted-foreground">{totalCount} {lang === "ru" ? plural(totalCount, "ученик", "ученика", "учеников") : t("students.count")}</span>
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
                 <SelectTrigger className="w-44">
                   <SelectValue />

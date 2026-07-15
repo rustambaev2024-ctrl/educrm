@@ -72,7 +72,7 @@ export function StudentDetailSheet({
   onArchive: (id: string) => void;
   onDelete: (id: string, deleteParent: boolean) => void;
 }) {
-  const { t, lang } = useI18n();
+  const { t, tf, lang } = useI18n();
   const { groups, parents, payments, updateStudentPasswords, assignParent, addStudentToGroup, reload } = useData();
 
   const STATUS_OPTIONS = [
@@ -254,13 +254,13 @@ export function StudentDetailSheet({
     try {
       if (assignType === "existing") {
         if (!selectedParentId) {
-          toast.error("Ota-onani tanlang");
+          toast.error(t("sd.toast.selectParent"));
           return;
         }
         await assignParent(student.id, { parentId: selectedParentId });
       } else {
         if (!newParentName.trim() || !newParentPhone.trim()) {
-          toast.error("Barcha maydonlarni to'ldiring");
+          toast.error(t("sd.toast.fillAll"));
           return;
         }
         await assignParent(student.id, {
@@ -269,7 +269,7 @@ export function StudentDetailSheet({
           parentPassword: assignParentPassword.trim() || undefined,
         });
       }
-      toast.success("Ota-ona muvaffaqiyatli biriktirildi");
+      toast.success(t("sd.toast.parentAssigned"));
       setAssignParentOpen(false);
       setSelectedParentId("");
       setNewParentName("");
@@ -277,14 +277,14 @@ export function StudentDetailSheet({
       setAssignParentPassword(genPin());
     } catch (err: unknown) {
       const msg = (err as { body?: { detail?: string } })?.body?.detail;
-      toast.error(msg ?? "Xatolik yuz berdi");
+      toast.error(msg ?? t("sd.toast.error"));
     }
   };
 
   async function handleTopUp() {
     if (!student) return;
     if (!topUpForm.amount || Number(topUpForm.amount) <= 0) {
-      toast.error("Summani kiriting");
+      toast.error(t("sd.toast.enterAmount"));
       return;
     }
     try {
@@ -295,7 +295,7 @@ export function StudentDetailSheet({
         method: topUpForm.method,
         comment: topUpForm.comment,
       });
-      toast.success("Balans to'ldirildi");
+      toast.success(t("sd.toast.balanceToppedUp"));
       setTopUpOpen(false);
       setTopUpForm({ amount: "", method: "cash", comment: "" });
       paymentApi.list({ student_id: student.id })
@@ -303,7 +303,7 @@ export function StudentDetailSheet({
         .catch((e) => console.error("Failed to load student payments", e));
       reload();
     } catch (err: any) {
-      const msg = err?.body?.detail || "Xatolik yuz berdi";
+      const msg = err?.body?.detail || t("sd.toast.error");
       toast.error(msg);
     }
   }
@@ -311,11 +311,11 @@ export function StudentDetailSheet({
   async function handleCharge() {
     if (!student) return;
     if (!chargeForm.amount || Number(chargeForm.amount) <= 0) {
-      toast.error("Summani kiriting");
+      toast.error(t("sd.toast.enterAmount"));
       return;
     }
     if (!chargeForm.reason.trim()) {
-      toast.error("Sababni kiriting");
+      toast.error(t("sd.toast.enterReason"));
       return;
     }
     try {
@@ -325,7 +325,7 @@ export function StudentDetailSheet({
         amount: chargeForm.amount,
         comment: `${chargeForm.reason.trim()}${chargeForm.comment.trim() ? ` — ${chargeForm.comment.trim()}` : ""}`,
       });
-      toast.success("Balansdan yechib olindi");
+      toast.success(t("sd.toast.charged"));
       setChargeOpen(false);
       setChargeForm({ amount: "", comment: "", reason: "" });
       paymentApi.list({ student_id: student.id })
@@ -333,7 +333,7 @@ export function StudentDetailSheet({
         .catch((e) => console.error("Failed to load student payments", e));
       reload();
     } catch (err: any) {
-      const msg = err?.body?.detail || "Xatolik yuz berdi";
+      const msg = err?.body?.detail || t("sd.toast.error");
       toast.error(msg);
     }
   }
@@ -349,7 +349,7 @@ export function StudentDetailSheet({
         reason: transferForm.reason,
         comment: transferForm.comment,
       });
-      toast.success("O'quvchi muvaffaqiyatli ko'chirildi");
+      toast.success(t("sd.toast.transferred"));
       setTransferOpen(false);
       await reload();
       transferApi.history({ student_id: student.id })
@@ -357,29 +357,29 @@ export function StudentDetailSheet({
         .catch((e) => console.error("Failed to load transfers", e));
     } catch (err: unknown) {
       const msg = (err as { body?: { detail?: string } })?.body?.detail;
-      toast.error(msg ?? "Xatolik yuz berdi");
+      toast.error(msg ?? t("sd.toast.error"));
     }
   }
 
   const handleUpdateStudentPassword = () => {
     if (!student) return;
     if (!newStudentPassword.trim()) {
-      toast.error("Parolni kiriting");
+      toast.error(t("sd.toast.enterPassword"));
       return;
     }
     updateStudentPasswords(student.id, newStudentPassword.trim(), undefined);
-    toast.success("O'quvchi paroli yangilandi");
+    toast.success(t("sd.toast.studentPwdUpdated"));
     setNewStudentPassword("");
   };
 
   const handleUpdateParentPassword = () => {
     if (!student) return;
     if (!newParentPassword.trim()) {
-      toast.error("Parolni kiriting");
+      toast.error(t("sd.toast.enterPassword"));
       return;
     }
     updateStudentPasswords(student.id, undefined, newParentPassword.trim());
-    toast.success("Ota-ona paroli yangilandi");
+    toast.success(t("sd.toast.parentPwdUpdated"));
     setNewParentPassword("");
   };
 
@@ -461,10 +461,10 @@ export function StudentDetailSheet({
 
             <div className="flex flex-wrap gap-2 sm:justify-end">
               <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none text-success border-success/20 hover:bg-success hover:text-success-foreground" onClick={() => setTopUpOpen(true)}>
-                <ArrowDownCircle className="size-3.5 mr-1" /> To'ldirish
+                <ArrowDownCircle className="size-3.5 mr-1" /> {t("sd.topUp")}
               </Button>
               <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" onClick={() => setChargeOpen(true)}>
-                <ArrowUpCircle className="size-3.5 mr-1" /> Yechish
+                <ArrowUpCircle className="size-3.5 mr-1" /> {t("sd.withdraw")}
               </Button>
               <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none gap-1 border-amber-300 text-amber-600 hover:bg-amber-50" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
                 <Coins className="size-3.5" />
@@ -478,7 +478,7 @@ export function StudentDetailSheet({
               <TabsTrigger value="main" className="flex-1">{t("students.tab.main")}</TabsTrigger>
               <TabsTrigger value="groups" className="flex-1">{t("students.tab.groups")}</TabsTrigger>
               <TabsTrigger value="finance" className="flex-1">{t("students.tab.finance")}</TabsTrigger>
-              <TabsTrigger value="transfers" className="flex-1">Transferlar</TabsTrigger>
+              <TabsTrigger value="transfers" className="flex-1">{t("sd.tab.transfers")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="main" className="space-y-3 pt-4">
@@ -569,10 +569,10 @@ export function StudentDetailSheet({
                   </div>
                 )}
                 <div className="mt-4 border-t border-border pt-4">
-                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">Parolni o'zgartirish</div>
+                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">{t("sd.changePassword")}</div>
                   <div className="flex gap-2 max-w-sm">
-                    <PasswordInput value={newStudentPassword} onChange={(e) => setNewStudentPassword(e.target.value)} placeholder="Yangi parol (ixtiyoriy)" autoComplete="new-password" name="new-student-pwd" />
-                    <Button variant="secondary" onClick={handleUpdateStudentPassword}>Saqlash</Button>
+                    <PasswordInput value={newStudentPassword} onChange={(e) => setNewStudentPassword(e.target.value)} placeholder={t("sd.newPasswordOptional")} autoComplete="new-password" name="new-student-pwd" />
+                    <Button variant="secondary" onClick={handleUpdateStudentPassword}>{t("common.save")}</Button>
                   </div>
                 </div>
               </Card>
@@ -592,7 +592,7 @@ export function StudentDetailSheet({
                         setAssignParentOpen(true);
                       }}
                     >
-                      O'zgartirish
+                      {t("sd.change")}
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -600,16 +600,16 @@ export function StudentDetailSheet({
                     <Field label={t("students.field.parentPhone")} value={parent.phone} />
                   </div>
                   <div className="mt-4 border-t border-border pt-4">
-                    <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">Ota-ona parolini o'zgartirish</div>
+                    <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">{t("sd.parentChangePassword")}</div>
                     <div className="flex gap-2 max-w-sm">
-                      <PasswordInput value={newParentPassword} onChange={(e) => setNewParentPassword(e.target.value)} placeholder="Yangi parol (ixtiyoriy)" autoComplete="new-password" name="new-parent-pwd" />
-                      <Button variant="secondary" onClick={handleUpdateParentPassword}>Saqlash</Button>
+                      <PasswordInput value={newParentPassword} onChange={(e) => setNewParentPassword(e.target.value)} placeholder={t("sd.newPasswordOptional")} autoComplete="new-password" name="new-parent-pwd" />
+                      <Button variant="secondary" onClick={handleUpdateParentPassword}>{t("common.save")}</Button>
                     </div>
                   </div>
                 </Card>
               ) : (
                 <Card className="p-6 border-dashed border-2 flex flex-col items-center justify-center text-center space-y-3">
-                  <div className="text-sm font-medium text-muted-foreground">Ota-ona biriktirilmagan</div>
+                  <div className="text-sm font-medium text-muted-foreground">{t("sd.parentNotAssigned")}</div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -623,7 +623,7 @@ export function StudentDetailSheet({
                       setAssignParentOpen(true);
                     }}
                   >
-                    Ota-ona biriktirish
+                    {t("sd.assignParent")}
                   </Button>
                 </Card>
               )}
@@ -668,13 +668,13 @@ export function StudentDetailSheet({
                   const sign = isPositive ? "+" : "-";
 
                   const typeLabels: Record<string, string> = {
-                    top_up: "To'lov",
-                    charge: "Dars uchun yechib olinish",
-                    discount: "Chegirma",
-                    refund: "Qaytarish",
-                    expense: "Xarajat",
-                    manual_top_up: "Qo'lda to'ldirish",
-                    manual_charge: "Qo'lda yechish",
+                    top_up: t("sd.ptype.top_up"),
+                    charge: t("sd.ptype.charge"),
+                    discount: t("sd.ptype.discount"),
+                    refund: t("sd.ptype.refund"),
+                    expense: t("sd.ptype.expense"),
+                    manual_top_up: t("sd.ptype.manual_top_up"),
+                    manual_charge: t("sd.ptype.manual_charge"),
                   };
                   const typeLabel = typeLabels[p.type] || p.type;
 
@@ -701,33 +701,33 @@ export function StudentDetailSheet({
 
             <TabsContent value="transfers" className="space-y-2 pt-4">
               {transfers.length === 0 ? (
-                <Card className="p-6 text-center text-sm text-muted-foreground">Transferlar tarixi mavjud emas</Card>
+                <Card className="p-6 text-center text-sm text-muted-foreground">{t("sd.tr.empty")}</Card>
               ) : (
                 <Card className="overflow-hidden border-border/60">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Sana</TableHead>
-                        <TableHead>Dan</TableHead>
-                        <TableHead>Ga</TableHead>
-                        <TableHead>Sabab</TableHead>
-                        <TableHead>Balans</TableHead>
+                        <TableHead>{t("sd.tr.date")}</TableHead>
+                        <TableHead>{t("sd.tr.from")}</TableHead>
+                        <TableHead>{t("sd.tr.to")}</TableHead>
+                        <TableHead>{t("sd.tr.reason")}</TableHead>
+                        <TableHead>{t("sd.tr.balance")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {transfers.map((t) => (
-                        <TableRow key={t.id}>
-                          <TableCell className="text-sm">{t.transfer_date}</TableCell>
-                          <TableCell className="text-sm">{t.from_group_name ?? "—"}</TableCell>
-                          <TableCell className="text-sm">{t.to_group_name}</TableCell>
+                      {transfers.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="text-sm">{row.transfer_date}</TableCell>
+                          <TableCell className="text-sm">{row.from_group_name ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{row.to_group_name}</TableCell>
                           <TableCell className="text-sm">
-                            {t.reason === "schedule_change" && "Dars jadvali o'zgarishi"}
-                            {t.reason === "level_change" && "Daraja o'zgarishi"}
-                            {t.reason === "branch_change" && "Filial o'zgarishi"}
-                            {t.reason === "student_request" && "O'quvchi talabi"}
-                            {t.reason === "other" && "Boshqa"}
+                            {row.reason === "schedule_change" && t("sd.reason.schedule_change")}
+                            {row.reason === "level_change" && t("sd.reason.level_change")}
+                            {row.reason === "branch_change" && t("sd.reason.branch_change")}
+                            {row.reason === "student_request" && t("sd.reason.student_request")}
+                            {row.reason === "other" && t("sd.reason.other")}
                           </TableCell>
-                          <TableCell className="text-sm font-medium">{formatMoney(Number(t.balance_at_transfer), lang)}</TableCell>
+                          <TableCell className="text-sm font-medium">{formatMoney(Number(row.balance_at_transfer), lang)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -895,20 +895,20 @@ export function StudentDetailSheet({
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Guruhlararo ko'chirish</DialogTitle>
+            <DialogTitle>{t("sd.transferTitle")}</DialogTitle>
             <DialogDescription>
-              O'quvchini boshqa guruhga ko'chirish. Balans o'zgarmaydi, dars narxi yangi guruh narxiga mos ravishda hisoblanadi.
+              {t("sd.transferDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Qaysi guruhdan</Label>
+              <Label>{t("sd.fromGroup")}</Label>
               <Select
                 value={transferForm.fromGroupId}
                 onValueChange={(v) => setTransferForm((f) => ({ ...f, fromGroupId: v }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Guruhni tanlang" />
+                  <SelectValue placeholder={t("sd.pickGroup")} />
                 </SelectTrigger>
                 <SelectContent>
                   {studentGroups.map((g) => (
@@ -921,13 +921,13 @@ export function StudentDetailSheet({
             </div>
 
             <div className="grid gap-2">
-              <Label>Qaysi guruhga</Label>
+              <Label>{t("sd.toGroup")}</Label>
               <Select
                 value={transferForm.toGroupId}
                 onValueChange={(v) => setTransferForm((f) => ({ ...f, toGroupId: v }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Guruhni tanlang" />
+                  <SelectValue placeholder={t("sd.pickGroup")} />
                 </SelectTrigger>
                 <SelectContent>
                   {groups
@@ -942,7 +942,7 @@ export function StudentDetailSheet({
             </div>
 
             <div className="grid gap-2">
-              <Label>Ko'chirish sanasi</Label>
+              <Label>{t("sd.transferDate")}</Label>
               <Input
                 type="date"
                 value={transferForm.transferDate}
@@ -951,7 +951,7 @@ export function StudentDetailSheet({
             </div>
 
             <div className="grid gap-2">
-              <Label>Ko'chirish sababi</Label>
+              <Label>{t("sd.transferReason")}</Label>
               <Select
                 value={transferForm.reason}
                 onValueChange={(v) => setTransferForm((f) => ({ ...f, reason: v }))}
@@ -960,27 +960,27 @@ export function StudentDetailSheet({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="schedule_change">Dars jadvali o'zgarishi</SelectItem>
-                  <SelectItem value="level_change">Daraja o'zgarishi</SelectItem>
-                  <SelectItem value="branch_change">Filial o'zgarishi</SelectItem>
-                  <SelectItem value="student_request">O'quvchi talabi</SelectItem>
-                  <SelectItem value="other">Boshqa</SelectItem>
+                  <SelectItem value="schedule_change">{t("sd.reason.schedule_change")}</SelectItem>
+                  <SelectItem value="level_change">{t("sd.reason.level_change")}</SelectItem>
+                  <SelectItem value="branch_change">{t("sd.reason.branch_change")}</SelectItem>
+                  <SelectItem value="student_request">{t("sd.reason.student_request")}</SelectItem>
+                  <SelectItem value="other">{t("sd.reason.other")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid gap-2">
-              <Label>Izoh</Label>
+              <Label>{t("sd.comment")}</Label>
               <Textarea
-                placeholder="Izoh yozing..."
+                placeholder={t("sd.commentPlaceholder")}
                 value={transferForm.comment}
                 onChange={(e) => setTransferForm((f) => ({ ...f, comment: e.target.value }))}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTransferOpen(false)}>Bekor qilish</Button>
-            <Button onClick={handleTransfer}>Ko'chirish</Button>
+            <Button variant="outline" onClick={() => setTransferOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={handleTransfer}>{t("sd.transfer")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -989,33 +989,33 @@ export function StudentDetailSheet({
       <Dialog open={assignParentOpen} onOpenChange={setAssignParentOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Ota-ona biriktirish</DialogTitle>
+            <DialogTitle>{t("sd.assignParent")}</DialogTitle>
             <DialogDescription>
-              Ushbu o'quvchiga mavjud ota-onani biriktirishingiz yoki yangi ota-ona yaratishingiz mumkin.
+              {t("sd.assignParentDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <Tabs value={assignType} onValueChange={(v) => setAssignType(v as "existing" | "new")}>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="existing">Mavjud ota-ona</TabsTrigger>
-                <TabsTrigger value="new">Yangi ota-ona</TabsTrigger>
+                <TabsTrigger value="existing">{t("sd.existingParent")}</TabsTrigger>
+                <TabsTrigger value="new">{t("sd.newParent")}</TabsTrigger>
               </TabsList>
               <TabsContent value="existing" className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label>Ota-onani qidirish</Label>
+                  <Label>{t("sd.searchParent")}</Label>
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={parentSearch}
                       onChange={(e) => setParentSearch(e.target.value)}
-                      placeholder="Ism yoki telefon raqami..."
+                      placeholder={t("sd.searchParentPlaceholder")}
                       className="pl-9"
                     />
                   </div>
                 </div>
                 <div className="max-h-48 overflow-y-auto border rounded-lg divide-y divide-border bg-background">
                   {filteredParents.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-muted-foreground">Ota-onalar topilmadi</div>
+                    <div className="p-4 text-center text-xs text-muted-foreground">{t("sd.parentsNotFound")}</div>
                   ) : (
                     filteredParents.slice(0, 10).map((p) => (
                       <div
@@ -1031,29 +1031,29 @@ export function StudentDetailSheet({
                           <div>{p.fullName}</div>
                           <div className="text-[11px] text-muted-foreground">{p.phone}</div>
                         </div>
-                        {selectedParentId === p.id && <span className="text-xs text-primary font-semibold">Tanlandi</span>}
+                        {selectedParentId === p.id && <span className="text-xs text-primary font-semibold">{t("sd.selected")}</span>}
                       </div>
                     ))
                   )}
                   {filteredParents.length > 10 && (
                     <div className="p-2 text-center text-[10px] text-muted-foreground">
-                      Yana {filteredParents.length - 10} ta ota-ona bor. Qidiruv orqali aniqlashtiring.
+                      {tf("sd.moreParents", { n: filteredParents.length - 10 })}
                     </div>
                   )}
                 </div>
               </TabsContent>
               <TabsContent value="new" className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="newParentName">Ota-onaning F.I.SH. *</Label>
+                  <Label htmlFor="newParentName">{t("sd.parentFullName")} *</Label>
                   <Input
                     id="newParentName"
-                    placeholder="F.I.SH."
+                    placeholder={t("sd.namePlaceholder")}
                     value={newParentName}
                     onChange={(e) => setNewParentName(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="newParentPhone">Telefon raqami *</Label>
+                  <Label htmlFor="newParentPhone">{t("sd.phoneReq")} *</Label>
                   <PhoneInput
                     id="newParentPhone"
                     value={newParentPhone}
@@ -1061,21 +1061,21 @@ export function StudentDetailSheet({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="assignParentPassword">Parol</Label>
+                  <Label htmlFor="assignParentPassword">{t("sd.password")}</Label>
                   <PasswordInput
                     id="assignParentPassword"
                     value={assignParentPassword}
                     onChange={(e) => setAssignParentPassword(e.target.value)}
                     autoComplete="new-password"
                   />
-                  <p className="text-[11px] text-muted-foreground">Avtomatik yaratilgan parol. O'zgartirishingiz mumkin.</p>
+                  <p className="text-[11px] text-muted-foreground">{t("sd.autoPasswordHint")}</p>
                 </div>
               </TabsContent>
             </Tabs>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignParentOpen(false)}>Bekor qilish</Button>
-            <Button onClick={handleAssignParent}>Saqlash</Button>
+            <Button variant="outline" onClick={() => setAssignParentOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={handleAssignParent}>{t("common.save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1084,35 +1084,35 @@ export function StudentDetailSheet({
       <Dialog open={topUpOpen} onOpenChange={setTopUpOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Balansni to'ldirish</DialogTitle>
-            <DialogDescription>O'quvchi balansiga qo'lda pul qo'shish</DialogDescription>
+            <DialogTitle>{t("sd.topUpTitle")}</DialogTitle>
+            <DialogDescription>{t("sd.topUpDesc")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Summa *</Label>
+              <Label>{t("sd.amount")} *</Label>
               <Input type="number" placeholder="0" autoComplete="off" value={topUpForm.amount} onChange={(e) => setTopUpForm(f => ({ ...f, amount: e.target.value }))} />
             </div>
             <div className="grid gap-2">
-              <Label>To'lov usuli</Label>
+              <Label>{t("sd.payMethod")}</Label>
               <Select value={topUpForm.method} onValueChange={(v) => setTopUpForm(f => ({ ...f, method: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">Naqd</SelectItem>
-                  <SelectItem value="card">Karta</SelectItem>
-                  <SelectItem value="transfer">O'tkazma</SelectItem>
+                  <SelectItem value="cash">{t("finance.method.cash")}</SelectItem>
+                  <SelectItem value="card">{t("finance.method.card")}</SelectItem>
+                  <SelectItem value="transfer">{t("finance.method.transfer")}</SelectItem>
                   <SelectItem value="click">Click</SelectItem>
                   <SelectItem value="payme">Payme</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Izoh</Label>
-              <Textarea placeholder="Ixtiyoriy" value={topUpForm.comment} onChange={(e) => setTopUpForm(f => ({ ...f, comment: e.target.value }))} />
+              <Label>{t("sd.comment")}</Label>
+              <Textarea placeholder={t("sd.optionalPlaceholder")} value={topUpForm.comment} onChange={(e) => setTopUpForm(f => ({ ...f, comment: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTopUpOpen(false)}>Bekor qilish</Button>
-            <Button onClick={handleTopUp}>To'ldirish</Button>
+            <Button variant="outline" onClick={() => setTopUpOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={handleTopUp}>{t("sd.topUp")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1121,26 +1121,26 @@ export function StudentDetailSheet({
       <Dialog open={chargeOpen} onOpenChange={setChargeOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Balansdan yechib olish</DialogTitle>
-            <DialogDescription>O'quvchi balansidan qo'lda pul yechish</DialogDescription>
+            <DialogTitle>{t("sd.chargeTitle")}</DialogTitle>
+            <DialogDescription>{t("sd.chargeDesc")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Summa *</Label>
+              <Label>{t("sd.amount")} *</Label>
               <Input type="number" placeholder="0" autoComplete="off" value={chargeForm.amount} onChange={(e) => setChargeForm(f => ({ ...f, amount: e.target.value }))} />
             </div>
             <div className="grid gap-2">
-              <Label>Sabab *</Label>
-              <Input placeholder="Kitob uchun, Jarima..." autoComplete="off" value={chargeForm.reason} onChange={(e) => setChargeForm(f => ({ ...f, reason: e.target.value }))} />
+              <Label>{t("sd.reasonLabel")} *</Label>
+              <Input placeholder={t("sd.reasonPlaceholder")} autoComplete="off" value={chargeForm.reason} onChange={(e) => setChargeForm(f => ({ ...f, reason: e.target.value }))} />
             </div>
             <div className="grid gap-2">
-              <Label>Izoh</Label>
-              <Textarea placeholder="Ixtiyoriy" value={chargeForm.comment} onChange={(e) => setChargeForm(f => ({ ...f, comment: e.target.value }))} />
+              <Label>{t("sd.comment")}</Label>
+              <Textarea placeholder={t("sd.optionalPlaceholder")} value={chargeForm.comment} onChange={(e) => setChargeForm(f => ({ ...f, comment: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setChargeOpen(false)}>Bekor qilish</Button>
-            <Button variant="destructive" onClick={handleCharge}>Yechish</Button>
+            <Button variant="outline" onClick={() => setChargeOpen(false)}>{t("common.cancel")}</Button>
+            <Button variant="destructive" onClick={handleCharge}>{t("sd.withdraw")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1251,7 +1251,7 @@ export function StudentDetailSheet({
               {lang === "ru" ? "Код действует 24 часа" : "Kod 24 soat amal qiladi"}
             </p>
           </div>
-          <Button onClick={() => { navigator.clipboard.writeText(linkCode ?? ""); toast.success("Nusxalandi"); }}>
+          <Button onClick={() => { navigator.clipboard.writeText(linkCode ?? ""); toast.success(t("sd.copied")); }}>
             <Copy className="mr-1 h-4 w-4" />
             {lang === "ru" ? "Скопировать" : "Nusxalash"}
           </Button>

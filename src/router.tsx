@@ -1,5 +1,33 @@
-import { createRouter, useRouter } from "@tanstack/react-router";
+import { createRouter, useRouter, Link } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { useI18n } from "@/lib/i18n";
+
+function DefaultPendingComponent() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    </div>
+  );
+}
+
+function DefaultNotFoundComponent() {
+  const { t } = useI18n();
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <div className="text-7xl font-bold bg-gradient-primary bg-clip-text text-transparent">404</div>
+        <h2 className="mt-4 text-xl font-semibold">{t("notFound.title")}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{t("notFound.body")}</p>
+        <Link
+          to="/"
+          className="mt-6 inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          {t("notFound.home")}
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
@@ -61,6 +89,13 @@ export const getRouter = () => {
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
     defaultErrorComponent: DefaultErrorComponent,
+    defaultNotFoundComponent: DefaultNotFoundComponent,
+    // Stale UI (OBS-005/BUG-045): без pending-компонента роутер держит на
+    // экране предыдущую страницу, пока грузится ленивый чанк целевого
+    // маршрута. Показываем лоадер, если переход длится дольше 100ms.
+    defaultPendingComponent: DefaultPendingComponent,
+    defaultPendingMs: 100,
+    defaultPendingMinMs: 300,
   });
 
   return router;

@@ -111,7 +111,7 @@ const levelLabels: Record<number, { uz: string; ru: string }> = {
 };
 
 function StudentCoins() {
-  const { lang } = useI18n();
+  const { lang, plural } = useI18n();
   const { user } = useAuth();
 
   const [wallet, setWallet] = useState<any>(null);
@@ -291,7 +291,7 @@ function StudentCoins() {
             <Flame className="h-5 w-5" style={{ opacity: 0.9 }} />
             <span className="text-lg font-bold">{streak}</span>
             <span className="text-sm" style={{ opacity: 0.8 }}>
-              {lang === "uz" ? "kun seriya" : "дней серия"}
+              {lang === "uz" ? "kun seriya" : `${plural(streak, "день", "дня", "дней")} серия`}
             </span>
           </div>
         </div>
@@ -316,7 +316,7 @@ function StudentCoins() {
         <div className="bg-card border border-border rounded-xl p-3 text-center">
           <Trophy className="h-5 w-5 text-emerald-500 mx-auto mb-1" />
           <div className="text-xl font-bold text-foreground">
-            {unlockedCount}/{totalCount || "?"}
+            {unlockedCount}/{totalCount}
           </div>
           <div className="text-xs text-muted-foreground">
             {lang === "uz" ? "Yutuqlar" : "Достижения"}

@@ -318,7 +318,7 @@ function StaffPage() {
             <Field label={t("staff.field.phone")}>
               <PhoneInput value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </Field>
-            <Field label="Password">
+            <Field label={t("staff.field.password")}>
               <PasswordInput
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}

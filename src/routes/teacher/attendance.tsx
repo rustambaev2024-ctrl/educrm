@@ -19,7 +19,7 @@ import { groupApi, attendanceApi, ApiError } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentTeacherId } from "@/lib/data/identity";
-import { formatDate, formatTime } from "@/lib/format";
+import { formatDate, formatTime, getLocalDateString } from "@/lib/format";
 import { mapStudents, toResults, type StudentRaw } from "@/lib/data/mappers";
 import type { AttendanceStatus, Student } from "@/lib/data/types";
 
@@ -69,25 +69,55 @@ function AttendancePage() {
     [groups, teacherId],
   );
 
-  const myLessons = useMemo(
+  const allMyLessons = useMemo(
     () =>
       lessons
         // Отменённые уроки нельзя отмечать (бэкенд их отклоняет) — убираем из селектора.
-        .filter((l) => myGroupIds.has(l.groupId) && l.status !== "cancelled")
-        .sort((a, b) => Math.abs(new Date(a.datetime).getTime() - Date.now()) - Math.abs(new Date(b.datetime).getTime() - Date.now())),
+        .filter((l) => myGroupIds.has(l.groupId) && l.status !== "cancelled"),
     [lessons, myGroupIds],
+  );
+
+  // Локальная дата (не UTC — иначе сдвиг на -5 часов).
+  const toDateKey = (value: string) => getLocalDateString(new Date(value));
+  const todayKey = getLocalDateString();
+
+  const availableDates = useMemo(() => {
+    const keys = new Set(allMyLessons.map((l) => toDateKey(l.datetime)));
+    return [...keys].sort((a, b) => b.localeCompare(a));
+  }, [allMyLessons]);
+
+  const [selectedDate, setSelectedDate] = useState<string>("");
+
+  // По умолчанию — сегодня; если сегодня уроков нет — ближайший прошедший
+  // день с уроками (или ближайший будущий, если прошедших нет).
+  useEffect(() => {
+    if (selectedDate || availableDates.length === 0) return;
+    if (availableDates.includes(todayKey)) {
+      setSelectedDate(todayKey);
+      return;
+    }
+    const past = availableDates.find((d) => d < todayKey);
+    setSelectedDate(past ?? availableDates[availableDates.length - 1]);
+  }, [availableDates, selectedDate, todayKey]);
+
+  const myLessons = useMemo(
+    () =>
+      allMyLessons
+        .filter((l) => toDateKey(l.datetime) === selectedDate)
+        .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime()),
+    [allMyLessons, selectedDate],
   );
 
   const [selectedLessonId, setSelectedLessonId] = useState<string>("");
 
   useEffect(() => {
-    if (!selectedLessonId && myLessons.length > 0) {
-      const lessonWithStudents = myLessons.find((item) => {
-        const itemGroup = groups.find((groupItem) => groupItem.id === item.groupId);
-        return (itemGroup?.studentIds.length ?? 0) > 0;
-      });
-      setSelectedLessonId((lessonWithStudents ?? myLessons[0]).id);
-    }
+    if (myLessons.length === 0) return;
+    if (myLessons.some((l) => l.id === selectedLessonId)) return;
+    const lessonWithStudents = myLessons.find((item) => {
+      const itemGroup = groups.find((groupItem) => groupItem.id === item.groupId);
+      return (itemGroup?.studentIds.length ?? 0) > 0;
+    });
+    setSelectedLessonId((lessonWithStudents ?? myLessons[0]).id);
   }, [groups, myLessons, selectedLessonId]);
 
   const lesson = myLessons.find((l) => l.id === selectedLessonId);
@@ -219,33 +249,59 @@ function AttendancePage() {
   return (
     <PageShell title={t("att.title")} subtitle={t("att.subtitle")}>
       <div className="space-y-4">
-        {myLessons.length === 0 ? (
+        {allMyLessons.length === 0 ? (
           <Card className="shadow-elegant">
             <EmptyState
               icon={<ClipboardCheck className="size-7" />}
               title={t("att.noLesson")}
               description={lang === "uz"
-                ? "Bugun uchun belgilanadigan darslar yo'q"
-                : "На сегодня нет уроков для отметки"}
+                ? "Belgilanadigan darslar yo'q"
+                : "Нет уроков для отметки"}
             />
           </Card>
         ) : (
           <>
+            {selectedDate && selectedDate !== todayKey && !availableDates.includes(todayKey) && (
+              <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+                {lang === "uz"
+                  ? "Bugun darslar yo'q — darslari bo'lgan oxirgi kun ko'rsatilgan"
+                  : "Сегодня уроков нет — показан последний день с уроками"}
+              </div>
+            )}
             <Card className="flex flex-col gap-3 p-4 shadow-elegant md:flex-row md:items-center md:justify-between">
               <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   {t("att.pickLesson")}
                 </span>
+                <Select
+                  value={selectedDate}
+                  onValueChange={(value) => {
+                    setSelectedDate(value);
+                    setSelectedLessonId("");
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableDates.map((d) => (
+                      <SelectItem key={d} value={d}>
+                        {formatDate(`${d}T00:00:00`, lang)}
+                        {d === todayKey ? (lang === "uz" ? " · bugun" : " · сегодня") : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Select value={selectedLessonId} onValueChange={setSelectedLessonId}>
                   <SelectTrigger className="w-full sm:max-w-md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {myLessons.slice(0, 50).map((l) => {
+                    {myLessons.map((l) => {
                       const g = groups.find((x) => x.id === l.groupId);
                       return (
                         <SelectItem key={l.id} value={l.id}>
-                          {g?.name} · {formatDate(l.datetime, lang)} {formatTime(l.datetime)}
+                          {g?.name} · {formatTime(l.datetime)}
                         </SelectItem>
                       );
                     })}

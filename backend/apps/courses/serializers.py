@@ -2,6 +2,7 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
 
+from apps.institutions.models import Room
 from apps.students.models import Student
 
 from .models import Course, Group, GroupMembership
@@ -18,6 +19,14 @@ class GroupSerializer(serializers.ModelSerializer):
     active_students_count = serializers.SerializerMethodField()
     active_student_ids = serializers.SerializerMethodField()
     teacher_name = serializers.CharField(source="teacher.user.full_name", read_only=True)
+    # Кабинет необязателен: админ филиала не может создавать кабинеты
+    # (это функция директора) и не должен быть заблокирован при создании
+    # группы (BUG-025).
+    room = serializers.PrimaryKeyRelatedField(
+        queryset=Room.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = Group

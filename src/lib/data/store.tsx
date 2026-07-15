@@ -195,7 +195,7 @@ interface DataStoreActions {
     branchesCount?: number;
     staffCount?: number;
     monthlyRevenue?: number;
-  }) => Institution;
+  }) => Promise<boolean>;
   updateInstitution: (id: string, patch: Partial<Institution>) => void;
   deleteInstitution: (id: string) => void;
   // Branches (superadmin)
@@ -220,11 +220,17 @@ const uid = (prefix: string) => `${prefix}_${Math.random().toString(36).slice(2,
 type ListResponse<T> = { results: T[]; count?: number } | T[];
 type AnyRecord = Record<string, unknown>;
 
+// Подписи загрузок, упавших в текущей волне reload() — чтобы не молчать,
+// а показать пользователю ошибку и дать повторить. Одна волна за раз
+// (reload защищён loadingRef), поэтому модульный массив безопасен.
+const pendingLoadFailures: string[] = [];
+
 async function safe<T>(promise: Promise<T>, fallback: T, label: string): Promise<T> {
   try {
     return await promise;
   } catch (err) {
     console.warn(`[store] failed to load ${label}:`, err);
+    pendingLoadFailures.push(label);
     return fallback;
   }
 }
@@ -769,12 +775,19 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadingRef = useRef(false);
   const lastReloadAtRef = useRef(0);
+  const reloadRef = useRef<() => void>(() => {});
+  // true после первой успешной волны загрузки. Фоновые revalidate (focus,
+  // мутации) не должны выставлять isLoading — страницы делают
+  // `if (isLoading) return <Spinner/>`, и подмена контента спиннером между
+  // mousedown и mouseup проглатывает первый клик (BUG-021).
+  const hasLoadedRef = useRef(false);
 
   const reload = useCallback(async () => {
     if (!isAuthenticated || loadingRef.current) return;
     loadingRef.current = true;
-    setIsLoading(true);
+    if (!hasLoadedRef.current) setIsLoading(true);
     setLoadError(null);
+    pendingLoadFailures.length = 0;
 
     try {
       if (user?.role === "superadmin") {
@@ -875,16 +888,37 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setAuditLog(toResults(auditRaw).map(auditFromRaw));
     } catch (err) {
       console.error("[store] reload failed:", err);
-      setLoadError("Ma'lumotlarni yuklab bo'lmadi");
+      pendingLoadFailures.push("store");
     } finally {
+      if (pendingLoadFailures.length > 0) {
+        const failed = [...new Set(pendingLoadFailures)].join(", ");
+        const message = "Ma'lumotlarning bir qismi yuklanmadi / Часть данных не загрузилась";
+        setLoadError(`${message} (${failed})`);
+        // Один toast на волну; фиксированный id — sonner заменяет, не стекает.
+        toast.error(message, {
+          id: "store-load-error",
+          action: {
+            label: "Qayta urinish / Повторить",
+            onClick: () => reloadRef.current(),
+          },
+        });
+      }
       lastReloadAtRef.current = Date.now();
+      hasLoadedRef.current = true;
       setIsLoading(false);
       loadingRef.current = false;
     }
   }, [currentAudience, isAuthenticated, user?.role]);
 
+  reloadRef.current = () => void reload();
+
   useEffect(() => {
-    if (isAuthenticated) void reload();
+    if (isAuthenticated) {
+      void reload();
+    } else {
+      // Разлогин: следующая сессия должна снова показать первичный лоадер.
+      hasLoadedRef.current = false;
+    }
   }, [isAuthenticated, reload]);
 
   useEffect(() => {
@@ -1044,6 +1078,17 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Сервер генерирует уроки по расписанию при создании/изменении группы —
+  // подтягиваем только их, не гоняя полный reload (BUG-027).
+  const refreshLessons = useCallback(async () => {
+    try {
+      const raw = await lessonApi.list() as ListResponse<LessonRaw>;
+      setLessons(toResults(raw).map(lessonFromRaw));
+    } catch (err) {
+      console.error("[store] lessons refresh failed:", err);
+    }
+  }, []);
+
   const addGroup: DataStoreActions["addGroup"] = useCallback((input) => {
     const id = uid("g");
     const created: Group = {
@@ -1079,11 +1124,14 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       } as never).then((raw) => {
         const persisted = groupFromRaw(raw as GroupRaw);
         setGroups((prev) => prev.map((g) => (g.id === id ? persisted : g)));
+        // Уроки уже сгенерированы на сервере — вкладка «Уроки» и «Расписание»
+        // должны увидеть их без ручной перезагрузки страницы.
+        void refreshLessons();
       }),
       () => setGroups((prev) => prev.filter((g) => g.id !== id)),
     );
     return created;
-  }, []);
+  }, [refreshLessons]);
 
   const updateGroup: DataStoreActions["updateGroup"] = useCallback((id, patch) => {
     const snapshot = groups;
@@ -1102,10 +1150,13 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         schedule: patch.schedule,
         monthly_price: patch.monthlyPrice,
         status: patch.status,
-      } as never),
+      } as never).then(() => {
+        // Смена расписания перегенерирует будущие уроки на сервере.
+        if (patch.schedule || patch.startDate || patch.endDate) void refreshLessons();
+      }),
       () => setGroups(snapshot),
     );
-  }, [groups]);
+  }, [groups, refreshLessons]);
 
   const deleteGroup: DataStoreActions["deleteGroup"] = useCallback((id) => {
     const snapshot = groups;
@@ -1683,29 +1734,30 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       directorPassword: input.directorPassword,
     };
     setInstitutions((prev) => [created, ...prev]);
+    const task = superadminApi.institutions.create({
+      name: created.name,
+      slug: created.slug,
+      domain: created.domain,
+      address: created.city,
+      subscription_end: created.expiresAt,
+      director_full_name: created.directorName,
+      director_phone: created.directorPhone,
+      director_password: created.directorPassword,
+    } as never).then((raw) => {
+      const persisted = institutionFromRaw(raw as InstitutionRaw);
+      setInstitutions((prev) => prev.map((i) => (i.id === id ? { ...created, ...persisted } : i)));
+      setBranches((prev) =>
+        prev.map((branch) =>
+          branch.institutionId === id ? { ...branch, institutionId: persisted.id } : branch,
+        ),
+      );
+    });
     fireAndForget(
       "addInstitution",
-      superadminApi.institutions.create({
-        name: created.name,
-        slug: created.slug,
-        domain: created.domain,
-        address: created.city,
-        subscription_end: created.expiresAt,
-        director_full_name: created.directorName,
-        director_phone: created.directorPhone,
-        director_password: created.directorPassword,
-      } as never).then((raw) => {
-        const persisted = institutionFromRaw(raw as InstitutionRaw);
-        setInstitutions((prev) => prev.map((i) => (i.id === id ? { ...created, ...persisted } : i)));
-        setBranches((prev) =>
-          prev.map((branch) =>
-            branch.institutionId === id ? { ...branch, institutionId: persisted.id } : branch,
-          ),
-        );
-      }),
+      task,
       () => setInstitutions((prev) => prev.filter((i) => i.id !== id)),
     );
-    return created;
+    return task.then(() => true).catch(() => false);
   }, []);
 
   const updateInstitution: DataStoreActions["updateInstitution"] = useCallback((id, patch) => {

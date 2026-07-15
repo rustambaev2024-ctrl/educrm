@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { Building2, Users, Activity, AlertTriangle, Search, Plus, Pencil, Trash2, MapPin, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
@@ -46,6 +47,13 @@ interface InstitutionFormState {
   directorPassword: string;
 }
 
+const CREATION_STEPS = [
+  { id: "schema", labelKey: "sa.step.schema" },
+  { id: "migrate", labelKey: "sa.step.migrate" },
+  { id: "director", labelKey: "sa.step.director" },
+  { id: "branch", labelKey: "sa.step.branch" },
+];
+
 const emptyForm: InstitutionFormState = {
   name: "", slug: "", city: "", domain: "", status: "active",
   expiresAt: getLocalDateString(new Date(Date.now() + 365 * 86400000)),
@@ -72,7 +80,7 @@ function makeSchemaSlug(value: string) {
 }
 
 function SuperadminHome() {
-  const { t, lang } = useI18n();
+  const { t, tf, lang } = useI18n();
   const { institutions, branches, addInstitution, updateInstitution, deleteInstitution, addBranch, deleteBranch, isLoading } = useData();
   const [search, setSearch] = useState("");
   const [statusF, setStatusF] = useState<"all" | InstitutionStatus>("all");
@@ -80,6 +88,26 @@ function SuperadminHome() {
   const [openInst, setOpenInst] = useState(false);
   const [editing, setEditing] = useState<Institution | null>(null);
   const [form, setForm] = useState<InstitutionFormState>(emptyForm);
+  const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [creationStep, setCreationStep] = useState<number>(-1);
+
+  // Проверка доступности slug (debounce 500ms) — только при создании
+  useEffect(() => {
+    if (editing || !openInst || !form.slug) {
+      setSlugStatus("idle");
+      return;
+    }
+    setSlugStatus("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const r = await superadminApi.institutions.checkSlug(form.slug);
+        setSlugStatus(r.available ? "available" : "taken");
+      } catch {
+        setSlugStatus("idle");
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [form.slug, editing, openInst]);
 
   const [branchInst, setBranchInst] = useState<Institution | null>(null);
   const [branchForm, setBranchForm] = useState({ name: "", address: "" });
@@ -131,9 +159,18 @@ function SuperadminHome() {
     setOpenInst(true);
   };
 
-  const handleSubmit = () => {
-    if (!form.name.trim() || !form.city.trim()) {
-      toast.error(t("common.required"));
+  const handleSubmit = async () => {
+    // Собираем список конкретных незаполненных обязательных полей (BUG-009)
+    const missing: string[] = [];
+    if (!form.name.trim()) missing.push(t("sa.field.name"));
+    if (!form.city.trim()) missing.push(t("sa.field.city"));
+    if (!editing) {
+      if (!form.directorName.trim()) missing.push(t("sa.field.directorName"));
+      if (!form.directorPhone.trim()) missing.push(t("sa.field.directorPhone"));
+      if (!form.directorPassword.trim()) missing.push(t("sa.field.directorPassword"));
+    }
+    if (missing.length) {
+      toast.error(tf("validation.fillField", { fields: missing.join(", ") }));
       return;
     }
     const schemaSlug = editing
@@ -142,10 +179,6 @@ function SuperadminHome() {
     const domain = editing
       ? form.domain.trim() || `${schemaSlug}.localhost`
       : `${schemaSlug}.localhost`;
-    if (!editing && (!form.directorName.trim() || !form.directorPhone.trim() || !form.directorPassword.trim())) {
-      toast.error(t("common.required"));
-      return;
-    }
     if (editing) {
       updateInstitution(editing.id, {
         name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), status: form.status,
@@ -155,17 +188,33 @@ function SuperadminHome() {
         directorPassword: form.directorPassword.trim() || undefined,
       });
       toast.success(t("sa.updated"));
-    } else {
-      addInstitution({
-        name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), status: form.status,
-        expiresAt: form.expiresAt,
-        directorName: form.directorName.trim() || undefined,
-        directorPhone: form.directorPhone.trim() || undefined,
-        directorPassword: form.directorPassword.trim() || undefined,
-      });
-      toast.success(t("sa.created"));
+      setOpenInst(false);
+      return;
     }
-    setOpenInst(false);
+    if (slugStatus === "taken") {
+      toast.error(t("sa.slugTaken"));
+      return;
+    }
+    // Прогресс: реального статуса с бэка нет, шаги имитируются таймером,
+    // но завершение/ошибка — по реальному ответу API.
+    setCreationStep(0);
+    const timer = setInterval(() => {
+      setCreationStep((prev) => Math.min(prev + 1, CREATION_STEPS.length - 1));
+    }, 2000);
+    const ok = await addInstitution({
+      name: form.name.trim(), slug: schemaSlug, domain, city: form.city.trim(), status: form.status,
+      expiresAt: form.expiresAt,
+      directorName: form.directorName.trim() || undefined,
+      directorPhone: form.directorPhone.trim() || undefined,
+      directorPassword: form.directorPassword.trim() || undefined,
+    });
+    clearInterval(timer);
+    setCreationStep(-1);
+    if (ok) {
+      toast.success(t("sa.created"));
+      setOpenInst(false);
+    }
+    // Ошибку с деталями показывает store через apiErrorMessage
   };
 
   const handleDelete = async (i: Institution, force = false) => {
@@ -188,7 +237,7 @@ function SuperadminHome() {
         setDeleteTarget(null);
         setDeleteConfirmText("");
       } else {
-        toast.error(lang === "uz" ? "O'chirishda xatolik" : "Ошибка при удалении");
+        toast.error(t("sa.deleteError"));
       }
     } finally {
       setDeleting(false);
@@ -198,7 +247,7 @@ function SuperadminHome() {
   const submitBranch = () => {
     if (!activeBranchInst) return;
     if (String(activeBranchInst.id).startsWith("i_")) {
-      toast.warning("Muassasa hali saqlanmoqda. Bir necha soniyadan keyin qayta urinib ko'ring.");
+      toast.warning(t("sa.instSaving"));
       return;
     }
     if (!branchForm.name.trim() || !branchForm.address.trim()) {
@@ -236,10 +285,10 @@ function SuperadminHome() {
     >
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard label={lang === "uz" ? "Jami tashkilotlar" : "Всего организаций"} value={institutions.length} icon={Building2} iconColor="blue" />
-          <KpiCard label={lang === "uz" ? "Faol" : "Активные"} value={totals.active} icon={Activity} iconColor="green" />
-          <KpiCard label={lang === "uz" ? "Muzlatilgan" : "Замороженные"} value={totals.frozen} icon={Users} iconColor="violet" />
-          <KpiCard label={lang === "uz" ? "Muddati tugaydi" : "Истекает срок"} value={totals.expiringSoon} icon={AlertTriangle} iconColor="amber" />
+          <KpiCard label={t("sa.kpi.totalOrg")} value={institutions.length} icon={Building2} iconColor="blue" />
+          <KpiCard label={t("sa.istatus.active")} value={totals.active} icon={Activity} iconColor="green" />
+          <KpiCard label={t("sa.kpi.frozen")} value={totals.frozen} icon={Users} iconColor="violet" />
+          <KpiCard label={t("sa.kpi.expiring2")} value={totals.expiringSoon} icon={AlertTriangle} iconColor="amber" />
         </div>
 
         <Card className="overflow-hidden p-0 shadow-elegant">
@@ -301,12 +350,12 @@ function SuperadminHome() {
                         <span>{formatDate(i.expiresAt, lang)}</span>
                         {i.subscriptionStatus === "expired" && (
                           <Badge variant="outline" className="w-fit bg-destructive/10 text-destructive border-destructive/30 text-[10px]">
-                            {lang === "uz" ? "Muddati o'tgan" : "Истёк"}
+                            {t("sa.sub.expired")}
                           </Badge>
                         )}
                         {i.subscriptionStatus === "expiring_soon" && (
                           <Badge variant="outline" className="w-fit bg-warning/10 text-warning border-warning/30 text-[10px]">
-                            {lang === "uz" ? "Tez orada tugaydi" : "Истекает скоро"}
+                            {t("sa.sub.expiringSoon")}
                           </Badge>
                         )}
                       </div>
@@ -331,11 +380,11 @@ function SuperadminHome() {
                               <AlertDialogDescription>
                                 {t("common.confirmDelete")} — <strong>{i.name}</strong>
                                 <br /><br />
-                                <span className="text-xs">Tasdiqlash uchun &quot;{i.name}&quot; deb yozing:</span>
+                                <span className="text-xs">{tf("sa.confirmDeleteType", { name: i.name })}</span>
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <Input
-                              placeholder={`"${i.name}" deb yozing`}
+                              placeholder={tf("sa.confirmDeletePlaceholder", { name: i.name })}
                               value={deleteTarget?.id === i.id ? deleteConfirmText : ""}
                               onChange={(e) => { setDeleteTarget(i); setDeleteConfirmText(e.target.value); }}
                             />
@@ -362,7 +411,7 @@ function SuperadminHome() {
       </div>
 
       {/* Institution create/edit dialog */}
-      <Dialog open={openInst} onOpenChange={setOpenInst}>
+      <Dialog open={openInst} onOpenChange={(o) => { if (creationStep >= 0) return; setOpenInst(o); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? t("sa.edit") : t("sa.add")}</DialogTitle>
@@ -383,6 +432,14 @@ function SuperadminHome() {
                   }));
                 }}
               />
+              {!editing && form.slug && (
+                <div className="mt-1.5 flex items-center gap-2 text-xs">
+                  <span className="font-mono text-muted-foreground">{form.slug}</span>
+                  {slugStatus === "checking" && <span className="text-muted-foreground">{t("sa.slug.checking")}</span>}
+                  {slugStatus === "available" && <span className="text-success">✓ {t("sa.slug.available")}</span>}
+                  {slugStatus === "taken" && <span className="text-destructive">✗ {t("sa.slug.taken")}</span>}
+                </div>
+              )}
             </Field>
             <Field label={t("sa.field.city")}>
               <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
@@ -411,7 +468,7 @@ function SuperadminHome() {
                   <PhoneInput value={form.directorPhone} onChange={(e) => setForm({ ...form, directorPhone: e.target.value })} />
                 </Field>
                 {!editing && (
-                  <Field label="Director password">
+                  <Field label={t("sa.field.directorPassword")}>
                     <PasswordInput
                       value={form.directorPassword}
                       onChange={(e) => setForm({ ...form, directorPassword: e.target.value })}
@@ -422,9 +479,27 @@ function SuperadminHome() {
               </div>
             </div>
           </div>
+          {creationStep >= 0 && (
+            <div className="space-y-2 rounded-xl border border-border/60 bg-accent/30 p-4">
+              {CREATION_STEPS.map((step, i) => (
+                <div
+                  key={step.id}
+                  className={cn(
+                    "flex items-center gap-2 text-sm transition-colors",
+                    i < creationStep ? "text-success" : i === creationStep ? "text-foreground font-medium" : "text-muted-foreground",
+                  )}
+                >
+                  <span className="w-4 text-center">{i < creationStep ? "✓" : i === creationStep ? "⏳" : "○"}</span>
+                  {t(step.labelKey)}
+                </div>
+              ))}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenInst(false)}>{t("common.cancel")}</Button>
-            <Button onClick={handleSubmit}>{editing ? t("common.save") : t("common.create")}</Button>
+            <Button variant="outline" onClick={() => setOpenInst(false)} disabled={creationStep >= 0}>{t("common.cancel")}</Button>
+            <Button onClick={handleSubmit} disabled={creationStep >= 0 || (!editing && slugStatus === "taken")}>
+              {creationStep >= 0 ? "..." : editing ? t("common.save") : t("common.create")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -503,12 +578,13 @@ function SuperadminHome() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {lang === "uz" ? "Faol o'quvchilar bor!" : "Есть активные студенты!"}
+              {t("sa.activeStudentsTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {lang === "uz"
-                ? `"${forceDeleteTarget?.inst.name}" tashkilotida ${forceDeleteTarget?.activeCount} faol o'quvchi bor. Barchasini o'chirib yuborasizmi? Bu amalni qaytarib bo'lmaydi.`
-                : `В организации "${forceDeleteTarget?.inst.name}" есть ${forceDeleteTarget?.activeCount} активных студентов. Удалить всё равно? Это действие необратимо.`}
+              {tf("sa.activeStudentsBody", {
+                name: forceDeleteTarget?.inst.name ?? "",
+                count: forceDeleteTarget?.activeCount ?? 0,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -518,7 +594,7 @@ function SuperadminHome() {
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? "..." : lang === "uz" ? "Ha, o'chirib yuborish" : "Да, удалить всё"}
+              {deleting ? "..." : t("sa.forceDelete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

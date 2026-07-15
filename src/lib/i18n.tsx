@@ -21,7 +21,7 @@ const UZ: Dict = {
   "login.forgotTitle": "Parolni tiklash",
   "login.forgotBody": "Parolni tiklash uchun o'quv markazi administratoriga yoki direktoriga murojaat qiling. Yangi parol siz uchun belgilanadi.",
   "login.back": "Orqaga",
-  "login.footer": "EduCRM v1.0 · Yorug' va qorong'i mavzu",
+  "login.footer": "EduCRM v1.0",
   "toast.fillFields": "Telefon va parolni kiriting",
   "toast.welcome": "Xush kelibsiz",
   "theme.toggle": "Mavzuni almashtirish",
@@ -29,6 +29,7 @@ const UZ: Dict = {
   "role.superadmin": "Superadmin",
   "role.director": "Direktor",
   "role.admin": "Administrator",
+  "role.branch_admin": "Administrator",
   "role.teacher": "O'qituvchi",
   "role.support_teacher": "Yordamchi o'qituvchi",
   "role.student": "O'quvchi",
@@ -139,6 +140,16 @@ const UZ: Dict = {
   "students.archived": "O'quvchi arxivlandi",
   "students.noGroups": "Guruhlarda yo'q",
   "students.docs.empty": "Hujjatlar yuklanmagan",
+  "students.createSubtitle": "Yangi o'quvchi va uning hujjatlarini tizimga kiritish",
+  "students.namePlaceholder": "F.I.SH.",
+  "students.password": "O'quvchi paroli",
+  "students.passwordHint": "Avtomatik 6 xonali parol yaratildi. Xohlasangiz o'zgartiring.",
+  "students.parentHint": "Kichik yoshdagi o'quvchilar uchun to'ldiring",
+  "students.parentFullName": "Ota-onaning F.I.Sh.",
+  "students.parentPhoneLabel": "Ota-onaning telefon raqami",
+  "students.parentPassword": "Ota-ona paroli",
+  "students.parentPasswordHint": "Avtomatik 6 xonali parol yaratildi.",
+  "students.submitAdd": "O'quvchini qo'shish",
 
   // Status (student)
   "status.active": "Faol",
@@ -174,6 +185,17 @@ const UZ: Dict = {
   "groups.studentRemoved": "O'quvchi guruhdan chiqarildi",
   "groups.studentAdded": "O'quvchi qo'shildi",
   "groups.full": "To'la",
+  "groups.namePlaceholder": "Masalan: Matematika — Ertalab",
+  "groups.roomRequired": "Avval direktor kabinet yaratishi kerak.",
+  "groups.roomOptionalHint": "Kabinetlar yo'q — guruhni kabinetisiz yaratishingiz mumkin, keyin direktor kabinet qo'shadi.",
+  "groups.foundSlots": "{found} ta topildi · {slots} ta joy qoldi",
+  "groups.sameBranch": "shu filial",
+  "groups.moreStudents": "Yana {n} ta o'quvchi bor. Aniqroq qidiruv kiriting.",
+  "groups.noSuchStudent": "Bunday o'quvchi topilmadi.",
+  "groups.noFreeStudents": "Qo'shish uchun bo'sh o'quvchi yo'q.",
+  "groups.groupFull": "Guruh to'lgan. Yangi o'quvchi qo'shish uchun avval joy bo'shating yoki sig'imni oshiring.",
+  "groups.pickRoom": "Kabinet tanlang",
+  "groups.updated": "Guruh yangilandi",
 
   // Group status
   "gstatus.recruiting": "To'planmoqda",
@@ -308,6 +330,8 @@ const UZ: Dict = {
 
   // Validation
   "validation.fillAll": "Barcha majburiy maydonlarni to'ldiring",
+  "validation.fillField": "To'ldiring: {fields}",
+  "grades.scoreRange": "Baho 0 dan 100 gacha bo'lishi kerak",
 
   // Homework — teacher
   "hw.title": "Uy vazifalari",
@@ -548,6 +572,7 @@ const UZ: Dict = {
   "sa.kpi.arr": "Yillik tushum (ARR)",
   "sa.kpi.expiring": "30 kun ichida tugaydi",
   "sa.byCity": "Shaharlar bo'yicha",
+  "sa.topInstitutions": "Daromad bo'yicha top muassasalar",
   "sa.logs.title": "Platforma loglari",
   "sa.logs.subtitle": "Barcha muassasalar bo'yicha tizim hodisalari",
   "sa.settings.title": "Platforma sozlamalari",
@@ -555,6 +580,9 @@ const UZ: Dict = {
   "sa.settings.general": "Umumiy",
   "sa.settings.security": "Xavfsizlik",
   "sa.settings.brand": "Brend",
+  "sa.settings.primaryColor": "Asosiy rang",
+  "sa.settings.preview": "Ko'rinishi",
+  "sa.settings.brandPreview": "Brend ko'rinishi",
   "sa.settings.platformName": "Platforma nomi",
   "sa.settings.supportEmail": "Yordam emaili",
   "sa.settings.supportPhone": "Yordam telefoni",
@@ -564,6 +592,7 @@ const UZ: Dict = {
   "sa.settings.passwordPolicy": "Kuchli parol talabi",
   "sa.settings.sessionTimeout": "Sessiya muddati (daqiqa)",
   "sa.settings.saved": "Sozlamalar saqlandi",
+  "sa.settings.saveError": "Sozlamalarni saqlashda xatolik",
 
   // Admin home
   "admin.title": "Filial paneli",
@@ -591,6 +620,27 @@ const UZ: Dict = {
   "sa.field.expires": "Amal qilish muddati",
   "sa.field.directorName": "Direktor F.I.Sh.",
   "sa.field.directorPhone": "Direktor telefoni",
+  "sa.field.directorPassword": "Direktor paroli",
+  "sa.step.schema": "Sxema yaratilmoqda...",
+  "sa.step.migrate": "Bazalar sozlanmoqda...",
+  "sa.step.director": "Direktor yaratilmoqda...",
+  "sa.step.branch": "Filial yaratilmoqda...",
+  "sa.slugTaken": "Bu slug band — boshqa nom tanlang",
+  "sa.deleteError": "O'chirishda xatolik",
+  "sa.instSaving": "Muassasa hali saqlanmoqda. Bir necha soniyadan keyin qayta urinib ko'ring.",
+  "sa.confirmDeleteType": "Tasdiqlash uchun «{name}» deb yozing:",
+  "sa.confirmDeletePlaceholder": "«{name}» deb yozing",
+  "sa.activeStudentsTitle": "Faol o'quvchilar bor!",
+  "sa.activeStudentsBody": "«{name}» tashkilotida {count} faol o'quvchi bor. Barchasini o'chirib yuborasizmi? Bu amalni qaytarib bo'lmaydi.",
+  "sa.forceDelete": "Ha, o'chirib yuborish",
+  "sa.slug.checking": "Tekshirilmoqda...",
+  "sa.slug.available": "Mavjud",
+  "sa.slug.taken": "Band",
+  "sa.kpi.totalOrg": "Jami tashkilotlar",
+  "sa.kpi.frozen": "Muzlatilgan",
+  "sa.kpi.expiring2": "Muddati tugaydi",
+  "sa.sub.expired": "Muddati o'tgan",
+  "sa.sub.expiringSoon": "Tez orada tugaydi",
   "sa.directorBlock": "Direktor (yangi muassasa uchun)",
   "sa.directorHint": "Bo'sh qoldirsangiz, keyin tayinlashingiz mumkin.",
   "sa.branches.title": "Muassasa filiallari",
@@ -611,7 +661,8 @@ const UZ: Dict = {
   "staff.field.role": "Lavozim",
   "staff.field.status": "Holati",
   "staff.field.branch": "Filial",
-  
+  "staff.field.password": "Parol",
+
   "settings.page.title": "Sozlamalar va Personallashtirish",
   "settings.page.desc": "O'quv markazi brendini va o'z profilingizni sozlang",
   "settings.inst.title": "Markaz personallashtirish",
@@ -642,6 +693,83 @@ const UZ: Dict = {
   "settings.msg.passReq": "Parollarni kiriting",
   "settings.msg.passSaved": "Parol muvaffaqiyatli o'zgartirildi!",
   "settings.msg.passError": "Joriy parol noto'g'ri yoki xatolik yuz berdi",
+
+  // Student detail sheet
+  "sd.topUp": "To'ldirish",
+  "sd.withdraw": "Yechish",
+  "sd.coins": "Coin",
+  "sd.tab.transfers": "Transferlar",
+  "sd.mainData": "Asosiy ma'lumotlar",
+  "sd.change": "O'zgartirish",
+  "sd.cancelShort": "Bekor",
+  "sd.changePassword": "Parolni o'zgartirish",
+  "sd.parentChangePassword": "Ota-ona parolini o'zgartirish",
+  "sd.newPasswordOptional": "Yangi parol (ixtiyoriy)",
+  "sd.parentNotAssigned": "Ota-ona biriktirilmagan",
+  "sd.assignParent": "Ota-ona biriktirish",
+  "sd.selected": "Tanlandi",
+  "sd.ptype.top_up": "To'lov",
+  "sd.ptype.charge": "Dars uchun yechib olinish",
+  "sd.ptype.discount": "Chegirma",
+  "sd.ptype.refund": "Qaytarish",
+  "sd.ptype.expense": "Xarajat",
+  "sd.ptype.manual_top_up": "Qo'lda to'ldirish",
+  "sd.ptype.manual_charge": "Qo'lda yechish",
+  "sd.tr.empty": "Transferlar tarixi mavjud emas",
+  "sd.tr.date": "Sana",
+  "sd.tr.from": "Dan",
+  "sd.tr.to": "Ga",
+  "sd.tr.reason": "Sabab",
+  "sd.tr.balance": "Balans",
+  "sd.reason.schedule_change": "Dars jadvali o'zgarishi",
+  "sd.reason.level_change": "Daraja o'zgarishi",
+  "sd.reason.branch_change": "Filial o'zgarishi",
+  "sd.reason.student_request": "O'quvchi talabi",
+  "sd.reason.other": "Boshqa",
+  "sd.transferTitle": "Guruhlararo ko'chirish",
+  "sd.transferDesc": "O'quvchini boshqa guruhga ko'chirish. Balans o'zgarmaydi, dars narxi yangi guruh narxiga mos ravishda hisoblanadi.",
+  "sd.fromGroup": "Qaysi guruhdan",
+  "sd.toGroup": "Qaysi guruhga",
+  "sd.pickGroup": "Guruhni tanlang",
+  "sd.transferDate": "Ko'chirish sanasi",
+  "sd.transferReason": "Ko'chirish sababi",
+  "sd.comment": "Izoh",
+  "sd.commentPlaceholder": "Izoh yozing...",
+  "sd.transfer": "Ko'chirish",
+  "sd.assignParentDesc": "Ushbu o'quvchiga mavjud ota-onani biriktirishingiz yoki yangi ota-ona yaratishingiz mumkin.",
+  "sd.existingParent": "Mavjud ota-ona",
+  "sd.newParent": "Yangi ota-ona",
+  "sd.searchParent": "Ota-onani qidirish",
+  "sd.searchParentPlaceholder": "Ism yoki telefon raqami...",
+  "sd.parentsNotFound": "Ota-onalar topilmadi",
+  "sd.moreParents": "Yana {n} ta ota-ona bor. Qidiruv orqali aniqlashtiring.",
+  "sd.parentFullName": "Ota-onaning F.I.Sh.",
+  "sd.phoneReq": "Telefon raqami",
+  "sd.password": "Parol",
+  "sd.autoPasswordHint": "Avtomatik yaratilgan parol. O'zgartirishingiz mumkin.",
+  "sd.topUpTitle": "Balansni to'ldirish",
+  "sd.topUpDesc": "O'quvchi balansiga qo'lda pul qo'shish",
+  "sd.amount": "Summa",
+  "sd.payMethod": "To'lov usuli",
+  "sd.optionalPlaceholder": "Ixtiyoriy",
+  "sd.chargeTitle": "Balansdan yechib olish",
+  "sd.chargeDesc": "O'quvchi balansidan qo'lda pul yechish",
+  "sd.reasonLabel": "Sabab",
+  "sd.reasonPlaceholder": "Kitob uchun, Jarima...",
+  "sd.namePlaceholder": "F.I.SH.",
+  "sd.copied": "Nusxalandi",
+  "sd.toast.selectParent": "Ota-onani tanlang",
+  "sd.toast.fillAll": "Barcha maydonlarni to'ldiring",
+  "sd.toast.parentAssigned": "Ota-ona muvaffaqiyatli biriktirildi",
+  "sd.toast.error": "Xatolik yuz berdi",
+  "sd.toast.enterAmount": "Summani kiriting",
+  "sd.toast.balanceToppedUp": "Balans to'ldirildi",
+  "sd.toast.enterReason": "Sababni kiriting",
+  "sd.toast.charged": "Balansdan yechib olindi",
+  "sd.toast.transferred": "O'quvchi muvaffaqiyatli ko'chirildi",
+  "sd.toast.enterPassword": "Parolni kiriting",
+  "sd.toast.studentPwdUpdated": "O'quvchi paroli yangilandi",
+  "sd.toast.parentPwdUpdated": "Ota-ona paroli yangilandi",
 };
 
 const RU: Dict = {
@@ -659,7 +787,7 @@ const RU: Dict = {
   "login.forgotTitle": "Восстановление пароля",
   "login.forgotBody": "Для восстановления пароля обратитесь к администратору или директору вашего учебного центра. Новый пароль будет установлен для вас.",
   "login.back": "Назад",
-  "login.footer": "EduCRM v1.0 · Светлая и тёмная тема",
+  "login.footer": "EduCRM v1.0",
   "toast.fillFields": "Введите телефон и пароль",
   "toast.welcome": "Добро пожаловать",
   "theme.toggle": "Сменить тему",
@@ -667,6 +795,7 @@ const RU: Dict = {
   "role.superadmin": "Суперадмин",
   "role.director": "Директор",
   "role.admin": "Администратор",
+  "role.branch_admin": "Администратор",
   "role.teacher": "Учитель",
   "role.support_teacher": "Помощник учителя",
   "role.student": "Ученик",
@@ -776,6 +905,16 @@ const RU: Dict = {
   "students.archived": "Ученик архивирован",
   "students.noGroups": "Нет групп",
   "students.docs.empty": "Документы не загружены",
+  "students.createSubtitle": "Внесение нового ученика и его документов в систему",
+  "students.namePlaceholder": "Ф.И.О.",
+  "students.password": "Пароль ученика",
+  "students.passwordHint": "Автоматически создан 6-значный пароль. При желании измените.",
+  "students.parentHint": "Заполните для учеников младшего возраста",
+  "students.parentFullName": "Ф.И.О. родителя",
+  "students.parentPhoneLabel": "Телефон родителя",
+  "students.parentPassword": "Пароль родителя",
+  "students.parentPasswordHint": "Автоматически создан 6-значный пароль.",
+  "students.submitAdd": "Добавить ученика",
 
   // Status (student)
   "status.active": "Активный",
@@ -811,6 +950,17 @@ const RU: Dict = {
   "groups.studentRemoved": "Ученик удалён из группы",
   "groups.studentAdded": "Ученик добавлен",
   "groups.full": "Заполнена",
+  "groups.namePlaceholder": "Например: Математика — Утро",
+  "groups.roomRequired": "Сначала директор должен создать кабинет.",
+  "groups.roomOptionalHint": "Кабинетов нет — группу можно создать без кабинета, директор добавит его позже.",
+  "groups.foundSlots": "Найдено: {found} · Свободно мест: {slots}",
+  "groups.sameBranch": "этот филиал",
+  "groups.moreStudents": "Ещё {n} учеников. Уточните поиск.",
+  "groups.noSuchStudent": "Такой ученик не найден.",
+  "groups.noFreeStudents": "Нет свободных учеников для добавления.",
+  "groups.groupFull": "Группа заполнена. Чтобы добавить ученика, освободите место или увеличьте вместимость.",
+  "groups.pickRoom": "Выберите кабинет",
+  "groups.updated": "Группа обновлена",
 
   // Group status
   "gstatus.recruiting": "Набирается",
@@ -945,6 +1095,8 @@ const RU: Dict = {
 
   // Validation
   "validation.fillAll": "Заполните все обязательные поля",
+  "validation.fillField": "Заполните поле: {fields}",
+  "grades.scoreRange": "Оценка должна быть от 0 до 100",
 
   // Homework — teacher
   "hw.title": "Домашние задания",
@@ -1185,6 +1337,7 @@ const RU: Dict = {
   "sa.kpi.arr": "Доход в год (ARR)",
   "sa.kpi.expiring": "Истекают в 30 дней",
   "sa.byCity": "По городам",
+  "sa.topInstitutions": "Топ учреждений по доходу",
   "sa.logs.title": "Логи платформы",
   "sa.logs.subtitle": "Системные события всех учреждений",
   "sa.settings.title": "Настройки платформы",
@@ -1192,6 +1345,9 @@ const RU: Dict = {
   "sa.settings.general": "Общие",
   "sa.settings.security": "Безопасность",
   "sa.settings.brand": "Бренд",
+  "sa.settings.primaryColor": "Основной цвет",
+  "sa.settings.preview": "Предпросмотр",
+  "sa.settings.brandPreview": "Предпросмотр бренда",
   "sa.settings.platformName": "Название платформы",
   "sa.settings.supportEmail": "Email поддержки",
   "sa.settings.supportPhone": "Телефон поддержки",
@@ -1201,6 +1357,7 @@ const RU: Dict = {
   "sa.settings.passwordPolicy": "Требовать сложный пароль",
   "sa.settings.sessionTimeout": "Таймаут сессии (минут)",
   "sa.settings.saved": "Настройки сохранены",
+  "sa.settings.saveError": "Ошибка при сохранении настроек",
 
   // Admin home
   "admin.title": "Панель филиала",
@@ -1228,6 +1385,27 @@ const RU: Dict = {
   "sa.field.expires": "Подписка действует до",
   "sa.field.directorName": "Ф.И.О. директора",
   "sa.field.directorPhone": "Телефон директора",
+  "sa.field.directorPassword": "Пароль директора",
+  "sa.step.schema": "Создаётся схема...",
+  "sa.step.migrate": "Настраиваются базы...",
+  "sa.step.director": "Создаётся директор...",
+  "sa.step.branch": "Создаётся филиал...",
+  "sa.slugTaken": "Этот slug занят — выберите другое название",
+  "sa.deleteError": "Ошибка при удалении",
+  "sa.instSaving": "Учреждение ещё сохраняется. Попробуйте через несколько секунд.",
+  "sa.confirmDeleteType": "Для подтверждения введите «{name}»:",
+  "sa.confirmDeletePlaceholder": "Введите «{name}»",
+  "sa.activeStudentsTitle": "Есть активные ученики!",
+  "sa.activeStudentsBody": "В учреждении «{name}» есть {count} активных учеников. Удалить всё равно? Это действие необратимо.",
+  "sa.forceDelete": "Да, удалить всё",
+  "sa.slug.checking": "Проверяется...",
+  "sa.slug.available": "Свободен",
+  "sa.slug.taken": "Занят",
+  "sa.kpi.totalOrg": "Всего организаций",
+  "sa.kpi.frozen": "Замороженные",
+  "sa.kpi.expiring2": "Истекает срок",
+  "sa.sub.expired": "Истёк",
+  "sa.sub.expiringSoon": "Истекает скоро",
   "sa.directorBlock": "Директор (для нового учреждения)",
   "sa.directorHint": "Можно оставить пустым и назначить позже.",
   "sa.branches.title": "Филиалы учреждения",
@@ -1248,6 +1426,7 @@ const RU: Dict = {
   "staff.field.role": "Должность",
   "staff.field.status": "Статус",
   "staff.field.branch": "Филиал",
+  "staff.field.password": "Пароль",
 
   "settings.page.title": "Настройки и Персонализация",
   "settings.page.desc": "Настройте бренд учебного центра и свой профиль",
@@ -1279,15 +1458,127 @@ const RU: Dict = {
   "settings.msg.passReq": "Введите пароли",
   "settings.msg.passSaved": "Пароль успешно изменен!",
   "settings.msg.passError": "Неверный текущий пароль или произошла ошибка",
+
+  // Student detail sheet
+  "sd.topUp": "Пополнить",
+  "sd.withdraw": "Снять",
+  "sd.coins": "Монеты",
+  "sd.tab.transfers": "Переводы",
+  "sd.mainData": "Основные данные",
+  "sd.change": "Изменить",
+  "sd.cancelShort": "Отмена",
+  "sd.changePassword": "Изменение пароля",
+  "sd.parentChangePassword": "Изменение пароля родителя",
+  "sd.newPasswordOptional": "Новый пароль (необязательно)",
+  "sd.parentNotAssigned": "Родитель не привязан",
+  "sd.assignParent": "Привязать родителя",
+  "sd.selected": "Выбрано",
+  "sd.ptype.top_up": "Платёж",
+  "sd.ptype.charge": "Списание за урок",
+  "sd.ptype.discount": "Скидка",
+  "sd.ptype.refund": "Возврат",
+  "sd.ptype.expense": "Расход",
+  "sd.ptype.manual_top_up": "Ручное пополнение",
+  "sd.ptype.manual_charge": "Ручное списание",
+  "sd.tr.empty": "История переводов отсутствует",
+  "sd.tr.date": "Дата",
+  "sd.tr.from": "Откуда",
+  "sd.tr.to": "Куда",
+  "sd.tr.reason": "Причина",
+  "sd.tr.balance": "Баланс",
+  "sd.reason.schedule_change": "Изменение расписания",
+  "sd.reason.level_change": "Изменение уровня",
+  "sd.reason.branch_change": "Смена филиала",
+  "sd.reason.student_request": "Просьба ученика",
+  "sd.reason.other": "Другое",
+  "sd.transferTitle": "Перевод между группами",
+  "sd.transferDesc": "Перевод ученика в другую группу. Баланс не меняется, цена урока пересчитывается по цене новой группы.",
+  "sd.fromGroup": "Из какой группы",
+  "sd.toGroup": "В какую группу",
+  "sd.pickGroup": "Выберите группу",
+  "sd.transferDate": "Дата перевода",
+  "sd.transferReason": "Причина перевода",
+  "sd.comment": "Комментарий",
+  "sd.commentPlaceholder": "Напишите комментарий...",
+  "sd.transfer": "Перевести",
+  "sd.assignParentDesc": "Вы можете привязать к этому ученику существующего родителя или создать нового.",
+  "sd.existingParent": "Существующий родитель",
+  "sd.newParent": "Новый родитель",
+  "sd.searchParent": "Поиск родителя",
+  "sd.searchParentPlaceholder": "Имя или номер телефона...",
+  "sd.parentsNotFound": "Родители не найдены",
+  "sd.moreParents": "Ещё {n} родителей. Уточните через поиск.",
+  "sd.parentFullName": "Ф.И.О. родителя",
+  "sd.phoneReq": "Номер телефона",
+  "sd.password": "Пароль",
+  "sd.autoPasswordHint": "Автоматически созданный пароль. Можно изменить.",
+  "sd.topUpTitle": "Пополнение баланса",
+  "sd.topUpDesc": "Ручное пополнение баланса ученика",
+  "sd.amount": "Сумма",
+  "sd.payMethod": "Способ оплаты",
+  "sd.optionalPlaceholder": "Необязательно",
+  "sd.chargeTitle": "Списание с баланса",
+  "sd.chargeDesc": "Ручное списание с баланса ученика",
+  "sd.reasonLabel": "Причина",
+  "sd.reasonPlaceholder": "За книгу, Штраф...",
+  "sd.namePlaceholder": "Ф.И.О.",
+  "sd.copied": "Скопировано",
+  "sd.toast.selectParent": "Выберите родителя",
+  "sd.toast.fillAll": "Заполните все поля",
+  "sd.toast.parentAssigned": "Родитель успешно привязан",
+  "sd.toast.error": "Произошла ошибка",
+  "sd.toast.enterAmount": "Введите сумму",
+  "sd.toast.balanceToppedUp": "Баланс пополнен",
+  "sd.toast.enterReason": "Введите причину",
+  "sd.toast.charged": "Списано с баланса",
+  "sd.toast.transferred": "Ученик успешно переведён",
+  "sd.toast.enterPassword": "Введите пароль",
+  "sd.toast.studentPwdUpdated": "Пароль ученика обновлён",
+  "sd.toast.parentPwdUpdated": "Пароль родителя обновлён",
 };
 
 const DICTS: Record<Lang, Dict> = { uz: UZ, ru: RU };
+
+/**
+ * Русские формы множественного числа.
+ * pluralizeRu(1, "ученик", "ученика", "учеников") → "ученик"
+ * pluralizeRu(2, ...) → "ученика", pluralizeRu(5, ...) → "учеников"
+ */
+export function pluralizeRu(n: number, one: string, few: string, many: string): string {
+  const abs = Math.abs(n) % 100;
+  const n1 = abs % 10;
+  if (abs > 10 && abs < 20) return many;
+  if (n1 > 1 && n1 < 5) return few;
+  if (n1 === 1) return one;
+  return many;
+}
+
+/**
+ * Узбекский не имеет форм множественного числа — слово всегда одно.
+ * Для симметрии с pluralizeRu.
+ */
+export function pluralizeUz(_n: number, form: string): string {
+  return form;
+}
+
+/** Подстановка {placeholder} значений в строку перевода. */
+export function interpolate(template: string, params: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, k) => (k in params ? String(params[k]) : `{${k}}`));
+}
 
 interface I18nContextValue {
   lang: Lang;
   setLang: (l: Lang) => void;
   toggle: () => void;
   t: (key: string) => string;
+  /** t() с подстановкой {placeholder} значений */
+  tf: (key: string, params: Record<string, string | number>) => string;
+  /**
+   * Множественное число с учётом языка.
+   * RU: plural(n, "ученик", "ученика", "учеников").
+   * UZ: слово не склоняется — берётся форма `one`.
+   */
+  plural: (n: number, one: string, few: string, many: string) => string;
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null);
@@ -1321,7 +1612,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const t = (key: string) => DICTS[lang][key] ?? key;
 
-  return <I18nContext.Provider value={{ lang, setLang, toggle, t }}>{children}</I18nContext.Provider>;
+  const tf = (key: string, params: Record<string, string | number>) => interpolate(t(key), params);
+
+  const plural = (n: number, one: string, few: string, many: string) =>
+    lang === "ru" ? pluralizeRu(n, one, few, many) : one;
+
+  return (
+    <I18nContext.Provider value={{ lang, setLang, toggle, t, tf, plural }}>{children}</I18nContext.Provider>
+  );
 }
 
 export function useI18n() {

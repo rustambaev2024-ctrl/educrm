@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, GraduationCap, Moon, Sun } from "lucide-react";
+import { ArrowRight, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,13 +21,11 @@ import { PhoneInput } from "@/components/edu/phone-input";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { ROLE_HOMES } from "@/lib/roles";
-import { useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/")({ component: LoginPage });
 
 export function LoginPage() {
   const { user, login, isHydrating } = useAuth();
-  const { theme, toggle } = useTheme();
   const { t } = useI18n();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
@@ -42,6 +40,17 @@ export function LoginPage() {
     }
   }, [user, isHydrating, navigate]);
 
+  // После успешного login user уже установлен, но navigate() из useEffect ещё
+  // выполняется (плюс грузится чанк целевого маршрута). Без этого гейта форма
+  // логина «залипает» на экране на всё время перехода (OBS-005/BUG-045).
+  if (!isHydrating && user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -53,7 +62,7 @@ export function LoginPage() {
     try {
       setIsSubmitting(true);
       await login(phone.trim(), password.trim());
-      toast.success(t("toast.welcome"));
+      toast.success(t("toast.welcome"), { duration: 3000 });
     } catch (error) {
       const message =
         error instanceof Error && error.message !== "API 401"
@@ -70,9 +79,6 @@ export function LoginPage() {
       <div className="absolute inset-0 bg-gradient-hero" aria-hidden />
       <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
         <LangToggle />
-        <Button variant="ghost" size="icon" onClick={toggle} aria-label={t("theme.toggle")}>
-          {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        </Button>
       </div>
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-4 py-12 lg:flex-row lg:gap-16 lg:px-8">

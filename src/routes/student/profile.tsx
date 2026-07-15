@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Phone, Calendar, Building2, Wallet, Award, BookOpen, ClipboardCheck, LogOut, Moon, Sun, Star } from "lucide-react";
+import { Phone, Calendar, Building2, Wallet, Award, BookOpen, ClipboardCheck, LogOut, Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { useTheme } from "@/lib/theme";
 import { useCurrentStudentId } from "@/lib/data/identity";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { LangToggle } from "@/components/edu/lang-toggle";
@@ -29,7 +28,6 @@ function scoreTone(pct: number) {
 
 function StudentProfile() {
   const { t, lang } = useI18n();
-  const { theme, toggle } = useTheme();
   const { logout } = useAuth();
   const navigate = useNavigate();
   const studentId = useCurrentStudentId();
@@ -222,13 +220,6 @@ function StudentProfile() {
           <div className="flex items-center justify-between">
             <span className="text-sm">{t("profile.lang")}</span>
             <LangToggle />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <span className="text-sm">{t("profile.theme")}</span>
-            <Button variant="outline" size="sm" onClick={toggle}>
-              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-            </Button>
           </div>
         </div>
       </Card>
