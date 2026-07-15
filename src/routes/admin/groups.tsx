@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CardGridSkeleton } from "@/components/ui/skeleton";
 import { getAvatarColor } from "@/lib/avatar-color";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -200,7 +201,8 @@ function GroupsPage() {
 
 function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { t, lang } = useI18n();
-  const { courses, staff, rooms, addGroup } = useData();
+  const { user } = useAuth();
+  const { courses, staff, rooms, branches, addGroup } = useData();
   const teachers = staff.filter((s) => s.role === "teacher");
 
   const [name, setName] = useState("");
@@ -228,15 +230,19 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
 
   const submit = () => {
     const schedule: ScheduleSlot[] = DAYS.filter((d) => slots[d].enabled).map((d) => ({ day: d, start: slots[d].start, end: slots[d].end }));
+    // Кабинет необязателен (BUG-025): админ не может создавать кабинеты и не
+    // должен быть заблокирован. Филиал берём из кабинета, иначе — из профиля
+    // админа, иначе — первый филиал.
     const selectedRoom = rooms.find((room) => room.id === roomId);
-    if (!name.trim() || !courseId || !teacherId || !selectedRoom || schedule.length === 0) {
+    const branchId = selectedRoom?.branchId ?? user?.branchId ?? branches[0]?.id ?? "";
+    if (!name.trim() || !courseId || !teacherId || !branchId || schedule.length === 0) {
       toast.error(t("validation.fillAll"));
       return;
     }
     addGroup({
       name: name.trim(),
       courseId,
-      branchId: selectedRoom.branchId,
+      branchId,
       teacherId,
       roomId,
       capacity,
@@ -280,7 +286,7 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>{t("groups.field.room")} *</Label>
+              <Label>{t("groups.field.room")}</Label>
               <Select value={roomId} onValueChange={setRoomId}>
                 <SelectTrigger><SelectValue placeholder={t("groups.pickRoom")} /></SelectTrigger>
                 <SelectContent>
@@ -288,7 +294,7 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
                 </SelectContent>
               </Select>
               {rooms.length === 0 && (
-                <div className="text-[11px] text-destructive">{t("groups.roomRequired")}</div>
+                <div className="text-[11px] text-muted-foreground">{t("groups.roomOptionalHint")}</div>
               )}
             </div>
             <div className="space-y-2">
@@ -654,7 +660,7 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
 
   const submit = () => {
     const schedule: ScheduleSlot[] = DAYS.filter((d) => slots[d].enabled).map((d) => ({ day: d, start: slots[d].start, end: slots[d].end }));
-    if (!name.trim() || !courseId || !teacherId || !roomId || schedule.length === 0) {
+    if (!name.trim() || !courseId || !teacherId || schedule.length === 0) {
       toast.error(t("validation.fillAll"));
       return;
     }

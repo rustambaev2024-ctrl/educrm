@@ -67,7 +67,7 @@ function TeacherGrades() {
     const map: Record<string, { sum: number; cnt: number }> = {};
     for (const g of groupGrades) {
       if (!map[g.studentId]) map[g.studentId] = { sum: 0, cnt: 0 };
-      map[g.studentId].sum += (g.score / g.maxScore) * 10;
+      map[g.studentId].sum += (g.score / g.maxScore) * 100;
       map[g.studentId].cnt += 1;
     }
     return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, Math.round((v.sum / v.cnt) * 10) / 10]));
@@ -75,11 +75,11 @@ function TeacherGrades() {
 
   const overallAvg = useMemo(() => {
     if (groupGrades.length === 0) return 0;
-    return Math.round((groupGrades.reduce((s, g) => s + (g.score / g.maxScore) * 10, 0) / groupGrades.length) * 10) / 10;
+    return Math.round((groupGrades.reduce((s, g) => s + (g.score / g.maxScore) * 100, 0) / groupGrades.length) * 10) / 10;
   }, [groupGrades]);
 
   const topStudentsCount = useMemo(() => {
-    return Object.values(avgByStudent).filter((v) => v.cnt > 0 && (v.sum / v.cnt) >= 8).length;
+    return Object.values(avgByStudent).filter((v) => v.cnt > 0 && (v.sum / v.cnt) >= 80).length;
   }, [avgByStudent]);
 
   const [open, setOpen] = useState(false);
@@ -88,8 +88,14 @@ function TeacherGrades() {
 
   const submit = () => {
     const score = Number(form.score);
-    if (!selectedStudentId || !form.score || Number.isNaN(score) || score < 0 || score > 10 || !selectedGroup || !teacherId) {
+    if (!selectedStudentId || !form.score || Number.isNaN(score) || !selectedGroup || !teacherId) {
       toast.error(t("validation.fillAll"));
+      return;
+    }
+    // Диапазон проверяется отдельно — общий тост «заполните поля» вводит
+    // в заблуждение, когда поле заполнено, но значение вне шкалы (BUG-031).
+    if (score < 0 || score > 100) {
+      toast.error(t("grades.scoreRange"));
       return;
     }
     addGrade({
@@ -99,7 +105,7 @@ function TeacherGrades() {
       kind: form.kind,
       title: t(`gkind.${form.kind}`),
       score,
-      maxScore: 10,
+      maxScore: 100,
       date: getLocalDateString(),
       comment: form.comment.trim() || undefined,
     });
@@ -142,7 +148,7 @@ function TeacherGrades() {
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-2 min-[360px]:gap-3">
           <KpiCard label={t("grades.title")} value={groupGrades.length} icon={BookOpen} iconColor="blue" />
-          <KpiCard label={t("grades.average")} value={`${overallAvg} / 10`} icon={Award} iconColor="green" />
+          <KpiCard label={t("grades.average")} value={`${overallAvg} / 100`} icon={Award} iconColor="green" />
           <KpiCard label={lang === "uz" ? "A'lochi o'quvchilar" : "Отличники"} value={topStudentsCount} icon={Users} iconColor="violet" />
         </div>
         <Card className="overflow-hidden p-0 shadow-elegant">
@@ -250,8 +256,8 @@ function TeacherGrades() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>{t("grades.field.score")}* (0-10)</Label>
-              <Input type="number" min={0} max={10} step={1} value={form.score} onChange={(e) => setForm({ ...form, score: e.target.value })} />
+              <Label>{t("grades.field.score")}* (0-100)</Label>
+              <Input type="number" min={0} max={100} step={1} value={form.score} onChange={(e) => setForm({ ...form, score: e.target.value })} />
             </div>
             <div className="space-y-1.5">
               <Label>{t("grades.field.comment")}</Label>

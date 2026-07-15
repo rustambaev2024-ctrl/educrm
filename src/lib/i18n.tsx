@@ -187,6 +187,7 @@ const UZ: Dict = {
   "groups.full": "To'la",
   "groups.namePlaceholder": "Masalan: Matematika — Ertalab",
   "groups.roomRequired": "Avval direktor kabinet yaratishi kerak.",
+  "groups.roomOptionalHint": "Kabinetlar yo'q — guruhni kabinetisiz yaratishingiz mumkin, keyin direktor kabinet qo'shadi.",
   "groups.foundSlots": "{found} ta topildi · {slots} ta joy qoldi",
   "groups.sameBranch": "shu filial",
   "groups.moreStudents": "Yana {n} ta o'quvchi bor. Aniqroq qidiruv kiriting.",
@@ -330,6 +331,7 @@ const UZ: Dict = {
   // Validation
   "validation.fillAll": "Barcha majburiy maydonlarni to'ldiring",
   "validation.fillField": "To'ldiring: {fields}",
+  "grades.scoreRange": "Baho 0 dan 100 gacha bo'lishi kerak",
 
   // Homework — teacher
   "hw.title": "Uy vazifalari",
@@ -950,6 +952,7 @@ const RU: Dict = {
   "groups.full": "Заполнена",
   "groups.namePlaceholder": "Например: Математика — Утро",
   "groups.roomRequired": "Сначала директор должен создать кабинет.",
+  "groups.roomOptionalHint": "Кабинетов нет — группу можно создать без кабинета, директор добавит его позже.",
   "groups.foundSlots": "Найдено: {found} · Свободно мест: {slots}",
   "groups.sameBranch": "этот филиал",
   "groups.moreStudents": "Ещё {n} учеников. Уточните поиск.",
@@ -1093,6 +1096,7 @@ const RU: Dict = {
   // Validation
   "validation.fillAll": "Заполните все обязательные поля",
   "validation.fillField": "Заполните поле: {fields}",
+  "grades.scoreRange": "Оценка должна быть от 0 до 100",
 
   // Homework — teacher
   "hw.title": "Домашние задания",
