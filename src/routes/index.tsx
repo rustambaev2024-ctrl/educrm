@@ -40,6 +40,17 @@ export function LoginPage() {
     }
   }, [user, isHydrating, navigate]);
 
+  // После успешного login user уже установлен, но navigate() из useEffect ещё
+  // выполняется (плюс грузится чанк целевого маршрута). Без этого гейта форма
+  // логина «залипает» на экране на всё время перехода (OBS-005/BUG-045).
+  if (!isHydrating && user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 

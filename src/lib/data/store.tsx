@@ -776,11 +776,16 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const loadingRef = useRef(false);
   const lastReloadAtRef = useRef(0);
   const reloadRef = useRef<() => void>(() => {});
+  // true после первой успешной волны загрузки. Фоновые revalidate (focus,
+  // мутации) не должны выставлять isLoading — страницы делают
+  // `if (isLoading) return <Spinner/>`, и подмена контента спиннером между
+  // mousedown и mouseup проглатывает первый клик (BUG-021).
+  const hasLoadedRef = useRef(false);
 
   const reload = useCallback(async () => {
     if (!isAuthenticated || loadingRef.current) return;
     loadingRef.current = true;
-    setIsLoading(true);
+    if (!hasLoadedRef.current) setIsLoading(true);
     setLoadError(null);
     pendingLoadFailures.length = 0;
 
@@ -899,6 +904,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         });
       }
       lastReloadAtRef.current = Date.now();
+      hasLoadedRef.current = true;
       setIsLoading(false);
       loadingRef.current = false;
     }
@@ -907,7 +913,12 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   reloadRef.current = () => void reload();
 
   useEffect(() => {
-    if (isAuthenticated) void reload();
+    if (isAuthenticated) {
+      void reload();
+    } else {
+      // Разлогин: следующая сессия должна снова показать первичный лоадер.
+      hasLoadedRef.current = false;
+    }
   }, [isAuthenticated, reload]);
 
   useEffect(() => {
@@ -1067,6 +1078,17 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Сервер генерирует уроки по расписанию при создании/изменении группы —
+  // подтягиваем только их, не гоняя полный reload (BUG-027).
+  const refreshLessons = useCallback(async () => {
+    try {
+      const raw = await lessonApi.list() as ListResponse<LessonRaw>;
+      setLessons(toResults(raw).map(lessonFromRaw));
+    } catch (err) {
+      console.error("[store] lessons refresh failed:", err);
+    }
+  }, []);
+
   const addGroup: DataStoreActions["addGroup"] = useCallback((input) => {
     const id = uid("g");
     const created: Group = {
@@ -1102,11 +1124,14 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       } as never).then((raw) => {
         const persisted = groupFromRaw(raw as GroupRaw);
         setGroups((prev) => prev.map((g) => (g.id === id ? persisted : g)));
+        // Уроки уже сгенерированы на сервере — вкладка «Уроки» и «Расписание»
+        // должны увидеть их без ручной перезагрузки страницы.
+        void refreshLessons();
       }),
       () => setGroups((prev) => prev.filter((g) => g.id !== id)),
     );
     return created;
-  }, []);
+  }, [refreshLessons]);
 
   const updateGroup: DataStoreActions["updateGroup"] = useCallback((id, patch) => {
     const snapshot = groups;
@@ -1125,10 +1150,13 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         schedule: patch.schedule,
         monthly_price: patch.monthlyPrice,
         status: patch.status,
-      } as never),
+      } as never).then(() => {
+        // Смена расписания перегенерирует будущие уроки на сервере.
+        if (patch.schedule || patch.startDate || patch.endDate) void refreshLessons();
+      }),
       () => setGroups(snapshot),
     );
-  }, [groups]);
+  }, [groups, refreshLessons]);
 
   const deleteGroup: DataStoreActions["deleteGroup"] = useCallback((id) => {
     const snapshot = groups;

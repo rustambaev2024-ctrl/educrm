@@ -386,10 +386,11 @@ function DirectorLeadsPage() {
         parent_phone: payload.parentPhone,
         parent_password: payload.parentPassword,
       });
-      // convert-endpoint уже проставляет status="won" на сервере; reload()
-      // подтянет актуальный лид. Отдельный PATCH был бы отклонён гардом
-      // "Won lead cannot be edited" → ложный error-toast при успешной конвертации.
-      await reload();
+      // convert-endpoint уже проставляет status="won" на сервере. Доска лидов
+      // живёт в локальном стейте (loadLeads), а ученики — в сторе (reload):
+      // перечитываем оба, иначе карточка залипает на доске (BUG-015).
+      // Отдельный PATCH был бы отклонён гардом "Won lead cannot be edited".
+      await Promise.all([loadLeads(), reload()]);
       toast.success(t.converted);
       setConvertSheetOpen(false);
       setSelectedId(null);

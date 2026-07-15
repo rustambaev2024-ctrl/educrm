@@ -2,6 +2,14 @@ import { createRouter, useRouter, Link } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { useI18n } from "@/lib/i18n";
 
+function DefaultPendingComponent() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    </div>
+  );
+}
+
 function DefaultNotFoundComponent() {
   const { t } = useI18n();
   return (
@@ -82,6 +90,12 @@ export const getRouter = () => {
     defaultPreloadStaleTime: 0,
     defaultErrorComponent: DefaultErrorComponent,
     defaultNotFoundComponent: DefaultNotFoundComponent,
+    // Stale UI (OBS-005/BUG-045): без pending-компонента роутер держит на
+    // экране предыдущую страницу, пока грузится ленивый чанк целевого
+    // маршрута. Показываем лоадер, если переход длится дольше 100ms.
+    defaultPendingComponent: DefaultPendingComponent,
+    defaultPendingMs: 100,
+    defaultPendingMinMs: 300,
   });
 
   return router;
