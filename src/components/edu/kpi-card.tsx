@@ -61,12 +61,12 @@ export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, icon
       </div>
 
       {/* Row 2: value */}
-      <div className={`mb-1 truncate text-lg font-extrabold leading-none ${c.val}`}>
+      <div className={`mb-1 truncate text-xl font-extrabold leading-none tabular-nums ${c.val}`}>
         {value}
       </div>
 
       {/* Row 3: label */}
-      <div className="truncate text-[10px] font-bold uppercase tracking-[0.04em] text-muted-foreground">
+      <div className="truncate text-[11px] font-semibold leading-snug text-muted-foreground">
         {label}
       </div>
 

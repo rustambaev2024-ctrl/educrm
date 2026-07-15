@@ -14,6 +14,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem(KEY, "light");
+        localStorage.removeItem("theme");
       } catch {
         // ignore
       }

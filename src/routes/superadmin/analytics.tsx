@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Building2, Users, Briefcase, Activity, TrendingUp, CalendarClock } from "lucide-react";
+import { AlertCircle, Building2, Users, Briefcase, Activity, TrendingUp, CalendarClock } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
+import { PageLoadingState } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
@@ -34,13 +35,12 @@ function SaAnalytics() {
     () => [...active].sort((a, b) => b.monthlyRevenue - a.monthlyRevenue).slice(0, 8).map((i) => ({ name: i.name, value: Math.round(i.monthlyRevenue / 1_000_000) })),
     [active],
   );
+  const moneyUnit = lang === "uz" ? "mln so'm" : "млн сум";
+  const hasTopInstData = topInst.some((item) => item.value > 0);
+  const hasCityData = byCity.some((item) => item.value > 0);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoadingState />;
   }
 
   return (
@@ -81,17 +81,21 @@ function SaAnalytics() {
         <Card className="p-6 shadow-elegant">
           <div className="mb-4">
             <h3 className="text-base font-semibold">{t("sa.topInstitutions")}</h3>
-            <p className="text-xs text-muted-foreground">mln UZS</p>
+            <p className="text-xs text-muted-foreground">{moneyUnit}</p>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={topInst} layout="vertical" margin={{ left: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-              <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={150} />
-              <Tooltip formatter={(value: any) => [`${value} mln`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="value" fill="var(--chart-1)" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {hasTopInstData ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={topInst} layout="vertical" margin={{ left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={150} />
+                <Tooltip formatter={(value: any) => [`${value} ${moneyUnit}`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                <Bar dataKey="value" fill="var(--chart-1)" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyChartState label={lang === "uz" ? "Muassasalar bo'yicha daromad hali yo'q" : "Доходов по учреждениям пока нет"} />
+          )}
         </Card>
 
         <div className="grid gap-6">
@@ -100,18 +104,31 @@ function SaAnalytics() {
               <h3 className="text-base font-semibold">{t("sa.byCity")}</h3>
               <p className="text-xs text-muted-foreground">{t("sa.kpi.totalStudents")}</p>
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={byCity}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip formatter={(value: any) => [`${value} ta`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="value" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasCityData ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={byCity}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip formatter={(value: any) => [`${value} ${lang === "uz" ? "o'quvchi" : "уч."}`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="value" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState label={lang === "uz" ? "Shaharlar bo'yicha ma'lumot hali yo'q" : "Данных по городам пока нет"} />
+            )}
           </Card>
         </div>
       </div>
     </PageShell>
+  );
+}
+
+function EmptyChartState({ label }: { label: string }) {
+  return (
+    <div className="flex h-[260px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
+      <AlertCircle className="size-8 text-muted-foreground" />
+      <div className="mt-3 text-sm font-medium text-foreground">{label}</div>
+    </div>
   );
 }

@@ -1583,6 +1583,42 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
+const FALLBACK_LABELS: Record<string, Record<Lang, string>> = {
+  "role.superadmin": { uz: "Superadmin", ru: "Суперадмин" },
+  "role.director": { uz: "Direktor", ru: "Директор" },
+  "role.admin": { uz: "Administrator", ru: "Администратор" },
+  "role.branch_admin": { uz: "Administrator", ru: "Администратор" },
+  "role.teacher": { uz: "O'qituvchi", ru: "Учитель" },
+  "role.support_teacher": { uz: "Yordamchi o'qituvchi", ru: "Помощник учителя" },
+  "role.student": { uz: "O'quvchi", ru: "Ученик" },
+  "role.parent": { uz: "Ota-ona", ru: "Родитель" },
+  "gkind.homework": { uz: "Uy vazifasi", ru: "Домашняя работа" },
+  "gkind.lesson": { uz: "Dars", ru: "Урок" },
+  "gkind.quiz": { uz: "Test", ru: "Тест" },
+  "gkind.exam": { uz: "Imtihon", ru: "Экзамен" },
+  "gkind.activity": { uz: "Faollik", ru: "Активность" },
+  "gkind.speaking": { uz: "Speaking", ru: "Разговорная практика" },
+  "gkind.vocabulary": { uz: "Lug'at", ru: "Словарь" },
+  "gkind.test": { uz: "Test", ru: "Тест" },
+  "gkind.extra_lesson": { uz: "Qo'shimcha dars", ru: "Дополнительный урок" },
+  "gkind.midterm": { uz: "Yarim yillik", ru: "Промежуточная работа" },
+  "gkind.final": { uz: "Yakuniy", ru: "Итоговая работа" },
+  "gkind.oral": { uz: "Og'zaki", ru: "Устный ответ" },
+};
+
+function humanizeMissingKey(key: string): string {
+  const raw = key.includes(".") ? key.split(".").at(-1)! : key;
+  return raw
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export function translateFromDict(lang: Lang, key: string): string {
+  return DICTS[lang][key] ?? FALLBACK_LABELS[key]?.[lang] ?? humanizeMissingKey(key);
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("uz");
 
@@ -1610,7 +1646,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const toggle = () => setLang(lang === "uz" ? "ru" : "uz");
 
-  const t = (key: string) => DICTS[lang][key] ?? key;
+  const t = (key: string) => translateFromDict(lang, key);
 
   const tf = (key: string, params: Record<string, string | number>) => interpolate(t(key), params);
 

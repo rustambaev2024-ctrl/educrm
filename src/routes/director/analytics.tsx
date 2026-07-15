@@ -7,6 +7,7 @@ import {
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
+import { PageLoadingState } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { useI18n } from "@/lib/i18n";
@@ -33,10 +34,14 @@ function AnalyticsPage() {
       });
       const income = inMonth.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0) / 1_000_000;
       const expense = inMonth.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0) / 1_000_000;
-      months.push({ label: `${d.getMonth() + 1}/${d.getFullYear() % 100}`, income, expense });
+      months.push({
+        label: d.toLocaleDateString(lang === "uz" ? "uz-Latn" : "ru-RU", { month: "short", year: "2-digit" }),
+        income,
+        expense,
+      });
     }
     return months;
-  }, [payments]);
+  }, [lang, payments]);
 
   // Students by status
   const byStatus = useMemo(() => {
@@ -69,13 +74,15 @@ function AnalyticsPage() {
   const totalExpense = payments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
   const overdueAmount = students.filter((s) => s.status === "debtor").reduce((s, st) => s + Math.abs(st.balance), 0);
   const attPct = attendancePercentage(attendance);
+  const moneyUnit = lang === "uz" ? "mln so'm" : "млн сум";
+  const lastSixMonthsLabel = lang === "uz" ? "So'nggi 6 oy" : "Последние 6 месяцев";
+  const hasMonthlyData = monthly.some((m) => m.income > 0 || m.expense > 0);
+  const hasBranchRevenue = byBranch.some((b) => b.value > 0);
+  const hasStatusData = byStatus.length > 0;
+  const hasCourseOccupancy = courseOccupancy.some((c) => c.value > 0);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoadingState />;
   }
 
   return (
@@ -91,36 +98,44 @@ function AnalyticsPage() {
         <Card className="p-6 shadow-elegant">
           <div className="mb-4">
             <h3 className="text-base font-semibold">{t("director.monthlyRevenue")} / {t("director.monthlyExpense")}</h3>
-            <p className="text-xs text-muted-foreground">6 oy · mln UZS</p>
+            <p className="text-xs text-muted-foreground">{lastSixMonthsLabel} · {moneyUnit}</p>
           </div>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={monthly}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-              <Tooltip formatter={(value: any, name: string) => [`${Number(value).toFixed(1)} mln`, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-              <ChartLegend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="income" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyRevenue")} />
-              <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyExpense")} />
-            </LineChart>
-          </ResponsiveContainer>
+          {hasMonthlyData ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={monthly}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip formatter={(value: any, name: string) => [`${Number(value).toFixed(1)} ${moneyUnit}`, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                <ChartLegend wrapperStyle={{ fontSize: 12 }} />
+                <Line type="monotone" dataKey="income" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyRevenue")} />
+                <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyExpense")} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyChartState label={lang === "uz" ? "Hali moliyaviy ma'lumotlar yo'q" : "Финансовых данных пока нет"} />
+          )}
         </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="p-6 shadow-elegant">
             <div className="mb-4">
               <h3 className="text-base font-semibold">{t("director.byBranch")}</h3>
-              <p className="text-xs text-muted-foreground">{lang === "uz" ? "Filial daromadi" : "Доход по филиалам"} · mln UZS</p>
+              <p className="text-xs text-muted-foreground">{lang === "uz" ? "Filial daromadi" : "Доход по филиалам"} · {moneyUnit}</p>
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={byBranch}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="value" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasBranchRevenue ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={byBranch}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip formatter={(value: any) => [`${value} ${moneyUnit}`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="value" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState label={lang === "uz" ? "Filiallar bo'yicha tushum yo'q" : "Нет дохода по филиалам"} />
+            )}
           </Card>
 
           <Card className="p-6 shadow-elegant">
@@ -128,15 +143,19 @@ function AnalyticsPage() {
               <h3 className="text-base font-semibold">{t("students.col.status")}</h3>
               <p className="text-xs text-muted-foreground">{lang === "uz" ? "O'quvchilar holati" : "Статус студентов"} · {students.length}</p>
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={byStatus} dataKey="value" nameKey="name" outerRadius={90} innerRadius={50} paddingAngle={3}>
-                  {byStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <ChartLegend wrapperStyle={{ fontSize: 11 }} formatter={(value: string, entry: any) => `${value}: ${entry?.payload?.value ?? 0}`} />
-              </PieChart>
-            </ResponsiveContainer>
+            {hasStatusData ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={byStatus} dataKey="value" nameKey="name" outerRadius={90} innerRadius={50} paddingAngle={3}>
+                    {byStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                  <ChartLegend wrapperStyle={{ fontSize: 11 }} formatter={(value: string, entry: any) => `${value}: ${entry?.payload?.value ?? 0}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState label={lang === "uz" ? "O'quvchilar hali qo'shilmagan" : "Ученики пока не добавлены"} />
+            )}
           </Card>
         </div>
 
@@ -145,15 +164,19 @@ function AnalyticsPage() {
             <h3 className="text-base font-semibold">{t("director.byCourse")} — {t("groups.field.capacity")}</h3>
             <p className="text-xs text-muted-foreground">{lang === "uz" ? "Guruh to'ldirilganligi" : "Заполненность групп"} %</p>
           </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={courseOccupancy} layout="vertical" margin={{ left: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={140} />
-              <Tooltip formatter={(value: any) => [`${value}%`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="value" fill="var(--chart-2)" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {hasCourseOccupancy ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={courseOccupancy} layout="vertical" margin={{ left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={140} />
+                <Tooltip formatter={(value: any) => [`${value}%`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                <Bar dataKey="value" fill="var(--chart-2)" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyChartState label={lang === "uz" ? "Kurslar bo'yicha sig'im hali to'ldirilmagan" : "Нет заполненности по курсам"} />
+          )}
         </Card>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -177,5 +200,14 @@ function SmallStat({ icon: Icon, label, value, tone }: { icon: typeof Users; lab
         <div className={`text-lg font-bold tabular-nums ${tone ?? ""}`}>{value}</div>
       </div>
     </Card>
+  );
+}
+
+function EmptyChartState({ label }: { label: string }) {
+  return (
+    <div className="flex h-[260px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
+      <AlertCircle className="size-8 text-muted-foreground" />
+      <div className="mt-3 text-sm font-medium text-foreground">{label}</div>
+    </div>
   );
 }

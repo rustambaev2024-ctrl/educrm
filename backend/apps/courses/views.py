@@ -223,7 +223,10 @@ class GroupViewSet(
         add_student_to_group_chat(group, student)
         return Response(
             {
-                "detail": "Student added to group",
+                "detail": {
+                    "uz": "O'quvchi guruhga qo'shildi",
+                    "ru": "Ученик добавлен в группу",
+                },
                 "membership_id": str(membership.id),
             },
             status=status.HTTP_201_CREATED,
@@ -252,7 +255,10 @@ class GroupViewSet(
 
         return Response(
             {
-                "detail": "Student removed from group",
+                "detail": {
+                    "uz": "O'quvchi guruhdan chiqarildi",
+                    "ru": "Ученик удалён из группы",
+                },
                 "membership_id": str(membership.id),
             },
             status=status.HTTP_200_OK,
@@ -355,4 +361,3 @@ class StudentTransferView(APIView):
             )
 
         return Response(StudentTransferSerializer(qs[:50], many=True).data)
-

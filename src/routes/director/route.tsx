@@ -95,13 +95,18 @@ function DirectorLayout() {
       ],
     },
     {
+      rail: { id: "messages", icon: MessageSquare, label: tr("Xabarlar", "Сообщения") },
+      sidebar: [
+        { id: "messages", to: "/director/messages", icon: MessageSquare, label: tr("Xabarlar", "Сообщения"), section: tr("ALOQA", "СВЯЗЬ") },
+      ],
+    },
+    {
       rail: { id: "settings", icon: Settings, label: tr("Sozlamalar", "Настройки") },
       sidebar: [
         { id: "branches", to: "/director/branches", icon: Building, label: tr("Filiallar", "Филиалы"), section: tr("SOZLAMALAR", "НАСТРОЙКИ") },
         { id: "integrations", to: "/director/integrations", icon: Settings, label: tr("Integratsiyalar", "Интеграции"), section: tr("SOZLAMALAR", "НАСТРОЙКИ") },
         { id: "settings", to: "/director/settings", icon: Building, label: tr("Sozlamalar", "Настройки"), section: tr("SOZLAMALAR", "НАСТРОЙКИ") },
         { id: "notifications", to: "/director/notifications", icon: Bell, label: tr("Bildirishnomalar", "Уведомления"), section: tr("SOZLAMALAR", "НАСТРОЙКИ") },
-        { id: "messages", to: "/director/messages", icon: MessageSquare, label: tr("Xabarlar", "Сообщения"), section: tr("SOZLAMALAR", "НАСТРОЙКИ") },
       ],
     },
   ];

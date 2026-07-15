@@ -1,13 +1,10 @@
 import { createRouter, useRouter, Link } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { useI18n } from "@/lib/i18n";
+import { PageLoadingState } from "@/components/ui/skeleton";
 
 function DefaultPendingComponent() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-    </div>
-  );
+  return <PageLoadingState />;
 }
 
 function DefaultNotFoundComponent() {
@@ -31,6 +28,7 @@ function DefaultNotFoundComponent() {
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
+  const { lang } = useI18n();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -51,9 +49,13 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
             />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Something went wrong</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          {lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка"}
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          An unexpected error occurred. Please try again.
+          {lang === "uz"
+            ? "Sahifani qayta yuklab ko'ring. Muammo davom etsa, administratorga murojaat qiling."
+            : "Обновите страницу. Если проблема повторится, обратитесь к администратору."}
         </p>
         {import.meta.env.DEV && error.message && (
           <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left font-mono text-xs text-destructive">
@@ -68,13 +70,13 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            {lang === "uz" ? "Qayta urinish" : "Повторить"}
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            {lang === "uz" ? "Bosh sahifaga" : "На главную"}
           </a>
         </div>
       </div>

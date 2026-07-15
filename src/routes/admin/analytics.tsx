@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Users, Wallet, CalendarCheck, Layers } from "lucide-react";
+import { AlertCircle, Users, Wallet, CalendarCheck, Layers } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell, Legend as ChartLegend } from "recharts";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
+import { PageLoadingState } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { useI18n } from "@/lib/i18n";
@@ -64,13 +65,14 @@ function AdminAnalytics() {
       return { name: c.name, value: studentSet.size };
     });
   }, [courses, groups]);
+  const moneyUnit = lang === "uz" ? "mln so'm" : "млн сум";
+  const last14Label = lang === "uz" ? "So'nggi 14 kun" : "Последние 14 дней";
+  const hasIncomeData = last14.some((item) => item.income > 0);
+  const hasStatusData = byStatus.length > 0;
+  const hasCourseData = byCourse.some((item) => item.value > 0);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoadingState />;
   }
 
   return (
@@ -86,20 +88,24 @@ function AdminAnalytics() {
         <Card className="p-6 shadow-elegant">
           <div className="mb-4">
             <h3 className="text-base font-semibold">{t("director.monthlyRevenue")}</h3>
-            <p className="text-xs text-muted-foreground">14 kun · mln UZS</p>
+            <p className="text-xs text-muted-foreground">{last14Label} · {moneyUnit}</p>
           </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={last14}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <Tooltip
-                formatter={(value: any) => [`${Number(value).toFixed(1)} mln`, t("finance.kpi.income")]}
-                contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-              />
-              <Bar dataKey="income" name={t("finance.kpi.income")} fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {hasIncomeData ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={last14}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip
+                  formatter={(value: any) => [`${Number(value).toFixed(1)} ${moneyUnit}`, t("finance.kpi.income")]}
+                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                />
+                <Bar dataKey="income" name={t("finance.kpi.income")} fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyChartState label={lang === "uz" ? "Hali tushum ma'lumotlari yo'q" : "Доходов пока нет"} />
+          )}
         </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -108,15 +114,19 @@ function AdminAnalytics() {
               <h3 className="text-base font-semibold">{t("students.col.status")}</h3>
               <p className="text-xs text-muted-foreground">{lang === "uz" ? "O'quvchilar holati" : "Статус студентов"} · {students.length}</p>
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={byStatus} dataKey="value" nameKey="name" outerRadius={90} innerRadius={50} paddingAngle={3}>
-                  {byStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <ChartLegend wrapperStyle={{ fontSize: 11 }} formatter={(value: string, entry: any) => `${value}: ${entry?.payload?.value ?? 0}`} />
-              </PieChart>
-            </ResponsiveContainer>
+            {hasStatusData ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={byStatus} dataKey="value" nameKey="name" outerRadius={90} innerRadius={50} paddingAngle={3}>
+                    {byStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                  <ChartLegend wrapperStyle={{ fontSize: 11 }} formatter={(value: string, entry: any) => `${value}: ${entry?.payload?.value ?? 0}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState label={lang === "uz" ? "O'quvchilar hali qo'shilmagan" : "Ученики пока не добавлены"} />
+            )}
           </Card>
 
           <Card className="p-6 shadow-elegant">
@@ -124,15 +134,19 @@ function AdminAnalytics() {
               <h3 className="text-base font-semibold">{t("director.byCourse")}</h3>
               <p className="text-xs text-muted-foreground">{lang === "uz" ? "Guruhlardagi o'quvchilar" : "Студенты по курсам"}</p>
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={byCourse} layout="vertical" margin={{ left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={140} />
-                <Tooltip formatter={(value: any) => [`${value} ta`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="value" fill="var(--chart-2)" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasCourseData ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={byCourse} layout="vertical" margin={{ left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={140} />
+                  <Tooltip formatter={(value: any) => [`${value} ${lang === "uz" ? "o'quvchi" : "уч."}`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="value" fill="var(--chart-2)" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState label={lang === "uz" ? "Kurslarga o'quvchilar hali biriktirilmagan" : "По курсам пока нет учеников"} />
+            )}
           </Card>
         </div>
 
@@ -149,5 +163,14 @@ function AdminAnalytics() {
         </Card>
       </div>
     </PageShell>
+  );
+}
+
+function EmptyChartState({ label }: { label: string }) {
+  return (
+    <div className="flex h-[260px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
+      <AlertCircle className="size-8 text-muted-foreground" />
+      <div className="mt-3 text-sm font-medium text-foreground">{label}</div>
+    </div>
   );
 }

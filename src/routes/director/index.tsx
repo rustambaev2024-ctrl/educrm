@@ -117,6 +117,8 @@ function DirectorHome() {
 
   const recentAudit = auditLog.slice(0, 6);
   const branchById = useMemo(() => Object.fromEntries(branches.map((b) => [b.id, b])), [branches]);
+  const moneyUnit = lang === "uz" ? "mln so'm" : "млн сум";
+  const hasRevenueData = revenueSeries.some((item) => item.income > 0 || item.expense > 0);
 
   if (isLoading) {
     return (
@@ -137,7 +139,7 @@ function DirectorHome() {
           <KpiCard label={t("director.activeStudents")} value={`${activeStudents}`} icon={Users} iconColor="blue" />
           <KpiCard label={t("director.monthlyRevenue")} value={formatMoney(monthly.income, lang)} icon={Wallet} iconColor="green" />
           <KpiCard label={t("director.profit")} value={formatMoney(monthly.profit, lang)} icon={TrendingUp} iconColor={monthly.profit >= 0 ? "violet" : "red"} />
-          <KpiCard label={t("director.debtors")} value={`${debtors}`} subtitle={t("students.count")} icon={AlertCircle} iconColor="amber" />
+          <KpiCard label={t("director.debtors")} value={`${debtors}`} subtitle={lang === "ru" ? plural(debtors, "ученик", "ученика", "учеников") : "o'quvchi"} icon={AlertCircle} iconColor="amber" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -145,15 +147,16 @@ function DirectorHome() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-semibold">{t("director.monthlyRevenue")}</h3>
-                <p className="text-xs text-muted-foreground">{t("admin.weekRange")} · mln UZS</p>
+                <p className="text-xs text-muted-foreground">{t("admin.weekRange")} · {moneyUnit}</p>
               </div>
               <div className="flex items-center gap-3 text-xs">
                 <Legend color="#22c55e" label={t("director.monthlyRevenue")} />
                 <Legend color="#ef4444" label={t("director.monthlyExpense")} />
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={revenueSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            {hasRevenueData ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={revenueSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="dr-in" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
@@ -167,27 +170,30 @@ function DirectorHome() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip formatter={(value: any, name: string) => [`${Number(value).toFixed(1)} mln`, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                <Tooltip formatter={(value: any, name: string) => [`${Number(value).toFixed(1)} ${moneyUnit}`, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
                 <Area type="monotone" dataKey="income" name={t("finance.kpi.income")} stroke="#22c55e" fill="url(#dr-in)" strokeWidth={2} />
                 <Area type="monotone" dataKey="expense" name={t("finance.kpi.expense")} stroke="#ef4444" fill="url(#dr-out)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState label={lang === "uz" ? "So'nggi kunlarda tushum yo'q" : "За последние дни доходов пока нет"} />
+            )}
           </Card>
 
           <Card className="p-6 shadow-elegant">
             <div className="mb-4">
               <h3 className="text-base font-semibold">{t("director.byCourse")}</h3>
-              <p className="text-xs text-muted-foreground">mln UZS</p>
+              <p className="text-xs text-muted-foreground">{moneyUnit}</p>
             </div>
             {courseRevenue.length === 0 ? (
-              <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">{t("common.empty")}</div>
+              <EmptyChartState label={lang === "uz" ? "Kurslar bo'yicha daromad hali yo'q" : "Доходов по курсам пока нет"} />
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={courseRevenue} layout="vertical" margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
                   <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={110} />
-                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                  <Tooltip formatter={(value: any) => [`${Number(value).toFixed(1)} ${moneyUnit}`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
                   <Bar dataKey="revenue" fill="var(--chart-1)" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -274,6 +280,15 @@ function Legend({ color, label }: { color: string; label: string }) {
     <div className="flex items-center gap-1.5 text-muted-foreground">
       <span className="size-2.5 rounded-full" style={{ background: color }} />
       {label}
+    </div>
+  );
+}
+
+function EmptyChartState({ label }: { label: string }) {
+  return (
+    <div className="flex h-[260px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
+      <AlertCircle className="size-8 text-muted-foreground" />
+      <div className="mt-3 text-sm font-medium text-foreground">{label}</div>
     </div>
   );
 }

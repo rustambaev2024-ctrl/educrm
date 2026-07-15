@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { ChevronRight, LogOut, Menu, Search, Settings, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
@@ -82,6 +82,7 @@ export function EnterpriseLayout({
   children,
 }: EnterpriseLayoutProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const { lang } = useI18n();
 
@@ -463,7 +464,7 @@ export function EnterpriseLayout({
                 borderRadius: 4,
               }}
             >
-              ⌘K
+              Ctrl K
             </kbd>
           </button>
 
@@ -492,7 +493,7 @@ export function EnterpriseLayout({
         }}
         className="col-start-1 md:col-start-2 row-start-2"
       >
-        {children}
+        <div key={location.pathname}>{children}</div>
       </main>
 
       {/* Mobile drawer */}

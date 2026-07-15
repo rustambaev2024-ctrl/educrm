@@ -61,6 +61,26 @@ function StatCardSkeleton() {
   );
 }
 
+function PageLoadingState({ cards = 4 }: { cards?: number }) {
+  return (
+    <div className="flex min-h-[320px] flex-col gap-5 p-4">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-6 w-56 max-w-[70%]" />
+        <Skeleton className="h-4 w-80 max-w-full" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({ length: cards }).map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
 export {
   Skeleton,
   RowSkeleton,
@@ -68,4 +88,5 @@ export {
   CardSkeleton,
   CardGridSkeleton,
   StatCardSkeleton,
+  PageLoadingState,
 };

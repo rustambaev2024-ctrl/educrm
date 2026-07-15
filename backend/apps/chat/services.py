@@ -81,7 +81,7 @@ def add_student_to_group_chat(group, student):
     if not created and participant.left_at is not None:
         participant.left_at = None
         participant.save(update_fields=["left_at"])
-    send_system_message(chat, f"{student.user.full_name} added to group")
+    send_system_message(chat, f"{student.user.full_name} добавлен(а) в группу")
 
 
 def remove_student_from_group_chat(group, student):
@@ -90,7 +90,7 @@ def remove_student_from_group_chat(group, student):
     if participant and participant.left_at is None:
         participant.left_at = timezone.now()
         participant.save(update_fields=["left_at"])
-    send_system_message(chat, f"{student.user.full_name} removed from group")
+    send_system_message(chat, f"{student.user.full_name} удален(а) из группы")
 
 
 def get_or_create_direct_chat(user_a, user_b, chat_type: str) -> Chat:

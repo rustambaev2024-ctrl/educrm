@@ -27,7 +27,8 @@ const LESSON_TONE: Record<LessonStatus, string> = {
 
 function Pill({ children, tone }: { children: ReactNode; tone: string }) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${tone}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none shadow-sm ${tone}`}>
+      <span className="size-1.5 rounded-full bg-current" aria-hidden />
       {children}
     </span>
   );

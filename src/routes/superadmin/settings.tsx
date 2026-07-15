@@ -24,7 +24,6 @@ function SaSettings() {
   const [supportEmail, setSupportEmail] = useState("");
   const [supportPhone, setSupportPhone] = useState("");
   const [defaultLang, setDefaultLang] = useState("uz");
-  const [defaultTheme, setDefaultTheme] = useState("system");
 
   const [twoFactor, setTwoFactor] = useState(false);
   const [strongPwd, setStrongPwd] = useState(true);
@@ -116,16 +115,6 @@ function SaSettings() {
                     <SelectContent>
                       <SelectItem value="uz">O'zbekcha (Latin)</SelectItem>
                       <SelectItem value="ru">Русский</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label={t("sa.settings.theme")}>
-                  <Select value={defaultTheme} onValueChange={setDefaultTheme}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="system">System</SelectItem>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>

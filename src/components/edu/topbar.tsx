@@ -19,7 +19,7 @@ import { useI18n } from "@/lib/i18n";
 export function Topbar({ title, showSearch = true }: { title?: string; showSearch?: boolean }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
@@ -48,9 +48,9 @@ export function Topbar({ title, showSearch = true }: { title?: string; showSearc
           onClick={() => setSearchOpen(true)}
           className="hidden md:flex items-center gap-2 h-10 px-4 rounded-lg border border-input bg-background text-sm text-muted-foreground hover:bg-accent transition-colors max-w-sm flex-1"
         >
-          <Search className="h-4 w-4" />
-          <span className="flex-1 text-left">{lang === "uz" ? "Qidirish..." : "Поиск..."}</span>
-          <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">⌘K</kbd>
+          <Search className="size-4" />
+          <span className="flex-1 text-left">{t("common.search")}</span>
+          <kbd className="hidden h-5 items-center gap-1 rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground sm:inline-flex">Ctrl K</kbd>
         </button>
       )}
       <div className="ml-auto flex items-center gap-2">
