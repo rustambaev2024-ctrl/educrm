@@ -13,7 +13,7 @@ from apps.courses.models import GroupMembership
 from apps.finance.models import Payment
 from apps.institutions.models import Branch, Room
 from apps.lessons.models import Attendance, Lesson, TeacherAttendance
-from apps.staff.models import Staff, StaffPenalty
+from apps.staff.models import Staff, StaffBonus, StaffPenalty
 from apps.students.models import Student
 
 
@@ -490,7 +490,18 @@ def calculate_teacher_salary(
     total_penalties = _quantize(
         penalties_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
     )
-    net_salary = _quantize(max(calculated_salary - total_penalties, Decimal("0.00")))
+
+    bonuses_qs = StaffBonus.objects.filter(
+        staff=teacher,
+        bonus_date__gte=period_start,
+        bonus_date__lte=period_end,
+    ).order_by("-bonus_date", "-created_at")
+
+    total_bonuses = _quantize(
+        bonuses_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
+    )
+
+    net_salary = _quantize(max(calculated_salary - total_penalties + total_bonuses, Decimal("0.00")))
     penalty_debt = _quantize(max(total_penalties - calculated_salary, Decimal("0.00")))
 
     # Calculate actual payouts made to teacher during this period
@@ -517,6 +528,7 @@ def calculate_teacher_salary(
         "calculated_salary": str(calculated_salary),
         "penalties_total": str(total_penalties),
         "penalty_debt": str(penalty_debt),
+        "bonuses_total": str(total_bonuses),
         "net_salary": str(net_salary),
         "total_paid": str(total_paid),
         "remaining_balance": str(remaining_balance),
@@ -529,6 +541,16 @@ def calculate_teacher_salary(
                 "comment": penalty.comment,
             }
             for penalty in penalties_qs
+        ],
+        "bonuses": [
+            {
+                "id": str(bonus.id),
+                "amount": str(_quantize(bonus.amount)),
+                "reason": bonus.reason,
+                "bonus_date": str(bonus.bonus_date),
+                "comment": bonus.comment,
+            }
+            for bonus in bonuses_qs
         ],
     }
 

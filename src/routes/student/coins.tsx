@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Coins,
   ShoppingBag,
@@ -193,6 +193,29 @@ function StudentCoins() {
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
   const totalCount = achievements.length;
 
+  const productGroups = useMemo(() => {
+    const noCategory: any[] = [];
+    const byCategory = new Map<string, { label: string; items: any[] }>();
+    for (const product of products) {
+      if (!product.category) {
+        noCategory.push(product);
+        continue;
+      }
+      const label = product.category_name
+        ? (lang === "uz" ? product.category_name.uz : product.category_name.ru)
+        : "";
+      const existing = byCategory.get(product.category);
+      if (existing) existing.items.push(product);
+      else byCategory.set(product.category, { label, items: [product] });
+    }
+    const groups = Array.from(byCategory.values());
+    if (noCategory.length) {
+      groups.push({ label: lang === "uz" ? "Boshqa" : "Другое", items: noCategory });
+    }
+    return groups;
+  }, [products, lang]);
+  const hasCategories = productGroups.length > 1 || (productGroups.length === 1 && products.some((p) => p.category));
+
   const levelLabel = levelLabels[level]
     ? (lang === "uz" ? levelLabels[level].uz : levelLabels[level].ru)
     : (lang === "uz" ? `Daraja ${level}` : `Уровень ${level}`);
@@ -346,67 +369,24 @@ function StudentCoins() {
                 : "Магазин пока пуст. Скоро появятся новые призы!"}
             </p>
           </div>
+        ) : hasCategories ? (
+          <div className="space-y-4">
+            {productGroups.map((group) => (
+              <div key={group.label} className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {group.items.map((product) => (
+                    <ProductCard key={product.id} product={product} lang={lang} canBuy={canBuy} wallet={wallet} onBuy={handleBuy} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {products.map((product) => {
-              const buyable = canBuy(product);
-              const noCoins = (wallet?.balance || 0) < product.price_coins;
-              return (
-                <div
-                  key={product.id}
-                  className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3"
-                >
-                  <ProductThumb
-                    src={product.image_url}
-                    alt={lang === "uz" ? product.name_uz : product.name_ru}
-                  />
-
-                  <div className="text-center">
-                    <div className="font-semibold text-sm text-foreground leading-tight">
-                      {lang === "uz" ? product.name_uz : product.name_ru}
-                    </div>
-                    {(product.min_level || 1) > 1 && (
-                      <div className="text-xs text-amber-500 mt-0.5 flex items-center justify-center gap-0.5">
-                        <Star className="h-3 w-3" />
-                        {lang === "uz"
-                          ? `Daraja ${product.min_level}+`
-                          : `Уровень ${product.min_level}+`}
-                      </div>
-                    )}
-                    {product.stock !== -1 && product.stock !== null && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {lang === "uz"
-                          ? `${product.stock} ta qoldi`
-                          : `Осталось: ${product.stock}`}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-auto">
-                    <div className="text-center font-bold text-[#0077b6] mb-2 flex items-center justify-center gap-1">
-                      <Coins className="h-4 w-4" />
-                      <span className="text-lg">{product.price_coins}</span>
-                    </div>
-                    <button
-                      onClick={() => handleBuy(product)}
-                      disabled={!buyable}
-                      className={`w-full py-2 rounded-xl text-sm font-semibold transition-colors ${
-                        buyable
-                          ? "text-white hover:opacity-90"
-                          : "bg-muted text-muted-foreground cursor-not-allowed"
-                      }`}
-                      style={buyable ? { background: "#0077b6" } : undefined}
-                    >
-                      {!buyable
-                        ? (noCoins
-                            ? (lang === "uz" ? "Coin yetarli emas" : "Мало монет")
-                            : (lang === "uz" ? "Daraja past" : "Уровень низкий"))
-                        : (lang === "uz" ? "Sotib olish" : "Купить")}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} lang={lang} canBuy={canBuy} wallet={wallet} onBuy={handleBuy} />
+            ))}
           </div>
         )}
       </div>
@@ -528,5 +508,74 @@ function StudentCoins() {
       isLoading={buying}
     />
     </>
+  );
+}
+
+function ProductCard({
+  product,
+  lang,
+  canBuy,
+  wallet,
+  onBuy,
+}: {
+  product: any;
+  lang: string;
+  canBuy: (product: any) => boolean;
+  wallet: any;
+  onBuy: (product: any) => void;
+}) {
+  const buyable = canBuy(product);
+  const noCoins = (wallet?.balance || 0) < product.price_coins;
+  return (
+    <div className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3">
+      <ProductThumb
+        src={product.image_url}
+        alt={lang === "uz" ? product.name_uz : product.name_ru}
+      />
+
+      <div className="text-center">
+        <div className="font-semibold text-sm text-foreground leading-tight">
+          {lang === "uz" ? product.name_uz : product.name_ru}
+        </div>
+        {(product.min_level || 1) > 1 && (
+          <div className="text-xs text-amber-500 mt-0.5 flex items-center justify-center gap-0.5">
+            <Star className="h-3 w-3" />
+            {lang === "uz"
+              ? `Daraja ${product.min_level}+`
+              : `Уровень ${product.min_level}+`}
+          </div>
+        )}
+        {product.stock !== -1 && product.stock !== null && (
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {lang === "uz"
+              ? `${product.stock} ta qoldi`
+              : `Осталось: ${product.stock}`}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-auto">
+        <div className="text-center font-bold text-[#0077b6] mb-2 flex items-center justify-center gap-1">
+          <Coins className="h-4 w-4" />
+          <span className="text-lg">{product.price_coins}</span>
+        </div>
+        <button
+          onClick={() => onBuy(product)}
+          disabled={!buyable}
+          className={`w-full py-2 rounded-xl text-sm font-semibold transition-colors ${
+            buyable
+              ? "text-white hover:opacity-90"
+              : "bg-muted text-muted-foreground cursor-not-allowed"
+          }`}
+          style={buyable ? { background: "#0077b6" } : undefined}
+        >
+          {!buyable
+            ? (noCoins
+                ? (lang === "uz" ? "Coin yetarli emas" : "Мало монет")
+                : (lang === "uz" ? "Daraja past" : "Уровень низкий"))
+            : (lang === "uz" ? "Sotib olish" : "Купить")}
+        </button>
+      </div>
+    </div>
   );
 }

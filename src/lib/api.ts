@@ -524,6 +524,7 @@ export const paymentApi = {
 
 export const homeworkApi = {
   ...crudApi("/homeworks/"),
+  createWithFile: (data: FormData) => requestForm("/homeworks/", data),
   allSubmissions: () => requestJson("/homeworks/submissions/"),
   submissions: (homeworkId: string) => requestJson(`/homeworks/${homeworkId}/statuses/`),
   gradeSubmission: (submissionId: string, data: unknown) =>

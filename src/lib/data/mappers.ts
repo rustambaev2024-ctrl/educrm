@@ -395,6 +395,9 @@ export interface HomeworkRaw {
   description: string | null;
   group: string | { id: string } | null;
   lesson: string | { id: string } | null;
+  individual_student: string | { id: string } | null;
+  assign_type?: "group" | "lesson" | "individual" | null;
+  link?: string | null;
   deadline: string | null;
   file_url?: string | null;
   file?: string | null;
@@ -409,6 +412,9 @@ export function mapHomework(r: HomeworkRaw) {
     description: r.description ?? "",
     groupId: extractId(r.group ?? undefined),
     lessonId: extractId(r.lesson ?? undefined),
+    individualStudentId: extractId(r.individual_student ?? undefined),
+    assignType: r.assign_type ?? "group",
+    link: r.link ?? "",
     teacherId: extractId(r.created_by ?? undefined),
     assignedAt: r.created_at,
     dueDate: r.deadline ?? r.created_at,
