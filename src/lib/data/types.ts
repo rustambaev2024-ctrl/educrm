@@ -237,11 +237,16 @@ export interface HomeworkAttachment {
 export interface Homework {
   id: string;
   groupId: string;
+  lessonId?: string;
+  individualStudentId?: string;
+  assignType?: "group" | "lesson" | "individual";
   teacherId: string;
   title: string;
   description: string;
+  link?: string;
   assignedAt: string; // ISO
   dueDate: string;    // ISO date
+  fileUrl?: string | null;
   attachments?: HomeworkAttachment[];
 }
 

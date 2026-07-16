@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plus, BookOpen, Calendar, Users, ChevronRight, Star, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, BookOpen, Calendar, Users, ChevronRight, Star, CheckCircle2, AlertCircle, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
@@ -22,6 +22,8 @@ import { useCurrentTeacherId } from "@/lib/data/identity";
 import { formatDate, initialsOf } from "@/lib/format";
 import type { Homework, HomeworkSubmission } from "@/lib/data/types";
 
+type AssignType = "group" | "lesson" | "individual";
+
 export const Route = createFileRoute("/teacher/homework")({ component: TeacherHomework });
 
 function dueState(dueIso: string): { tone: string; key: "overdue" | "dueToday" | "dueIn"; days: number } {
@@ -36,7 +38,7 @@ function dueState(dueIso: string): { tone: string; key: "overdue" | "dueToday" |
 function TeacherHomework() {
   const { t, lang } = useI18n();
   const teacherId = useCurrentTeacherId();
-  const { groups, homework, submissions, students, addHomework, gradeSubmission, isLoading } = useData();
+  const { groups, homework, submissions, students, lessons, addHomework, gradeSubmission, isLoading } = useData();
 
   const myGroups = useMemo(() => groups.filter((g) => g.teacherId === teacherId), [groups, teacherId]);
   const myGroupIds = useMemo(() => new Set(myGroups.map((g) => g.id)), [myGroups]);
@@ -62,23 +64,62 @@ function TeacherHomework() {
   const [createOpen, setCreateOpen] = useState(false);
   const [reviewing, setReviewing] = useState<Homework | null>(null);
 
-  const [form, setForm] = useState({ title: "", description: "", groupId: "", dueDate: "" });
+  const emptyForm = {
+    title: "",
+    description: "",
+    groupId: "",
+    assignType: "group" as AssignType,
+    lessonId: "",
+    studentId: "",
+    link: "",
+    dueDate: "",
+    dueTime: "23:59",
+  };
+  const [form, setForm] = useState(emptyForm);
+  const [file, setFile] = useState<File | null>(null);
+
+  const groupLessons = useMemo(
+    () => lessons.filter((l) => l.groupId === form.groupId).sort((a, b) => b.datetime.localeCompare(a.datetime)),
+    [lessons, form.groupId],
+  );
+  const groupStudents = useMemo(() => {
+    const grp = myGroups.find((g) => g.id === form.groupId);
+    if (!grp) return [];
+    const ids = new Set(grp.studentIds);
+    return students.filter((s) => ids.has(s.id));
+  }, [myGroups, students, form.groupId]);
 
   const submit = () => {
     if (!form.title.trim() || !form.groupId || !form.dueDate || !teacherId) {
       toast.error(t("validation.fillAll"));
       return;
     }
-    addHomework({
-      title: form.title.trim(),
-      description: form.description.trim(),
-      groupId: form.groupId,
-      teacherId,
-      dueDate: new Date(form.dueDate + "T23:59:00").toISOString(),
-    });
+    if (form.assignType === "lesson" && !form.lessonId) {
+      toast.error(t("validation.fillAll"));
+      return;
+    }
+    if (form.assignType === "individual" && !form.studentId) {
+      toast.error(t("validation.fillAll"));
+      return;
+    }
+    addHomework(
+      {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        groupId: form.groupId,
+        assignType: form.assignType,
+        lessonId: form.assignType === "lesson" ? form.lessonId : undefined,
+        individualStudentId: form.assignType === "individual" ? form.studentId : undefined,
+        link: form.link.trim() || undefined,
+        teacherId,
+        dueDate: new Date(`${form.dueDate}T${form.dueTime || "23:59"}:00`).toISOString(),
+      },
+      file ?? undefined,
+    );
     toast.success(t("hw.created"));
     setCreateOpen(false);
-    setForm({ title: "", description: "", groupId: "", dueDate: "" });
+    setForm(emptyForm);
+    setFile(null);
   };
 
   if (isLoading) {
@@ -187,13 +228,54 @@ function TeacherHomework() {
           <div className="space-y-4 px-4 pb-4">
             <div className="space-y-1.5">
               <Label>{t("hw.field.group")}*</Label>
-              <Select value={form.groupId} onValueChange={(v) => setForm({ ...form, groupId: v })}>
+              <Select
+                value={form.groupId}
+                onValueChange={(v) => setForm({ ...form, groupId: v, lessonId: "", studentId: "" })}
+              >
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>
                   {myGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1.5">
+              <Label>{t("hw.field.assignType")}*</Label>
+              <Select
+                value={form.assignType}
+                onValueChange={(v) => setForm({ ...form, assignType: v as AssignType, lessonId: "", studentId: "" })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="group">{t("hw.assignType.group")}</SelectItem>
+                  <SelectItem value="lesson">{t("hw.assignType.lesson")}</SelectItem>
+                  <SelectItem value="individual">{t("hw.assignType.individual")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {form.assignType === "lesson" && (
+              <div className="space-y-1.5">
+                <Label>{t("hw.field.lesson")}*</Label>
+                <Select value={form.lessonId} onValueChange={(v) => setForm({ ...form, lessonId: v })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    {groupLessons.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>{formatDate(l.datetime, lang)}{l.topic ? ` — ${l.topic}` : ""}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {form.assignType === "individual" && (
+              <div className="space-y-1.5">
+                <Label>{t("hw.field.student")}*</Label>
+                <Select value={form.studentId} onValueChange={(v) => setForm({ ...form, studentId: v })}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    {groupStudents.map((s) => <SelectItem key={s.id} value={s.id}>{s.fullName}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>{t("hw.field.title")}*</Label>
               <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
@@ -203,8 +285,40 @@ function TeacherHomework() {
               <Textarea rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </div>
             <div className="space-y-1.5">
-              <Label>{t("hw.field.due")}*</Label>
-              <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+              <Label>{t("hw.field.link")}</Label>
+              <Input
+                type="url"
+                placeholder="https://…"
+                value={form.link}
+                onChange={(e) => setForm({ ...form, link: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("hw.field.file")}</Label>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
+                  <label className="cursor-pointer">
+                    <Paperclip className="size-3.5" />
+                    {t("hw.field.filePick")}
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                </Button>
+                {file && <span className="truncate text-xs text-muted-foreground">{file.name}</span>}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>{t("hw.field.due")}*</Label>
+                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>&nbsp;</Label>
+                <Input type="time" value={form.dueTime} onChange={(e) => setForm({ ...form, dueTime: e.target.value })} />
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setCreateOpen(false)}>{t("common.cancel")}</Button>

@@ -173,7 +173,7 @@ interface DataStoreActions {
   updateParentPassword: (parentId: string, password: string) => void;
   updateStudentPasswords: (id: string, password?: string, parentPassword?: string) => void;
   // Homework
-  addHomework: (input: Omit<Homework, "id" | "assignedAt">) => Homework;
+  addHomework: (input: Omit<Homework, "id" | "assignedAt">, file?: File) => Homework;
   updateSubmission: (
     homeworkId: string,
     studentId: string,
@@ -586,11 +586,16 @@ function homeworkFromRaw(raw: HomeworkRaw): Homework {
   return {
     id: mapped.id,
     groupId: mapped.groupId,
+    lessonId: mapped.lessonId,
+    individualStudentId: mapped.individualStudentId,
+    assignType: mapped.assignType,
     teacherId: mapped.teacherId,
     title: mapped.title,
     description: mapped.description,
+    link: mapped.link,
     assignedAt: mapped.assignedAt,
     dueDate: mapped.dueDate,
+    fileUrl: mapped.fileUrl,
   };
 }
 
@@ -1515,7 +1520,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     fireAndForget("markAllNotificationsRead", notificationApi.markAllRead());
   }, []);
 
-  const addHomework: DataStoreActions["addHomework"] = useCallback((input) => {
+  const addHomework: DataStoreActions["addHomework"] = useCallback((input, file) => {
     const created: Homework = {
       id: uid("hw"),
       assignedAt: new Date().toISOString(),
@@ -1536,15 +1541,34 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       }
       return prevGroups;
     });
+    const assignType = created.assignType ?? "group";
+    const persist = file
+      ? (() => {
+          const fd = new FormData();
+          fd.append("title", created.title);
+          fd.append("description", created.description);
+          fd.append("assign_type", assignType);
+          fd.append("group", created.groupId);
+          if (assignType === "lesson" && created.lessonId) fd.append("lesson", created.lessonId);
+          if (assignType === "individual" && created.individualStudentId) fd.append("individual_student", created.individualStudentId);
+          if (created.link) fd.append("link", created.link);
+          fd.append("deadline", created.dueDate);
+          fd.append("file", file);
+          return homeworkApi.createWithFile(fd);
+        })()
+      : homeworkApi.create({
+          title: created.title,
+          description: created.description,
+          assign_type: assignType,
+          group: created.groupId,
+          lesson: assignType === "lesson" ? created.lessonId : undefined,
+          individual_student: assignType === "individual" ? created.individualStudentId : undefined,
+          link: created.link || undefined,
+          deadline: created.dueDate,
+        } as never);
     fireAndForget(
       "addHomework",
-      homeworkApi.create({
-        title: created.title,
-        description: created.description,
-        assign_type: "group",
-        group: created.groupId,
-        deadline: created.dueDate,
-      } as never).then((raw) => {
+      persist.then((raw) => {
         const persisted = homeworkFromRaw(raw as HomeworkRaw);
         setHomework((prev) => prev.map((h) => (h.id === created.id ? persisted : h)));
       }),
