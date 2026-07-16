@@ -264,7 +264,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
           
           toast.success(labels.saved);
       } catch (err) {
-          toast.error("Xatolik");
+          toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
       }
   };
 
@@ -363,10 +363,6 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
             <SheetHeader className="p-6 pb-4 border-b bg-muted/30">
             <div className="flex justify-between items-start gap-4">
               <SheetTitle className="text-xl">{selectedTeacher?.teacher_name || labels.detail}</SheetTitle>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => { toast.success(labels.addTitlePenalty + ": " + (selectedTeacher?.teacher_name ?? "")); }}>{labels.addPenalty}</Button>
-                <Button size="sm" variant="outline" onClick={() => { toast.success(labels.addTitleBonus + ": " + (selectedTeacher?.teacher_name ?? "")); }}>{labels.addBonus}</Button>
-              </div>
             </div>
             <div className="mt-4 bg-card rounded-lg border p-4 shadow-sm">
               <h4 className="text-sm font-medium mb-3">{labels.teacherCheckinTime}</h4>
@@ -410,7 +406,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
                   // Форматирование времени и даты
                   const lessonTime = lesson.datetime ? new Date(lesson.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (lesson.start_time?.slice(0,5) || "");
                   const lessonDate = lesson.datetime ? formatDate(lesson.datetime, lang) : "";
-                  const topic = lesson.topic || <span className="text-muted-foreground">Mavzu yo'q</span>;
+                  const topic = lesson.topic || <span className="text-muted-foreground">{lang === "uz" ? "Mavzu yo'q" : "Тема не указана"}</span>;
 
                   return (
                     <Card key={lesson.id} className="p-4 shadow-sm border-l-4" style={{ borderLeftColor: `var(--${statusBg.split('-')[1]}-500, currentColor)`}}>
@@ -756,7 +752,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
       toast.success(labels.created);
       loadRecords();
     } catch (err) {
-      toast.error("Xatolik yuz berdi");
+      toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
     }
   };
 

@@ -33,6 +33,7 @@ type SalaryRow = {
   fixedSalary: number;
   grossDue: number;
   penalties: number;
+  bonuses: number;
   due: number;
   paid: number;
   remaining: number;
@@ -61,6 +62,7 @@ function calcLocalRow(
     .filter((p) => p.staffId === staffMember.id && p.status === "active")
     .reduce((sum, p) => sum + p.amount, 0);
   const due = Math.max(grossDue - penalties, 0);
+  const bonuses = 0;
   const paid = periodPayments
     .filter((p) => p.direction === "out" && p.category === "salary" && p.staffId === staffMember.id)
     .reduce((sum, p) => sum + p.amount, 0);
@@ -74,6 +76,7 @@ function calcLocalRow(
     fixedSalary,
     grossDue,
     penalties,
+    bonuses,
     due,
     paid,
     remaining: Math.max(due - paid, 0),
@@ -153,6 +156,7 @@ function DirectorSalaries() {
       if (isTeacher && sd) {
         const grossDue = Number(sd.calculated_salary ?? 0);
         const penalties = Number(sd.penalties_total ?? 0);
+        const bonuses = Number(sd.bonuses_total ?? 0);
         const due = Number(sd.net_salary ?? 0);
         const paid = Number(sd.total_paid ?? 0);
         const remaining = Number(sd.remaining_balance ?? 0);
@@ -167,6 +171,7 @@ function DirectorSalaries() {
           fixedSalary: 0,
           grossDue,
           penalties,
+          bonuses,
           due,
           paid,
           remaining,
@@ -260,6 +265,7 @@ function DirectorSalaries() {
                 <TableHead>{lang === "uz" ? "Xodim" : "Сотрудник"}</TableHead>
                 <TableHead className="text-right">{lang === "uz" ? "Hisoblangan" : "Начислено"}</TableHead>
                 <TableHead className="text-right">{lang === "uz" ? "Jarimalar" : "Штрафы"}</TableHead>
+                <TableHead className="text-right">{lang === "uz" ? "Bonuslar" : "Бонусы"}</TableHead>
                 <TableHead className="text-right">{lang === "uz" ? "To'langan" : "Выплачено"}</TableHead>
                 <TableHead className="text-right">{lang === "uz" ? "Qoldiq" : "Остаток"}</TableHead>
                 <TableHead className="text-right">{lang === "uz" ? "Amal" : "Действие"}</TableHead>
@@ -267,7 +273,7 @@ function DirectorSalaries() {
             </TableHeader>
             <TableBody>
               {salaryRows.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">{t("common.empty")}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">{t("common.empty")}</TableCell></TableRow>
               ) : salaryRows.map((row) => (
                 <TableRow key={row.staff.id} className="cursor-pointer hover:bg-muted/40" onClick={() => setDetailRow(row)}>
                   <TableCell>
@@ -284,6 +290,9 @@ function DirectorSalaries() {
                   <TableCell className="text-right font-semibold">{formatMoney(row.grossDue, lang)}</TableCell>
                   <TableCell className={`text-right ${row.penalties > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
                     {row.penalties > 0 ? `-${formatMoney(row.penalties, lang)}` : "—"}
+                  </TableCell>
+                  <TableCell className={`text-right ${row.bonuses > 0 ? "font-semibold text-success" : "text-muted-foreground"}`}>
+                    {row.bonuses > 0 ? `+${formatMoney(row.bonuses, lang)}` : "—"}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">{formatMoney(row.paid, lang)}</TableCell>
                   <TableCell className={`text-right font-semibold ${row.remaining > 0 ? "text-warning-foreground" : "text-muted-foreground"}`}>
@@ -413,6 +422,7 @@ function DirectorSalaries() {
                 />
                 <Info label={lang === "uz" ? "Jarimadan oldin" : "До штрафов"} value={formatMoney(detailRow.grossDue, lang)} />
                 <Info label={lang === "uz" ? "Jarimalar" : "Штрафы"} value={`-${formatMoney(detailRow.penalties, lang)}`} />
+                <Info label={lang === "uz" ? "Bonuslar" : "Бонусы"} value={`+${formatMoney(detailRow.bonuses, lang)}`} />
                 <Info label={lang === "uz" ? "To'lovga" : "К выплате"} value={formatMoney(detailRow.due, lang)} />
                 <Info label={lang === "uz" ? "To'langan" : "Выплачено"} value={formatMoney(detailRow.paid, lang)} />
               </div>
@@ -432,8 +442,8 @@ function DirectorSalaries() {
                       strong
                     />
                     <BreakdownItem
-                      label={lang === "uz" ? "Jarimalardan keyin" : "После штрафов"}
-                      value={`${formatMoney(detailRow.grossDue, lang)} − ${formatMoney(detailRow.penalties, lang)} = ${formatMoney(detailRow.due, lang)}`}
+                      label={lang === "uz" ? "Jarima va bonusdan keyin" : "После штрафов и бонусов"}
+                      value={`${formatMoney(detailRow.grossDue, lang)} − ${formatMoney(detailRow.penalties, lang)} + ${formatMoney(detailRow.bonuses, lang)} = ${formatMoney(detailRow.due, lang)}`}
                       strong
                     />
                   </div>
