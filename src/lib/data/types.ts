@@ -272,8 +272,8 @@ export interface Grade {
   teacherId: string;
   kind: GradeKind;
   title: string;       // e.g. "Unit 4 Quiz", "Midterm"
-  score: number;       // 0..10
-  maxScore: number;    // usually 10
+  score: number;       // 0..100 (0..10 for kind "homework", mirrors HomeworkStatus.grade)
+  maxScore: number;    // 100, except kind "homework" which is 10
   date: string;        // ISO date
   comment?: string;
 }
