@@ -53,6 +53,9 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
 
   const socketRef = useRef<WebSocket | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
 
   // Load session meta via REST
   useEffect(() => {
@@ -85,47 +88,64 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
     }, 1000);
   }, []);
 
-  // Connect WebSocket once session code is known
+  // Connect WebSocket once session code is known. Обрыв связи (сеть моргнула,
+  // случайно обновилась вкладка) на живой демонстрации не должен требовать
+  // ручных действий — переподключаемся сами, пока сессия не завершена.
   useEffect(() => {
     if (!session?.code) return;
-    const token = readAccessToken();
-    const url = `${getWebSocketBaseUrl()}/ws/quiz/${session.code}/${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-    const socket = new WebSocket(url);
-    socketRef.current = socket;
+    let cancelled = false;
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data) as Record<string, unknown>;
+    const connect = () => {
+      if (cancelled) return;
+      const token = readAccessToken();
+      const url = `${getWebSocketBaseUrl()}/ws/quiz/${session.code}/${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+      const socket = new WebSocket(url);
+      socketRef.current = socket;
 
-      if (data.type === "question") {
-        setPhase("active");
-        setQuestion(data.question as WsQuestion);
-        setQIndex(Number(data.index));
-        setQTotal(Number(data.total));
-        setAnsweredCount(0);
-        startTimer((data.question as WsQuestion).time_limit);
-      } else if (data.type === "answer_count_update") {
-        // БАГ 4: анонимный счётчик ответов вместо answer_received
-        setAnsweredCount(Number(data.answered));
-        setTotalParticipants(Number(data.total));
-      } else if (data.type === "finished") {
-        setPhase("finished");
-        setResults(data.results as WsResult[]);
-        if (timerRef.current) clearInterval(timerRef.current);
-      } else if (data.type === "error") {
-        // БАГ 3: тест без вопросов
-        if ((data.message as string) === "no_questions") {
-          toast.error(
-            tr(
-              "Testda savollar yo'q! Avval savol qo'shing.",
-              "В тесте нет вопросов! Сначала добавьте вопросы."
-            )
-          );
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data) as Record<string, unknown>;
+
+        if (data.type === "question") {
+          setPhase("active");
+          setQuestion(data.question as WsQuestion);
+          setQIndex(Number(data.index));
+          setQTotal(Number(data.total));
+          setAnsweredCount(0);
+          startTimer((data.question as WsQuestion).time_limit);
+        } else if (data.type === "answer_count_update") {
+          // БАГ 4: анонимный счётчик ответов вместо answer_received
+          setAnsweredCount(Number(data.answered));
+          setTotalParticipants(Number(data.total));
+        } else if (data.type === "finished") {
+          setPhase("finished");
+          setResults(data.results as WsResult[]);
+          if (timerRef.current) clearInterval(timerRef.current);
+        } else if (data.type === "error") {
+          // БАГ 3: тест без вопросов
+          if ((data.message as string) === "no_questions") {
+            toast.error(
+              tr(
+                "Testda savollar yo'q! Avval savol qo'shing.",
+                "В тесте нет вопросов! Сначала добавьте вопросы."
+              )
+            );
+          }
         }
-      }
+      };
+
+      socket.onclose = (event) => {
+        if (cancelled || event.code === 1000) return;
+        if (phaseRef.current === "finished") return;
+        reconnectTimerRef.current = setTimeout(connect, 1500);
+      };
     };
 
+    connect();
+
     return () => {
-      socket.close();
+      cancelled = true;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      socketRef.current?.close(1000);
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [session?.code, startTimer]);

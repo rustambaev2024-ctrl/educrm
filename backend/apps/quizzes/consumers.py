@@ -23,7 +23,11 @@ class QuizConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group, self.channel_name)
 
-        # БАГ 1: если хост отключился во время активной сессии — завершить
+        # Раньше отключение хоста (сеть моргнула, случайно обновил вкладку)
+        # мгновенно и необратимо завершало сессию для всех участников — на
+        # живой демонстрации это самый частый и самый разрушительный сценарий.
+        # Теперь только уведомляем участников; хост переподключается
+        # (фронт делает это автоматически) и продолжает с того же вопроса.
         try:
             user = self.scope.get("user")
             if user and not user.is_anonymous:
@@ -31,7 +35,6 @@ class QuizConsumer(AsyncWebsocketConsumer):
                 if is_host:
                     session = await self.get_session()
                     if session and session.status == "active":
-                        await self.finalize_session(session)
                         await self.channel_layer.group_send(
                             self.room_group,
                             {
