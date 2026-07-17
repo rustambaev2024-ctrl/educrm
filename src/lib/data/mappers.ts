@@ -485,7 +485,7 @@ export function mapGrade(r: GradeRaw) {
     type,
     title: type,
     score: typeof r.score === "number" ? r.score : Number(r.score ?? 0),
-    maxScore: 10,
+    maxScore: 100,
     date: r.graded_at ?? r.created_at ?? new Date().toISOString(),
     comment: r.comment ?? undefined,
     createdAt: r.graded_at ?? r.created_at ?? new Date().toISOString(),
