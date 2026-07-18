@@ -150,6 +150,38 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
             return qs
         return qs.filter(host=user)
 
+    @action(detail=True, methods=["get"], url_path="state")
+    def state(self, request, pk=None):
+        """
+        Текущее состояние сессии для восстановления хоста после F5/переоткрытия
+        вкладки — без этого хост после перезагрузки не знает, что случилось
+        ПОСЛЕ последнего дошедшего WS-события (BUG-048).
+        """
+        session = self.get_object()
+        questions = list(
+            session.quiz.questions.prefetch_related("answers").order_by("order")
+        )
+        total = len(questions)
+        idx = session.current_question_index
+        current_question = None
+        if session.status == "active" and 0 <= idx < total:
+            q = questions[idx]
+            current_question = {
+                "id": str(q.id),
+                "text": q.text,
+                "time_limit": q.time_limit,
+                "answers": [{"id": str(a.id), "text": a.text} for a in q.answers.all()],
+            }
+        return Response(
+            {
+                "status": session.status,
+                "current_question_index": idx,
+                "total_questions": total,
+                "question": current_question,
+                "participants_count": session.participants.count(),
+            }
+        )
+
     @action(
         detail=False,
         methods=["get"],
