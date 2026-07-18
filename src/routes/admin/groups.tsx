@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CardGridSkeleton } from "@/components/ui/skeleton";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getAvatarColor } from "@/lib/avatar-color";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -350,6 +351,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [forceDeleteOpen, setForceDeleteOpen] = useState(false);
   const [paymentsCount, setPaymentsCount] = useState(0);
+  const [removeStudentTarget, setRemoveStudentTarget] = useState<{ id: string; name: string } | null>(null);
   const open = group !== null;
   if (!group) return <Sheet open={open} onOpenChange={(v) => !v && onClose()}><SheetContent /></Sheet>;
 
@@ -479,7 +481,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
                         <div className="text-[11px] text-muted-foreground">{s.phone}</div>
                       </div>
                       <StudentStatusInline status={s.status} />
-                      <Button variant="ghost" size="sm" onClick={() => { removeStudentFromGroup(group.id, s.id); toast.success(t("groups.studentRemoved")); }}>
+                      <Button variant="ghost" size="sm" onClick={() => setRemoveStudentTarget({ id: s.id, name: s.fullName })}>
                         <UserMinus className="size-4" />
                       </Button>
                     </div>
@@ -618,6 +620,27 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    <ConfirmDialog
+      open={removeStudentTarget !== null}
+      onOpenChange={(next) => !next && setRemoveStudentTarget(null)}
+      title={lang === "uz" ? "O'quvchini guruhdan chiqarish" : "Убрать ученика из группы?"}
+      description={
+        removeStudentTarget
+          ? lang === "uz"
+            ? `${removeStudentTarget.name} guruhdan chiqariladi.`
+            : `${removeStudentTarget.name} будет убран(а) из группы.`
+          : undefined
+      }
+      confirmText={lang === "uz" ? "Chiqarish" : "Убрать"}
+      cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+      variant="destructive"
+      onConfirm={() => {
+        if (!removeStudentTarget) return;
+        removeStudentFromGroup(group.id, removeStudentTarget.id);
+        toast.success(t("groups.studentRemoved"));
+        setRemoveStudentTarget(null);
+      }}
+    />
     </>
   );
 }
