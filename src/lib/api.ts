@@ -687,6 +687,8 @@ export const quizApi = {
 
     get: (id: string) => requestJson(`/quiz-sessions/${id}/`),
 
+    state: (id: string) => requestJson(`/quiz-sessions/${id}/state/`),
+
     byCode: (code: string) => {
       const schema = getTenantSchema();
       const qs = schema ? `?schema=${encodeURIComponent(schema)}` : "";

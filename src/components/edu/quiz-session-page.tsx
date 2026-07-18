@@ -50,19 +50,55 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   const [totalParticipants, setTotalParticipants] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [results, setResults] = useState<WsResult[]>([]);
+  const [restoringQuestion, setRestoringQuestion] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
 
   const socketRef = useRef<WebSocket | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
 
-  // Load session meta via REST
+  // Load session meta via REST. При монтировании (в т.ч. после F5) фронт не
+  // видел WS-события, которые уже прошли ДО перезагрузки — если сервер
+  // говорит status="active", нужно ещё явно восстановить текущий вопрос
+  // (BUG-048), иначе рендер молча проваливается в экран "Тест завершён".
   useEffect(() => {
     quizApi.sessions
       .get(sessionId)
-      .then((s) => {
+      .then(async (s) => {
         const row = s as QuizSessionRow;
         setSession(row);
         setPhase(row.status);
         setParticipants(row.participants.map((p) => ({ id: p.id, name: p.name })));
+
+        if (row.status === "active") {
+          setRestoringQuestion(true);
+          try {
+            const state = (await quizApi.sessions.state(sessionId)) as {
+              status: "waiting" | "active" | "finished";
+              current_question_index: number;
+              total_questions: number;
+              question: WsQuestion | null;
+            };
+            if (state.status === "active" && state.question) {
+              setQuestion(state.question);
+              setQIndex(state.current_question_index);
+              setQTotal(state.total_questions);
+              // Точное оставшееся время сервер не хранит — начинаем отсчёт
+              // заново с полного лимита вопроса, это лучше, чем ложный
+              // "тест завершён" сразу после перезагрузки.
+              startTimer(state.question.time_limit);
+            } else if (state.status === "finished") {
+              setPhase("finished");
+            }
+          } catch {
+            // не удалось восстановить вопрос — оставляем спиннер убранным,
+            // ниже сработает fallback на экран ожидания следующего события
+          } finally {
+            setRestoringQuestion(false);
+          }
+        }
       })
       .catch(() => {
         toast.error(tr("Sessiyani yuklab bo'lmadi", "Не удалось загрузить сессию"));
@@ -85,47 +121,67 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
     }, 1000);
   }, []);
 
-  // Connect WebSocket once session code is known
+  // Connect WebSocket once session code is known. Обрыв связи (сеть моргнула,
+  // случайно обновилась вкладка) на живой демонстрации не должен требовать
+  // ручных действий — переподключаемся сами, пока сессия не завершена.
   useEffect(() => {
     if (!session?.code) return;
-    const token = readAccessToken();
-    const url = `${getWebSocketBaseUrl()}/ws/quiz/${session.code}/${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-    const socket = new WebSocket(url);
-    socketRef.current = socket;
+    let cancelled = false;
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data) as Record<string, unknown>;
+    const connect = () => {
+      if (cancelled) return;
+      const token = readAccessToken();
+      const url = `${getWebSocketBaseUrl()}/ws/quiz/${session.code}/${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+      const socket = new WebSocket(url);
+      socketRef.current = socket;
 
-      if (data.type === "question") {
-        setPhase("active");
-        setQuestion(data.question as WsQuestion);
-        setQIndex(Number(data.index));
-        setQTotal(Number(data.total));
-        setAnsweredCount(0);
-        startTimer((data.question as WsQuestion).time_limit);
-      } else if (data.type === "answer_count_update") {
-        // БАГ 4: анонимный счётчик ответов вместо answer_received
-        setAnsweredCount(Number(data.answered));
-        setTotalParticipants(Number(data.total));
-      } else if (data.type === "finished") {
-        setPhase("finished");
-        setResults(data.results as WsResult[]);
-        if (timerRef.current) clearInterval(timerRef.current);
-      } else if (data.type === "error") {
-        // БАГ 3: тест без вопросов
-        if ((data.message as string) === "no_questions") {
-          toast.error(
-            tr(
-              "Testda savollar yo'q! Avval savol qo'shing.",
-              "В тесте нет вопросов! Сначала добавьте вопросы."
-            )
-          );
+      socket.onopen = () => setWsConnected(true);
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data) as Record<string, unknown>;
+
+        if (data.type === "question") {
+          setPhase("active");
+          setQuestion(data.question as WsQuestion);
+          setQIndex(Number(data.index));
+          setQTotal(Number(data.total));
+          setAnsweredCount(0);
+          startTimer((data.question as WsQuestion).time_limit);
+        } else if (data.type === "answer_count_update") {
+          // БАГ 4: анонимный счётчик ответов вместо answer_received
+          setAnsweredCount(Number(data.answered));
+          setTotalParticipants(Number(data.total));
+        } else if (data.type === "finished") {
+          setPhase("finished");
+          setResults(data.results as WsResult[]);
+          if (timerRef.current) clearInterval(timerRef.current);
+        } else if (data.type === "error") {
+          // БАГ 3: тест без вопросов
+          if ((data.message as string) === "no_questions") {
+            toast.error(
+              tr(
+                "Testda savollar yo'q! Avval savol qo'shing.",
+                "В тесте нет вопросов! Сначала добавьте вопросы."
+              )
+            );
+          }
         }
-      }
+      };
+
+      socket.onclose = (event) => {
+        setWsConnected(false);
+        if (cancelled || event.code === 1000) return;
+        if (phaseRef.current === "finished") return;
+        reconnectTimerRef.current = setTimeout(connect, 1500);
+      };
     };
 
+    connect();
+
     return () => {
-      socket.close();
+      cancelled = true;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      socketRef.current?.close(1000);
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [session?.code, startTimer]);
@@ -147,6 +203,11 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   const send = (payload: Record<string, unknown>) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify(payload));
+    } else {
+      // Раньше клик молча пропадал, если сокет ещё не открыт (CONNECTING
+      // сразу после монтирования/переподключения) — приходилось жать
+      // повторно без объяснения причины.
+      toast.error(tr("Ulanish kutilmoqda, birozdan so'ng qayta urinib ko'ring", "Ожидание соединения, попробуйте ещё раз через момент"));
     }
   };
 
@@ -224,10 +285,10 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
         <Button
           size="lg"
           className="gap-2 bg-emerald-600 px-8 text-lg hover:bg-emerald-700"
-          disabled={participants.length === 0}
+          disabled={participants.length === 0 || !wsConnected}
           onClick={startQuiz}
         >
-          <Play className="size-5" /> {tr("Testni boshlash", "Начать тест")}
+          <Play className="size-5" /> {wsConnected ? tr("Testni boshlash", "Начать тест") : tr("Ulanmoqda...", "Подключение...")}
         </Button>
       </div>
     );
@@ -273,8 +334,10 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
         </div>
 
         <div className="mt-6 flex justify-center">
-          <Button size="lg" className="gap-2 px-8" onClick={nextQuestion}>
-            {qIndex + 1 >= qTotal ? tr("Yakunlash", "Завершить") : tr("Keyingi savol", "Следующий вопрос")}
+          <Button size="lg" className="gap-2 px-8" disabled={!wsConnected} onClick={nextQuestion}>
+            {!wsConnected
+              ? tr("Ulanmoqda...", "Подключение...")
+              : qIndex + 1 >= qTotal ? tr("Yakunlash", "Завершить") : tr("Keyingi savol", "Следующий вопрос")}
             <ArrowRight className="size-5" />
           </Button>
         </div>
@@ -282,7 +345,24 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
     );
   }
 
+  // ─── ACTIVE, но вопрос ещё не восстановлен (после F5/переподключения) ────────
+  // Раньше это молча проваливалось в блок "Test yakunlandi!" ниже (BUG-048),
+  // потому что там не было своего условия — просто дефолтный рендер.
+  if (phase === "active" && !question) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-900 text-white">
+        <Loader2 className="size-10 animate-spin text-white/60" />
+        <div className="text-white/60">
+          {restoringQuestion
+            ? tr("Savol tiklanmoqda...", "Восстанавливаем текущий вопрос...")
+            : tr("Kutilmoqda...", "Ожидание...")}
+        </div>
+      </div>
+    );
+  }
+
   // ─── FINISHED (results) ─────────────────────────────────────────────────────
+  if (phase !== "finished") return null;
   const top = results.slice(0, 10);
   return (
     <div className="flex min-h-screen flex-col items-center gap-6 bg-slate-900 p-6 text-white">

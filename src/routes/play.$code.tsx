@@ -50,6 +50,9 @@ function PlayPage() {
   const [results, setResults] = useState<WsResult[]>([]);
 
   const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
 
   // Guard — участник не прошёл join
   if (!participantId) {
@@ -75,38 +78,56 @@ function PlayPage() {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (!code) return;
-    const schema = getTenantSchema();
-    const url = `${getWebSocketBaseUrl()}/ws/quiz/${code}/${schema ? `?schema=${encodeURIComponent(schema)}` : ""}`;
-    const socket = new WebSocket(url);
-    socketRef.current = socket;
+    let cancelled = false;
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data) as Record<string, unknown>;
+    const connect = () => {
+      if (cancelled) return;
+      const schema = getTenantSchema();
+      const url = `${getWebSocketBaseUrl()}/ws/quiz/${code}/${schema ? `?schema=${encodeURIComponent(schema)}` : ""}`;
+      const socket = new WebSocket(url);
+      socketRef.current = socket;
 
-      if (data.type === "question") {
-        setQuestion(data.question as WsQuestion);
-        setChosen(null);
-        setIsCorrect(null);
-        setPhase("active");
-      } else if (data.type === "answer_result") {
-        // БАГ 4: личный результат — только этому участнику
-        setIsCorrect(Boolean(data.is_correct));
-        setMyScore(Number(data.score));
-      } else if (data.type === "finished") {
-        setResults(data.results as WsResult[]);
-        setPhase("finished");
-      } else if (data.type === "host_disconnected") {
-        // БАГ 1: хост закрыл браузер
-        setPhase("finished");
-        toast.error(
-          uz
-            ? "O'qituvchi ulanishdan uzildi. Test yakunlandi."
-            : "Учитель отключился. Тест завершён."
-        );
-      }
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data) as Record<string, unknown>;
+
+        if (data.type === "question") {
+          setQuestion(data.question as WsQuestion);
+          setChosen(null);
+          setIsCorrect(null);
+          setPhase("active");
+        } else if (data.type === "answer_result") {
+          // БАГ 4: личный результат — только этому участнику
+          setIsCorrect(Boolean(data.is_correct));
+          setMyScore(Number(data.score));
+        } else if (data.type === "finished") {
+          setResults(data.results as WsResult[]);
+          setPhase("finished");
+        } else if (data.type === "host_disconnected") {
+          // Хост временно отключился (сеть моргнула, обновил вкладку) — он
+          // переподключится сам, сессия не завершена. Раньше это мгновенно
+          // и необратимо заканчивало тест для всех участников.
+          toast.warning(
+            uz
+              ? "O'qituvchi bilan aloqa uzildi, kutib turing..."
+              : "Связь с учителем прервалась, подождите..."
+          );
+        }
+      };
+
+      socket.onclose = (event) => {
+        if (cancelled || event.code === 1000) return;
+        if (phaseRef.current === "finished") return;
+        reconnectTimerRef.current = setTimeout(connect, 1500);
+      };
     };
 
-    return () => socket.close();
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      socketRef.current?.close(1000);
+    };
   }, [code, participantId]);
 
   const answer = (answerId: string) => {

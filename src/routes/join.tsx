@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Loader2, ArrowRight, AlertCircle } from "lucide-react";
-import { quizApi, getTenantSchema, setTenantSchema } from "@/lib/api";
+import { ApiError, quizApi, getTenantSchema, setTenantSchema } from "@/lib/api";
 
 export const Route = createFileRoute("/join")({ component: JoinPage });
 
@@ -34,6 +34,21 @@ function JoinPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Опоздавший ответ (напр. staging-500, который пришёл позже более свежего
+  // успешного повтора) не должен перезаписывать уже применённый результат —
+  // применяем ответ только если это ещё актуальный запрос.
+  const requestSeq = useRef(0);
+
+  const serverErrorText = (err: unknown) => {
+    const status = err instanceof ApiError ? err.status : 0;
+    if (status >= 500) {
+      return t
+        ? `Server xatosi (${status}). Birozdan so'ng qayta urinib ko'ring.`
+        : `Ошибка сервера (${status}). Попробуйте ещё раз через некоторое время.`;
+    }
+    return null;
+  };
+
   // Form fields
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -48,19 +63,22 @@ function JoinPage() {
       setError(t ? "Kodni to'liq kiriting" : "Введите полный код");
       return;
     }
+    const seq = ++requestSeq.current;
     setLoading(true);
     try {
       const res = (await quizApi.sessions.byCode(code.trim())) as SessionMeta;
+      if (seq !== requestSeq.current) return; // опоздавший ответ — игнорируем
       if (res.status !== "waiting") {
         setError(t ? "Sessiya allaqachon boshlangan" : "Сессия уже началась");
         return;
       }
       setMeta(res);
       setStage("info");
-    } catch {
-      setError(t ? "Sessiya topilmadi" : "Сессия не найдена");
+    } catch (err) {
+      if (seq !== requestSeq.current) return; // опоздавший ответ — игнорируем
+      setError(serverErrorText(err) ?? (t ? "Sessiya topilmadi" : "Сессия не найдена"));
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   };
 
@@ -77,6 +95,7 @@ function JoinPage() {
       setError(t ? "Barcha maydonlarni to'ldiring" : "Заполните все поля");
       return;
     }
+    const seq = ++requestSeq.current;
     setLoading(true);
     try {
       const res = (await quizApi.sessions.join(meta.session_id, {
@@ -86,14 +105,16 @@ function JoinPage() {
         parent_name: parentName.trim(),
         parent_phone: parentPhone.trim(),
       })) as { participant_id: string; name: string };
+      if (seq !== requestSeq.current) return; // опоздавший ответ — игнорируем
 
       sessionStorage.setItem(`quiz_participant_${meta.code}`, res.participant_id);
       sessionStorage.setItem(`quiz_name_${meta.code}`, res.name);
       navigate({ to: `/play/${meta.code}` as string });
-    } catch {
-      setError(t ? "Qo'shilishda xatolik" : "Ошибка при подключении");
+    } catch (err) {
+      if (seq !== requestSeq.current) return; // опоздавший ответ — игнорируем
+      setError(serverErrorText(err) ?? (t ? "Qo'shilishda xatolik" : "Ошибка при подключении"));
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   };
 
