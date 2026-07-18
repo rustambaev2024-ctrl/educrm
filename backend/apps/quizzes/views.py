@@ -154,6 +154,7 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         detail=False,
         methods=["get"],
         url_path="by-code/(?P<code>[0-9]+)",
+        authentication_classes=[],
         permission_classes=[AllowAny],
     )
     def by_code(self, request, code=None):
@@ -225,6 +226,7 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         detail=True,
         methods=["post"],
         url_path="join",
+        authentication_classes=[],
         permission_classes=[AllowAny],
     )
     def join(self, request, pk=None):
