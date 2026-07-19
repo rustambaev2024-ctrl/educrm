@@ -21,12 +21,13 @@ import { PhoneInput } from "@/components/edu/phone-input";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { ROLE_HOMES } from "@/lib/roles";
+import { ApiError } from "@/lib/api";
 
 export const Route = createFileRoute("/")({ component: LoginPage });
 
 export function LoginPage() {
   const { user, login, isHydrating } = useAuth();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -64,10 +65,18 @@ export function LoginPage() {
       await login(phone.trim(), password.trim());
       toast.success(t("toast.welcome"), { duration: 3000 });
     } catch (error) {
-      const message =
-        error instanceof Error && error.message !== "API 401"
-          ? error.message
-          : "Telefon raqam yoki parol noto'g'ri";
+      let message = "Telefon raqam yoki parol noto'g'ri";
+      if (error instanceof ApiError && error.status !== 401) {
+        const detail = error.body?.detail;
+        if (typeof detail === "string") {
+          message = detail;
+        } else if (detail && typeof detail === "object") {
+          const d = detail as Record<string, string>;
+          message = d[lang] ?? d.ru ?? message;
+        }
+      } else if (error instanceof Error && error.message !== "API 401") {
+        message = error.message;
+      }
       toast.error(message);
     } finally {
       setIsSubmitting(false);

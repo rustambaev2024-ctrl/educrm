@@ -1,3 +1,5 @@
+import uuid
+
 from django.db.models import Q
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes as perm_classes
@@ -78,6 +80,10 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
 
         student_id = self.request.query_params.get("student_id")
         if student_id:
+            try:
+                uuid.UUID(student_id)
+            except ValueError:
+                return qs.none()
             scoped = scoped.filter(student_id=student_id)
         return scoped
 
