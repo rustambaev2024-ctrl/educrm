@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Users, UserCheck, AlertCircle, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
@@ -101,29 +101,30 @@ export function StudentsPage() {
 
   useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
 
-  useEffect(() => {
-    const loadStudents = async () => {
-      setPageLoading(true);
-      try {
-        const params: Record<string, string> = {
-          page: String(page),
-          page_size: String(PAGE_SIZE),
-        };
-        if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
-        if (statusFilter !== "all") params.status = statusFilter;
-        const res = await studentApi.list(params) as any;
-        const list = Array.isArray(res) ? res : (res.results ?? []);
-        const count = res.count ?? list.length;
-        setPageStudents(mapStudents(list) as Student[]);
-        setTotalCount(count);
-      } catch (err) {
-        console.warn("[students] load failed:", err);
-      } finally {
-        setPageLoading(false);
-      }
-    };
-    loadStudents();
+  const loadStudents = useCallback(async () => {
+    setPageLoading(true);
+    try {
+      const params: Record<string, string> = {
+        page: String(page),
+        page_size: String(PAGE_SIZE),
+      };
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+      if (statusFilter !== "all") params.status = statusFilter;
+      const res = await studentApi.list(params) as any;
+      const list = Array.isArray(res) ? res : (res.results ?? []);
+      const count = res.count ?? list.length;
+      setPageStudents(mapStudents(list) as Student[]);
+      setTotalCount(count);
+    } catch (err) {
+      console.warn("[students] load failed:", err);
+    } finally {
+      setPageLoading(false);
+    }
   }, [page, debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    loadStudents();
+  }, [loadStudents]);
 
   const filtered = pageStudents;
 
@@ -343,6 +344,15 @@ export function StudentsPage() {
           toast.success(t("students.created"));
           setCreateOpen(false);
           setSelectedId(created.id);
+          // addStudent — optimistic: реальный POST уходит в фоне (fireAndForget),
+          // поэтому список (отдельный пагинированный запрос, в отличие от KPI-карточек
+          // выше, которые читают локальный store) рефетчим с небольшой задержкой,
+          // чтобы бэкенд успел закоммитить нового студента.
+          if (page === 1) {
+            setTimeout(loadStudents, 600);
+          } else {
+            setPage(1);
+          }
         }}
       />
 

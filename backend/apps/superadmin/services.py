@@ -52,8 +52,9 @@ def create_default_branch_in_tenant(institution: Institution):
         existing = Branch.objects.first()
         if existing:
             return existing
+        default_name = "Markaziy filial" if institution.language == "uz" else "Основной филиал"
         return Branch.objects.create(
-            name="Основной филиал",
+            name=default_name,
             address=institution.address or "",
         )
 

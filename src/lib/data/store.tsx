@@ -1767,14 +1767,26 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       director_full_name: created.directorName,
       director_phone: created.directorPhone,
       director_password: created.directorPassword,
-    } as never).then((raw) => {
+    } as never).then(async (raw) => {
       const persisted = institutionFromRaw(raw as InstitutionRaw);
       setInstitutions((prev) => prev.map((i) => (i.id === id ? { ...created, ...persisted } : i)));
-      setBranches((prev) =>
-        prev.map((branch) =>
+      // Бэкенд синхронно создаёт авто-филиал при онбординге (create_default_branch_in_tenant) —
+      // локальный `branches` о нём не знает, пока мы явно его не подтянем (иначе branchCount
+      // в таблице расходится с пустой модалкой филиалов, BUG-QA-3).
+      const autoBranches = await safe(
+        superadminApi.branches.list(persisted.id) as Promise<ListResponse<BranchRaw>>,
+        [],
+        `branches:${persisted.id}`,
+      );
+      setBranches((prev) => [
+        ...prev.map((branch) =>
           branch.institutionId === id ? { ...branch, institutionId: persisted.id } : branch,
         ),
-      );
+        ...toResults(autoBranches).map((raw) => ({
+          ...branchFromRaw(raw),
+          institutionId: persisted.id,
+        })),
+      ]);
     });
     fireAndForget(
       "addInstitution",
