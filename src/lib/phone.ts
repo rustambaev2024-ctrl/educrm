@@ -1,7 +1,9 @@
 export function formatUzPhone(value: string): string {
-  const digits = value.replace(/\D/g, "");
-  const local = digits.startsWith("998") ? digits.slice(3) : digits;
-  const limited = local.slice(0, 9);
+  let digits = value.replace(/\D/g, "");
+  while (digits.startsWith("998")) {
+    digits = digits.slice(3);
+  }
+  const limited = digits.slice(0, 9);
 
   const parts = [
     limited.slice(0, 2),

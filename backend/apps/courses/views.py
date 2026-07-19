@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import mixins, permissions, serializers, status, viewsets
@@ -352,6 +354,10 @@ class StudentTransferView(APIView):
 
         student_id = request.query_params.get("student_id")
         if student_id:
+            try:
+                uuid.UUID(student_id)
+            except ValueError:
+                return Response([])
             qs = qs.filter(student_id=student_id)
 
         branch_id = request.query_params.get("branch_id")
