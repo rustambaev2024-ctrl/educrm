@@ -192,7 +192,9 @@ export function StudentDetailSheet({
     comment: "",
   });
   const [transfers, setTransfers] = useState<any[]>([]);
+  const [transfersError, setTransfersError] = useState(false);
   const [studentPayments, setStudentPayments] = useState<any[]>([]);
+  const [paymentsError, setPaymentsError] = useState(false);
   const [linkCodeOpen, setLinkCodeOpen] = useState(false);
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [linkCodeLoading, setLinkCodeLoading] = useState(false);
@@ -201,13 +203,23 @@ export function StudentDetailSheet({
 
   useEffect(() => {
     if (student) {
+      setTransfersError(false);
       transferApi.history({ student_id: student.id })
         .then((data) => setTransfers(Array.isArray(data) ? data : []))
-        .catch((e) => console.error("Failed to load transfers", e));
+        .catch((e) => {
+          console.error("Failed to load transfers", e);
+          setTransfers([]);
+          setTransfersError(true);
+        });
 
+      setPaymentsError(false);
       paymentApi.list({ student_id: student.id })
         .then((data) => setStudentPayments(mapPayments(data as any)))
-        .catch((e) => console.error("Failed to load student payments", e));
+        .catch((e) => {
+          console.error("Failed to load student payments", e);
+          setStudentPayments([]);
+          setPaymentsError(true);
+        });
     }
   }, [student]);
 
@@ -652,6 +664,13 @@ export function StudentDetailSheet({
               {(() => {
                 const stuPayments = [...studentPayments]
                   .sort((a, b) => b.date.localeCompare(a.date));
+                if (paymentsError) {
+                  return (
+                    <Card className="p-6 text-center text-sm text-destructive">
+                      {t("sd.toast.error")}
+                    </Card>
+                  );
+                }
                 if (stuPayments.length === 0) {
                   return (
                     <Card className="p-6 text-center text-sm text-muted-foreground">
@@ -700,7 +719,9 @@ export function StudentDetailSheet({
             </TabsContent>
 
             <TabsContent value="transfers" className="space-y-2 pt-4">
-              {transfers.length === 0 ? (
+              {transfersError ? (
+                <Card className="p-6 text-center text-sm text-destructive">{t("sd.toast.error")}</Card>
+              ) : transfers.length === 0 ? (
                 <Card className="p-6 text-center text-sm text-muted-foreground">{t("sd.tr.empty")}</Card>
               ) : (
                 <Card className="overflow-hidden border-border/60">

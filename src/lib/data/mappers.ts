@@ -364,7 +364,7 @@ export function mapPayment(r: PaymentRaw) {
   const direction =
     transactionType === "expense" || transactionType === "refund"
       ? "out"
-      : transactionType === "charge" || transactionType === "discount"
+      : transactionType === "charge" || transactionType === "discount" || transactionType === "manual_charge"
         ? "internal"
         : "in";
   return {
