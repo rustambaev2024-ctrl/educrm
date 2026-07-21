@@ -10,6 +10,12 @@ interface KpiCardProps {
   color?: "blue" | "green" | "cyan" | "red" | "amber" | "violet";
   /** Legacy alias */
   iconColor?: "indigo" | "green" | "red" | "amber" | "blue" | "violet" | "cyan";
+  /**
+   * Explicit opt-in only — default stays the plain card for all existing
+   * call sites. "glass" gives a translucent brand-tinted surface (visible
+   * mainly in dark theme) per the Director Dashboard visual refresh.
+   */
+  variant?: "default" | "glass";
 }
 
 const colorMap = {
@@ -31,15 +37,20 @@ const legacyMap: Record<string, keyof typeof colorMap> = {
   cyan:   "cyan",
 };
 
-export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, iconColor }: KpiCardProps) {
+export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, iconColor, variant = "default" }: KpiCardProps) {
   const key = color ?? (iconColor ? legacyMap[iconColor] : undefined) ?? "blue";
   const c = colorMap[key as keyof typeof colorMap] ?? colorMap.blue;
+  const isGlass = variant === "glass";
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-[10px] border border-border bg-card p-3 shadow-sm">
+    <div
+      className={`min-w-0 overflow-hidden rounded-[10px] p-3 ${
+        isGlass ? "glass-surface kpi-glass" : "border border-border bg-card shadow-sm"
+      }`}
+    >
       {/* Row 1: icon + delta */}
       <div className="mb-2 flex items-center justify-between">
-        <div className={`flex size-9 items-center justify-center rounded-lg ${c.box}`}>
+        <div className={`kpi-ic tone-${key} flex size-9 items-center justify-center rounded-lg ${c.box} ${isGlass ? "glow-icon" : ""}`}>
           <Icon className="size-[18px]" />
         </div>
         {delta && (
