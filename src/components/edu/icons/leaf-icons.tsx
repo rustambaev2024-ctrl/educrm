@@ -49,6 +49,29 @@ export function LeafAttendanceIcon({ className }: LeafIconProps) {
   );
 }
 
+export function LeafLessonsIcon({ className }: LeafIconProps) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className}>
+      <path d={LEAF_OUTLINE} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M11 13h10M11 17h10M11 21h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function LeafGradeIcon({ className }: LeafIconProps) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className}>
+      <path d={LEAF_OUTLINE} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path
+        d="M16 10l1.8 3.7 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function LeafDebtorsIcon({ className }: LeafIconProps) {
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className}>

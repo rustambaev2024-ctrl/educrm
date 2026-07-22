@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Clock, MapPin, Users, ChevronRight, ClipboardCheck, Calendar, TrendingUp, Star } from "lucide-react";
+import { Clock, MapPin, Users, ChevronRight, ClipboardCheck, AlertCircle } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
-import { KpiCard } from "@/components/edu/kpi-card";
-import { StatCardSkeleton } from "@/components/ui/skeleton";
+import { StatRow } from "@/components/edu/stat-row";
+import { LeafLessonsIcon, LeafStudentsIcon, LeafAttendanceIcon, LeafGradeIcon } from "@/components/edu/icons/leaf-icons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { LessonStatusBadge } from "@/components/edu/status-badge";
 import { useData } from "@/lib/data/store";
@@ -54,16 +55,33 @@ function TeacherHome() {
   if (isLoading) {
     return (
       <PageShell title={tr("Bugun", "Сегодня")} subtitle={formatDate(today.toISOString(), lang)}>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <StatCardSkeleton key={i} />
-          ))}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="glass-surface flex items-center gap-6 rounded-2xl p-8">
+            <Skeleton className="h-16 w-20 shrink-0 rounded-2xl" />
+            <div className="flex flex-1 flex-col gap-2">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-5 w-48 max-w-full" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 lg:h-full lg:justify-between">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="glass-surface flex items-center gap-3 rounded-2xl px-5 py-4">
+                <Skeleton className="size-11 shrink-0 rounded-xl" />
+                <div className="flex flex-1 flex-col gap-2">
+                  <Skeleton className="h-5 w-14" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+        <Skeleton className="mt-6 h-64 rounded-2xl" />
       </PageShell>
     );
   }
 
   const nextGroup = next ? groupById[next.groupId] : undefined;
+  const nextCourse = nextGroup ? courseById[nextGroup.courseId] : undefined;
 
   return (
     <PageShell
@@ -77,42 +95,53 @@ function TeacherHome() {
         </Button>
       }
     >
-      {/* KPI row */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard label={tr("Bugungi darslar", "Уроки сегодня")} value={todayLessons.length} icon={Calendar} iconColor="blue" />
-        <KpiCard label={tr("O'quvchilar", "Ученики")} value={totalStudents} icon={Users} iconColor="violet" />
-        <KpiCard label={tr("Davomat", "Посещаемость")} value={`${attPct}%`} icon={TrendingUp} iconColor="green" />
-        <KpiCard label={tr("O'rtacha baho", "Средний балл")} value={avgGrade} icon={Star} iconColor="amber" />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        {/* Hero: next lesson — the one thing a teacher opens this page for */}
+        {next && nextGroup ? (
+          <Link
+            to="/teacher/attendance"
+            className="group glass-surface flex flex-wrap items-center gap-6 rounded-2xl p-8 transition-colors hover:border-primary/40"
+          >
+            <div className="flex w-20 shrink-0 flex-col items-center justify-center rounded-2xl bg-primary/10 py-4 text-primary">
+              <div className="text-2xl font-semibold tabular-nums tracking-tight">{formatTime(next.datetime)}</div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                {tr("Keyingi dars", "Следующий урок")}
+              </div>
+              <div className="mt-1 truncate text-xl font-semibold">
+                {nextGroup.name}
+                {nextCourse?.name && <span className="font-normal text-muted-foreground"> · {nextCourse.name}</span>}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-4 text-[12.5px] text-muted-foreground">
+                <span className="flex items-center gap-1.5"><MapPin className="size-3.5" /> {roomById[next.roomId]?.name ?? "—"}</span>
+                <span className="flex items-center gap-1.5"><Users className="size-3.5" /> {nextGroup.studentIds.length}</span>
+              </div>
+            </div>
+            <span className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-5 py-3 text-[12.5px] font-semibold text-primary-foreground transition-transform group-hover:translate-x-0.5">
+              <ClipboardCheck className="size-4" /> {tr("Davomat belgilash", "Отметить посещаемость")}
+            </span>
+          </Link>
+        ) : (
+          <div className="glass-surface flex flex-col items-center justify-center gap-2 rounded-2xl p-10 text-center">
+            <AlertCircle className="size-8 text-muted-foreground" />
+            <div className="text-sm font-medium text-foreground">{tr("Bugun darslar yo'q", "Сегодня уроков нет")}</div>
+          </div>
+        )}
+
+        {/* Compact KPI column */}
+        <div className="flex flex-col gap-3 lg:h-full lg:justify-between">
+          <StatRow tone="blue" icon={LeafLessonsIcon} value={todayLessons.length} label={tr("Bugungi darslar", "Уроки сегодня")} />
+          <StatRow tone="violet" icon={LeafStudentsIcon} value={totalStudents} label={tr("O'quvchilar", "Ученики")} />
+          <StatRow tone="green" icon={LeafAttendanceIcon} value={`${attPct}%`} label={tr("Davomat", "Посещаемость")} />
+          <StatRow tone="amber" icon={LeafGradeIcon} value={avgGrade} label={tr("O'rtacha baho", "Средний балл")} />
+        </div>
       </div>
 
-      {/* Next lesson highlight */}
-      {next && nextGroup && (
-        <Link
-          to="/teacher/attendance"
-          className="mt-4 flex items-center gap-4 rounded-md border border-[#e2e8f0] bg-white p-4 transition-colors hover:bg-[#f8fafc]"
-        >
-          <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-md bg-[#0077b6] py-1.5 text-white">
-            <Clock className="size-3.5" />
-            <div className="text-base font-bold tabular-nums">{formatTime(next.datetime)}</div>
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-[#64748b]">
-              {tr("Keyingi dars", "Следующий урок")}
-            </div>
-            <div className="truncate text-[15px] font-semibold">{nextGroup.name}</div>
-            <div className="mt-0.5 flex flex-wrap items-center gap-3 text-[12px] text-muted-foreground">
-              <span className="flex items-center gap-1"><MapPin className="size-3" /> {roomById[next.roomId]?.name ?? "—"}</span>
-              <span className="flex items-center gap-1"><Users className="size-3" /> {nextGroup.studentIds.length}</span>
-            </div>
-          </div>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-        </Link>
-      )}
-
-      {/* Today lessons list */}
-      <div className="mt-4 rounded-md border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div className="text-[13px] font-medium">{tr("Bugungi darslar", "Сегодняшние занятия")}</div>
+      {/* Full schedule — everything summarized in the hero above, in detail */}
+      <div className="mt-6 rounded-2xl border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+          <div className="text-[13px] font-medium">{tr("Bugungi darslar", "Расписание на сегодня")}</div>
           <span className="text-[12px] text-muted-foreground">{todayLessons.length}</span>
         </div>
         {todayLessons.length === 0 ? (
@@ -130,7 +159,7 @@ function TeacherHome() {
                 <Link
                   key={lesson.id}
                   to="/teacher/attendance"
-                  className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40"
+                  className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-muted/40"
                 >
                   <div className="flex w-12 shrink-0 items-center gap-1 text-[13px] font-medium tabular-nums">
                     <Clock className="size-3 text-muted-foreground" />
