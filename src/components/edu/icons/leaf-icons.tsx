@@ -72,6 +72,16 @@ export function LeafGradeIcon({ className }: LeafIconProps) {
   );
 }
 
+export function LeafHomeworkIcon({ className }: LeafIconProps) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className}>
+      <path d={LEAF_OUTLINE} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <rect x="12" y="11" width="8" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M14.2 15.8l1.3 1.3 2.3-2.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function LeafDebtorsIcon({ className }: LeafIconProps) {
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className}>
