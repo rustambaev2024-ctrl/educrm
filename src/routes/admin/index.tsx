@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { AlertCircle, Clock, DollarSign, MapPin, TrendingUp, UserPlus, Users } from "lucide-react";
+import { Clock, MapPin, UserPlus } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
-import { StatCardSkeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { KpiCard } from "@/components/edu/kpi-card";
+import { LeafStudentsIcon, LeafAttendanceIcon, LeafRevenueIcon, LeafDebtorsIcon } from "@/components/edu/icons/leaf-icons";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { attendancePercentage } from "@/lib/data/metrics";
@@ -79,10 +80,18 @@ function AdminHome() {
   if (isLoading) {
     return (
       <PageShell title={tr("Boshqaruv paneli", "Панель управления")} subtitle={todayLabel}>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <StatCardSkeleton key={i} />
+            <div key={i} className="glass-surface flex flex-col gap-3.5 rounded-2xl p-5">
+              <Skeleton className="size-[38px] rounded-xl" />
+              <Skeleton className="h-7 w-20" />
+              <Skeleton className="h-3 w-24" />
+            </div>
           ))}
+        </div>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <Skeleton className="h-72 rounded-2xl" />
+          <Skeleton className="h-72 rounded-2xl" />
         </div>
       </PageShell>
     );
@@ -100,35 +109,36 @@ function AdminHome() {
       }
     >
       {/* KPI grid */}
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiCard label={tr("O'quvchilar", "Ученики")}      value={activeStudents}            icon={Users}       color="blue" />
-        <KpiCard label={tr("Davomat", "Посещаемость")}     value={`${todayAttendancePct}%`}  icon={TrendingUp}  color="green" />
-        <KpiCard label={tr("Oylik tushum", "Доход/месяц")} value={formatMoney(monthRevenue, lang)} icon={DollarSign} color="cyan" />
-        <KpiCard label={tr("Qarzdorlar", "Должники")}      value={debtors.length}            icon={AlertCircle} color="red" />
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <KpiCard variant="glass" label={tr("O'quvchilar", "Ученики")}      value={activeStudents}            icon={LeafStudentsIcon}   color="blue" />
+        <KpiCard variant="glass" label={tr("Davomat", "Посещаемость")}     value={`${todayAttendancePct}%`}  icon={LeafAttendanceIcon} color="green" />
+        <KpiCard variant="glass" label={tr("Oylik tushum", "Доход/месяц")} value={formatMoney(monthRevenue, lang)} icon={LeafRevenueIcon}  color="cyan" />
+        <KpiCard variant="glass" label={tr("Qarzdorlar", "Должники")}      value={debtors.length}            icon={LeafDebtorsIcon}    color="red" />
       </div>
 
       {/* Two-column cards */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
 
         {/* Today's lessons */}
-        <div className="edu-card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="glass-surface rounded-2xl" style={{ overflow: "hidden" }}>
+          <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{tr("Bugungi darslar", "Сегодняшние уроки")}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+              <div style={{ fontSize: 14, fontWeight: 650, color: "var(--text-primary)" }}>{tr("Bugungi darslar", "Сегодняшние уроки")}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-secondary)", marginTop: 2 }}>
                 {todayLessons.length} {tr("ta dars", "урок(ов)")}
               </div>
             </div>
             <button
               onClick={() => navigate({ to: "/admin/schedule" })}
-              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#f1f5f9", color: "#475569", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+              className="transition-colors hover:bg-accent"
+              style={{ padding: "5px 11px", borderRadius: 8, border: "none", background: "var(--muted)", color: "var(--text-secondary)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
             >
               {tr("Barchasi", "Все")}
             </button>
           </div>
 
           {todayLessons.length === 0 ? (
-            <div style={{ padding: "36px 14px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 13 }}>
+            <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 13 }}>
               {tr("Bugun darslar yo'q", "Сегодня уроков нет")}
             </div>
           ) : (
@@ -143,18 +153,17 @@ function AdminHome() {
                 return (
                   <div
                     key={lesson.id}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid #f8fafc", transition: "background 0.1s" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f8fafc"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    className="transition-colors hover:bg-accent/50"
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 20px", borderBottom: "1px solid var(--border-light)" }}
                   >
-                    <div style={{ minWidth: 44, fontWeight: 700, color: "#0077b6", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
+                    <div style={{ minWidth: 44, fontWeight: 700, color: "var(--brand)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
                       <Clock style={{ width: 11, height: 11 }} />
                       {formatTime(lesson.datetime)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {course?.name ?? group.name}
-                        {" "}<span style={{ fontWeight: 400, color: "#64748b" }}>{group.name}</span>
+                        {" "}<span style={{ fontWeight: 400, color: "var(--text-secondary)" }}>{group.name}</span>
                       </div>
                       <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1, display: "flex", gap: 8 }}>
                         {teacher?.fullName && <span>{teacher.fullName.split(" ")[0]}</span>}
@@ -175,22 +184,23 @@ function AdminHome() {
         </div>
 
         {/* Recent payments */}
-        <div className="edu-card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="glass-surface rounded-2xl" style={{ overflow: "hidden" }}>
+          <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{tr("So'nggi to'lovlar", "Последние платежи")}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
+              <div style={{ fontSize: 14, fontWeight: 650, color: "var(--text-primary)" }}>{tr("So'nggi to'lovlar", "Последние платежи")}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-secondary)", marginTop: 2 }}>{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
             </div>
             <button
               onClick={() => navigate({ to: "/admin/finance" })}
-              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#f1f5f9", color: "#475569", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+              className="transition-colors hover:bg-accent"
+              style={{ padding: "5px 11px", borderRadius: 8, border: "none", background: "var(--muted)", color: "var(--text-secondary)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
             >
               {tr("Barchasi", "Все")}
             </button>
           </div>
 
           {recentPayments.length === 0 ? (
-            <div style={{ padding: "36px 14px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 13 }}>
+            <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 13 }}>
               {tr("To'lovlar yo'q", "Платежей нет")}
             </div>
           ) : (
@@ -204,15 +214,14 @@ function AdminHome() {
                 return (
                   <div
                     key={payment.id}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid #f8fafc", transition: "background 0.1s" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f8fafc"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    className="transition-colors hover:bg-accent/50"
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 20px", borderBottom: "1px solid var(--border-light)" }}
                   >
-                    <div style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: avaBg[idx], color: avaTxt[idx] }}>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: avaBg[idx], color: avaTxt[idx] }}>
                       {initials(name)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {name}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1 }}>

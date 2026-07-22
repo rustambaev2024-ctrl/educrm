@@ -1,5 +1,6 @@
 import type { ElementType } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface KpiCardProps {
   label: string;
@@ -44,13 +45,20 @@ export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, icon
 
   return (
     <div
-      className={`min-w-0 overflow-hidden rounded-[10px] p-3 ${
-        isGlass ? "glass-surface kpi-glass" : "border border-border bg-card shadow-sm"
-      }`}
+      className={cn(
+        "min-w-0 overflow-hidden",
+        isGlass ? "glass-surface kpi-glass rounded-2xl p-5" : "rounded-[10px] border border-border bg-card p-3 shadow-sm",
+      )}
     >
       {/* Row 1: icon + delta */}
-      <div className="mb-2 flex items-center justify-between">
-        <div className={`kpi-ic tone-${key} flex size-9 items-center justify-center rounded-lg ${c.box} ${isGlass ? "glow-icon" : ""}`}>
+      <div className={cn("flex items-center justify-between", isGlass ? "mb-3.5" : "mb-2")}>
+        <div
+          className={cn(
+            `kpi-ic tone-${key} flex items-center justify-center`,
+            isGlass ? "size-[38px] rounded-xl glow-icon" : "size-9 rounded-lg",
+            c.box,
+          )}
+        >
           <Icon className="size-[18px]" />
         </div>
         {delta && (
@@ -72,12 +80,23 @@ export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, icon
       </div>
 
       {/* Row 2: value */}
-      <div className={`mb-1 truncate text-xl font-extrabold leading-none tabular-nums ${c.val}`}>
+      <div
+        className={cn(
+          "truncate leading-none tabular-nums",
+          isGlass ? "mb-1.5 text-2xl font-medium tracking-tight" : "mb-1 text-xl font-extrabold",
+          c.val,
+        )}
+      >
         {value}
       </div>
 
       {/* Row 3: label */}
-      <div className="truncate text-[11px] font-semibold leading-snug text-muted-foreground">
+      <div
+        className={cn(
+          "truncate text-muted-foreground",
+          isGlass ? "text-[10.5px] font-bold uppercase tracking-wide leading-snug" : "text-[11px] font-semibold leading-snug",
+        )}
+      >
         {label}
       </div>
 

@@ -40,6 +40,15 @@ export function LeafProfitIcon({ className }: LeafIconProps) {
   );
 }
 
+export function LeafAttendanceIcon({ className }: LeafIconProps) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className}>
+      <path d={LEAF_OUTLINE} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M11 17l3 3 6-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function LeafDebtorsIcon({ className }: LeafIconProps) {
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className}>
