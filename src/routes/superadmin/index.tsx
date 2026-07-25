@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -115,6 +116,7 @@ function SuperadminHome() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [forceDeleteTarget, setForceDeleteTarget] = useState<{ inst: Institution; activeCount: number } | null>(null);
+  const [forceDeleteConfirmText, setForceDeleteConfirmText] = useState("");
   const activeBranchInst = useMemo(() => {
     if (!branchInst) return null;
     return (
@@ -230,6 +232,7 @@ function SuperadminHome() {
       setDeleteTarget(null);
       setDeleteConfirmText("");
       setForceDeleteTarget(null);
+      setForceDeleteConfirmText("");
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         const activeCount = (err.body as { active_students_count?: number }).active_students_count ?? 0;
@@ -267,9 +270,16 @@ function SuperadminHome() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t("sa.institutions.title")} subtitle={t("sa.institutions.subtitle")}>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-96 rounded-xl" />
+        </div>
+      </PageShell>
     );
   }
 
@@ -574,7 +584,7 @@ function SuperadminHome() {
       </Dialog>
 
       {/* Force-delete confirmation when active students exist */}
-      <AlertDialog open={!!forceDeleteTarget} onOpenChange={(o) => !o && setForceDeleteTarget(null)}>
+      <AlertDialog open={!!forceDeleteTarget} onOpenChange={(o) => { if (!o) { setForceDeleteTarget(null); setForceDeleteConfirmText(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -585,14 +595,21 @@ function SuperadminHome() {
                 name: forceDeleteTarget?.inst.name ?? "",
                 count: forceDeleteTarget?.activeCount ?? 0,
               })}
+              <br /><br />
+              <span className="text-xs">{tf("sa.confirmDeleteType", { name: forceDeleteTarget?.inst.name ?? "" })}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <Input
+            placeholder={tf("sa.confirmDeletePlaceholder", { name: forceDeleteTarget?.inst.name ?? "" })}
+            value={forceDeleteConfirmText}
+            onChange={(e) => setForceDeleteConfirmText(e.target.value)}
+          />
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setForceDeleteTarget(null)}>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => { setForceDeleteTarget(null); setForceDeleteConfirmText(""); }}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => forceDeleteTarget && handleDelete(forceDeleteTarget.inst, true)}
-              disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={forceDeleteConfirmText !== forceDeleteTarget?.inst.name || deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
             >
               {deleting ? "..." : t("sa.forceDelete")}
             </AlertDialogAction>
