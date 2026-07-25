@@ -1,14 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Clock, MapPin, Wallet, BookOpen, ChevronRight, AlertCircle, CheckCircle2, Users } from "lucide-react";
+import { Clock, MapPin, ChevronRight, Users } from "lucide-react";
+import { LeafRevenueIcon, LeafHomeworkIcon } from "@/components/edu/icons/leaf-icons";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StudentStatusBadge } from "@/components/edu/status-badge";
 import { parentApi } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
@@ -126,10 +127,10 @@ function ParentHome() {
 
         return (
           <Card key={child.id} className="overflow-hidden p-0 shadow-elegant">
-            <div className="flex items-center gap-3 border-b border-border/60 bg-gradient-subtle p-4">
+            <div className="flex items-center gap-3 border-b border-border/60 p-4">
               <Avatar className="size-11">
                 {child.photo && <AvatarImage src={child.photo} alt={child.fullName} />}
-                <AvatarFallback className="bg-gradient-primary text-sm font-semibold text-primary-foreground">
+                <AvatarFallback className="bg-primary text-sm font-semibold text-primary-foreground">
                   {initialsOf(child.fullName)}
                 </AvatarFallback>
               </Avatar>
@@ -137,11 +138,7 @@ function ParentHome() {
                 <div className="truncate font-semibold">{child.fullName}</div>
                 <div className="text-xs text-muted-foreground">{attPct}% {t("parent.attendance").toLowerCase()}</div>
               </div>
-              {debt ? (
-                <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/15"><AlertCircle className="mr-1 size-3" /> {t("status.debtor")}</Badge>
-              ) : (
-                <Badge className="bg-success/10 text-success hover:bg-success/15"><CheckCircle2 className="mr-1 size-3" /> {t("status.active")}</Badge>
-              )}
+              <StudentStatusBadge status={debt ? "debtor" : "active"} />
             </div>
 
             {next && nextGroup && (
@@ -164,7 +161,7 @@ function ParentHome() {
             <div className="grid grid-cols-2 divide-x divide-border/40">
               <div className="p-4">
                 <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  <BookOpen className="size-3" /> {t("parent.activeHw")}
+                  <LeafHomeworkIcon className="size-3.5" /> {t("parent.activeHw")}
                 </div>
                 <div className="mt-1 text-lg font-bold">
                   {pendingHw} <span className="text-sm font-normal text-muted-foreground">/ {childHwIds.length}</span>
@@ -172,7 +169,7 @@ function ParentHome() {
               </div>
               <div className="p-4">
                 <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  <Wallet className="size-3" /> {t("parent.balance")}
+                  <LeafRevenueIcon className="size-3.5" /> {t("parent.balance")}
                 </div>
                 <div className={`mt-1 text-lg font-bold ${child.balance < 0 ? "text-destructive" : "text-success"}`}>
                   {formatMoney(child.balance, lang)}
