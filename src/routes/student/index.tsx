@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { BookOpen, Calendar, ChevronRight, Clock, MapPin, Wallet, Layers, Receipt } from "lucide-react";
+import { useMemo, type ComponentType } from "react";
+import { ChevronRight, Clock, MapPin, Layers, Receipt } from "lucide-react";
+import { LeafRevenueIcon, LeafHomeworkIcon, LeafLessonsIcon } from "@/components/edu/icons/leaf-icons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -114,7 +115,7 @@ function StudentHome() {
         <h1 className="text-2xl font-bold">{student.fullName}</h1>
       </div>
 
-      <Card className="overflow-hidden bg-gradient-primary p-5 text-primary-foreground shadow-glow">
+      <Card className="overflow-hidden bg-primary p-5 text-primary-foreground">
         <div className="flex items-center gap-2 text-xs opacity-80">
           <Clock className="size-3" /> {t("studentHome.nextLesson")}
         </div>
@@ -132,10 +133,10 @@ function StudentHome() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-2.5">
         <QuickCard
           to="/student/profile"
-          icon={Wallet}
+          icon={LeafRevenueIcon}
           label={t("studentHome.balance")}
           value={formatMoney(student.balance, lang)}
           hint={student.balance < 0 ? t("studentHome.debt") : t("studentHome.paid")}
@@ -143,7 +144,7 @@ function StudentHome() {
         />
         <QuickCard
           to="/student/homework"
-          icon={BookOpen}
+          icon={LeafHomeworkIcon}
           label={t("studentHome.homework")}
           value={String(activeHomeworkCount)}
           hint={t("studentHome.activeTasks")}
@@ -151,7 +152,7 @@ function StudentHome() {
         />
         <QuickCard
           to="/student/schedule"
-          icon={Calendar}
+          icon={LeafLessonsIcon}
           label={t("studentHome.lessons")}
           value={String(todayLessonsCount)}
           hint={t("studentHome.todayLower")}
@@ -254,7 +255,7 @@ function StudentHome() {
 
 function QuickCard({ to, icon: Icon, label, value, hint, tone }: {
   to: string;
-  icon: typeof Clock;
+  icon: ComponentType<{ className?: string }>;
   label: string;
   value: string;
   hint: string;
@@ -268,13 +269,13 @@ function QuickCard({ to, icon: Icon, label, value, hint, tone }: {
   };
   return (
     <Link to={to} className="block">
-      <Card className="gap-2 p-4 shadow-elegant transition-all active:scale-95">
-        <div className={`flex size-9 items-center justify-center rounded-xl ${tones[tone]}`}>
+      <Card className="gap-2 p-3 shadow-elegant transition-all active:scale-95">
+        <div className={`flex size-8 items-center justify-center rounded-xl ${tones[tone]}`}>
           <Icon className="size-4" />
         </div>
-        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="text-xl font-bold leading-none">{value}</div>
-        <div className="text-[11px] text-muted-foreground">{hint}</div>
+        <div className="truncate text-[9.5px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="truncate text-[15px] font-bold leading-none">{value}</div>
+        <div className="truncate text-[10px] text-muted-foreground">{hint}</div>
       </Card>
     </Link>
   );
