@@ -1,0 +1,47 @@
+name: Nazorat
+
+# Механическая часть аудита: валидация состояния + grep-проверки дрейфа стандартов.
+# Полный аудит (включая признаки деградации агентов) делает агент `auditor` через /nazorat.
+
+on:
+  push:
+    branches: [master]
+  schedule:
+    - cron: '0 6 * * 1'   # каждый понедельник 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+
+      - name: Целостность состояния
+        run: python3 scripts/state.py check
+
+      - name: Дрейф стандартов — frontend
+        continue-on-error: true
+        run: |
+          echo "## Хардкод hex-цветов (запрещено, frontend-standards п.1)"
+          grep -rnE "#[0-9a-fA-F]{6}" --include=*.tsx --include=*.ts . \
+            | grep -v node_modules | grep -viE "(tailwind\.config|globals\.css|theme|tokens)" || echo "  чисто"
+          echo "## window.confirm (запрещено, нужен ConfirmDialog)"
+          grep -rn "window\.confirm" --include=*.tsx --include=*.ts . | grep -v node_modules || echo "  чисто"
+          echo "## any в TypeScript"
+          grep -rnE "(:\s*any\b|as any\b)" --include=*.tsx --include=*.ts . | grep -v node_modules || echo "  чисто"
+          echo "## Иконки не из lucide-react"
+          grep -rnE "from ['\"](react-icons|@heroicons|@mui/icons)" --include=*.tsx --include=*.ts . | grep -v node_modules || echo "  чисто"
+
+      - name: Дрейф стандартов — backend
+        continue-on-error: true
+        run: |
+          echo "## print() вместо логгера"
+          grep -rn "print(" --include=*.py . | grep -viE "(test|migrations|manage\.py|scripts/)" || echo "  чисто"
+          echo "## Возможные секреты в коде"
+          grep -rnE "(SECRET|PASSWORD|TOKEN|API_KEY)\s*=\s*['\"][^'\"]{8,}" --include=*.py . | grep -v test || echo "  чисто"
+          echo "## Права вне permission-классов"
+          grep -rnE "if .*(user|request\.user)\.role\s*==" --include=*.py . || echo "  чисто"
+          echo "## RunPython без reverse"
+          grep -rn "RunPython" --include=*.py . | grep -v "reverse" || echo "  чисто"

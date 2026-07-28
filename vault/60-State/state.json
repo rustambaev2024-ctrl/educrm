@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "project": "EduCRM",
+  "updated_at": null,
+  "branches": {
+    "production": "master",
+    "staging": "staging"
+  },
+  "roles": {
+    "tech-lead": {
+      "agent": "tech-lead",
+      "statuses": [
+        "backlog",
+        "design_review",
+        "code_review",
+        "release_ready"
+      ]
+    },
+    "designer": {
+      "agent": "designer",
+      "statuses": [
+        "design"
+      ]
+    },
+    "ux-writer": {
+      "agent": "ux-writer",
+      "statuses": [
+        "design"
+      ]
+    },
+    "backend": {
+      "agent": "backend-dev",
+      "statuses": [
+        "dev",
+        "fix"
+      ]
+    },
+    "frontend": {
+      "agent": "frontend-dev",
+      "statuses": [
+        "dev",
+        "fix"
+      ]
+    },
+    "db": {
+      "agent": "db-engineer",
+      "statuses": [
+        "dev",
+        "fix"
+      ]
+    },
+    "qa": {
+      "agent": "qa-engineer",
+      "statuses": [
+        "qa"
+      ]
+    },
+    "devops": {
+      "agent": "devops",
+      "statuses": [
+        "staging",
+        "prod"
+      ]
+    },
+    "security": {
+      "agent": "security-reviewer",
+      "statuses": [
+        "code_review"
+      ]
+    },
+    "auditor": {
+      "agent": "auditor",
+      "statuses": []
+    }
+  },
+  "features": [],
+  "tasks": [],
+  "log": []
+}
