@@ -136,7 +136,9 @@ class ChangePasswordView(APIView):
         serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         request.user.set_password(serializer.validated_data["new_password"])
-        request.user.save(update_fields=["password"])
+        # R-23: самостоятельная смена снимает требование сменить временный пароль.
+        request.user.must_change_password = False
+        request.user.save(update_fields=["password", "must_change_password"])
         return Response({"detail": "Password changed"}, status=status.HTTP_200_OK)
 
 
@@ -153,7 +155,9 @@ class ResetPasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.context["target_user"]
         user.set_password(serializer.validated_data["new_password"])
-        user.save(update_fields=["password"])
+        # R-23: пароль выдан администратором — владелец аккаунта обязан его сменить.
+        user.must_change_password = True
+        user.save(update_fields=["password", "must_change_password"])
         user.sessions.update(is_active=False)
         return Response({"detail": "Password reset"}, status=status.HTTP_200_OK)
 

@@ -110,8 +110,19 @@ TENANT_MODEL = "tenants.Institution"
 TENANT_DOMAIN_MODEL = "tenants.Domain"
 PUBLIC_SCHEMA_NAME = "public"
 
-# Ограничения на пароль сняты по требованию — любой пароль допускается.
-AUTH_PASSWORD_VALIDATORS = []
+# R-23: раньше здесь был пустой список — пароль вида "1111" принимался,
+# а аккаунты без явного пароля получали общеизвестный литерал `ChangeMe123`.
+# Проверка вызывается через apps.core.passwords.validate_password_strength,
+# которая переводит сообщения Django в формат {detail:{uz,ru}}.
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
 
 LANGUAGE_CODE = "ru"
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")

@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import User
+from apps.core.passwords import generate_temp_password, validate_password_strength
 
 from .models import Staff, StaffPenalty, StaffBonus, SupportTeacherLink
 
@@ -64,14 +65,24 @@ class StaffSerializer(serializers.ModelSerializer):
                 )
         return value
 
-    def validate_password(self, value):
-        # Ограничения на пароль сняты — любой пароль допускается.
-        return value
+    def validate(self, attrs):
+        # R-23: политика включена, см. apps/core/passwords.py.
+        # Проверка на уровне объекта, чтобы ошибка была в формате {detail:{uz,ru}}.
+        password = attrs.get("password")
+        if password:
+            validate_password_strength(password)
+        return attrs
 
     @transaction.atomic
     def create(self, validated_data):
         user_data = validated_data.pop("user")
-        password = validated_data.pop("password", None) or "ChangeMe123"
+        # R-23: никакого общего литерала. Пароль либо задан явно, либо
+        # генерируется криптостойко и один раз возвращается создателю.
+        password = validated_data.pop("password", None)
+        generated_password = None
+        if not password:
+            password = generate_temp_password()
+            generated_password = password
         phone = normalize_phone(user_data["phone"])
 
         existing_user = User.objects.filter(phone=phone).first()
@@ -84,16 +95,33 @@ class StaffSerializer(serializers.ModelSerializer):
             existing_user.full_name = user_data["full_name"]
             existing_user.role = user_data["role"]
             existing_user.set_password(password)
-            existing_user.save(update_fields=["full_name", "role", "password"])
-            return Staff.objects.create(user=existing_user, **validated_data)
+            existing_user.must_change_password = True
+            existing_user.save(
+                update_fields=["full_name", "role", "password", "must_change_password"]
+            )
+            staff = Staff.objects.create(user=existing_user, **validated_data)
+        else:
+            user = User.objects.create_user(
+                phone=phone,
+                full_name=user_data["full_name"],
+                role=user_data["role"],
+                password=password,
+            )
+            user.must_change_password = True
+            user.save(update_fields=["must_change_password"])
+            staff = Staff.objects.create(user=user, **validated_data)
 
-        user = User.objects.create_user(
-            phone=phone,
-            full_name=user_data["full_name"],
-            role=user_data["role"],
-            password=password,
-        )
-        return Staff.objects.create(user=user, **validated_data)
+        self._creation_extra = {}
+        if generated_password:
+            self._creation_extra["generated_password"] = generated_password
+        return staff
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        extra = getattr(self, "_creation_extra", None)
+        if extra:
+            data.update(extra)
+        return data
 
     def _assert_can_set_password(self, instance):
         """R-18: смена чужого пароля через PATCH /staff/<id>/ — привилегированная операция.
@@ -177,17 +205,21 @@ class StaffSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
+        actor = self.context["request"].user
         if user_data:
             user = instance.user
             for attr, value in user_data.items():
                 setattr(user, attr, value)
             if password:
                 user.set_password(password)
+                # R-23: пароль выдан другим человеком — владелец обязан его сменить.
+                user.must_change_password = actor.id != user.id
             user.save()
         elif password:
             user = instance.user
             user.set_password(password)
-            user.save(update_fields=["password"])
+            user.must_change_password = actor.id != user.id
+            user.save(update_fields=["password", "must_change_password"])
 
         return instance
 

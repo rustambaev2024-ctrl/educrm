@@ -50,6 +50,29 @@
   (задача выполняется в фоне, итог в ответе не отражается).
 - Вызов из схемы `public` → `400` с `{detail:{uz,ru}}`.
 
+### Пароли (T-015 / R-23, 2026-07-29)
+- `AUTH_PASSWORD_VALIDATORS` включены: минимум 8 символов, не только цифры,
+  не из списка распространённых, не похож на данные пользователя.
+  Слабый пароль → `400` `{detail:{uz,ru,rules}}`.
+  **Ломающее для клиента:** пароли уровня `secret123` больше не принимаются.
+- `POST /api/v1/staff/` без поля `password` возвращает в ответе новое поле
+  `generated_password` — криптостойкий временный пароль (показать один раз).
+  Дефолтного `ChangeMe123` больше нет нигде.
+- `POST /api/v1/students/` уже возвращал `generated_password`; добавлено
+  `parent_generated_password` для впервые созданного родителя.
+- Новое поле `must_change_password` в `GET /api/v1/auth/me/` и в `UserSerializer`.
+  Ставится в `true` при генерации пароля системой и при админском сбросе
+  (`/auth/reset-password/`, `PATCH /staff/` чужого пароля), снимается только
+  самостоятельной сменой через `/auth/change-password/`.
+  **Принудительная блокировка API до смены пароля пока НЕ включена** — требует
+  экрана на фронте, иначе сотрудник с временным паролем окажется заперт.
+  Follow-up: frontend + включение гарда.
+
+### `PATCH /api/v1/staff/<id>/` — пароль сотрудника
+- Поле `password` доступно: superadmin — всем; себе — всегда; director — всем,
+  кроме других director/superadmin; branch_admin — только teacher/support_teacher
+  своего филиала. Иначе `403` `{detail:{uz,ru}}` (T-014 / R-18).
+
 ### `PATCH /api/v1/homeworks/submissions/<id>/` — статус сдачи ДЗ
 - Роль `student` может писать только `status="submitted"`, `answer_text`, `answer_file`.
   Попытка передать `grade`/`teacher_comment` или иной статус → `403` `{detail:{uz,ru}}` (T-008 / R-20).

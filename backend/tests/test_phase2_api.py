@@ -48,7 +48,7 @@ def test_students_courses_groups_and_lessons_flow(api_client):
         {
             "full_name": "Student One",
             "phone": "+998905000001",
-            "password": "secret123",
+            "password": "Talaba!2026x",
             "branch": str(branch.id),
             "status": "active",
         },

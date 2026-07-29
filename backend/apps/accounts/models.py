@@ -31,6 +31,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
+    # R-23: True, если пароль сгенерирован системой или сброшен администратором.
+    # Снимается только при самостоятельной смене через /auth/change-password/.
+    must_change_password = models.BooleanField(default=False)
 
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS = ["full_name", "role"]

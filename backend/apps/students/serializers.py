@@ -1,6 +1,4 @@
 import logging
-import secrets
-import string
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -9,15 +7,11 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 from apps.accounts.managers import UserManager
+from apps.core.passwords import generate_temp_password, validate_password_strength
 
 from .models import Certificate, Parent, ParentStudentLink, Student, StudentDocument, StudentLead
 
 logger = logging.getLogger(__name__)
-
-
-def generate_temp_password():
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(10))
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -108,6 +102,14 @@ class StudentSerializer(serializers.ModelSerializer):
             for document in obj.documents.all()
         ]
 
+    def validate(self, attrs):
+        # R-23: политика включена, см. apps/core/passwords.py.
+        for field in ("password", "parent_password"):
+            value = attrs.get(field)
+            if value:
+                validate_password_strength(value)
+        return attrs
+
     @transaction.atomic
     def create(self, validated_data):
         try:
@@ -122,7 +124,13 @@ class StudentSerializer(serializers.ModelSerializer):
 
             parent_full_name = validated_data.pop("parent_full_name", "")
             parent_phone = validated_data.pop("parent_phone", "")
-            parent_password = validated_data.pop("parent_password", "") or "ChangeMe123"
+            # R-23: общего литерала больше нет — пароль родителя генерируется
+            # криптостойко и возвращается создателю один раз.
+            parent_password = validated_data.pop("parent_password", "")
+            parent_generated_password = None
+            if not parent_password:
+                parent_password = generate_temp_password()
+                parent_generated_password = parent_password
             document_file = validated_data.pop("document_file", None)
             document_type = validated_data.pop("document_type", "passport")
 
@@ -132,6 +140,10 @@ class StudentSerializer(serializers.ModelSerializer):
                 role="student",
                 password=password,
             )
+            if generated_password:
+                # R-23: временный пароль выдан админом — ученик обязан сменить.
+                user.must_change_password = True
+                user.save(update_fields=["must_change_password"])
             if photo:
                 user.photo = photo
                 user.save(update_fields=["photo"])
@@ -157,7 +169,10 @@ class StudentSerializer(serializers.ModelSerializer):
                 )
                 if created:
                     parent_user.set_password(parent_password)
-                    parent_user.save(update_fields=["password"])
+                    parent_user.must_change_password = True
+                    parent_user.save(update_fields=["password", "must_change_password"])
+                    if parent_generated_password:
+                        self._parent_generated_password = parent_generated_password
                 else:
                     warnings.append({
                         "uz": f"Ota-ona {parent_phone} allaqachon mavjud — yangi parol qo'llanilmadi, eski parol ishlatiladi",
@@ -170,6 +185,10 @@ class StudentSerializer(serializers.ModelSerializer):
             self._creation_extra = {}
             if generated_password:
                 self._creation_extra["generated_password"] = generated_password
+            if getattr(self, "_parent_generated_password", None):
+                self._creation_extra["parent_generated_password"] = (
+                    self._parent_generated_password
+                )
             if warnings:
                 self._creation_extra["warnings"] = warnings
 
@@ -204,17 +223,20 @@ class StudentSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
+        actor = getattr(self.context.get("request"), "user", None)
         if user_data:
             user = instance.user
             for attr, value in user_data.items():
                 setattr(user, attr, value)
             if password:
                 user.set_password(password)
+                user.must_change_password = getattr(actor, "id", None) != user.id
             user.save()
         elif password:
             user = instance.user
             user.set_password(password)
-            user.save(update_fields=["password"])
+            user.must_change_password = getattr(actor, "id", None) != user.id
+            user.save(update_fields=["password", "must_change_password"])
 
         if document_file:
             StudentDocument.objects.create(
