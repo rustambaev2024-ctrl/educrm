@@ -1,10 +1,12 @@
 import uuid
 
+from django.db import connection
 from django.db.models import Q
+from django.utils import timezone
+from django_tenants.utils import get_public_schema_name
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes as perm_classes
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin
@@ -89,25 +91,40 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
 
 
 @api_view(["POST"])
-@perm_classes([IsAuthenticated])
+@perm_classes([IsBranchAdmin])
 def trigger_daily_charge(request):
-    """Manual trigger for daily_lesson_charge task (director/admin only)."""
-    if request.user.role not in ("director", "branch_admin", "superadmin"):
-        return Response({"detail": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
+    """Ручной запуск списания за уроки — только в схеме текущего тенанта.
 
-    from .tasks import daily_lesson_charge
-    from datetime import date
-    try:
-        daily_lesson_charge()
-        today = date.today()
-        charge_count = Payment.objects.filter(
-            payment_type="charge",
-            created_at__date=today,
-        ).count()
-        return Response({
-            "status": "ok",
-            "message": "daily_lesson_charge executed successfully",
+    R-22: раньше вызывал `daily_lesson_charge()` синхронно, а та итерирует ВСЕ схемы
+    платформы — любой branch_admin одним POST списывал деньги во всех учебных центрах.
+    Теперь ставится асинхронная задача строго по `connection.schema_name`.
+    """
+    from .tasks import daily_lesson_charge_for_tenant
+
+    schema = connection.schema_name
+    if schema == get_public_schema_name():
+        return Response(
+            {
+                "detail": {
+                    "uz": "Bu amal faqat o'quv markazi ichida bajariladi",
+                    "ru": "Операция выполняется только внутри учебного центра",
+                }
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    async_result = daily_lesson_charge_for_tenant.delay(schema)
+    charge_count = Payment.objects.filter(
+        payment_type="charge",
+        created_at__date=timezone.localdate(),
+    ).count()
+    return Response(
+        {
+            "status": "queued",
+            "message": "daily_lesson_charge scheduled for this tenant",
+            "schema": schema,
+            "task_id": str(async_result.id),
             "charges_today": charge_count,
-        })
-    except Exception as e:
-        return Response({"status": "error", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        },
+        status=status.HTTP_202_ACCEPTED,
+    )
