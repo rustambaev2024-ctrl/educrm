@@ -1,6 +1,7 @@
 import logging
 from django.db import transaction
 from django.db.models import Q
+from django.http import FileResponse, HttpResponseRedirect
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -229,6 +230,36 @@ class StudentViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(student=student, uploaded_by=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path=r"documents/(?P<document_id>[^/.]+)/download",
+    )
+    def download_document(self, request, pk=None, document_id=None):
+        """R-17: единственный путь к документу ученика — через проверку прав.
+
+        `get_object()` уже скоупит ученика по роли и филиалу, а тенант задан
+        схемой запроса. Ссылка короткоживущая (presigned) там, где включён
+        MinIO; на локальном хранилище файл отдаётся потоком тем же ответом.
+        """
+        student = self.get_object()
+        document = student.documents.filter(id=document_id).first()
+        if document is None or not document.file:
+            return Response(
+                {
+                    "detail": {
+                        "uz": "Hujjat topilmadi",
+                        "ru": "Документ не найден",
+                    }
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            return HttpResponseRedirect(document.file.url)
+        except NotImplementedError:
+            return FileResponse(document.file.open("rb"), as_attachment=True)
 
     @action(
         detail=True,

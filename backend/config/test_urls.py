@@ -49,11 +49,12 @@ urlpatterns = [
 
 from django.conf import settings
 from django.urls import re_path
-from django.views.static import serve
+
+from apps.core.media import protected_media_serve
 
 if settings.MEDIA_URL and settings.MEDIA_ROOT:
     urlpatterns += [
-        re_path(r'^%s(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'), serve, {
+        re_path(r'^%s(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'), protected_media_serve, {
             'document_root': settings.MEDIA_ROOT,
         }),
     ]

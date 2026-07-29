@@ -139,6 +139,14 @@ MEDIA_URL = "/media/"
 # По умолчанию — прежний путь (для локальной разработки).
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", str(BASE_DIR / "media"))
 
+# R-17 / ADR-002: документы учеников (паспорта, свидетельства о рождении) —
+# отдельный приватный корень ВНЕ MEDIA_ROOT. `/media/` его не раздаёт.
+PRIVATE_MEDIA_ROOT = os.getenv("PRIVATE_MEDIA_ROOT", str(BASE_DIR / "private_media"))
+# Включается на окружении, где MinIO реально поднят и доступен воркеру.
+USE_PRIVATE_S3_DOCUMENTS = os.getenv("USE_PRIVATE_S3_DOCUMENTS", "false").lower() == "true"
+# Срок жизни presigned-ссылки на документ.
+DOCUMENT_URL_TTL_SECONDS = int(os.getenv("DOCUMENT_URL_TTL_SECONDS", "300"))
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 

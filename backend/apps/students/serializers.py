@@ -10,6 +10,7 @@ from apps.accounts.managers import UserManager
 from apps.core.passwords import generate_temp_password, validate_password_strength
 
 from .models import Certificate, Parent, ParentStudentLink, Student, StudentDocument, StudentLead
+from .storage import ALLOWED_DOCUMENT_EXTENSIONS, MAX_DOCUMENT_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -97,12 +98,17 @@ class StudentSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_documents(self, obj):
+        # R-17: постоянный публичный URL файла больше не отдаётся.
+        # Клиент запрашивает короткоживущую ссылку через download-эндпоинт,
+        # который проверяет права так же, как StudentViewSet.
         return [
             {
                 "id": str(document.id),
-                "name": document.file.name.split("/")[-1],
+                "name": document.file.name.split("/")[-1] if document.file else None,
                 "doc_type": document.doc_type,
-                "file": document.file.url if document.file else None,
+                "download_url": (
+                    f"/api/v1/students/{obj.id}/documents/{document.id}/download/"
+                ),
                 "uploaded_at": document.uploaded_at.isoformat(),
             }
             for document in obj.documents.all()
@@ -248,10 +254,38 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class StudentDocumentSerializer(serializers.ModelSerializer):
+    download_url = serializers.SerializerMethodField()
+
     class Meta:
         model = StudentDocument
-        fields = ("id", "student", "doc_type", "file", "uploaded_by", "uploaded_at")
-        read_only_fields = ("id", "student", "uploaded_by", "uploaded_at")
+        fields = ("id", "student", "doc_type", "file", "download_url", "uploaded_by", "uploaded_at")
+        read_only_fields = ("id", "student", "download_url", "uploaded_by", "uploaded_at")
+        extra_kwargs = {"file": {"write_only": True}}
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_download_url(self, obj):
+        return f"/api/v1/students/{obj.student_id}/documents/{obj.id}/download/"
+
+    def validate_file(self, value):
+        """R-17 / ADR-002: валидация типа и размера при загрузке."""
+        import os as _os
+
+        _, ext = _os.path.splitext(value.name or "")
+        if ext.lower() not in ALLOWED_DOCUMENT_EXTENSIONS:
+            raise serializers.ValidationError({
+                "detail": {
+                    "uz": "Fayl turi qo'llab-quvvatlanmaydi (pdf, jpg, png, heic, webp)",
+                    "ru": "Неподдерживаемый тип файла (pdf, jpg, png, heic, webp)",
+                }
+            })
+        if value.size > MAX_DOCUMENT_SIZE:
+            raise serializers.ValidationError({
+                "detail": {
+                    "uz": "Fayl juda katta (10 MB dan oshmasligi kerak)",
+                    "ru": "Файл слишком большой (не более 10 МБ)",
+                }
+            })
+        return value
 
 
 class CertificateSerializer(serializers.ModelSerializer):
