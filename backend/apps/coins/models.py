@@ -97,8 +97,10 @@ class CoinTransaction(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # PROTECT, не CASCADE: история монет — аудит-тропа (balance_after), а ссылки
+    # на студента у транзакции нет, восстановить её после удаления невозможно. R-21.
     wallet = models.ForeignKey(
-        CoinWallet, on_delete=models.CASCADE, related_name="transactions"
+        CoinWallet, on_delete=models.PROTECT, related_name="transactions"
     )
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     reason = models.CharField(max_length=20, choices=REASON_TYPES)
