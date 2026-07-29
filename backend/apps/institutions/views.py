@@ -160,7 +160,7 @@ class BranchViewSet(viewsets.ModelViewSet):
         success = EskizSmsService.send_for_tenant(
             institution=institution,
             phone=phone,
-            message="EduCRM: SMS integratsiyasi muvaffaqiyatli ulandi!",
+            message="GrowBase: SMS integratsiyasi muvaffaqiyatli ulandi!",
             schema=schema,
         )
         if success:

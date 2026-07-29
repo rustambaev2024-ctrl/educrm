@@ -58,7 +58,7 @@ class InstitutionNotice(models.Model):
 
 
 class PlatformSettings(models.Model):
-    platform_name = models.CharField(max_length=255, default="EduCRM")
+    platform_name = models.CharField(max_length=255, default="GrowBase")
     support_email = models.EmailField(blank=True, default="support@educrm.uz")
     support_phone = models.CharField(max_length=50, blank=True, default="+998 71 200 00 00")
     default_language = models.CharField(max_length=10, default="uz")

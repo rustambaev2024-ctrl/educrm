@@ -97,7 +97,7 @@ def export_pdf(report_type: str, data: dict) -> bytes:
     if HTML is not None:
         html = (
             "<html><body>"
-            f"<h1>EduCRM report: {report_type}</h1>"
+            f"<h1>GrowBase report: {report_type}</h1>"
             f"<pre>{body}</pre>"
             "</body></html>"
         )
@@ -105,5 +105,5 @@ def export_pdf(report_type: str, data: dict) -> bytes:
             return HTML(string=html).write_pdf()
         except Exception:
             pass
-    return _simple_pdf_bytes(f"EduCRM report {report_type}. Data length: {len(body)}")
+    return _simple_pdf_bytes(f"GrowBase report {report_type}. Data length: {len(body)}")
 
