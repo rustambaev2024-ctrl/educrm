@@ -1,5 +1,6 @@
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import User
 
@@ -94,10 +95,65 @@ class StaffSerializer(serializers.ModelSerializer):
         )
         return Staff.objects.create(user=user, **validated_data)
 
+    def _assert_can_set_password(self, instance):
+        """R-18: смена чужого пароля через PATCH /staff/<id>/ — привилегированная операция.
+
+        Раньше поле `password` не было защищено ничем, и `branch_admin` менял пароль
+        директора, после чего заходил его аккаунтом: все филиалы, все деньги, все отчёты.
+        Правила совпадают с `/auth/reset-password/` — единое место истины по смыслу.
+
+        Легитимные пути остаются открытыми: свой пароль (или `/auth/change-password/`),
+        директор — сотрудникам, админ филиала — учителям своего филиала.
+        """
+        actor = self.context["request"].user
+        target_user = instance.user
+
+        if actor.role == "superadmin" or actor.id == target_user.id:
+            return
+
+        if target_user.role in ("superadmin", "director"):
+            raise PermissionDenied({
+                "detail": {
+                    "uz": "Direktor parolini faqat superadmin o'zgartira oladi",
+                    "ru": "Пароль директора может изменить только суперадмин",
+                }
+            })
+
+        if actor.role == "director":
+            return
+
+        if actor.role == "branch_admin":
+            if target_user.role not in ("teacher", "support_teacher"):
+                raise PermissionDenied({
+                    "detail": {
+                        "uz": "Bu xodim parolini o'zgartirishga ruxsatingiz yo'q",
+                        "ru": "У вас нет прав менять пароль этого сотрудника",
+                    }
+                })
+            actor_branch = getattr(getattr(actor, "staff_profile", None), "branch_id", None)
+            if not actor_branch or instance.branch_id != actor_branch:
+                raise PermissionDenied({
+                    "detail": {
+                        "uz": "Xodim sizning filialingizdan emas",
+                        "ru": "Сотрудник не из вашего филиала",
+                    }
+                })
+            return
+
+        raise PermissionDenied({
+            "detail": {
+                "uz": "Parolni o'zgartirishga ruxsatingiz yo'q",
+                "ru": "У вас нет прав менять пароль",
+            }
+        })
+
     @transaction.atomic
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", None)
         password = validated_data.pop("password", None)
+
+        if password:
+            self._assert_can_set_password(instance)
 
         new_role = (user_data or {}).get("role")
         if new_role and new_role != instance.user.role:
