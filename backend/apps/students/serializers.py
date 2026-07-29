@@ -72,6 +72,12 @@ class StudentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     "detail": {"uz": "Bu telefon raqami band", "ru": "Этот номер телефона уже занят"}
                 })
+
+        # R-23: парольная политика, см. apps/core/passwords.py.
+        for field in ("password", "parent_password"):
+            value = attrs.get(field)
+            if value:
+                validate_password_strength(value)
         return attrs
 
     @extend_schema_field(serializers.ListField(child=serializers.UUIDField()))
@@ -101,14 +107,6 @@ class StudentSerializer(serializers.ModelSerializer):
             }
             for document in obj.documents.all()
         ]
-
-    def validate(self, attrs):
-        # R-23: политика включена, см. apps/core/passwords.py.
-        for field in ("password", "parent_password"):
-            value = attrs.get(field)
-            if value:
-                validate_password_strength(value)
-        return attrs
 
     @transaction.atomic
     def create(self, validated_data):
