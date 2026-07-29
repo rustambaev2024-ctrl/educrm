@@ -164,11 +164,15 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # R-24: до этого пагинации не было ни в одном списке, кроме /students/ и чата.
+    # Класс включается глобально; поведение — см. apps/core/pagination.py.
+    "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.OptInPageNumberPagination",
+    "PAGE_SIZE": 100,
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "EduCRM API",
-    "DESCRIPTION": "EduCRM backend foundation",
+    "TITLE": "GrowBase API",
+    "DESCRIPTION": "GrowBase backend foundation",
     "VERSION": "0.1.0",
     "ENUM_NAME_OVERRIDES": {
         "BranchStatusEnum": "apps.institutions.models.Branch.STATUS_CHOICES",
