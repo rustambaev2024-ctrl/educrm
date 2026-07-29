@@ -7,7 +7,7 @@ from django.utils import timezone
 from apps.courses.models import Course, Group, GroupMembership
 from apps.grades.models import Grade
 from apps.homework.models import HomeworkStatus
-from apps.homework.tasks import mark_overdue_homework
+from apps.homework.tasks import mark_overdue_in_current_schema
 from apps.institutions.models import Branch
 from apps.lessons.models import Lesson
 from apps.staff.models import Staff
@@ -174,6 +174,8 @@ def test_overdue_homework_task_marks_status(api_client):
         status="not_submitted",
     )
 
-    mark_overdue_homework()
+    # Задача теперь итерирует схемы тенантов (T-016 / R-25); под SQLite
+    # тенантов нет, поэтому проверяем работу в текущей схеме напрямую.
+    mark_overdue_in_current_schema()
     status.refresh_from_db()
     assert status.status == "overdue"
