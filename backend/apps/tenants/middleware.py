@@ -1,3 +1,5 @@
+import logging
+
 from django.db import connection
 from django.conf import settings
 from django.http import JsonResponse
@@ -6,6 +8,8 @@ from django_tenants.utils import (
     get_tenant_domain_model,
     get_tenant_model,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class HeaderOrDomainTenantMiddleware:
@@ -52,6 +56,20 @@ class HeaderOrDomainTenantMiddleware:
             # (information disclosure, BUG-037).
             return JsonResponse({"detail": "User not found"}, status=401)
 
+        # R-25 / T-017: заголовок X-Tenant-Schema до этого никем не сверялся с
+        # токеном. Пользователь одного учебного центра мог подставить чужую схему
+        # и работать в ней со своим валидным JWT.
+        if self._jwt_schema_mismatch(request, tenant):
+            return JsonResponse(
+                {
+                    "detail": {
+                        "uz": "Token boshqa o'quv markaziga tegishli",
+                        "ru": "Токен принадлежит другому учебному центру",
+                    }
+                },
+                status=403,
+            )
+
         connection.set_tenant(tenant)
         request.tenant = tenant
 
@@ -68,6 +86,51 @@ class HeaderOrDomainTenantMiddleware:
                 status=403,
             )
         return self.get_response(request)
+
+    def _jwt_schema_mismatch(self, request, tenant):
+        """True, если Bearer-токен выдан в другой схеме, чем запрошенная.
+
+        Правила намеренно мягкие там, где строгость сломала бы легитимный путь:
+        - нет заголовка Authorization / не Bearer → пропускаем (анонимные и
+          публичные сценарии, `/join/`, логин, refresh);
+        - токен не разбирается → пропускаем, 401 отдаст слой аутентификации DRF;
+        - в токене нет claim `schema_name` (выдан до появления claim) →
+          пропускаем, иначе разлогинило бы всех разом;
+        - роль `superadmin` → пропускаем: платформенный администратор по смыслу
+          работает поверх всех тенантов. Факт кросс-тенантного запроса логируем.
+        """
+        header = request.META.get("HTTP_AUTHORIZATION") or ""
+        parts = header.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            return False
+
+        try:
+            from rest_framework_simplejwt.tokens import AccessToken
+
+            token = AccessToken(parts[1])
+        except Exception:
+            return False
+
+        token_schema = token.get("schema_name")
+        if not token_schema or token_schema == tenant.schema_name:
+            return False
+
+        if token.get("role") == "superadmin":
+            logger.warning(
+                "superadmin cross-tenant request: token schema '%s', requested '%s', path %s",
+                token_schema,
+                tenant.schema_name,
+                request.path,
+            )
+            return False
+
+        logger.warning(
+            "X-Tenant-Schema mismatch: token schema '%s', requested '%s', path %s",
+            token_schema,
+            tenant.schema_name,
+            request.path,
+        )
+        return True
 
     def _is_public_path(self, path):
         return (
