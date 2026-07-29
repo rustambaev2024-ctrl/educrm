@@ -179,6 +179,11 @@ REST_FRAMEWORK = {
     # Класс включается глобально; поведение — см. apps/core/pagination.py.
     "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.OptInPageNumberPagination",
     "PAGE_SIZE": 100,
+    # R-19: анонимные эндпоинты живого квиза были без ограничений —
+    # 6-значный код перебирался без всякой цены.
+    "DEFAULT_THROTTLE_RATES": {
+        "quiz_join": "30/min",
+    },
 }
 
 SPECTACULAR_SETTINGS = {

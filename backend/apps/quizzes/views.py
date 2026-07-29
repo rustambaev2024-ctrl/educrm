@@ -5,6 +5,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 
 from .models import Quiz, QuizSession, SessionParticipant
 from .serializers import (
@@ -12,15 +13,24 @@ from .serializers import (
     QuizSerializer,
     QuizSessionSerializer,
 )
+from .tickets import issue_join_ticket, read_join_ticket
+
+
+class QuizJoinThrottle(AnonRateThrottle):
+    """R-19: анонимные эндпоинты квиза были без ограничений — перебор кодов."""
+
+    scope = "quiz_join"
 
 
 def _get_schema(request):
-    """Resolve tenant schema from query param, header, or active tenant."""
-    return (
-        request.query_params.get("schema")
-        or request.META.get("HTTP_X_TENANT_SCHEMA")
-        or (request.tenant.schema_name if getattr(request, "tenant", None) else None)
-    )
+    """Схема тенанта запроса — и только она.
+
+    R-19: раньше здесь читался свободный `?schema=`, то есть любой аноним
+    указывал, в какую схему платформы писать ФИО и телефон ребёнка. Теперь
+    схему определяет middleware (заголовок/домен), клиент её не выбирает.
+    """
+    tenant = getattr(request, "tenant", None)
+    return tenant.schema_name if tenant else None
 
 
 @contextmanager
@@ -30,37 +40,6 @@ def _schema_ctx(schema_name):
             yield
     else:
         yield
-
-
-def _list_tenant_schemas():
-    """Список всех tenant-схем (кроме public). Запрашивается в public-контексте."""
-    from apps.tenants.models import Institution
-    from django_tenants.utils import get_public_schema_name
-    from django.db import connection
-
-    public = get_public_schema_name()
-    connection.set_schema_to_public()
-    return list(
-        Institution.objects.exclude(schema_name=public).values_list("schema_name", flat=True)
-    )
-
-
-def _find_schema_for_session(predicate):
-    """
-    Перебрать все tenant-схемы и вернуть имя той, где predicate() находит сессию.
-    predicate выполняется ВНУТРИ schema_context, поэтому любой доступ к данным
-    безопасен. Возвращает schema_name или None.
-    """
-    for schema_name in _list_tenant_schemas():
-        try:
-            with schema_context(schema_name):
-                if predicate():
-                    return schema_name
-        except QuizSession.DoesNotExist:
-            continue
-        except Exception:
-            continue
-    return None
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -188,42 +167,37 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         url_path="by-code/(?P<code>[0-9]+)",
         authentication_classes=[],
         permission_classes=[AllowAny],
+        throttle_classes=[QuizJoinThrottle],
     )
     def by_code(self, request, code=None):
-        def _fetch_payload():
-            """Возвращает dict с данными сессии. Выполняется внутри нужной схемы."""
-            session = QuizSession.objects.select_related("quiz").get(code=code)
-            return {
-                "session_id": str(session.id),
-                "code": session.code,
-                "status": session.status,
-                "quiz_title": session.quiz.title,
-                "quiz_type": session.quiz.quiz_type,
-                "participants_count": session.participants.count(),
-            }
+        """Поиск сессии по коду — строго в схеме тенанта запроса.
 
+        R-19: перебор всех схем платформы убран. 6-значный код уникален только
+        внутри схемы, поэтому поиск «по всем центрам» отдавал участнику чужую
+        сессию при совпадении кода.
+        """
         schema_name = _get_schema(request)
+        if not schema_name:
+            return Response({"error": "Session not found"}, status=404)
 
-        # 1) Если schema известна — ищем в ней.
-        if schema_name:
+        with _schema_ctx(schema_name):
             try:
-                with _schema_ctx(schema_name):
-                    return Response(_fetch_payload())
-            except (QuizSession.DoesNotExist, Exception):
-                pass
+                session = QuizSession.objects.select_related("quiz").get(code=code)
+            except QuizSession.DoesNotExist:
+                return Response({"error": "Session not found"}, status=404)
 
-        # 2) Fallback: ищем схему, где есть сессия с этим кодом, и сериализуем там же.
-        found_schema = _find_schema_for_session(
-            lambda: QuizSession.objects.filter(code=code).exists()
-        )
-        if found_schema:
-            try:
-                with schema_context(found_schema):
-                    return Response(_fetch_payload())
-            except Exception:
-                pass
-
-        return Response({"error": "Session not found"}, status=404)
+            return Response(
+                {
+                    "session_id": str(session.id),
+                    "code": session.code,
+                    "status": session.status,
+                    "quiz_title": session.quiz.title,
+                    "quiz_type": session.quiz.quiz_type,
+                    "participants_count": session.participants.count(),
+                    # Подписанный тикет: дальше клиент не выбирает схему сам.
+                    "join_ticket": issue_join_ticket(schema_name, session.id, session.code),
+                }
+            )
 
     @action(detail=True, methods=["post"], url_path="force-finish")
     def force_finish(self, request, pk=None):
@@ -260,15 +234,23 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         url_path="join",
         authentication_classes=[],
         permission_classes=[AllowAny],
+        throttle_classes=[QuizJoinThrottle],
     )
     def join(self, request, pk=None):
-        schema_name = _get_schema(request)
+        """Вход участника в сессию.
 
-        # Определяем рабочую схему: переданная или найденная по всем тенантам.
-        if not schema_name:
-            schema_name = _find_schema_for_session(
-                lambda: QuizSession.objects.filter(pk=pk).exists()
-            )
+        R-19: схема берётся из подписанного тикета (`ticket`), выданного
+        `by-code`, либо из тенанта запроса. Свободный `?schema=` и перебор всех
+        схем удалены — ФИО, дата рождения и телефоны ребёнка и родителя больше
+        не могут быть записаны в произвольно выбранный учебный центр.
+        """
+        ticket = read_join_ticket(request.data.get("ticket") or "")
+        if ticket:
+            if str(ticket.get("session_id")) != str(pk):
+                return Response({"error": "Session not found"}, status=404)
+            schema_name = ticket.get("schema")
+        else:
+            schema_name = _get_schema(request)
 
         if not schema_name:
             return Response({"error": "Session not found"}, status=404)
@@ -305,6 +287,12 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
                 parent_phone=data.get("parent_phone", ""),
             )
             return Response(
-                {"participant_id": str(participant.id), "name": participant.name},
+                {
+                    "participant_id": str(participant.id),
+                    "name": participant.name,
+                    # Тикет для WebSocket: схема подписана сервером,
+                    # участник не может подменить её на чужую.
+                    "ws_ticket": issue_join_ticket(schema_name, session.id, session.code),
+                },
                 status=201,
             )
