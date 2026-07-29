@@ -23,12 +23,25 @@ class HeaderOrDomainTenantMiddleware:
         "/api/v1/auth/login/",
         "/api/v1/auth/token/",
     }
-    PUBLIC_PATH_PREFIXES = (
+    #: T-010 / Б-1: анонимные, но ТЕНАНТНЫЕ пути. Раньше они лежали в
+    #: `PUBLIC_PATH_*` и получали `request.tenant = None` ДО резолва тенанта —
+    #: после T-010 (`_get_schema()` читает только `request.tenant`) это ломало
+    #: живой квиз целиком: `by-code` отдавал 404 всегда, `join` без тикета тоже.
+    #: Теперь тенант резолвится штатно (заголовок → домен), и только если не
+    #: резолвится — запрос идёт дальше с `tenant = None`, а вьюха отвечает 404
+    #: «сессия не найдена»: аноним не должен получать 401 «User not found», и
+    #: разница статусов здесь снова стала бы оракулом имён схем (BUG-037).
+    TENANT_OPTIONAL_PATH_PREFIXES = (
         "/api/v1/quiz-sessions/by-code/",
     )
-    PUBLIC_PATH_SUFFIXES = (
-        "/join/",
+    #: (prefix, suffix) — голый суффикс слишком широк: `/join/` не должен
+    #: ослаблять любой будущий эндпоинт с таким хвостом.
+    TENANT_OPTIONAL_PATH_PREFIX_SUFFIX = (
+        ("/api/v1/quiz-sessions/", "/join/"),
     )
+    #: Пути вообще без тенанта. Квиз-путей здесь быть не должно — см. выше.
+    PUBLIC_PATH_PREFIXES = ()
+    PUBLIC_PATH_SUFFIXES = ()
     MUTATING_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
 
     def __init__(self, get_response):
@@ -44,7 +57,7 @@ class HeaderOrDomainTenantMiddleware:
         tenant = self._resolve_from_header(request) or self._resolve_from_domain(request)
 
         if tenant is None:
-            if request.path in self.TENANT_OPTIONAL_PATHS:
+            if self._is_tenant_optional_path(request.path):
                 request.tenant = None
                 return self.get_response(request)
             if request.path in self.PUBLIC_PATHS:
@@ -137,6 +150,22 @@ class HeaderOrDomainTenantMiddleware:
             path in self.PUBLIC_PATHS
             or path.startswith(self.PUBLIC_PATH_PREFIXES)
             or path.endswith(self.PUBLIC_PATH_SUFFIXES)
+        )
+
+    def _is_tenant_optional_path(self, path):
+        """Путь, который допустимо обслужить без резолвленного тенанта.
+
+        Тенант для таких путей всё равно ищется штатно (`_resolve_from_header`
+        → `_resolve_from_domain`) — отдельного механизма выбора схемы клиентом
+        не появляется.
+        """
+        if path in self.TENANT_OPTIONAL_PATHS:
+            return True
+        if path.startswith(self.TENANT_OPTIONAL_PATH_PREFIXES):
+            return True
+        return any(
+            path.startswith(prefix) and path.endswith(suffix)
+            for prefix, suffix in self.TENANT_OPTIONAL_PATH_PREFIX_SUFFIX
         )
 
     def _is_blocked_tenant_request(self, request, tenant):
