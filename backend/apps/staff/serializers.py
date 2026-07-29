@@ -7,6 +7,19 @@ from apps.core.passwords import generate_temp_password, validate_password_streng
 
 from .models import Staff, StaffPenalty, StaffBonus, SupportTeacherLink
 
+# R-18: кто чей пароль вправе сбросить через PATCH /staff/<id>/.
+# Таблицей, а не цепочкой сравнений: правило видно целиком и ревьюится за раз.
+# Совпадает по смыслу с гардом /auth/reset-password/.
+PASSWORD_RESET_MATRIX = {
+    "superadmin": frozenset({"director", "branch_admin", "teacher", "support_teacher"}),
+    "director": frozenset({"branch_admin", "teacher", "support_teacher"}),
+    "branch_admin": frozenset({"teacher", "support_teacher"}),
+}
+#: Роли, не ограниченные филиалом. Все остальные обязаны совпасть по филиалу
+#: (default-deny: новая роль по умолчанию окажется ограниченной, а не открытой).
+BRANCH_UNSCOPED_ACTORS = frozenset({"superadmin", "director"})
+
+
 def normalize_phone(value: str) -> str:
     """Keep phone uniqueness stable for inputs with spaces/dashes."""
     if not value:
@@ -136,28 +149,21 @@ class StaffSerializer(serializers.ModelSerializer):
         actor = self.context["request"].user
         target_user = instance.user
 
-        if actor.role == "superadmin" or actor.id == target_user.id:
+        # Свой пароль можно менять всегда (штатно — через /auth/change-password/).
+        if actor.id == target_user.id:
             return
 
-        if target_user.role in ("superadmin", "director"):
+        allowed_targets = PASSWORD_RESET_MATRIX.get(actor.role, frozenset())
+        if target_user.role not in allowed_targets:
             raise PermissionDenied({
                 "detail": {
-                    "uz": "Direktor parolini faqat superadmin o'zgartira oladi",
-                    "ru": "Пароль директора может изменить только суперадмин",
+                    "uz": "Bu xodim parolini o'zgartirishga ruxsatingiz yo'q",
+                    "ru": "У вас нет прав менять пароль этого сотрудника",
                 }
             })
 
-        if actor.role == "director":
-            return
-
-        if actor.role == "branch_admin":
-            if target_user.role not in ("teacher", "support_teacher"):
-                raise PermissionDenied({
-                    "detail": {
-                        "uz": "Bu xodim parolini o'zgartirishga ruxsatingiz yo'q",
-                        "ru": "У вас нет прав менять пароль этого сотрудника",
-                    }
-                })
+        # Все, кроме superadmin/director, ограничены ещё и своим филиалом.
+        if actor.role not in BRANCH_UNSCOPED_ACTORS:
             actor_branch = getattr(getattr(actor, "staff_profile", None), "branch_id", None)
             if not actor_branch or instance.branch_id != actor_branch:
                 raise PermissionDenied({
@@ -166,14 +172,6 @@ class StaffSerializer(serializers.ModelSerializer):
                         "ru": "Сотрудник не из вашего филиала",
                     }
                 })
-            return
-
-        raise PermissionDenied({
-            "detail": {
-                "uz": "Parolni o'zgartirishga ruxsatingiz yo'q",
-                "ru": "У вас нет прав менять пароль",
-            }
-        })
 
     @transaction.atomic
     def update(self, instance, validated_data):
