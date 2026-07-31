@@ -1,10 +1,23 @@
-# EduCRM Design System
+# GrowBase Design System
+
+> Выжимка. Полная версия — `vault/20-Brand/design-system.md`. Источник значений — `src/styles.css`.
 
 ## Цвета
-- Sidebar: #1a2332
-- Акцент (кнопки, ссылки, активные элементы): #0077b6
-- Hover акцента: #00b4d8
-- Фон страниц: #f8fafc
+Hex в JSX не пишем — только токен или семантический класс.
+- Акцент (кнопки, ссылки, активные элементы): var(--brand) = #059669, класс bg-primary
+- Hover акцента: var(--brand-hover) = #10b981
+- Sidebar: var(--sidebar-bg) = #1a2e22, активный пункт var(--sidebar-active) = #059669
+- Фон страниц: var(--page-bg)
+- Синяя палитра #0077b6 / #00b4d8 / #1a2332 — УСТАРЕЛА, остатки в коде это техдолг
+
+## Тема
+Светлая и тёмная — обе поддерживаются (ADR-001). Токены `.dark` в `src/styles.css`,
+тоггл в `Topbar`, ключ `growbase.theme`. Не хардкодь светлые значения — пиши через токены.
+
+## Бренд-ассеты
+`public/brand/`: `growbase-logo-mark.webp` (интерфейс), `icon-192.png` / `icon-512.png`
+(favicon + PWA-манифест), `apple-touch-icon.png`, `growbase-logo-full*.webp`.
+В интерфейсе — WebP, в `rel="icon"` и манифесте — PNG.
 - Фон карточек: bg-card (НЕ bg-white)
 - Текст основной: text-foreground (НЕ text-gray-900)
 - Текст второстепенный: text-muted-foreground (НЕ text-gray-500)
@@ -15,7 +28,7 @@
 - НИКОГДА: bg-white, rounded-lg, shadow-md
 
 ## Кнопки
-- Primary: bg-[#0077b6] text-white rounded-xl hover:bg-[#00b4d8]
+- Primary: bg-primary text-primary-foreground rounded-xl hover:bg-primary/90
 - Secondary: bg-muted text-foreground rounded-xl
 - Danger: bg-destructive text-white rounded-xl
 - НИКОГДА: свои цвета вне этой системы
@@ -34,10 +47,10 @@
 ## Иконки
 - ТОЛЬКО lucide-react
 - НИКОГДА: emoji в UI
-- Размер по умолчанию: h-4 w-4
+- Размер по умолчанию: size-4 (конвенция size-*, не w-* h-*)
 
 ## Формы
-- Input: rounded-xl border border-border focus:border-[#0077b6]
+- Input: rounded-xl border border-input focus-visible:ring-1 focus-visible:ring-ring
 - Label: text-xs font-medium text-muted-foreground uppercase
 - autoComplete="off" на все поля с данными
 
@@ -65,10 +78,10 @@
 - Страницы admin/director/teacher: ВСЕГДА PageShell
 - Страницы student/parent: БЕЗ PageShell
 - KPI карточки: ВСЕГДА KpiCard компонент
-- Подтверждение удаления: ВСЕГДА window.confirm или AlertDialog
+- Подтверждение опасного действия: ВСЕГДА ConfirmDialog (src/components/ui/confirm-dialog.tsx). НИКОГДА window.confirm
 
 ## Запрещено
-- Хардкод #0077b6 в JSX (используй bg-primary или className)
+- Хардкод любого hex в JSX (используй bg-primary / токен var(--brand))
 - Любые темные bg-slate-*, bg-gray-* на контенте страниц
 - border-gray-*, text-gray-* (используй border-border, text-muted-foreground)
 - console.log в продакшн коде

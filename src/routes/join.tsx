@@ -124,9 +124,16 @@ function JoinPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4 text-white">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold">E</div>
+          {/* Была заглушка-буква «E» от EduCRM — после ребренда просто врала. */}
+          <img
+            src="/brand/growbase-logo-mark.webp"
+            alt="GrowBase"
+            width={56}
+            height={56}
+            className="mx-auto size-14 rounded-2xl bg-white/10 object-contain p-1"
+          />
           <h1 className="mt-4 text-2xl font-bold">
-            {t ? "EduCRM Test platformasi" : "EduCRM Тестовая платформа"}
+            {t ? "GrowBase Test platformasi" : "GrowBase Тестовая платформа"}
           </h1>
         </div>
 
