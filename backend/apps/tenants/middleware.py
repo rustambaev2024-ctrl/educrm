@@ -87,18 +87,67 @@ class HeaderOrDomainTenantMiddleware:
         request.tenant = tenant
 
         if self._is_blocked_tenant_request(request, tenant):
-            return JsonResponse(
-                {
-                    "detail": (
-                        "Institution is frozen"
-                        if tenant.status == "frozen"
-                        else "Institution is archived"
-                    ),
-                    "institution_status": tenant.status,
-                },
-                status=403,
-            )
+            return self._blocked_tenant_response(request, tenant)
         return self.get_response(request)
+
+    # T-029: обезличенный ответ для неаутентифицированных. Публичная страница
+    # квиза (`POST /join/`) тоже проходит через `_is_blocked_tenant_request`,
+    # поэтому аноним, подставляя `X-Tenant-Schema`, читал из тела ответа и факт
+    # существования учебного центра, и его статус (`frozen`/`archived`).
+    ANON_BLOCKED_DETAIL = {
+        "uz": "So'rovni bajarib bo'lmadi",
+        "ru": "Запрос не может быть выполнен",
+    }
+    BLOCKED_DETAIL = {
+        "frozen": {
+            "uz": "O'quv markazi vaqtincha to'xtatilgan",
+            "ru": "Учебный центр временно заморожен",
+        },
+        "archived": {
+            "uz": "O'quv markazi arxivlangan",
+            "ru": "Учебный центр архивирован",
+        },
+    }
+
+    def _blocked_tenant_response(self, request, tenant):
+        """403 для frozen/archived: статус центра виден только своим.
+
+        Аутентифицированному пользователю центра нужно понимать, почему
+        перестали проходить изменения, — ему отдаём статус и двуязычный текст.
+        Анониму отдаём один и тот же обезличенный текст для обоих статусов и
+        **без** поля `institution_status`.
+        """
+        if not self._has_bearer_token(request):
+            return JsonResponse({"detail": self.ANON_BLOCKED_DETAIL}, status=403)
+        return JsonResponse(
+            {
+                "detail": self.BLOCKED_DETAIL.get(
+                    tenant.status, self.ANON_BLOCKED_DETAIL
+                ),
+                "institution_status": tenant.status,
+            },
+            status=403,
+        )
+
+    @staticmethod
+    def _has_bearer_token(request):
+        """Есть ли в запросе разбираемый и валидный по подписи access-токен.
+
+        Полную аутентификацию делает DRF ниже по стеку; здесь нужен только
+        ответ на вопрос «это свой или посторонний», чтобы решить, показывать ли
+        статус учебного центра.
+        """
+        header = request.META.get("HTTP_AUTHORIZATION") or ""
+        parts = header.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            return False
+        try:
+            from rest_framework_simplejwt.tokens import AccessToken
+
+            AccessToken(parts[1])
+        except Exception:
+            return False
+        return True
 
     def _jwt_schema_mismatch(self, request, tenant):
         """True, если Bearer-токен выдан в другой схеме, чем запрошенная.
