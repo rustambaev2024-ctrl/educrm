@@ -124,6 +124,12 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# T-026 / R-23: пользователь с непогашенным `must_change_password` не работает
+# через API, пока не сменит временный пароль. Аварийный выключатель для devops
+# на случай, если версия фронта без экрана смены запрёт реальных сотрудников:
+# FORCE_PASSWORD_CHANGE=0.
+FORCE_PASSWORD_CHANGE = os.getenv("FORCE_PASSWORD_CHANGE", "1") not in ("0", "false", "False")
+
 LANGUAGE_CODE = "ru"
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")
 USE_I18N = True
@@ -179,8 +185,12 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    # T-026 / R-23: тот же JWTAuthentication плюс гейт принудительной смены
+    # временного пароля (`apps/accounts/authentication.py`). Слой выбран
+    # потому, что вьюхи массово затирают DEFAULT_PERMISSION_CLASSES, а
+    # пользователь здесь уже загружен — проверка бесплатна.
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.accounts.authentication.PasswordChangeGateJWTAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     # R-24: до этого пагинации не было ни в одном списке, кроме /students/ и чата.

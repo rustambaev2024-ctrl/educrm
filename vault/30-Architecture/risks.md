@@ -220,8 +220,13 @@ soft-delete ученика вместо физического удаления.
 ## 🟡 R-23. Дефолтный пароль `ChangeMe123` без парольной политики
 > ✅ **Исправлено 2026-07-29 (T-015).** `ChangeMe123` удалён, временный пароль
 > криптостойкий и возвращается создателю один раз, `AUTH_PASSWORD_VALIDATORS` включены,
-> добавлен `User.must_change_password`. **Осталось:** принудительная блокировка API
-> до смены пароля — нужен экран на фронте, иначе сотрудник с временным паролем будет заперт.
+> добавлен `User.must_change_password`.
+> ✅ **Гейт включён 2026-07-31 (T-026).** `PasswordChangeGateJWTAuthentication`
+> в `DEFAULT_AUTHENTICATION_CLASSES`: с непогашенным флагом открыты только
+> login/refresh, `GET /auth/me/`, change-password, logout; всё остальное — `403`
+> `{"code": "password_change_required"}`. Выключатель `FORCE_PASSWORD_CHANGE=0`.
+> **Осталось:** экран принудительной смены на фронте (без него сотрудник с
+> временным паролем видит 403 везде, кроме профиля) и гейт на WebSocket-слое.
 Обнаружено 2026-07-29. `staff/serializers.py:73`, `students/serializers.py:125` —
 литерал при создании без пароля. `AUTH_PASSWORD_VALIDATORS = []`
 (`config/settings/base.py:114`), принудительной смены при первом входе нет. Вместе
