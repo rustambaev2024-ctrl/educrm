@@ -63,11 +63,10 @@ class HeaderOrDomainTenantMiddleware:
             if request.path in self.PUBLIC_PATHS:
                 request.tenant = None
                 return self.get_response(request)
-            # Единый ответ для несуществующего тенанта — тот же, что auth-слой
-            # даёт для чужой валидной схемы (401 "User not found"). Разные
-            # статусы (401 vs 404) позволяли перебирать валидные schema-имена
-            # (information disclosure, BUG-037).
-            return JsonResponse({"detail": "User not found"}, status=401)
+            # Несуществующий тенант отвечает ровно то же, что ответил бы
+            # существующий на такой же запрос без пригодных учётных данных —
+            # тело и заголовки включительно (T-031, ниже).
+            return self._unresolved_tenant_response(request)
 
         # R-25 / T-017: заголовок X-Tenant-Schema до этого никем не сверялся с
         # токеном. Пользователь одного учебного центра мог подставить чужую схему
@@ -137,17 +136,66 @@ class HeaderOrDomainTenantMiddleware:
         ответ на вопрос «это свой или посторонний», чтобы решить, показывать ли
         статус учебного центра.
         """
-        header = request.META.get("HTTP_AUTHORIZATION") or ""
-        parts = header.split()
-        if len(parts) != 2 or parts[0].lower() != "bearer":
+        raw_token = HeaderOrDomainTenantMiddleware._raw_bearer_token(request)
+        if raw_token is None:
             return False
         try:
             from rest_framework_simplejwt.tokens import AccessToken
 
-            AccessToken(parts[1])
+            AccessToken(raw_token)
         except Exception:
             return False
         return True
+
+    #: Тот же заголовок, что ставит DRF (`JWTAuthentication.authenticate_header`).
+    #: Его отсутствие само по себе выдавало «этой схемы нет».
+    WWW_AUTHENTICATE = 'Bearer realm="api"'
+
+    def _unresolved_tenant_response(self, request):
+        """401 для нерезолвленного тенанта — байт в байт как у auth-слоя.
+
+        T-031. Было: `{"detail": "User not found"}` без `WWW-Authenticate`,
+        тогда как существующая схема на тот же запрос отвечала
+        `{"detail": "Учетные данные не были предоставлены."}` (без токена) или
+        `{"detail": ..., "code": "token_not_valid", "messages": [...]}`
+        (с непригодным токеном). Разница в теле и в заголовке делала 401
+        оракулом: перебором `X-Tenant-Schema` можно было составить список
+        реальных схем, то есть список учебных центров платформы.
+
+        Теперь ответ собирается из тех же исключений DRF/simplejwt, что
+        сработали бы за middleware, поэтому остаётся синхронным с библиотекой
+        и с активной локалью.
+        """
+        from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
+        from rest_framework_simplejwt.authentication import JWTAuthentication
+        from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+
+        raw_token = self._raw_bearer_token(request)
+        if raw_token is None:
+            exc = NotAuthenticated()
+        else:
+            try:
+                JWTAuthentication().get_validated_token(raw_token)
+            except (InvalidToken, TokenError) as invalid:
+                exc = invalid
+            else:
+                # Токен валиден, но пользователя в этой схеме нет — ровно то,
+                # что simplejwt отвечает для чужой существующей схемы.
+                exc = AuthenticationFailed("User not found", code="user_not_found")
+
+        detail = getattr(exc, "detail", None)
+        body = dict(detail) if isinstance(detail, dict) else {"detail": str(detail)}
+        response = JsonResponse(body, status=401)
+        response["WWW-Authenticate"] = self.WWW_AUTHENTICATE
+        return response
+
+    @staticmethod
+    def _raw_bearer_token(request):
+        header = request.META.get("HTTP_AUTHORIZATION") or ""
+        parts = header.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            return None
+        return parts[1]
 
     def _jwt_schema_mismatch(self, request, tenant):
         """True, если Bearer-токен выдан в другой схеме, чем запрошенная.
