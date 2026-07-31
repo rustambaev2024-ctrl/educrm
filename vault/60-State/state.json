@@ -1,7 +1,7 @@
 {
   "version": 1,
   "project": "EduCRM",
-  "updated_at": "2026-07-29T04:27:53Z",
+  "updated_at": "2026-07-31T15:13:42Z",
   "branches": {
     "production": "master",
     "staging": "staging"
@@ -217,12 +217,12 @@
       "id": "T-007",
       "title": "Коммит бэкенд-части ребренда: platform_name, SMS-текст, PDF-заголовки, OpenAPI title, миграция 0004",
       "feature": "F-001",
-      "status": "staging",
-      "owner": "devops",
+      "status": "qa",
+      "owner": "qa",
       "assignee": "backend",
       "after": [],
       "blocked": null,
-      "staging_commit": null,
+      "staging_commit": "db93186d8e4197e21d45fdfcb484827f25f1c64b",
       "verdict": null,
       "created_at": "2026-07-28T14:20:36Z"
     },
@@ -256,12 +256,12 @@
       "id": "T-010",
       "title": "R-19: тенантная изоляция live-квиза (WS+REST схема из JWT, WS-группа с префиксом схемы)",
       "feature": "F-002",
-      "status": "code_review",
-      "owner": "tech-lead",
+      "status": "qa",
+      "owner": "qa",
       "assignee": "backend",
       "after": [],
       "blocked": null,
-      "staging_commit": null,
+      "staging_commit": "db93186d8e4197e21d45fdfcb484827f25f1c64b",
       "verdict": null,
       "created_at": "2026-07-29T03:14:35Z"
     },
@@ -269,12 +269,12 @@
       "id": "T-011",
       "title": "R-21 БД: Payment/CoinWallet on_delete CASCADE->PROTECT, проверка прод-данных",
       "feature": "F-002",
-      "status": "staging",
-      "owner": "devops",
+      "status": "qa",
+      "owner": "qa",
       "assignee": "db",
       "after": [],
       "blocked": null,
-      "staging_commit": null,
+      "staging_commit": "db93186d8e4197e21d45fdfcb484827f25f1c64b",
       "verdict": null,
       "created_at": "2026-07-29T03:14:35Z"
     },
@@ -323,12 +323,12 @@
       "id": "T-015",
       "title": "R-23: убрать дефолтный пароль ChangeMe123, включить парольную политику",
       "feature": "F-002",
-      "status": "staging",
-      "owner": "devops",
+      "status": "qa",
+      "owner": "qa",
       "assignee": "backend",
       "after": [],
       "blocked": null,
-      "staging_commit": null,
+      "staging_commit": "db93186d8e4197e21d45fdfcb484827f25f1c64b",
       "verdict": null,
       "created_at": "2026-07-29T03:14:35Z"
     },
@@ -767,6 +767,41 @@
       "from": "dev",
       "to": "code_review",
       "note": "Б-1 закрыт: квиз-пути убраны из PUBLIC_PATH_PREFIXES/SUFFIXES (обе пустые) и переведены в TENANT_OPTIONAL_PATH_PREFIXES / TENANT_OPTIONAL_PATH_PREFIX_SUFFIX — тенант резолвится штатным header->domain путём, нового способа выбрать схему клиентом не появилось, ?schema= не читается. Нерезолвленный тенант -> 404 из вьюхи, не 401 middleware. Отличие от прошлой попытки: 10 новых тестов идут через РЕАЛЬНЫЙ middleware-стек (django.test.Client + override_settings(MIDDLEWARE)), а не подставляют request.tenant; проверено — со старой конфигурацией 7 из 10 падают. Остальной код T-010 (тикеты, WS-группа, троттлинг) не тронут. Б-2 (legacy ?schema= в consumers.py) остаётся за T-021/T-022. Коммит a8e6fb4, влит в staging. Полный прогон: 132 passed, 11 failed — те же 11 доволновых падений, новых нет."
+    },
+    {
+      "at": "2026-07-31T15:13:41Z",
+      "task": "T-007",
+      "from": "staging",
+      "to": "qa",
+      "note": "деплой staging ок, commit db93186d8e4197e21d45fdfcb484827f25f1c64b — QA разблокирован"
+    },
+    {
+      "at": "2026-07-31T15:13:41Z",
+      "task": "T-010",
+      "from": "code_review",
+      "to": "staging",
+      "note": "commit db93186d8e4197e21d45fdfcb484827f25f1c64b"
+    },
+    {
+      "at": "2026-07-31T15:13:41Z",
+      "task": "T-010",
+      "from": "staging",
+      "to": "qa",
+      "note": "деплой staging ок, commit db93186d8e4197e21d45fdfcb484827f25f1c64b — QA разблокирован"
+    },
+    {
+      "at": "2026-07-31T15:13:42Z",
+      "task": "T-011",
+      "from": "staging",
+      "to": "qa",
+      "note": "деплой staging ок, commit db93186d8e4197e21d45fdfcb484827f25f1c64b — QA разблокирован"
+    },
+    {
+      "at": "2026-07-31T15:13:42Z",
+      "task": "T-015",
+      "from": "staging",
+      "to": "qa",
+      "note": "деплой staging ок, commit db93186d8e4197e21d45fdfcb484827f25f1c64b — QA разблокирован"
     }
   ]
 }
