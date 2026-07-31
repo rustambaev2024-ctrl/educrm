@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django_tenants.utils import schema_context
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -258,7 +259,14 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         with _schema_ctx(schema_name):
             try:
                 session = QuizSession.objects.get(pk=pk)
-            except (QuizSession.DoesNotExist, Exception):
+            except (QuizSession.DoesNotExist, DjangoValidationError, ValueError):
+                # T-030: раньше здесь стоял `except (QuizSession.DoesNotExist, Exception)`
+                # — под 404 «сессии нет» пряталась ЛЮБАЯ ошибка, включая
+                # несуществующую схему и падение БД. Именно так дефект класса Б-1
+                # («квиз отдаёт 404 всем») прожил до прода незамеченным.
+                # Оставлены только два «не найдено»-случая: записи нет и pk —
+                # не UUID (`id` = UUIDField, невалидная строка даёт
+                # ValidationError/ValueError, а не 500).
                 return Response({"error": "Session not found"}, status=404)
 
             if session.status != "waiting":
