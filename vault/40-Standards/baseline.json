@@ -1,7 +1,7 @@
 {
   "note": "Храповик: значения могут только уменьшаться. Обновляется автоматически при улучшении.",
   "metrics": {
-    "fe_hex_nonbrand": 85,
+    "fe_hex_nonbrand": 76,
     "fe_window_confirm": 1,
     "fe_any": 145,
     "fe_foreign_icons": 0,

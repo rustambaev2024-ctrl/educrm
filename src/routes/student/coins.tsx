@@ -32,21 +32,20 @@ function ProductThumb({ src, alt }: { src?: string | null; alt: string }) {
 
   if (!src || failed) {
     return (
-      <div
-        className="flex h-24 w-full items-center justify-center rounded-xl"
-        style={{ background: "#e0f2fe" }}
-      >
-        <ShoppingBag className="h-8 w-8 text-[#0077b6]" />
+      <div className="flex h-24 w-full items-center justify-center rounded-xl bg-primary/10">
+        <ShoppingBag className="h-8 w-8 text-primary" />
       </div>
     );
   }
 
   return (
     <>
+      {/* bg-muted, а не bg-white: сплошная белая плашка под фото товара была
+          нечитаемой светлой дырой в тёмной теме (ADR-001). */}
       <button
         type="button"
         onClick={() => setZoom(true)}
-        className="group block h-24 w-full overflow-hidden rounded-xl border border-border bg-white transition-transform active:scale-95"
+        className="group block h-24 w-full overflow-hidden rounded-xl border border-border bg-muted transition-transform active:scale-95"
         aria-label={alt}
         title={alt}
       >

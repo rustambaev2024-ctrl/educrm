@@ -473,7 +473,7 @@ function AdminLeadsPage() {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
                 new: "bg-primary/10 text-primary border-primary/20",
-                contacted: "border-[#e2e8f0] bg-white text-[#64748b]",
+                contacted: "border-border bg-muted text-muted-foreground",
                 trial: "bg-orange-500/10 text-orange-400 border-orange-500/20",
                 won: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
                 lost: "bg-destructive/10 text-red-400 border-destructive/20",
@@ -865,7 +865,7 @@ function LeadFormFields({
 function LeadStatusBadge({ status, labels }: { status: StudentLeadStatus; labels: Record<StudentLeadStatus, string> }) {
   const cls = {
     new: "border-primary/30 bg-primary/10 text-primary",
-    contacted: "border-[#e2e8f0] bg-white text-[#64748b]",
+    contacted: "border-border bg-muted text-muted-foreground",
     trial: "border-warning/30 bg-warning/10 text-warning-foreground",
     won: "border-success/30 bg-success/10 text-success",
     lost: "border-destructive/30 bg-destructive/10 text-destructive",
