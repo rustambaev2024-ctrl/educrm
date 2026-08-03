@@ -4,6 +4,8 @@ from django.dispatch import receiver
 
 @receiver(post_save, sender="lessons.Attendance")
 def award_coins_for_attendance(sender, instance, created, **kwargs):
+    if kwargs.get("raw"):
+        return
     if instance.status not in ("present", "late", "absent"):
         return
     try:
@@ -70,6 +72,8 @@ def award_coins_for_attendance(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender="grades.Grade")
 def award_coins_for_grade(sender, instance, created, **kwargs):
+    if kwargs.get("raw"):
+        return
     try:
         from apps.coins.services import award_coins
         from apps.coins.models import CoinSetting, CoinTransaction
@@ -102,6 +106,8 @@ def award_coins_for_grade(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender="homework.HomeworkStatus")
 def award_coins_for_homework(sender, instance, created, **kwargs):
+    if kwargs.get("raw"):
+        return
     # Начисляем при переходе в статус "submitted"
     if instance.status != "submitted":
         return
@@ -138,6 +144,8 @@ def award_coins_for_homework(sender, instance, created, **kwargs):
 @receiver(post_save, sender="students.Student")
 def create_wallet_for_new_student(sender, instance, created, **kwargs):
     """Создать кошелёк автоматически при создании студента"""
+    if kwargs.get("raw"):
+        return
     if not created:
         return
     try:
