@@ -9,6 +9,8 @@ from .models import Group, GroupMembership
 
 @receiver(post_save, sender=Group)
 def on_group_created(sender, instance, created, **kwargs):
+    if kwargs.get("raw"):
+        return
     if created:
         create_group_chat(instance)
         generate_lessons_for_group_sync(instance)
@@ -20,6 +22,8 @@ def on_membership_activated(sender, instance, **kwargs):
     HomeworkStatus для уже существующих групповых заданий — иначе его сдача
     некуда записаться. Идемпотентно (ignore_conflicts), покрывает вступление
     и реактивацию членства."""
+    if kwargs.get("raw"):
+        return
     if instance.left_at is not None:
         return
 

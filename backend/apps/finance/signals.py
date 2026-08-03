@@ -8,6 +8,8 @@ from .models import Wallet
 
 @receiver(post_save, sender=Student)
 def ensure_wallet_for_student(sender, instance, created, **kwargs):
+    if kwargs.get("raw"):
+        return
     if created:
         Wallet.objects.get_or_create(
             student=instance,
