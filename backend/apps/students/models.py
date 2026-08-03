@@ -254,6 +254,8 @@ _CLOSING_STATUSES = {"expelled", "archived", "graduate"}
 @receiver(pre_save, sender=Student)
 def close_memberships_on_status_change(sender, instance, **kwargs):
     """Auto-close open group memberships when student is expelled/archived/graduated."""
+    if kwargs.get("raw"):
+        return
     if not instance.pk:
         return
     try:
