@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/dialog";
 import { StudentDetailSheet } from "@/components/students/student-detail-sheet";
 import { useData } from "@/lib/data/store";
+import { sumIncome } from "@/lib/data/mappers";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 import type { Course, Group, Student } from "@/lib/data/types";
@@ -125,9 +126,11 @@ function DirectorCoursesPage() {
         : 0;
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthIncome = payments
-      .filter((p) => p.direction === "in" && courseStudentIds.has(p.studentId ?? "") && new Date(p.date) >= monthStart)
-      .reduce((s, p) => s + p.amount, 0);
+    const monthIncome = sumIncome(
+      payments.filter(
+        (p) => courseStudentIds.has(p.studentId ?? "") && new Date(p.date) >= monthStart,
+      ),
+    );
     return { totalStudents, activeGroups, avgFill, monthIncome };
   }, [courseGroups, courseStudentIds, payments]);
 

@@ -359,12 +359,52 @@ export interface PaymentRaw {
   comment: string | null;
 }
 
+// Деньги, реально поступившие в кассу. "manual_top_up" — то же событие, что и
+// "top_up", просто внесённое сотрудником вручную (оплата принята оффлайн и т.п.).
+const INCOME_TYPES = new Set(["top_up", "manual_top_up"]);
+
+// Отмена/исправление пополнения (reverse_payment для top_up создаёт manual_charge).
+// Вычитается из дохода: иначе ошибочное пополнение и его исправление дают
+// завышенную выручку — операция и её отмена обязаны давать в сумме ноль.
+const INCOME_REVERSAL_TYPES = new Set(["manual_charge"]);
+
+// Реальный отток денег из кассы (выплаты, закупки).
+const CASH_OUT_TYPES = new Set(["expense"]);
+
+interface MoneyRow {
+  type: string;
+  amount: number;
+}
+
+/** Доход за период: поступления минус их отмены. */
+export function sumIncome(payments: MoneyRow[]): number {
+  return payments.reduce((total, p) => {
+    if (INCOME_TYPES.has(p.type)) return total + p.amount;
+    if (INCOME_REVERSAL_TYPES.has(p.type)) return total - p.amount;
+    return total;
+  }, 0);
+}
+
+/** Расход за период: только реальный отток денег из кассы. */
+export function sumExpense(payments: MoneyRow[]): number {
+  return payments.reduce(
+    (total, p) => (CASH_OUT_TYPES.has(p.type) ? total + p.amount : total),
+    0,
+  );
+}
+
 export function mapPayment(r: PaymentRaw) {
   const transactionType = r.transaction_type ?? r.payment_type ?? r.type ?? "top_up";
+  // "refund" — это отмена списания за урок (reverse_payment), деньги из кассы не
+  // уходят, поэтому он "internal", а не "out": иначе списание и его отмена
+  // суммарно занижали бы прибыль.
   const direction =
-    transactionType === "expense" || transactionType === "refund"
+    transactionType === "expense"
       ? "out"
-      : transactionType === "charge" || transactionType === "discount" || transactionType === "manual_charge"
+      : transactionType === "charge" ||
+          transactionType === "discount" ||
+          transactionType === "manual_charge" ||
+          transactionType === "refund"
         ? "internal"
         : "in";
   return {

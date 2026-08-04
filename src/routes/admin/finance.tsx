@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useData } from "@/lib/data/store";
+import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatMoney } from "@/lib/format";
 import type { Payment, PaymentMethod } from "@/lib/data/types";
@@ -161,8 +162,8 @@ function FinancePage() {
   monthStart.setHours(0, 0, 0, 0);
 
   const monthPayments = payments.filter((p) => new Date(p.date) >= monthStart);
-  const monthIncome = monthPayments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
-  const monthExpense = monthPayments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
+  const monthIncome = sumIncome(monthPayments);
+  const monthExpense = sumExpense(monthPayments);
   const totalDebt = students
     .filter((s) => s.balance < 0)
     .reduce((s, st) => s + Math.abs(st.balance), 0);

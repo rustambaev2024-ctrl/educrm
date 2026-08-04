@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useData } from "@/lib/data/store";
+import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
 
@@ -62,8 +63,8 @@ function DirectorFinancePage() {
     const pt = new Date(p.date).getTime();
     return pt >= fromTime && pt < toTime;
   });
-  const income = monthPayments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
-  const expense = monthPayments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
+  const income = sumIncome(monthPayments);
+  const expense = sumExpense(monthPayments);
   const debt = students
     .filter((s) => s.balance < 0)
     .reduce((s, st) => s + Math.abs(st.balance), 0);
@@ -73,8 +74,8 @@ function DirectorFinancePage() {
     () =>
       branches.map((b) => {
         const bp = monthPayments.filter((p) => p.branchId === b.id);
-        const bIncome = bp.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
-        const bExpense = bp.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
+        const bIncome = sumIncome(bp);
+        const bExpense = sumExpense(bp);
         return { branch: b, income: bIncome, expense: bExpense, profit: bIncome - bExpense };
       }),
     [branches, monthPayments],

@@ -9,6 +9,7 @@ import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { PageLoadingState } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
+import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
@@ -32,8 +33,8 @@ function AnalyticsPage() {
         const pt = new Date(p.date).getTime();
         return pt >= d.getTime() && pt < next.getTime();
       });
-      const income = inMonth.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0) / 1_000_000;
-      const expense = inMonth.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0) / 1_000_000;
+      const income = sumIncome(inMonth) / 1_000_000;
+      const expense = sumExpense(inMonth) / 1_000_000;
       months.push({
         label: d.toLocaleDateString(lang === "uz" ? "uz-Latn" : "ru-RU", { month: "short", year: "2-digit" }),
         income,
@@ -53,9 +54,7 @@ function AnalyticsPage() {
   // Revenue by branch
   const byBranch = useMemo(() => {
     return branches.map((b) => {
-      const income = payments
-        .filter((p) => p.branchId === b.id && p.direction === "in")
-        .reduce((s, p) => s + p.amount, 0);
+      const income = sumIncome(payments.filter((p) => p.branchId === b.id));
       return { name: b.name, value: Math.round(income / 1_000_000) };
     });
   }, [branches, payments]);
@@ -70,8 +69,8 @@ function AnalyticsPage() {
     });
   }, [courses, groups]);
 
-  const totalRevenue = payments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
-  const totalExpense = payments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
+  const totalRevenue = sumIncome(payments);
+  const totalExpense = sumExpense(payments);
   const overdueAmount = students.filter((s) => s.status === "debtor").reduce((s, st) => s + Math.abs(st.balance), 0);
   const attPct = attendancePercentage(attendance);
   const moneyUnit = lang === "uz" ? "mln so'm" : "млн сум";

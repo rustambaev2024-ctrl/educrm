@@ -7,6 +7,7 @@ import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { PageLoadingState } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
+import { sumIncome } from "@/lib/data/mappers";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
@@ -50,9 +51,9 @@ function AdminAnalytics() {
       next.setDate(d.getDate() + 1);
       const inDay = payments.filter((p) => {
         const pt = new Date(p.date).getTime();
-        return pt >= d.getTime() && pt < next.getTime() && p.direction === "in";
+        return pt >= d.getTime() && pt < next.getTime();
       });
-      arr.push({ day: `${d.getDate()}.${d.getMonth() + 1}`, income: inDay.reduce((s, p) => s + p.amount, 0) / 1_000_000 });
+      arr.push({ day: `${d.getDate()}.${d.getMonth() + 1}`, income: sumIncome(inDay) / 1_000_000 });
     }
     return arr;
   }, [payments]);
