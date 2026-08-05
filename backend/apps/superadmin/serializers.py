@@ -130,7 +130,11 @@ class InstitutionSerializer(serializers.ModelSerializer):
             obj,
             lambda: str(
                 Payment.objects.filter(
-                    payment_type="top_up",
+                    # Include manual_top_up alongside top_up: manual top-ups are the
+                    # same economic event (wallet credit) entered by staff instead of
+                    # the student flow, and were previously excluded here, causing
+                    # tenants that only record manual top-ups to show zero revenue.
+                    payment_type__in=("top_up", "manual_top_up"),
                     created_at__gte=start_of_month,
                 ).aggregate(total=Sum("amount"))["total"] or 0
             ),

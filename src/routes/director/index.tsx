@@ -13,6 +13,7 @@ import { StatCardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useData } from "@/lib/data/store";
+import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney, formatDateTime } from "@/lib/format";
@@ -34,8 +35,8 @@ function DirectorHome() {
 
   const monthly = useMemo(() => {
     const inMonth = payments.filter((p) => new Date(p.date).getTime() >= monthStart);
-    const income = inMonth.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
-    const expense = inMonth.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
+    const income = sumIncome(inMonth);
+    const expense = sumExpense(inMonth);
     return { income, expense, profit: income - expense };
   }, [payments, monthStart]);
 
@@ -60,8 +61,8 @@ function DirectorHome() {
       });
       days.push({
         day: `${d.getDate()}.${d.getMonth() + 1}`,
-        income: inDay.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0) / 1_000_000,
-        expense: inDay.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0) / 1_000_000,
+        income: sumIncome(inDay) / 1_000_000,
+        expense: sumExpense(inDay) / 1_000_000,
       });
     }
     return days;

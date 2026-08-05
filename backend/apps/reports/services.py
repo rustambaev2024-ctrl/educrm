@@ -20,6 +20,18 @@ from apps.students.models import Student
 ATTENDANCE_PRESENT_STATUSES = ("present", "late", "online")
 ACTIVE_STUDENT_STATUSES = ("active", "frozen", "debtor")
 
+# Revenue = wallet top-ups, including manual ones created by admins/directors.
+# "top_up" is the regular student-initiated/registered top-up; "manual_top_up" is
+# the same economic event entered manually (correction, cash received offline, etc.)
+# and must count toward income the same way. Historically only "top_up" was
+# checked here, which undercounted (or zeroed out) revenue for tenants that only
+# ever record manual top-ups.
+INCOME_PAYMENT_TYPES = ("top_up", "manual_top_up")
+
+# Charges = lesson billing and manual debits from a student's wallet. Both reduce
+# profit and must be subtracted symmetrically with INCOME_PAYMENT_TYPES above.
+CHARGE_PAYMENT_TYPES = ("charge", "manual_charge")
+
 
 @dataclass(frozen=True)
 class ReportFilters:
@@ -86,7 +98,7 @@ def get_overview(user, filters: ReportFilters) -> dict:
 
     payments_qs = Payment.objects.filter(
         branch_id__in=branch_ids,
-        payment_type="top_up",
+        payment_type__in=INCOME_PAYMENT_TYPES,
     )
     payments_qs = _with_date_range(payments_qs, "created_at", filters.date_from, filters.date_to)
     revenue_total = payments_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
@@ -149,7 +161,7 @@ def get_attendance_report(user, filters: ReportFilters) -> dict:
 
 def get_revenue_report(user, filters: ReportFilters) -> dict:
     branch_ids = _branch_ids_for_user(user, filters.branch_id)
-    payments_qs = Payment.objects.filter(branch_id__in=branch_ids, payment_type="top_up")
+    payments_qs = Payment.objects.filter(branch_id__in=branch_ids, payment_type__in=INCOME_PAYMENT_TYPES)
     payments_qs = _with_date_range(payments_qs, "created_at", filters.date_from, filters.date_to)
 
     total_revenue = payments_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
@@ -572,18 +584,18 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
         branch_id__in=branch_ids,
         created_at__date=yesterday,
     )
-    income_today = payments_today.filter(payment_type="top_up").aggregate(
+    income_today = payments_today.filter(payment_type__in=INCOME_PAYMENT_TYPES).aggregate(
         total=Coalesce(Sum("amount"), Decimal("0"))
     )["total"]
-    income_yesterday = payments_yesterday.filter(payment_type="top_up").aggregate(
+    income_yesterday = payments_yesterday.filter(payment_type__in=INCOME_PAYMENT_TYPES).aggregate(
         total=Coalesce(Sum("amount"), Decimal("0"))
     )["total"]
-    charges_today = payments_today.filter(payment_type="charge").aggregate(
+    charges_today = payments_today.filter(payment_type__in=CHARGE_PAYMENT_TYPES).aggregate(
         total=Coalesce(Sum("amount"), Decimal("0"))
     )["total"]
 
     top_payments = list(
-        payments_today.filter(payment_type="top_up")
+        payments_today.filter(payment_type__in=INCOME_PAYMENT_TYPES)
         .select_related("student__user")
         .order_by("-amount")[:5]
         .values("amount", "method", "created_at", "student__user__full_name")
@@ -709,7 +721,7 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
                 }
                 for p in top_payments
             ],
-            "payments_count": payments_today.filter(payment_type="top_up").count(),
+            "payments_count": payments_today.filter(payment_type__in=INCOME_PAYMENT_TYPES).count(),
         },
         "lessons": {
             "total": total_lessons,
@@ -823,10 +835,10 @@ def get_group_report(group_id, date_from=None, date_to=None):
     payments_qs = Payment.objects.filter(
         group=group, created_at__date__gte=date_from, created_at__date__lte=date_to
     )
-    income = float(payments_qs.filter(payment_type="top_up").aggregate(
+    income = float(payments_qs.filter(payment_type__in=INCOME_PAYMENT_TYPES).aggregate(
         t=Coalesce(Sum("amount"), Decimal("0"))
     )["t"])
-    charges = float(payments_qs.filter(payment_type="charge").aggregate(
+    charges = float(payments_qs.filter(payment_type__in=CHARGE_PAYMENT_TYPES).aggregate(
         t=Coalesce(Sum("amount"), Decimal("0"))
     )["t"])
 

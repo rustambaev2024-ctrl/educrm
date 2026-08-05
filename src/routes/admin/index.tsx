@@ -5,6 +5,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { StatCardSkeleton } from "@/components/ui/skeleton";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { useData } from "@/lib/data/store";
+import { sumIncome } from "@/lib/data/mappers";
 import { useI18n } from "@/lib/i18n";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { formatMoney, formatTime, getLocalDateString, sameDay } from "@/lib/format";
@@ -50,10 +51,12 @@ function AdminHome() {
   const monthRevenue = useMemo(() => {
     const yr = today.getFullYear();
     const mo = today.getMonth();
-    return payments
-      .filter((p) => p.direction === "in")
-      .filter((p) => { const d = new Date(p.date); return d.getFullYear() === yr && d.getMonth() === mo; })
-      .reduce((s, p) => s + p.amount, 0);
+    return sumIncome(
+      payments.filter((p) => {
+        const d = new Date(p.date);
+        return d.getFullYear() === yr && d.getMonth() === mo;
+      }),
+    );
   }, [payments]);
 
   const todayLessons = useMemo(
