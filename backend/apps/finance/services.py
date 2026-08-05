@@ -158,8 +158,8 @@ def apply_payment(
         _notify_student_became_debtor(student)
 
     return PaymentResult(payment=payment, status_changed=status_changed)
-    
-    
+
+
 @transaction.atomic
 def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
     """
@@ -169,9 +169,9 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
     """
     if payment.payment_type == "refund":
         raise ValueError("Cannot reverse a refund payment")
-    
+
     comment = f"Reversal of payment {payment.id}"
-    
+
     if payment.payment_type == "charge":
         # Charge was -amount. Refund is +amount.
         result = apply_payment(
@@ -187,10 +187,10 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
         if payment.lesson:
             from apps.lessons.models import Attendance
             Attendance.objects.filter(
-                lesson=payment.lesson, 
+                lesson=payment.lesson,
                 student=payment.student
             ).update(is_charged=False)
-            
+
     elif payment.payment_type == "top_up":
         # top_up was +amount. Reverse with manual_charge (NOT "charge" — that's lesson billing).
         result = apply_payment(
@@ -226,5 +226,5 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
         )
     else:
         raise ValueError(f"Reversal for {payment.payment_type} not implemented")
-        
+
     return result

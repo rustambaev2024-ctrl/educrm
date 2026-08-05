@@ -37,7 +37,7 @@ class BranchViewSet(viewsets.ModelViewSet):
         if user.role in ("superadmin", "director"):
             return qs
 
-        if user.role in ("branch_admin", "teacher") and hasattr(user, "staff_profile"):
+        if user.role in ("branch_admin", "teacher", "support_teacher") and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             if branch_id:
                 return qs.filter(id=branch_id)
@@ -48,7 +48,9 @@ class BranchViewSet(viewsets.ModelViewSet):
         if user.role == "parent" and hasattr(user, "parent_profile"):
             return qs.filter(students__parents=user.parent_profile).distinct()
 
-        return qs
+        # Роль без явного правила не должна видеть все филиалы: support_teacher
+        # раньше проваливался сюда и получал список филиалов всей организации.
+        return qs.none()
 
     def perform_destroy(self, instance):
         from apps.courses.models import Group

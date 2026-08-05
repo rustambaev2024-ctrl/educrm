@@ -187,10 +187,11 @@ class TestReversePayment:
         result = apply_payment(student=student, payment_type="top_up", amount=Decimal("100000"))
         reverse_payment(result.payment)
 
-        # После top_up отмена создаёт charge с комментарием Reversal of payment...
+        # Отмена top_up создаёт manual_charge, а не charge: charge — это
+        # списание за урок, оно попадает в зарплату учителя и в отчёты.
         assert Payment.objects.filter(
             student=student,
-            payment_type="charge",
+            payment_type="manual_charge",
             comment__startswith="Reversal of payment",
         ).exists()
 

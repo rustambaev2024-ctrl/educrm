@@ -73,7 +73,9 @@ class CourseViewSet(
                 groups__memberships__student__parents=user.parent_profile,
                 groups__memberships__left_at__isnull=True,
             ).distinct()
-        return qs
+        # Роль без явного правила ничего не видит — иначе новая или устаревшая
+        # роль молча получает доступ ко всем курсам организации.
+        return qs.none()
 
 
 class GroupViewSet(

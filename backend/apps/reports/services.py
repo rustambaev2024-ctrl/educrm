@@ -697,10 +697,7 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
             "late_minutes": ta.late_minutes,
         })
 
-    # 5. ЛИДЫ (заглушка, так как модель Lead не существует)
-    new_leads_count = 0
-    new_leads_yesterday = 0
-    leads_list = []
+    # 5. ЛИДЫ — модели Lead нет, блок отчёта не заполняется.
 
     return {
         "date": str(report_date),
@@ -784,7 +781,7 @@ def get_audit_logs_snapshot(user, filters: ReportFilters) -> list[dict]:
 def get_group_report(group_id, date_from=None, date_to=None):
     """Detailed report for a single group."""
     import calendar as cal
-    from apps.courses.models import Group, GroupMembership
+    from apps.courses.models import Group
     from apps.grades.models import Grade
 
     try:

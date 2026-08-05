@@ -23,7 +23,10 @@ jobs:
       - name: Compile backend
         run: python -m compileall apps config
       - name: Lint backend
-        run: python -m flake8 apps config --max-line-length=120 --count
+        run: python -m flake8 apps config --count
+      - name: Test backend
+        working-directory: .
+        run: python -m pytest backend/tests -q
 
   frontend:
     runs-on: ubuntu-latest

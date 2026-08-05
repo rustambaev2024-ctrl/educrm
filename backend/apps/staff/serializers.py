@@ -5,6 +5,7 @@ from apps.accounts.models import User
 
 from .models import Staff, StaffPenalty, StaffBonus, SupportTeacherLink
 
+
 def normalize_phone(value: str) -> str:
     """Keep phone uniqueness stable for inputs with spaces/dashes."""
     if not value:
@@ -50,7 +51,11 @@ class StaffSerializer(serializers.ModelSerializer):
             from django_tenants.utils import get_tenant_model, schema_context, get_public_schema_name
             from apps.accounts.models import User
 
-            current_schema = connection.schema_name
+            # Вне django-tenants (management-команды, тесты) соединение не
+            # знает про схемы — межтенантную проверку тогда пропускаем.
+            current_schema = getattr(connection, "schema_name", None)
+            if current_schema is None:
+                return value
             Institution = get_tenant_model()
             conflicts = []
             for tenant in Institution.objects.exclude(schema_name__in=["public", current_schema]):
