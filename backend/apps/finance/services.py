@@ -6,6 +6,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
 
+from apps.lessons.services import slot_weekday
 from apps.notifications.services import NotificationService
 from apps.students.models import Student
 
@@ -45,10 +46,10 @@ def calculate_lesson_price(group, lesson_date: date) -> Decimal:
     _, days_in_month = monthrange(year, month)
 
     lesson_days = {
-        slot.get("day")
+        slot_weekday(slot)
         for slot in (group.schedule or [])
-        if isinstance(slot, dict) and slot.get("day") is not None
-    }
+        if isinstance(slot, dict)
+    } - {None}
     lessons_count = sum(
         1
         for day in range(1, days_in_month + 1)
