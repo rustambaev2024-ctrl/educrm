@@ -321,9 +321,15 @@ class StudentTransferView(APIView):
             from apps.courses.models import Group
             from apps.courses.transfer_service import transfer_student
 
-            student = Student.objects.get(id=data["student_id"])
-            from_group = Group.objects.get(id=data["from_group_id"])
-            to_group = Group.objects.get(id=data["to_group_id"])
+            from apps.reports.services import branch_ids_for_user
+
+            # Ученик и обе группы должны быть в филиалах, доступных этому
+            # пользователю: иначе администратор одного филиала мог перевести
+            # чужого ученика в чужую группу, зная только их id.
+            allowed_branches = branch_ids_for_user(request.user)
+            student = Student.objects.get(id=data["student_id"], branch_id__in=allowed_branches)
+            from_group = Group.objects.get(id=data["from_group_id"], branch_id__in=allowed_branches)
+            to_group = Group.objects.get(id=data["to_group_id"], branch_id__in=allowed_branches)
 
             transfer = transfer_student(
                 student=student,
@@ -349,9 +355,20 @@ class StudentTransferView(APIView):
 
     def get(self, request):
         """История переводов."""
+        # У GET не было ни проверки роли, ни фильтра по филиалу — в отличие от
+        # POST. Любой авторизованный, включая ученика и родителя, читал переводы
+        # всей организации: имена, группы, филиалы, причины.
+        if request.user.role not in ("director", "branch_admin", "superadmin"):
+            return Response({"detail": "Permission denied"}, status=403)
+
+        from apps.reports.services import branch_ids_for_user
+
+        allowed_branches = branch_ids_for_user(request.user)
         qs = StudentTransfer.objects.select_related(
             "student", "from_group", "to_group",
             "from_branch", "to_branch", "created_by",
+        ).filter(
+            Q(from_branch_id__in=allowed_branches) | Q(to_branch_id__in=allowed_branches)
         )
 
         student_id = request.query_params.get("student_id")
