@@ -7,6 +7,7 @@ from django_tenants.utils import get_public_schema_name, get_tenant_model, schem
 
 from apps.courses.models import Group
 from apps.lessons.models import Attendance
+from apps.lessons.services import slot_weekday
 from apps.students.models import Student
 
 from .models import Payment
@@ -39,10 +40,10 @@ def daily_lesson_charge():
 
             for group in active_groups:
                 lesson_days = {
-                    slot.get("day")
+                    slot_weekday(slot)
                     for slot in (group.schedule or [])
-                    if isinstance(slot, dict) and slot.get("day") is not None
-                }
+                    if isinstance(slot, dict)
+                } - {None}
 
                 if weekday not in lesson_days:
                     continue

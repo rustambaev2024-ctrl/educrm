@@ -14,7 +14,13 @@ def _parse_time(value: str) -> time:
     return datetime.strptime(value, "%H:%M").time()
 
 
-def _slot_weekday(slot: dict[str, Any]) -> int | None:
+def slot_weekday(slot: dict[str, Any]) -> int | None:
+    """День недели слота расписания в конвенции Python (пн=0..вс=6).
+
+    Расписание хранится как пн=1..вс=7, поэтому сырое значение сравнивать с
+    date.weekday() нельзя — получится сдвиг на день. Биллинг обязан звать
+    именно эту функцию, а не читать slot["day"] напрямую.
+    """
     raw = slot.get("day")
     if raw is None:
         raw = slot.get("day_of_week")
@@ -61,7 +67,7 @@ def generate_lessons_for_group_sync(
     while current <= end:
         current_weekday = current.weekday()
         for slot in schedule_slots:
-            if _slot_weekday(slot) != current_weekday:
+            if slot_weekday(slot) != current_weekday:
                 continue
 
             start_time = _slot_start(slot)
