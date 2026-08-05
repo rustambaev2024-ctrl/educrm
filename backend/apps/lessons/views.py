@@ -35,6 +35,14 @@ class LessonViewSet(
                 permission_classes = [permissions.IsAuthenticated]
             else:
                 permission_classes = [IsTeacher | IsSupportTeacher]
+        elif self.action == "teacher_checkin":
+            # Отметку о приходе учителя мог поставить кто угодно из тех, кому
+            # виден урок, — в том числе сам ученик. Она влияет на зарплату
+            # и дисциплинарные отчёты, поэтому пишет только учитель или админ.
+            if self.request.method == "GET":
+                permission_classes = [permissions.IsAuthenticated]
+            else:
+                permission_classes = [IsTeacher | IsBranchAdmin]
         elif self.action in ("update", "partial_update"):
             permission_classes = [IsBranchAdmin]
         else:

@@ -89,6 +89,12 @@ def test_superadmin_wins_among_matching_tenants():
     assert tenant.schema_name == "school_b"
 
 
+def test_unknown_phone_resolves_to_none_not_an_error():
+    """Раньше незарегистрированный номер давал 400, а неверный пароль — 401:
+    по разнице статусов перебирались существующие номера."""
+    assert _resolve({}, password="anything") is None
+
+
 def test_wrong_password_falls_back_to_first_match():
     """Отказ должен выдать сериализатор — резолвер не превращает его в 500."""
     tenant = _resolve(

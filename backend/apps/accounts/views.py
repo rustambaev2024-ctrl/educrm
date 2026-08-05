@@ -3,6 +3,7 @@ from django_tenants.utils import get_public_schema_name, get_tenant_model, schem
 from drf_spectacular.utils import OpenApiResponse, OpenApiTypes, extend_schema
 from rest_framework import permissions, status
 from rest_framework.response import Response
+from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
@@ -21,8 +22,24 @@ from .serializers import (
 )
 
 
+class LoginRateThrottle(SimpleRateThrottle):
+    """Ограничение перебора пароля — по номеру телефона, а не по IP.
+
+    Школа сидит за одним адресом: общий лимит по IP выкинул бы всех сразу
+    в девять утра. Ключ по телефону бьёт ровно по подбору пароля к аккаунту.
+    """
+
+    scope = "login"
+    rate = "10/min"
+
+    def get_cache_key(self, request, view):
+        phone = normalize_phone((request.data or {}).get("phone") or "")
+        return f"throttle_login_{phone}" if phone else None
+
+
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -65,7 +82,6 @@ class LoginView(TokenObtainPairView):
     def _resolve_tenant_by_phone(self, phone, request):
         phone = normalize_phone(phone)
         tenant_model = get_tenant_model()
-        from rest_framework.exceptions import ValidationError
 
         matches = []
         tenants = tenant_model.objects.exclude(schema_name=get_public_schema_name())
@@ -76,7 +92,10 @@ class LoginView(TokenObtainPairView):
                     matches.append((tenant, user))
 
         if not matches:
-            raise ValidationError({"detail": "Invalid credentials"})
+            # Раньше здесь была ValidationError (400), а неверный пароль давал
+            # 401 — по разнице статусов перебирались зарегистрированные номера.
+            # Возвращаем None: вызывающий отдаст тот же 401, что и при ошибке.
+            return None
 
         # Один номер может существовать у нескольких организаций (родитель с
         # детьми в двух центрах, учитель на две школы). Без проверки пароля

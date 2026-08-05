@@ -5,6 +5,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 
 from .models import Quiz, QuizSession, SessionParticipant
 from .serializers import (
@@ -61,6 +62,17 @@ def _find_schema_for_session(predicate):
         except Exception:
             continue
     return None
+
+
+class QuizCodeLookupThrottle(AnonRateThrottle):
+    """Код сессии — 6 цифр, поиск идёт по всем схемам тенантов.
+
+    Без ограничения перебор всего пространства кодов вскрывает названия
+    викторин всех организаций, а каждый промах стоит по одному переключению
+    схемы на клиента — с ростом числа клиентов это ещё и нагрузка на БД.
+    """
+
+    rate = "30/min"
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -188,6 +200,7 @@ class QuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
         url_path="by-code/(?P<code>[0-9]+)",
         authentication_classes=[],
         permission_classes=[AllowAny],
+        throttle_classes=[QuizCodeLookupThrottle],
     )
     def by_code(self, request, code=None):
         def _fetch_payload():

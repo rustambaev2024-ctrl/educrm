@@ -60,7 +60,7 @@ def _percentage(part: int | Decimal, total: int | Decimal) -> Decimal:
     return _quantize((Decimal(part) / Decimal(total)) * Decimal("100"))
 
 
-def _branch_ids_for_user(user, branch_id: str | None = None) -> list:
+def branch_ids_for_user(user, branch_id: str | None = None) -> list:
     if user.role in ("superadmin", "director"):
         queryset = Branch.objects.all()
         if branch_id:
@@ -89,7 +89,7 @@ def _with_date_range(queryset, field_name: str, date_from: date, date_to: date):
 
 
 def get_overview(user, filters: ReportFilters) -> dict:
-    branch_ids = _branch_ids_for_user(user, filters.branch_id)
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
     students_qs = Student.objects.filter(branch_id__in=branch_ids)
     students_qs = _with_date_range(students_qs, "registered_at", filters.date_from, filters.date_to)
     total_students = students_qs.count()
@@ -124,7 +124,7 @@ def get_overview(user, filters: ReportFilters) -> dict:
 
 
 def get_attendance_report(user, filters: ReportFilters) -> dict:
-    branch_ids = _branch_ids_for_user(user, filters.branch_id)
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
     branches = Branch.objects.filter(id__in=branch_ids).order_by("name")
     attendance_qs = Attendance.objects.filter(lesson__group__branch_id__in=branch_ids)
     attendance_qs = _with_date_range(
@@ -160,7 +160,7 @@ def get_attendance_report(user, filters: ReportFilters) -> dict:
 
 
 def get_revenue_report(user, filters: ReportFilters) -> dict:
-    branch_ids = _branch_ids_for_user(user, filters.branch_id)
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
     payments_qs = Payment.objects.filter(branch_id__in=branch_ids, payment_type__in=INCOME_PAYMENT_TYPES)
     payments_qs = _with_date_range(payments_qs, "created_at", filters.date_from, filters.date_to)
 
@@ -211,7 +211,7 @@ def get_revenue_report(user, filters: ReportFilters) -> dict:
 
 
 def get_teachers_report(user, filters: ReportFilters) -> dict:
-    branch_ids = _branch_ids_for_user(user, filters.branch_id)
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
 
     from django.db.models import Avg, Count, Q
     from django.db.models.functions import Coalesce
@@ -328,7 +328,7 @@ def get_teachers_report(user, filters: ReportFilters) -> dict:
 
 
 def get_rooms_report(user, filters: ReportFilters) -> dict:
-    branch_ids = _branch_ids_for_user(user, filters.branch_id)
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
     rooms_qs = Room.objects.filter(
         branch_id__in=branch_ids,
         is_active=True,
@@ -366,7 +366,7 @@ def get_rooms_report(user, filters: ReportFilters) -> dict:
 
 
 def get_conversion_report(user, filters: ReportFilters) -> dict:
-    branch_ids = _branch_ids_for_user(user, filters.branch_id)
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
     students_qs = Student.objects.filter(branch_id__in=branch_ids)
     students_qs = _with_date_range(students_qs, "registered_at", filters.date_from, filters.date_to)
 
@@ -389,7 +389,7 @@ def get_conversion_report(user, filters: ReportFilters) -> dict:
 
 
 def get_debtors_report(user, filters: ReportFilters) -> dict:
-    branch_ids = _branch_ids_for_user(user, filters.branch_id)
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
     debtors_qs = Student.objects.select_related("user", "branch").filter(
         branch_id__in=branch_ids,
         wallet_balance__lt=0,
@@ -572,7 +572,7 @@ def calculate_teacher_salary(
 
 def get_daily_report(user, report_date: date, branch_id: str | None = None) -> dict:
     """Ежедневный отчёт 'Kunlik hisobot'."""
-    branch_ids = _branch_ids_for_user(user, branch_id)
+    branch_ids = branch_ids_for_user(user, branch_id)
     yesterday = report_date - timedelta(days=1)
 
     # 1. ФИНАНСЫ
@@ -756,7 +756,7 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
 
 
 def get_audit_logs_snapshot(user, filters: ReportFilters) -> list[dict]:
-    branch_ids = _branch_ids_for_user(user, filters.branch_id)
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
     logs_qs = AuditLog.objects.select_related("user").filter(
         timestamp__date__gte=filters.date_from,
         timestamp__date__lte=filters.date_to,
