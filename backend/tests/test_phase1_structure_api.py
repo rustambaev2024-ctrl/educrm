@@ -62,7 +62,7 @@ def test_branch_admin_can_only_list_own_branch(api_client):
     admin_user = User.objects.create_user(
         phone="+998902222222",
         full_name="Branch Admin",
-        role="admin",
+        role="branch_admin",
         password="secret123",
     )
     Staff.objects.create(user=admin_user, branch=branch_a)
@@ -73,6 +73,31 @@ def test_branch_admin_can_only_list_own_branch(api_client):
 
     forbidden_create = api_client.post("/api/v1/branches/", {"name": "C"}, format="json")
     assert forbidden_create.status_code == 403
+
+    list_response = api_client.get("/api/v1/branches/")
+    assert list_response.status_code == 200
+    ids = {item["id"] for item in list_response.json()}
+    assert str(branch_a.id) in ids
+    assert str(branch_b.id) not in ids
+
+
+@pytest.mark.django_db
+def test_support_teacher_can_only_list_own_branch(api_client):
+    """support_teacher не был перечислен в get_queryset и проваливался в
+    ветку «вернуть всё» — видел филиалы всей организации."""
+    branch_a = Branch.objects.create(name="A", address="A", phone="1")
+    branch_b = Branch.objects.create(name="B", address="B", phone="2")
+
+    support = User.objects.create_user(
+        phone="+998902222299",
+        full_name="Support Teacher",
+        role="support_teacher",
+        password="secret123",
+    )
+    Staff.objects.create(user=support, branch=branch_a)
+
+    login_response = _login(api_client, support.phone, "secret123")
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_response.json()['access']}")
 
     list_response = api_client.get("/api/v1/branches/")
     assert list_response.status_code == 200
@@ -119,7 +144,7 @@ def test_branch_admin_sees_staff_only_from_own_branch(api_client):
     admin_user = User.objects.create_user(
         phone="+998902222224",
         full_name="Branch Admin",
-        role="admin",
+        role="branch_admin",
         password="secret123",
     )
     Staff.objects.create(user=admin_user, branch=branch_a)

@@ -5,7 +5,6 @@ import shutil
 from django.conf import settings as django_settings
 from django.db.models import Count, Q
 
-logger = logging.getLogger(__name__)
 from django_tenants.utils import schema_context
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -25,6 +24,8 @@ from .serializers import (
     PlatformSettingsSerializer,
 )
 from .services import create_institution_with_bootstrap, create_notice, set_institution_status, write_institution_log
+
+logger = logging.getLogger(__name__)
 
 
 class InstitutionCreateThrottle(UserRateThrottle):

@@ -137,6 +137,7 @@ def test_phase6_analytics_salary_and_exports(api_client):
         student=student,
         branch=branch,
         group=group,
+        teacher=teacher,
         payment_type="charge",
         amount=Decimal("100000.00"),
         balance_before=Decimal("500000.00"),

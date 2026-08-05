@@ -78,11 +78,19 @@ class LoginView(TokenObtainPairView):
         if not matches:
             raise ValidationError({"detail": "Invalid credentials"})
 
-        for tenant, user in matches:
+        # Один номер может существовать у нескольких организаций (родитель с
+        # детьми в двух центрах, учитель на две школы). Без проверки пароля
+        # здесь выбирался произвольный тенант и человек получал 401 на своих
+        # верных учётных данных. Если пароль не подошёл нигде — оставляем
+        # прежнее поведение, отказ выдаст сериализатор.
+        password = (request.data.get("password") or "").strip()
+        candidates = [(t, u) for t, u in matches if u.check_password(password)] or matches
+
+        for tenant, user in candidates:
             if user.role == "superadmin":
                 return tenant
 
-        return matches[0][0]
+        return candidates[0][0]
 
 
 class LogoutView(APIView):

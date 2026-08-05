@@ -135,7 +135,6 @@ class MeUpdateSerializer(serializers.ModelSerializer):
         return normalize_phone(value)
 
 
-
 def _validate_strong_password(value: str) -> str:
     # Ограничения на пароль сняты — любой пароль допускается.
     return value

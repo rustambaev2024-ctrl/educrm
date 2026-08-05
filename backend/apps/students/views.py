@@ -347,7 +347,7 @@ class StudentViewSet(viewsets.ModelViewSet):
         elif parent_phone:
             from apps.accounts.managers import UserManager
             normalized_phone = UserManager.normalize_phone(parent_phone)
-            
+
             # Check if user already exists
             user = User.objects.filter(phone=normalized_phone).first()
             if user:
@@ -360,7 +360,7 @@ class StudentViewSet(viewsets.ModelViewSet):
             else:
                 if not parent_name:
                     return Response({"detail": "parent_name is required to create a new parent."}, status=status.HTTP_400_BAD_REQUEST)
-                
+
                 pwd = parent_password or secrets.token_urlsafe(8)
                 user = User.objects.create_user(
                     phone=normalized_phone,
@@ -373,7 +373,7 @@ class StudentViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Either parent_id or parent_phone is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         link, created = ParentStudentLink.objects.get_or_create(parent=parent, student=student)
-        
+
         return Response({
             "status": "success",
             "parent": {
