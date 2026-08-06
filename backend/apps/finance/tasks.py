@@ -2,6 +2,7 @@ import logging
 from datetime import date
 
 from celery import shared_task
+from django.core.cache import cache
 from django.db import transaction
 from django_tenants.utils import get_public_schema_name, get_tenant_model, schema_context
 
@@ -32,6 +33,23 @@ def daily_lesson_charge():
     today = date.today()
     weekday = today.weekday()
 
+    # Списание запускается и по расписанию, и вручную через
+    # /api/v1/trigger-daily-charge/. Проверка already_charged_ids ниже не
+    # спасает от одновременного запуска: оба прогона успевают её пройти до
+    # того, как хоть один создаст платёж, — и списывают дважды.
+    # cache.add в Redis атомарен (SET NX), поэтому замок берёт только один.
+    lock_key = f"daily_lesson_charge:{today}"
+    if not cache.add(lock_key, "running", timeout=3600):
+        logger.warning("daily_lesson_charge уже выполняется для %s — пропускаем", today)
+        return
+
+    try:
+        _charge_all_tenants(today, weekday)
+    finally:
+        cache.delete(lock_key)
+
+
+def _charge_all_tenants(today: date, weekday: int):
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
             active_groups = Group.objects.filter(

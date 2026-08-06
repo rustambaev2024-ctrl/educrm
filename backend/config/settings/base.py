@@ -183,14 +183,12 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-AWS_STORAGE_BUCKET_NAME = os.getenv("MINIO_BUCKET", "educrm")
-AWS_S3_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
-AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")
-AWS_S3_SIGNATURE_VERSION = "s3v4"
-AWS_DEFAULT_ACL = None
-AWS_S3_FILE_OVERWRITE = False
+# Настройки S3/MinIO убраны: STORAGES ниже использует локальный диск, и ни
+# одна строчка кода к S3 не обращалась. Константы лежали мёртвым грузом с
+# паролем minioadmin/minioadmin по умолчанию — при случайном включении S3
+# бакет оказался бы с дефолтными ключами. Файлы хранятся на постоянном томе
+# Railway (MEDIA_ROOT=/app/media). Если понадобится S3, заводить настройки
+# заново вместе с реальными ключами.
 
 STORAGES = {
     "default": {

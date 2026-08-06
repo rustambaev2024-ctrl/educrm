@@ -32,6 +32,11 @@ python manage.py migrate_schemas
 echo "Collecting static..."
 python manage.py collectstatic --noinput
 
+# Worker и beat живут в этом же контейнере — отдельных сервисов в Railway нет.
+# Если когда-нибудь будете выносить их в отдельные сервисы, СНАЧАЛА уберите
+# запуск отсюда: второй beat означает второй запуск daily_lesson_charge и
+# повторные SMS-рассылки. Само списание защищено замком в apps/finance/tasks.py,
+# но остальные периодические задачи — нет.
 echo "Starting Celery worker in background..."
 celery -A config worker -l warning -c 2 &
 WORKER_PID=$!
