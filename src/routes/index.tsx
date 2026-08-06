@@ -34,6 +34,9 @@ export function LoginPage() {
   const [remember, setRemember] = useState(true);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Один номер может быть заведён сразу в нескольких организациях — тогда
+  // бэкенд возвращает 409 со списком, и выбирает человек, а не мы за него.
+  const [institutions, setInstitutions] = useState<{ schema: string; name: string }[]>([]);
 
   useEffect(() => {
     if (!isHydrating && user) {
@@ -52,19 +55,20 @@ export function LoginPage() {
     );
   }
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!phone.trim() || !password.trim()) {
-      toast.error(t("toast.fillFields"));
-      return;
-    }
-
+  const signIn = async (schema?: string) => {
     try {
       setIsSubmitting(true);
-      await login(phone.trim(), password.trim());
+      await login(phone.trim(), password.trim(), schema);
       toast.success(t("toast.welcome"), { duration: 3000 });
     } catch (error) {
+      if (
+        error instanceof ApiError &&
+        error.status === 409 &&
+        Array.isArray(error.body?.institutions)
+      ) {
+        setInstitutions(error.body.institutions as { schema: string; name: string }[]);
+        return;
+      }
       let message = "Telefon raqam yoki parol noto'g'ri";
       if (error instanceof ApiError && error.status !== 401) {
         const detail = error.body?.detail;
@@ -81,6 +85,15 @@ export function LoginPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phone.trim() || !password.trim()) {
+      toast.error(t("toast.fillFields"));
+      return;
+    }
+    void signIn();
   };
 
   return (
@@ -166,6 +179,31 @@ export function LoginPage() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={institutions.length > 0} onOpenChange={(open) => !open && setInstitutions([])}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("login.chooseInstitutionTitle")}</DialogTitle>
+            <DialogDescription>{t("login.chooseInstitutionBody")}</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            {institutions.map((institution) => (
+              <Button
+                key={institution.schema}
+                variant="outline"
+                className="h-auto justify-start py-3 text-base"
+                disabled={isSubmitting}
+                onClick={() => {
+                  setInstitutions([]);
+                  void signIn(institution.schema);
+                }}
+              >
+                {institution.name}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
         <DialogContent>

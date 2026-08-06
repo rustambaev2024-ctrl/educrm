@@ -266,11 +266,14 @@ export function crudApi<T, C = Partial<T>, U = Partial<T>>(base: string) {
 // ─── Auth API ─────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: (phoneOrBody: string | LoginRequest, password?: string) => {
-    const body =
+  login: (phoneOrBody: string | LoginRequest, password?: string, institutionSchema?: string) => {
+    const base =
       typeof phoneOrBody === "string"
         ? { phone: normalizePhone(phoneOrBody), password: password?.trim() }
         : { ...phoneOrBody, phone: normalizePhone(phoneOrBody.phone), password: phoneOrBody.password.trim() };
+    // Один номер может быть заведён в нескольких организациях. Если человек
+    // уже выбрал свою, отправляем её явно — иначе бэкенд вернёт 409 со списком.
+    const body = institutionSchema ? { ...base, schema: institutionSchema } : base;
 
     // Send X-Tenant-Schema so the backend can resolve the correct tenant.
     // If no tenant is stored (first visit), send "public" to trigger superadmin

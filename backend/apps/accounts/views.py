@@ -53,6 +53,21 @@ class LoginView(TokenObtainPairView):
         tenant = self._resolve_tenant_by_phone(phone, request)
         if tenant is None:
             return Response({"detail": "Invalid phone or password"}, status=status.HTTP_401_UNAUTHORIZED)
+        if isinstance(tenant, list):
+            # Телефон и пароль подошли сразу к нескольким организациям —
+            # спрашиваем, в какую входить, вместо того чтобы выбрать за человека.
+            return Response(
+                {
+                    "detail": {
+                        "uz": "Qaysi tashkilotga kirasiz?",
+                        "ru": "В какую организацию войти?",
+                    },
+                    "institutions": [
+                        {"schema": t.schema_name, "name": t.name} for t in tenant
+                    ],
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
         connection.set_tenant(tenant)
         request.tenant = tenant
 
@@ -103,13 +118,24 @@ class LoginView(TokenObtainPairView):
         # верных учётных данных. Если пароль не подошёл нигде — оставляем
         # прежнее поведение, отказ выдаст сериализатор.
         password = (request.data.get("password") or "").strip()
-        candidates = [(t, u) for t, u in matches if u.check_password(password)] or matches
+        authenticated = [(t, u) for t, u in matches if u.check_password(password)]
+        if not authenticated:
+            return matches[0][0]
 
-        for tenant, user in candidates:
-            if user.role == "superadmin":
-                return tenant
+        # Явный выбор пользователя важнее догадок: фронт присылает выбранную
+        # организацию в теле или в заголовке.
+        requested = request.data.get("schema") or request.META.get("HTTP_X_TENANT_SCHEMA")
+        if requested:
+            for tenant, _user in authenticated:
+                if tenant.schema_name == requested:
+                    return tenant
 
-        return candidates[0][0]
+        if len(authenticated) == 1:
+            return authenticated[0][0]
+
+        # Пароль подошёл в нескольких организациях — угадывать нельзя, иначе
+        # человек навсегда попадает в одну из них и вторая для него исчезает.
+        return [tenant for tenant, _user in authenticated]
 
 
 class LogoutView(APIView):

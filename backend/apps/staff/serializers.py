@@ -57,15 +57,19 @@ class StaffSerializer(serializers.ModelSerializer):
             if current_schema is None:
                 return value
             Institution = get_tenant_model()
-            conflicts = []
+            taken_elsewhere = False
             for tenant in Institution.objects.exclude(schema_name__in=["public", current_schema]):
                 with schema_context(tenant.schema_name):
                     if User.objects.filter(phone=value).exists():
-                        conflicts.append(tenant.name)
-            if conflicts:
-                raise serializers.ValidationError(
-                    f"Phone {value} already registered in: {', '.join(conflicts)}"
-                )
+                        taken_elsewhere = True
+                        break
+            if taken_elsewhere:
+                # Названия чужих организаций в тексте ошибки раскрывали
+                # администратору одного центра клиентскую базу платформы.
+                raise serializers.ValidationError({
+                    "uz": "Bu raqam boshqa tashkilotda ro'yxatdan o'tgan. Qo'llab-quvvatlash xizmatiga murojaat qiling.",
+                    "ru": "Этот номер уже зарегистрирован в другой организации. Обратитесь в поддержку.",
+                })
         return value
 
     def validate_password(self, value):

@@ -32,7 +32,7 @@ class _User:
         return raw == self._password
 
 
-def _resolve(users_by_schema, password):
+def _resolve(users_by_schema, password, requested=None):
     """Прогоняет настоящий резолвер по фейковому набору схем."""
     active = {}
 
@@ -56,7 +56,10 @@ def _resolve(users_by_schema, password):
             first=lambda: users_by_schema[active["schema"]]
         )
     )
-    request = SimpleNamespace(data={"password": password})
+    data = {"password": password}
+    if requested:
+        data["schema"] = requested
+    request = SimpleNamespace(data=data, META={})
 
     with patch("apps.accounts.views.get_tenant_model", return_value=tenant_model), \
          patch("apps.accounts.views.schema_context", fake_schema_context), \
@@ -78,13 +81,38 @@ def test_single_match_still_resolves():
     assert tenant.schema_name == "school_a"
 
 
-def test_superadmin_wins_among_matching_tenants():
+def test_same_password_in_two_tenants_asks_instead_of_guessing():
+    """Раньше выбиралась первая подходящая организация и вторая для человека
+    исчезала навсегда — переключиться было нечем."""
+    result = _resolve(
+        {
+            "school_a": _User("same", role="parent"),
+            "school_b": _User("same", role="superadmin"),
+        },
+        password="same",
+    )
+    assert isinstance(result, list)
+    assert {t.schema_name for t in result} == {"school_a", "school_b"}
+
+
+def test_explicit_choice_wins_over_guessing():
     tenant = _resolve(
         {
             "school_a": _User("same", role="parent"),
             "school_b": _User("same", role="superadmin"),
         },
         password="same",
+        requested="school_a",
+    )
+    assert tenant.schema_name == "school_a"
+
+
+def test_explicit_choice_is_ignored_when_password_does_not_fit_it():
+    """Выбор организации — не способ обойти пароль."""
+    tenant = _resolve(
+        {"school_a": _User("alpha"), "school_b": _User("bravo")},
+        password="bravo",
+        requested="school_a",
     )
     assert tenant.schema_name == "school_b"
 
