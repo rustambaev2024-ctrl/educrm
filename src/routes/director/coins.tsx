@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Coins, Plus, Pencil, Trash2, Trophy, Package, ShoppingBag, Settings as SettingsIcon, Save } from "lucide-react";
+import { Coins, Plus, Pencil, Trash2, Trophy, Package, ShoppingBag, Settings as SettingsIcon, Save , Users } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { apiErrorText } from "@/lib/api-error";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/edu/number-input";
+import { CoinStudentsTab } from "@/components/edu/coin-students-tab";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -70,14 +72,16 @@ function DirectorCoinsPage() {
 
   return (
     <PageShell title="Coins" subtitle={tr("Geymifikatsiya tizimini boshqarish", "Управление системой геймификации")}>
-      <Tabs defaultValue="settings">
+      <Tabs defaultValue="students">
         <TabsList className="mb-4">
+          <TabsTrigger value="students"><Users className="mr-1.5 size-4" />{tr("O'quvchilar", "Ученики")}</TabsTrigger>
           <TabsTrigger value="settings"><SettingsIcon className="mr-1.5 size-4" />{tr("Sozlamalar", "Настройки")}</TabsTrigger>
           <TabsTrigger value="store"><Package className="mr-1.5 size-4" />{tr("Do'kon", "Магазин")}</TabsTrigger>
           <TabsTrigger value="orders"><ShoppingBag className="mr-1.5 size-4" />{tr("Buyurtmalar", "Заказы")}</TabsTrigger>
           <TabsTrigger value="achievements"><Trophy className="mr-1.5 size-4" />{tr("Yutuqlar", "Достижения")}</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="students"><CoinStudentsTab /></TabsContent>
         <TabsContent value="settings"><SettingsTab /></TabsContent>
         <TabsContent value="store"><StoreTab /></TabsContent>
         <TabsContent value="orders"><OrdersTab /></TabsContent>
@@ -121,14 +125,14 @@ function SettingsTab() {
   const NumberField = ({ label, k }: { label: string; k: keyof CoinSettingData }) => (
     <div>
       <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
-      <Input type="number" min={0} value={data[k] as number} onChange={(e) => num(k, e.target.value)} autoComplete="off" />
+      <NumberInput min={0} value={data[k] as number} onValueChange={(v) => num(k, v)} autoComplete="off" />
     </div>
   );
 
   const PenaltyField = ({ label, hint, k }: { label: string; hint: string; k: keyof CoinSettingData }) => (
     <div>
       <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
-      <Input type="number" value={data[k] as number} onChange={(e) => num(k, e.target.value)} autoComplete="off" placeholder="0" />
+      <NumberInput allowNegative value={data[k] as number} onValueChange={(v) => num(k, v)} autoComplete="off" placeholder="0" />
       <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
@@ -206,10 +210,10 @@ function SettingsTab() {
             <TableBody>
               {data.level_thresholds.map((lvl, idx) => (
                 <TableRow key={idx}>
-                  <TableCell><Input type="number" className="h-8 w-16" value={lvl.level} onChange={(e) => updateLevel(idx, "level", e.target.value)} /></TableCell>
+                  <TableCell><NumberInput className="h-8 w-16" value={lvl.level} onValueChange={(v) => updateLevel(idx, "level", v)} /></TableCell>
                   <TableCell><Input className="h-8" value={lvl.name_uz} onChange={(e) => updateLevel(idx, "name_uz", e.target.value)} autoComplete="off" /></TableCell>
                   <TableCell><Input className="h-8" value={lvl.name_ru} onChange={(e) => updateLevel(idx, "name_ru", e.target.value)} autoComplete="off" /></TableCell>
-                  <TableCell><Input type="number" className="h-8 w-24" value={lvl.xp} onChange={(e) => updateLevel(idx, "xp", e.target.value)} /></TableCell>
+                  <TableCell><NumberInput className="h-8 w-24" value={lvl.xp} onValueChange={(v) => updateLevel(idx, "xp", v)} /></TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon" title={lang === "uz" ? "O'chirish" : "Удалить"} className="size-8 text-destructive hover:text-destructive" onClick={() => removeLevel(idx)}>
                       <Trash2 className="size-4" />
@@ -392,9 +396,9 @@ function StoreTab() {
               <div><Label className="mb-1 block text-xs">{tr("Tavsif (ru)", "Описание (ru)")}</Label><Textarea rows={2} value={form.description_ru} onChange={(e) => setForm({ ...form, description_ru: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div><Label className="mb-1 block text-xs">{tr("Narx (coin)", "Цена (coin)")}</Label><Input type="number" min={0} value={form.price_coins} onChange={(e) => setForm({ ...form, price_coins: Number(e.target.value) || 0 })} /></div>
-              <div><Label className="mb-1 block text-xs">{tr("Qoldiq (-1=∞)", "Остаток (-1=∞)")}</Label><Input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} /></div>
-              <div><Label className="mb-1 block text-xs">{tr("Min daraja", "Мин. уровень")}</Label><Input type="number" min={1} value={form.min_level} onChange={(e) => setForm({ ...form, min_level: Number(e.target.value) || 1 })} /></div>
+              <div><Label className="mb-1 block text-xs">{tr("Narx (coin)", "Цена (coin)")}</Label><NumberInput min={0} value={form.price_coins} onValueChange={(v) => setForm({ ...form, price_coins: Number(v) || 0 })} /></div>
+              <div><Label className="mb-1 block text-xs">{tr("Qoldiq (-1=∞)", "Остаток (-1=∞)")}</Label><NumberInput allowNegative value={form.stock} onValueChange={(v) => setForm({ ...form, stock: v === "" || v === "-" ? 0 : Number(v) })} /></div>
+              <div><Label className="mb-1 block text-xs">{tr("Min daraja", "Мин. уровень")}</Label><NumberInput min={1} value={form.min_level} onValueChange={(v) => setForm({ ...form, min_level: Number(v) || 1 })} /></div>
             </div>
             <div><Label className="mb-1 block text-xs">{tr("Rasm URL", "URL картинки")}</Label><Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} autoComplete="off" /></div>
             <label className="flex items-center gap-2 text-sm">
@@ -659,8 +663,8 @@ function AchievementsTab() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label className="mb-1 block text-xs">{tr("Qiymat", "Значение")}</Label><Input type="number" min={0} value={form.condition_value} onChange={(e) => setForm({ ...form, condition_value: Number(e.target.value) || 0 })} /></div>
-              <div><Label className="mb-1 block text-xs">{tr("Mukofot (coin)", "Награда (coin)")}</Label><Input type="number" min={0} value={form.reward_coins} onChange={(e) => setForm({ ...form, reward_coins: Number(e.target.value) || 0 })} /></div>
+              <div><Label className="mb-1 block text-xs">{tr("Qiymat", "Значение")}</Label><NumberInput min={0} value={form.condition_value} onValueChange={(v) => setForm({ ...form, condition_value: Number(v) || 0 })} /></div>
+              <div><Label className="mb-1 block text-xs">{tr("Mukofot (coin)", "Награда (coin)")}</Label><NumberInput min={0} value={form.reward_coins} onValueChange={(v) => setForm({ ...form, reward_coins: Number(v) || 0 })} /></div>
             </div>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v === true })} />

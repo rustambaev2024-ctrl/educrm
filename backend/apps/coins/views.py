@@ -32,6 +32,41 @@ def _get_next_level_xp(xp, current_level, thresholds):
     return None
 
 
+def students_in_coin_scope(user):
+    """Ученики, которых этот сотрудник вправе видеть и вести по монетам.
+
+    Тот же круг лиц, что и в _can_manage_student_coins, но набором: нужен
+    для списков кошельков и истории операций. Раньше учитель получал пустой
+    список кошельков, а администратор филиала — кошельки всех филиалов,
+    хотя начислять мог только своим.
+    """
+    from apps.students.models import Student
+
+    role = getattr(user, "role", None)
+    if role in ("director", "superadmin"):
+        return Student.objects.all()
+
+    if role == "branch_admin":
+        branch_id = getattr(getattr(user, "staff_profile", None), "branch_id", None)
+        return Student.objects.filter(branch_id=branch_id) if branch_id else Student.objects.none()
+
+    if role == "teacher" and hasattr(user, "staff_profile"):
+        return Student.objects.filter(
+            group_memberships__group__teacher=user.staff_profile,
+            group_memberships__left_at__isnull=True,
+        ).distinct()
+
+    if role == "support_teacher":
+        from apps.staff.utils import get_support_teacher_group_ids
+
+        return Student.objects.filter(
+            group_memberships__group_id__in=get_support_teacher_group_ids(user),
+            group_memberships__left_at__isnull=True,
+        ).distinct()
+
+    return Student.objects.none()
+
+
 def _can_manage_student_coins(user, student):
     """Проверяет, вправе ли сотрудник начислять/списывать монеты этому студенту.
 
@@ -91,11 +126,13 @@ class CoinWalletViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ("director", "branch_admin", "superadmin"):
-            return CoinWallet.objects.select_related("student__user").order_by("-balance")
         if user.role == "student":
             return CoinWallet.objects.filter(student__user=user)
-        return CoinWallet.objects.none()
+        return (
+            CoinWallet.objects.filter(student__in=students_in_coin_scope(user))
+            .select_related("student__user")
+            .order_by("-balance")
+        )
 
     @action(detail=False, methods=["get"], url_path="my")
     def my_wallet(self, request):
@@ -144,8 +181,15 @@ class CoinWalletViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="deduct")
     def deduct(self, request):
-        """Ручное списание монет"""
-        if request.user.role not in ("director", "branch_admin"):
+        """Ручное списание монет.
+
+        Учителю списание было запрещено, хотя начисление разрешено: снять
+        ошибочно выданные монеты он не мог. Круг учеников всё равно ограничен
+        проверкой _can_manage_student_coins ниже — только свои группы.
+        """
+        if request.user.role not in (
+            "director", "branch_admin", "teacher", "support_teacher"
+        ):
             return Response(status=403)
         from apps.students.models import Student
         from .services import deduct_coins
@@ -176,13 +220,13 @@ class CoinTransactionViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         if user.role == "student":
             return CoinTransaction.objects.filter(wallet__student__user=user)
-        if user.role in ("director", "branch_admin", "superadmin"):
-            student_id = self.request.query_params.get("student_id")
-            qs = CoinTransaction.objects.select_related("wallet__student__user")
-            if student_id:
-                qs = qs.filter(wallet__student_id=student_id)
-            return qs
-        return CoinTransaction.objects.none()
+        qs = CoinTransaction.objects.filter(
+            wallet__student__in=students_in_coin_scope(user)
+        ).select_related("wallet__student__user")
+        student_id = self.request.query_params.get("student_id")
+        if student_id:
+            qs = qs.filter(wallet__student_id=student_id)
+        return qs
 
 
 class ProductViewSet(viewsets.ModelViewSet):

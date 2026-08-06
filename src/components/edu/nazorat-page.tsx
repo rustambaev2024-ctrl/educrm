@@ -26,9 +26,10 @@ import { penaltyApi, bonusApi, staffApi, branchApi, analyticsApi, lessonApi } fr
 import { useAuth } from "@/lib/auth";
 import type { StaffPenalty, StaffPenaltyStatus } from "@/lib/data/types";
 import { formatDate, formatMoney } from "@/lib/format";
+import type { Lang } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
 
-function pageLabels(lang: string) {
+function pageLabels(lang: Lang) {
   const isUz = lang === "uz";
   return {
     pageTitle: isUz ? "Nazorat" : "Контроль",
@@ -142,7 +143,7 @@ export function NazoratPage() {
   );
 }
 
-function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
+function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: Lang }) {
   const { user } = useAuth();
     const [date, setDate] = useState(() => getLocalDateString());
   const [branchId, setBranchId] = useState("all");
@@ -441,7 +442,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
   );
 }
 
-function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
+function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: Lang }) {
   const [month, setMonth] = useState(() => getLocalDateString().slice(0, 7));
   const [branchId, setBranchId] = useState("all");
   const [search, setSearch] = useState("");
@@ -610,7 +611,7 @@ function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; 
   );
 }
 
-function PenaltyBonusTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
+function PenaltyBonusTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: Lang }) {
     return (
         <Tabs defaultValue="penalties" className="w-full">
             <TabsList className="mb-4">
@@ -628,15 +629,15 @@ function PenaltyBonusTab({ labels, lang }: { labels: ReturnType<typeof pageLabel
 }
 
 // Re-using the same sub-tab logic but parameterizing it for bonus vs penalty
-function PenaltiesSubTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
+function PenaltiesSubTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: Lang }) {
     return <TransactionTab type="penalty" labels={labels} lang={lang} />
 }
 
-function BonusesSubTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
+function BonusesSubTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: Lang }) {
     return <TransactionTab type="bonus" labels={labels} lang={lang} />
 }
 
-function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", labels: ReturnType<typeof pageLabels>; lang: string }) {
+function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", labels: ReturnType<typeof pageLabels>; lang: Lang }) {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
