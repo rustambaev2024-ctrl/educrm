@@ -394,7 +394,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
       } else {
         await groupApi.delete(group.id);
       }
-      deleteGroup(group.id);
+      deleteGroup(group.id, { alreadyDeleted: true });
       toast.success(lang === "uz" ? "Guruh o'chirildi" : "Группа удалена");
       onClose();
     } catch (err: unknown) {
