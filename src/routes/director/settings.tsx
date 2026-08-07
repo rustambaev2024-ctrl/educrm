@@ -216,7 +216,7 @@ function DirectorSettingsPage() {
           </CardContent>
         </Card>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Profile Settings */}
           <Card className="shadow-elegant border-border/60">
             <CardHeader className="border-b border-border/40 pb-4 bg-muted/20">

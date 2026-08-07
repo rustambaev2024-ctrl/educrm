@@ -325,7 +325,7 @@ function StaffPage() {
                 autoComplete="new-password"
               />
             </Field>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field label={t("staff.field.role")}>
                 <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as StaffRole })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>

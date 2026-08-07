@@ -143,7 +143,7 @@ function DirectorHome() {
           <KpiCard label={t("director.debtors")} value={`${debtors}`} subtitle={lang === "ru" ? plural(debtors, "ученик", "ученика", "учеников") : "o'quvchi"} icon={AlertCircle} iconColor="amber" />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="p-6 shadow-elegant lg:col-span-2">
             <div className="mb-4 flex items-center justify-between">
               <div>
@@ -202,7 +202,7 @@ function DirectorHome() {
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="p-6 shadow-elegant lg:col-span-2">
             <div className="mb-4 flex items-center justify-between">
               <div>
@@ -266,7 +266,7 @@ function DirectorHome() {
           </Card>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <QuickLink to="/director/branches" icon={Building2} label={t("nav.branches")} hint={`${branches.length}`} />
           <QuickLink to="/director/staff" icon={Award} label={t("nav.staff")} hint={`${staff.length}`} />
           <QuickLink to="/director/analytics" icon={BookOpen} label={t("director.activeGroups")} hint={`${activeGroups}`} />

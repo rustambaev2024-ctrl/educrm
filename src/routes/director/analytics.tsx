@@ -116,7 +116,7 @@ function AnalyticsPage() {
           )}
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card className="p-6 shadow-elegant">
             <div className="mb-4">
               <h3 className="text-base font-semibold">{t("director.byBranch")}</h3>
@@ -178,7 +178,7 @@ function AnalyticsPage() {
           )}
         </Card>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <SmallStat icon={BookOpen} label={t("nav.staff")} value={`${staff.length}`} />
           <SmallStat icon={AlertCircle} label={lang === "uz" ? "Muddati o'tgan" : "Просрочено"} value={formatMoney(overdueAmount, lang)} tone="text-destructive" />
           <SmallStat icon={Wallet} label={t("director.profit")} value={formatMoney(totalRevenue - totalExpense, lang)} tone={totalRevenue - totalExpense >= 0 ? "text-success" : "text-destructive"} />

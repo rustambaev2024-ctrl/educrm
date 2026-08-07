@@ -292,7 +292,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         )}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {teachersData.length === 0 ? (
             <div className="col-span-full py-16 text-center text-muted-foreground flex flex-col items-center justify-center space-y-3">
               <CircleMinus className="h-10 w-10 text-muted-foreground/30" />
@@ -768,7 +768,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 mb-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 mb-5">
         <Kpi icon={type === "bonus" ? Gift : Ban} label={labels.kpiAmount} value={formatMoney(totals.amount, lang)} tone={type === "bonus" ? "success" : "danger"} />
         <Kpi icon={CalendarDays} label={labels.kpiMonth} value={month || labels.allMonths} />
         <Kpi icon={UserRound} label={labels.kpiRecords} value={String(totals.all)} />
@@ -856,7 +856,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
           <DialogTitle>{type === "bonus" ? labels.addTitleBonus : labels.addTitlePenalty}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label>{labels.staff}</Label>
                     <Select value={form.staffId} onValueChange={(val) => setForm({...form, staffId: val})}>
@@ -884,7 +884,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
                 <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={labels.reasonPlaceholder} />
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label>{labels.date}</Label>
                     <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />

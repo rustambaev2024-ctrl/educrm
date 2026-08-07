@@ -82,7 +82,7 @@ function DirectorIntegrationsPage() {
   return (
     <PageShell title={t.title} subtitle={t.subtitle}>
       <div className="max-w-4xl space-y-6">
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* Main settings form */}
           <div className="md:col-span-2 space-y-6">
             <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">

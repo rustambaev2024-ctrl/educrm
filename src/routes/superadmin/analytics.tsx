@@ -53,7 +53,7 @@ function SaAnalytics() {
           <KpiCard label={t("sa.kpi.expiring")} value={expiringSoon} icon={CalendarClock} iconColor="amber" />
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card className="p-5 shadow-elegant">
             <div className="flex items-center gap-3">
               <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground">

@@ -130,7 +130,7 @@ function GroupsPage() {
             )}
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((g) => {
               const course = courses.find((c) => c.id === g.courseId);
               const teacher = staff.find((s) => s.id === g.teacherId);
@@ -267,7 +267,7 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
             <Label>{t("groups.field.name")} *</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("groups.namePlaceholder")} autoComplete="off" />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>{t("groups.field.course")} *</Label>
               <Select value={courseId} onValueChange={setCourseId}>
@@ -440,11 +440,16 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
             </div>
           </div>
           <Tabs defaultValue="overview">
-            <TabsList className="w-full">
-              <TabsTrigger value="overview" className="flex-1">{t("groups.tab.overview")}</TabsTrigger>
-              <TabsTrigger value="students" className="flex-1">{t("groups.tab.students")}</TabsTrigger>
-              <TabsTrigger value="lessons" className="flex-1">{t("groups.tab.lessons")}</TabsTrigger>
+            {/* flex-1 = жёсткая равная доля ширины + whitespace-nowrap на
+                TabsTrigger: "O'quvchilar" (11 символов) не влезает в ~120px
+                на телефоне. Горизонтальная прокрутка вместо сжатия текста. */}
+            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+            <TabsList className="w-max min-w-full sm:w-full">
+              <TabsTrigger value="overview" className="flex-1 px-4">{t("groups.tab.overview")}</TabsTrigger>
+              <TabsTrigger value="students" className="flex-1 px-4">{t("groups.tab.students")}</TabsTrigger>
+              <TabsTrigger value="lessons" className="flex-1 px-4">{t("groups.tab.lessons")}</TabsTrigger>
             </TabsList>
+            </div>
             <TabsContent value="overview" className="space-y-3 pt-4">
               <Card className="p-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -714,7 +719,7 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
             <Label>{t("groups.field.name")} *</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>{t("groups.field.course")} *</Label>
               <Select value={courseId} onValueChange={setCourseId}>

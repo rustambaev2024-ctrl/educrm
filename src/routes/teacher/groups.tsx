@@ -58,7 +58,7 @@ function TeacherGroupsPage() {
             <div className="text-base font-semibold">{t("groups.empty")}</div>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {myGroups.map((g) => {
               const course = courseById[g.courseId];
               const room = roomById[g.roomId];

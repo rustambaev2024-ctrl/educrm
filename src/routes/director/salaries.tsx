@@ -410,7 +410,7 @@ function DirectorSalaries() {
                 </Badge>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Info
                   label={lang === "uz" ? "Hisoblash turi" : "Тип расчёта"}
                   value={detailRow.isTeacher ? (lang === "uz" ? "Foiz" : "Процент") : (lang === "uz" ? "Oylik" : "Оклад")}
@@ -433,7 +433,7 @@ function DirectorSalaries() {
                   {lang === "uz" ? "Hisob-kitob tafsiloti" : "Детализация расчёта"}
                 </div>
                 {detailRow.isTeacher ? (
-                  <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
                     <BreakdownItem label={lang === "uz" ? "Guruhlar" : "Группы"} value={`${detailRow.groupCount}`} />
                     <BreakdownItem label={lang === "uz" ? "O'quvchilar" : "Ученики"} value={`${detailRow.studentCount}`} />
                     <BreakdownItem
@@ -448,7 +448,7 @@ function DirectorSalaries() {
                     />
                   </div>
                 ) : (
-                  <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
                     <BreakdownItem label={lang === "uz" ? "Oylik stavka" : "Месячная ставка"} value={formatMoney(detailRow.staff.fixedSalary ?? 0, lang)} />
                     <BreakdownItem label={lang === "uz" ? "Davr" : "Период"} value={period} />
                     <BreakdownItem label={lang === "uz" ? "Jarimalar" : "Штрафы"} value={`-${formatMoney(detailRow.penalties, lang)}`} />

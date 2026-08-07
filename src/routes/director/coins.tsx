@@ -344,7 +344,7 @@ function StoreTab() {
       {products.length === 0 ? (
         <Card className="p-12 text-center text-sm text-muted-foreground shadow-elegant">{tr("Mahsulotlar yo'q", "Товаров нет")}</Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {products.map((p) => (
             <Card key={p.id} className="p-4 shadow-elegant">
               <div className="flex items-start justify-between gap-2">
@@ -616,7 +616,7 @@ function AchievementsTab() {
       {achievements.length === 0 ? (
         <Card className="p-12 text-center text-sm text-muted-foreground shadow-elegant">{tr("Yutuqlar yo'q", "Достижений нет")}</Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {achievements.map((a) => (
             <Card key={a.id} className="flex items-start gap-3 p-4 shadow-elegant">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600"><Trophy className="size-5" /></div>
