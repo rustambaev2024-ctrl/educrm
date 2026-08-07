@@ -162,7 +162,7 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
           quizzes.length === 0 ? (
             <Card className="p-12 text-center text-sm text-muted-foreground">{tr("Testlar yo'q", "Тестов нет")}</Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {quizzes.map((quiz) => (
                 <div key={quiz.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-2">

@@ -155,7 +155,7 @@ function BranchesPage() {
           </Card>
         ) : (
           <>
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {stats.map(({ branch, rooms: branchRooms, staff: branchStaff, students: branchStudents, groups: branchGroups, capacity }) => (
                 <Card key={branch.id} className="overflow-hidden p-0 shadow-elegant">
                   <div className="bg-gradient-primary p-5 text-primary-foreground">
@@ -215,7 +215,7 @@ function BranchesPage() {
                 </Button>
               </div>
 
-              <div className="grid gap-4 overflow-x-auto p-4 lg:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 overflow-x-auto p-4 lg:grid-cols-2 xl:grid-cols-3">
                 {branches.map((branch) => (
                   <RoomColumn
                     key={branch.id}

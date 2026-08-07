@@ -417,7 +417,7 @@ function SuperadminHome() {
             <DialogTitle>{editing ? t("sa.edit") : t("sa.add")}</DialogTitle>
             <DialogDescription>{t("sa.institutions.subtitle")}</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label={t("sa.field.name")}>
               <Input
                 value={form.name}
@@ -460,7 +460,7 @@ function SuperadminHome() {
             <div className="md:col-span-2 mt-2 rounded-xl border border-border/60 bg-accent/30 p-4">
               <div className="mb-1 text-sm font-semibold">{t("sa.directorBlock")}</div>
               <div className="mb-3 text-xs text-muted-foreground">{t("sa.directorHint")}</div>
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <Field label={t("sa.field.directorName")}>
                   <Input value={form.directorName} onChange={(e) => setForm({ ...form, directorName: e.target.value })} placeholder={t("common.optional")} />
                 </Field>

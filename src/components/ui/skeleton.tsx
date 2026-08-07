@@ -73,7 +73,7 @@ function PageLoadingState({ cards = 4 }: { cards?: number }) {
           <StatCardSkeleton key={i} />
         ))}
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Skeleton className="h-64 rounded-xl" />
         <Skeleton className="h-64 rounded-xl" />
       </div>

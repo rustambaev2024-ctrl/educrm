@@ -486,12 +486,18 @@ export function StudentDetailSheet({
           </div>
 
           <Tabs defaultValue="main" className="w-full">
-            <TabsList className="w-full">
-              <TabsTrigger value="main" className="flex-1">{t("students.tab.main")}</TabsTrigger>
-              <TabsTrigger value="groups" className="flex-1">{t("students.tab.groups")}</TabsTrigger>
-              <TabsTrigger value="finance" className="flex-1">{t("students.tab.finance")}</TabsTrigger>
-              <TabsTrigger value="transfers" className="flex-1">{t("sd.tab.transfers")}</TabsTrigger>
+            {/* flex-1 = flex: 1 1 0%, та же жёсткая равная доля ширины, что и
+                grid-cols-4 — с whitespace-nowrap на TabsTrigger "Transferlar"
+                (11 символов) не влезает в ~90px на телефоне и вылезает за
+                вкладку. Горизонтальная прокрутка вместо сжатия текста. */}
+            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+            <TabsList className="w-max min-w-full sm:w-full">
+              <TabsTrigger value="main" className="flex-1 px-4">{t("students.tab.main")}</TabsTrigger>
+              <TabsTrigger value="groups" className="flex-1 px-4">{t("students.tab.groups")}</TabsTrigger>
+              <TabsTrigger value="finance" className="flex-1 px-4">{t("students.tab.finance")}</TabsTrigger>
+              <TabsTrigger value="transfers" className="flex-1 px-4">{t("sd.tab.transfers")}</TabsTrigger>
             </TabsList>
+            </div>
 
             <TabsContent value="main" className="space-y-3 pt-4">
               <Card className="p-4">

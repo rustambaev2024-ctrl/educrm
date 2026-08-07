@@ -450,7 +450,7 @@ function FinancePage() {
                 <div className="text-[15px] font-semibold text-foreground">{t("finance.emptyDebtors")}</div>
               </div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {debtors.map((student) => {
                   return (
                     <div key={student.id} className="edu-card flex items-center gap-3 p-4">

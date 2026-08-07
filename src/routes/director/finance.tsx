@@ -138,7 +138,7 @@ function DirectorFinancePage() {
           <KpiCard iconColor="amber" icon={AlertTriangle} label={t("finance.kpi.debt")} value={formatMoney(debt, lang)} />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card className="p-6 shadow-elegant">
             <div className="mb-4 text-sm font-semibold">{t("nav.branches")}</div>
             <div className="space-y-3">

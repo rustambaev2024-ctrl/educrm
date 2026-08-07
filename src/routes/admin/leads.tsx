@@ -434,7 +434,7 @@ function AdminLeadsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} className="pl-9" autoComplete="off" />
             </div>
-            <div className="grid gap-2 sm:grid-cols-4 xl:flex xl:items-center">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 xl:flex xl:items-center">
               <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as FilterStatus)}>
                 <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -803,7 +803,7 @@ function LeadFormFields({
 }) {
   return (
     <div className="grid gap-4">
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>{labels.fullName}</Label>
           <Input value={form.fullName} onChange={(event) => onChange({ ...form, fullName: event.target.value })} placeholder={labels.fullNamePlaceholder} autoComplete="off" />
@@ -814,7 +814,7 @@ function LeadFormFields({
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>{labels.branch}</Label>
           <Select value={form.branchId || NONE} onValueChange={(value) => onChange({ ...form, branchId: value === NONE ? "" : value })}>
@@ -837,7 +837,7 @@ function LeadFormFields({
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="space-y-1.5">
           <Label>{labels.sourceLabel}</Label>
           <Select value={form.source} onValueChange={(value) => onChange({ ...form, source: value as StudentLeadSource })}>

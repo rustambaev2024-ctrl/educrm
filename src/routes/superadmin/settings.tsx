@@ -99,7 +99,7 @@ function SaSettings() {
 
           <TabsContent value="general">
             <Card className="space-y-5 p-6 shadow-elegant">
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Field label={t("sa.settings.platformName")}>
                   <Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
                 </Field>

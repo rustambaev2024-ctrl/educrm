@@ -160,7 +160,7 @@ function AccountsPage() {
         {filtered.length === 0 ? (
           <Card className="p-12 text-center text-sm text-muted-foreground">{t("empty")}</Card>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((row) => {
               const key = `${row.type}-${row.id}`;
               return (

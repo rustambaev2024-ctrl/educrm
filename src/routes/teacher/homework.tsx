@@ -151,7 +151,7 @@ function TeacherHomework() {
       );
     }
     return (
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {list.map((h) => {
           const grp = groupById[h.groupId];
           const subs = submissions.filter((s) => s.homeworkId === h.id);

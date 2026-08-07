@@ -285,7 +285,7 @@ function LessonDetailDialog({
             </DialogHeader>
 
             <div className="space-y-3 text-sm">
-              <div className="grid gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 sm:grid-cols-2">
                 <Field
                   icon={Clock}
                   label={lang === "uz" ? "Vaqt" : "Время"}
