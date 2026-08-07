@@ -476,7 +476,10 @@ function DirectorLeadsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-5 gap-3 p-4 pb-6 h-[calc(100vh-280px)] min-h-[520px]">
+          <div className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0">
+            {/* На телефоне пять колонок в 360px превращаются в 60px каждая —
+                канбан прокручивается вбок, как расписание. */}
+            <div className="grid min-w-[1080px] grid-cols-5 gap-3 p-4 pb-6 h-[calc(100vh-280px)] min-h-[520px] lg:min-w-0">
             {STATUS_OPTIONS.map(status => {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
@@ -631,6 +634,7 @@ function DirectorLeadsPage() {
                 </div>
               );
             })}
+          </div>
           </div>
         </Card>
       </div>

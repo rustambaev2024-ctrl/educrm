@@ -395,7 +395,7 @@ function StoreTab() {
               <div><Label className="mb-1 block text-xs">{tr("Tavsif (uz)", "Описание (uz)")}</Label><Textarea rows={2} value={form.description_uz} onChange={(e) => setForm({ ...form, description_uz: e.target.value })} /></div>
               <div><Label className="mb-1 block text-xs">{tr("Tavsif (ru)", "Описание (ru)")}</Label><Textarea rows={2} value={form.description_ru} onChange={(e) => setForm({ ...form, description_ru: e.target.value })} /></div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div><Label className="mb-1 block text-xs">{tr("Narx (coin)", "Цена (coin)")}</Label><NumberInput min={0} value={form.price_coins} onValueChange={(v) => setForm({ ...form, price_coins: Number(v) || 0 })} /></div>
               <div><Label className="mb-1 block text-xs">{tr("Qoldiq (-1=∞)", "Остаток (-1=∞)")}</Label><NumberInput allowNegative value={form.stock} onValueChange={(v) => setForm({ ...form, stock: v === "" || v === "-" ? 0 : Number(v) })} /></div>
               <div><Label className="mb-1 block text-xs">{tr("Min daraja", "Мин. уровень")}</Label><NumberInput min={1} value={form.min_level} onValueChange={(v) => setForm({ ...form, min_level: Number(v) || 1 })} /></div>
@@ -653,7 +653,7 @@ function AchievementsTab() {
               <div><Label className="mb-1 block text-xs">{tr("Tavsif (uz)", "Описание (uz)")}</Label><Input value={form.description_uz} onChange={(e) => setForm({ ...form, description_uz: e.target.value })} autoComplete="off" /></div>
               <div><Label className="mb-1 block text-xs">{tr("Tavsif (ru)", "Описание (ru)")}</Label><Input value={form.description_ru} onChange={(e) => setForm({ ...form, description_ru: e.target.value })} autoComplete="off" /></div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <Label className="mb-1 block text-xs">{tr("Shart turi", "Тип условия")}</Label>
                 <Select value={form.condition_type} onValueChange={(v) => setForm({ ...form, condition_type: v })}>
