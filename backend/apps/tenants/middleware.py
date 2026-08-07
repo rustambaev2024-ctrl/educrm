@@ -21,6 +21,7 @@ class HeaderOrDomainTenantMiddleware:
     }
     PUBLIC_PATH_PREFIXES = (
         "/api/v1/quiz-sessions/by-code/",
+        "/api/v1/public/leads/lidpixel/",
     )
     PUBLIC_PATH_SUFFIXES = (
         "/join/",
