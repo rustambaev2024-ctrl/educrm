@@ -9,7 +9,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { branchApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
-import { Settings, Check, Loader2, Link2, Info, ArrowUpRight, MessageSquare } from "lucide-react";
+import { Settings, Check, Loader2, Link2, Info, ArrowUpRight, MessageSquare, Copy, KeyRound } from "lucide-react";
 
 export const Route = createFileRoute("/director/integrations")({
   component: DirectorIntegrationsPage,
@@ -31,6 +31,12 @@ function DirectorIntegrationsPage() {
   const [smsLoading, setSmsLoading] = useState(false);
   const [testPhone, setTestPhone] = useState("");
   const [testLoading, setTestLoading] = useState(false);
+
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [maskedKey, setMaskedKey] = useState("");
+  const [hasKey, setHasKey] = useState(false);
+  const [revealedKey, setRevealedKey] = useState("");
+  const [leadKeyLoading, setLeadKeyLoading] = useState(false);
 
   const t = labels(lang);
 
@@ -57,6 +63,46 @@ function DirectorIntegrationsPage() {
       .then((data: any) => setSmsSettings(data))
       .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    branchApi
+      .leadApiKey()
+      .then((data) => {
+        setWebhookUrl(data.webhook_url);
+        setMaskedKey(data.api_key_masked);
+        setHasKey(data.has_key);
+      })
+      .catch(console.error);
+  }, []);
+
+  const copyToClipboard = (value: string) => {
+    if (!value) return;
+    navigator.clipboard.writeText(value);
+    toast.success(lang === "uz" ? "Nusxalandi" : "Скопировано");
+  };
+
+  const handleGenerateLeadApiKey = async () => {
+    if (hasKey && !window.confirm(
+      lang === "uz"
+        ? "Kalitni qayta yaratish eskisini darhol ishlamay qo'yadi. LidPixel tomonda ham yangilash kerak bo'ladi. Davom etasizmi?"
+        : "Перевыпуск ключа сразу же аннулирует старый. Понадобится обновить его и на стороне LidPixel. Продолжить?"
+    )) {
+      return;
+    }
+    setLeadKeyLoading(true);
+    try {
+      const data = await branchApi.regenerateLeadApiKey();
+      setWebhookUrl(data.webhook_url);
+      setRevealedKey(data.api_key);
+      setMaskedKey(`****${data.api_key.slice(-4)}`);
+      setHasKey(true);
+      toast.success(lang === "uz" ? "Kalit yaratildi" : "Ключ создан");
+    } catch {
+      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+    } finally {
+      setLeadKeyLoading(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -269,6 +315,68 @@ function DirectorIntegrationsPage() {
                     </Button>
                   </div>
                 </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+                  <KeyRound className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium">LidPixel</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {lang === "uz" ? "Murojaatlarni CRM'ga uzatish uchun API kalit" : "API-ключ для передачи заявок в CRM"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    {lang === "uz" ? "Webhook manzili" : "Адрес вебхука"}
+                  </Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input readOnly value={webhookUrl} className="flex-1 text-xs font-mono" />
+                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(webhookUrl)}>
+                      <Copy className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">API-{lang === "uz" ? "kalit" : "ключ"}</Label>
+                  {revealedKey ? (
+                    <>
+                      <div className="flex gap-2 mt-1">
+                        <Input readOnly value={revealedKey} className="flex-1 text-xs font-mono" />
+                        <Button variant="outline" size="icon" onClick={() => copyToClipboard(revealedKey)}>
+                          <Copy className="size-4" />
+                        </Button>
+                      </div>
+                      <p className="text-[11px] text-amber-500 mt-1">
+                        {lang === "uz"
+                          ? "Kalit faqat bir marta to'liq ko'rsatiladi — uni hozir saqlab qo'ying."
+                          : "Ключ показывается полностью только один раз — сохраните его сейчас."}
+                      </p>
+                    </>
+                  ) : (
+                    <Input readOnly value={maskedKey || "—"} className="mt-1 text-xs font-mono" />
+                  )}
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={handleGenerateLeadApiKey}
+                  disabled={leadKeyLoading}
+                >
+                  {leadKeyLoading
+                    ? "..."
+                    : hasKey
+                      ? lang === "uz" ? "Kalitni qayta yaratish" : "Перевыпустить ключ"
+                      : lang === "uz" ? "Kalit yaratish" : "Создать ключ"}
+                </Button>
               </div>
             </Card>
           </div>

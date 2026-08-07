@@ -17,6 +17,7 @@ django.urls.converters.register_converter = safe_register_converter
 django.urls.register_converter = safe_register_converter
 
 from apps.students.mobile_urls import parent_urlpatterns, student_urlpatterns
+from apps.students.views import public_submit_lead_lidpixel
 
 
 def healthcheck(_request):
@@ -50,6 +51,7 @@ urlpatterns = [
     path("api/v1/", include("apps.quizzes.urls")),
     path("api/v1/", include("apps.coins.urls")),
     path("api/v1/public/lead/", include("apps.students.public_urls")),
+    path("api/v1/public/leads/lidpixel/", public_submit_lead_lidpixel, name="public-lead-lidpixel"),
     path("api/v1/health/", healthcheck, name="healthcheck"),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),

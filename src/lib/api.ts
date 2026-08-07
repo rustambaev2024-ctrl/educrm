@@ -354,6 +354,10 @@ export const branchApi = {
       method: "POST",
       body: JSON.stringify({ phone }),
     }),
+  leadApiKey: () =>
+    requestJson<{ webhook_url: string; api_key_masked: string; has_key: boolean }>("/branches/lead-api-key/"),
+  regenerateLeadApiKey: () =>
+    requestJson<{ webhook_url: string; api_key: string }>("/branches/lead-api-key/", { method: "POST" }),
   institutionSettings: () => requestJson<{ name: string; address: string; phone: string; logo: string | null }>("/branches/settings/"),
   updateInstitutionSettings: (data: FormData | Record<string, any>) => {
     if (data instanceof FormData) {

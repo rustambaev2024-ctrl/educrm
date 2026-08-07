@@ -1,13 +1,14 @@
 import logging
 from django.db import transaction
 from django.db.models import Q
+from django_tenants.utils import schema_context
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, SimpleRateThrottle
 
 from apps.accounts.permissions import IsBranchAdmin, IsTeacher
 from apps.finance.serializers import PaymentSerializer
@@ -88,6 +89,76 @@ def public_submit_lead(request):
             )
     except Exception as e:
         logger.error(f"Meta Lead event error on public submit: {e}")
+
+    return Response(
+        {"id": str(lead.id), "status": "ok"},
+        status=status.HTTP_201_CREATED,
+    )
+
+
+class LidPixelLeadThrottle(SimpleRateThrottle):
+    """Ограничение по самому API-ключу, а не по IP — это серверный вебхук,
+    IP один и тот же для всех запросов; ключевание по IP не спасло бы от
+    подбора/злоупотребления утёкшим ключом."""
+
+    scope = "lidpixel_lead"
+    rate = "60/hour"
+
+    def get_cache_key(self, request, view):
+        key = request.headers.get("X-Api-Key") or request.query_params.get("key") or ""
+        return f"throttle_lidpixel_{key}" if key else None
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([LidPixelLeadThrottle])
+def public_submit_lead_lidpixel(request):
+    """
+    Входящий вебхук для интеграции с LidPixel. В отличие от public_submit_lead,
+    тенант определяется не заголовком X-Tenant-Schema (ему тут не доверяем),
+    а самим API-ключом — ключ однозначно принадлежит одной организации.
+    """
+    key = request.headers.get("X-Api-Key") or request.query_params.get("key") or ""
+    if not key:
+        return Response({"detail": "Invalid API key"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    from apps.tenants.models import Institution
+
+    try:
+        institution = Institution.objects.get(lead_api_key=key)
+    except Institution.DoesNotExist:
+        return Response({"detail": "Invalid API key"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    data = request.data
+    logger.info("lidpixel lead payload for %s: %s", institution.schema_name, dict(data))
+
+    full_name = (data.get("name") or data.get("full_name") or "").strip()
+    phone = (data.get("phone") or data.get("telephone") or data.get("phone_number") or "").strip()
+    email = (data.get("email") or "").strip()
+    notes = (data.get("notes") or "").strip()
+    if email:
+        notes = f"email: {email}" + (f"\n{notes}" if notes else "")
+
+    if not full_name or not phone:
+        return Response(
+            {"detail": "name and phone are required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    with schema_context(institution.schema_name):
+        from apps.institutions.models import Branch
+
+        lead_data = {
+            "full_name": full_name,
+            "phone": phone,
+            "source": "lidpixel",
+            "notes": notes,
+            "status": "new",
+        }
+        first_branch = Branch.objects.first()
+        if first_branch:
+            lead_data["branch"] = first_branch
+        lead = StudentLead.objects.create(**lead_data)
 
     return Response(
         {"id": str(lead.id), "status": "ok"},
