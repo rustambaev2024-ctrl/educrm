@@ -540,7 +540,7 @@ export function DailyReportPage() {
               </div>
               <Progress value={data.students.attendance_rate} className="h-3" />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="text-center p-3 bg-emerald-500/10 rounded">
                 <div className="text-2xl font-bold text-emerald-600">{data.students.present}</div>
                 <div className="text-xs text-muted-foreground">{labels.students.present}</div>
@@ -582,7 +582,7 @@ export function DailyReportPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="text-center p-2 bg-emerald-500/10 rounded">
                 <div className="font-bold text-emerald-600">{data.teachers.present}</div>
                 <div className="text-xs text-muted-foreground">{labels.teachers.present}</div>

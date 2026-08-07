@@ -8,6 +8,7 @@ import {
   Wallet,
   MessageSquare,
   type LucideIcon,
+  Coins,
 } from "lucide-react";
 import { EnterpriseLayout, type RailItem, type SidebarItem } from "@/components/layouts/enterprise-layout";
 import { RoleGuard } from "@/components/edu/role-guard";
@@ -50,6 +51,12 @@ function TeacherLayout() {
         { id: "homework", to: "/teacher/homework", icon: BookOpen, label: tr("Uy vazifasi", "Домашнее задание"), section: tr("TA'LIM", "ОБУЧЕНИЕ") },
         { id: "grades", to: "/teacher/grades", icon: Award, label: tr("Baholar", "Оценки"), section: tr("TA'LIM", "ОБУЧЕНИЕ") },
         { id: "quizzes", to: "/teacher/quizzes", icon: ClipboardCheck, label: tr("Testlar", "Тесты"), section: tr("TA'LIM", "ОБУЧЕНИЕ") },
+      ],
+    },
+    {
+      rail: { id: "coins", icon: Coins, label: "Coins" },
+      sidebar: [
+        { id: "coins", to: "/teacher/coins", icon: Coins, label: "Coins", section: tr("GAMIFIKATSIYA", "ГЕЙМИФИКАЦИЯ") },
       ],
     },
     {

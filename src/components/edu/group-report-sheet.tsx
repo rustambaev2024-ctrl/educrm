@@ -39,7 +39,7 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
           <div className="p-6 space-y-4">
             <div className="h-8 w-64 rounded-lg bg-muted animate-pulse" />
             <div className="h-4 w-48 rounded bg-muted animate-pulse" />
-            <div className="grid grid-cols-4 gap-3 mt-4">
+            <div className="grid grid-cols-2 gap-3 mt-4 sm:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
               ))}
@@ -139,7 +139,7 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
               {/* Finance Summary */}
               <Card className="p-4">
                 <h3 className="text-sm font-medium mb-3">{lang === "uz" ? "Moliya" : "Финансы"}</h3>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
                     <div className="text-xs text-muted-foreground">{lang === "uz" ? "Tushum" : "Доход"}</div>
                     <div className="text-sm font-semibold text-emerald-600 mt-1">{formatMoney(data.finance.income, lang)}</div>

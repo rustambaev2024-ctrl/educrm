@@ -225,7 +225,7 @@ function SuperadminHome() {
       } else {
         await superadminApi.institutions.delete(i.id);
       }
-      deleteInstitution(i.id);
+      deleteInstitution(i.id, { alreadyDeleted: true });
       toast.success(t("sa.deleted"));
       setDeleteTarget(null);
       setDeleteConfirmText("");

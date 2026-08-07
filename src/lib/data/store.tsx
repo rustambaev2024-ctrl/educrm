@@ -147,7 +147,8 @@ interface DataStoreActions {
   }) => Promise<void>;
   addGroup: (input: Omit<Group, "id" | "studentIds" | "status"> & { status?: Group["status"] }) => Group;
   updateGroup: (id: string, patch: Partial<Group>) => void;
-  deleteGroup: (id: string) => void;
+  /** alreadyDeleted — страница уже удалила объект на сервере, повторный запрос не нужен */
+  deleteGroup: (id: string, options?: { alreadyDeleted?: boolean }) => void;
   addStudentToGroup: (groupId: string, studentId: string) => Promise<boolean>;
   removeStudentFromGroup: (groupId: string, studentId: string) => void;
   setLessonStatus: (id: string, status: Lesson["status"], cancelReason?: string) => void;
@@ -197,11 +198,11 @@ interface DataStoreActions {
     monthlyRevenue?: number;
   }) => Promise<boolean>;
   updateInstitution: (id: string, patch: Partial<Institution>) => void;
-  deleteInstitution: (id: string) => void;
+  deleteInstitution: (id: string, options?: { alreadyDeleted?: boolean }) => void;
   // Branches (superadmin)
   addBranch: (input: Omit<Branch, "id">) => Branch;
   updateBranch: (id: string, patch: Partial<Branch>) => void;
-  deleteBranch: (id: string) => void;
+  deleteBranch: (id: string, options?: { alreadyDeleted?: boolean }) => void;
   // Rooms (director)
   addRoom: (input: Omit<Room, "id">) => Room;
   updateRoom: (id: string, patch: Partial<Room>) => void;
@@ -1163,9 +1164,13 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     );
   }, [groups, refreshLessons]);
 
-  const deleteGroup: DataStoreActions["deleteGroup"] = useCallback((id) => {
+  const deleteGroup: DataStoreActions["deleteGroup"] = useCallback((id, options) => {
     const snapshot = groups;
     setGroups((prev) => prev.filter((g) => g.id !== id));
+    // Страница удаления сама зовёт API (ей нужен диалог при 409). Без этого
+    // флага запрос уходил второй раз, получал 404, и откат возвращал уже
+    // удалённый объект в список вместе с ошибкой.
+    if (options?.alreadyDeleted) return;
     fireAndForget(
       "deleteGroup",
       groupApi.delete(id),
@@ -1802,10 +1807,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     fireAndForget("updateInstitution", superadminApi.institutions.update(id, snake(patch as AnyRecord) as never), () => setInstitutions(snapshot));
   }, [institutions]);
 
-  const deleteInstitution: DataStoreActions["deleteInstitution"] = useCallback((id) => {
+  const deleteInstitution: DataStoreActions["deleteInstitution"] = useCallback((id, options) => {
     const snapshot = institutions;
     setInstitutions((prev) => prev.filter((i) => i.id !== id));
     setBranches((prev) => prev.filter((b) => b.institutionId !== id));
+    if (options?.alreadyDeleted) return;
     fireAndForget("deleteInstitution", superadminApi.institutions.delete(id), () => setInstitutions(snapshot));
   }, [institutions]);
 
@@ -1846,7 +1852,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     );
   }, [branches, user?.role]);
 
-  const deleteBranch: DataStoreActions["deleteBranch"] = useCallback((id) => {
+  const deleteBranch: DataStoreActions["deleteBranch"] = useCallback((id, options) => {
     const snapshot = branches;
     const target = branches.find((b) => b.id === id);
     setBranches((prev) => {
@@ -1857,6 +1863,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       }
       return prev.filter((b) => b.id !== id);
     });
+    if (options?.alreadyDeleted) return;
     fireAndForget(
       "deleteBranch",
       user?.role === "superadmin" && target?.institutionId

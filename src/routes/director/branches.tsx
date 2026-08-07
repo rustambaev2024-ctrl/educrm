@@ -65,7 +65,7 @@ function BranchesPage() {
     if (!deletingBranch) return;
     try {
       await branchApi.delete(deletingBranch.id);
-      deleteBranch(deletingBranch.id);
+      deleteBranch(deletingBranch.id, { alreadyDeleted: true });
       toast.success(lang === "uz" ? "Filial o'chirildi" : "Филиал удалён");
       setDeletingBranch(null);
     } catch (e) {
@@ -85,7 +85,7 @@ function BranchesPage() {
     if (!forceDeleteBranch) return;
     try {
       await branchApi.deleteForce(forceDeleteBranch.id);
-      deleteBranch(forceDeleteBranch.id);
+      deleteBranch(forceDeleteBranch.id, { alreadyDeleted: true });
       toast.success(lang === "uz" ? "Filial o'chirildi" : "Филиал удалён");
     } catch {
       toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
