@@ -144,12 +144,16 @@ function AccountsPage() {
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} className="pl-9" />
           </div>
           <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-            <TabsList className="grid grid-cols-4">
-              <TabsTrigger value="all">{t("all")} ({rows.length})</TabsTrigger>
-              <TabsTrigger value="teacher">{t("teachers")} ({rows.filter((r) => r.type === "teacher").length})</TabsTrigger>
-              <TabsTrigger value="student">{t("students")} ({rows.filter((r) => r.type === "student").length})</TabsTrigger>
-              <TabsTrigger value="parent">{t("parents")} ({rows.filter((r) => r.type === "parent").length})</TabsTrigger>
+            {/* whitespace-nowrap на TabsTrigger + grid-cols-4 = счётчики вида
+                "Учителя (23)" вылезают за ячейку на узких экранах. */}
+              <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+              <TabsList className="grid w-max min-w-full grid-cols-4 sm:w-full">
+              <TabsTrigger value="all" className="px-3">{t("all")} ({rows.length})</TabsTrigger>
+              <TabsTrigger value="teacher" className="px-3">{t("teachers")} ({rows.filter((r) => r.type === "teacher").length})</TabsTrigger>
+              <TabsTrigger value="student" className="px-3">{t("students")} ({rows.filter((r) => r.type === "student").length})</TabsTrigger>
+              <TabsTrigger value="parent" className="px-3">{t("parents")} ({rows.filter((r) => r.type === "parent").length})</TabsTrigger>
             </TabsList>
+            </div>
           </Tabs>
         </div>
 

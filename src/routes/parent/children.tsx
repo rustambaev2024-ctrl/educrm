@@ -120,7 +120,7 @@ function ParentChildren() {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-4 divide-x divide-border/40 text-center">
+        <div className="grid grid-cols-2 divide-y divide-x divide-border/40 text-center sm:grid-cols-4 sm:divide-y-0">
           <Mini icon={Award} value={`${avg}%`} label={t("profile.avgGrade")} />
           <Mini icon={Calendar} value={`${attPct}%`} label={t("profile.attendance")} />
           <Mini icon={BookOpen} value={String(pendingHw)} label={t("parent.activeHw")} />
@@ -129,12 +129,16 @@ function ParentChildren() {
       </Card>
 
       <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">{t("profile.tab.overview")}</TabsTrigger>
-          <TabsTrigger value="grades">{t("profile.tab.grades")}</TabsTrigger>
-          <TabsTrigger value="attendance">{t("profile.tab.attendance")}</TabsTrigger>
-          <TabsTrigger value="payments">{lang === "uz" ? "To'lovlar" : "Платежи"}</TabsTrigger>
+        {/* whitespace-nowrap на TabsTrigger + grid-cols-4 = текст вылезает за
+            ячейку на узких экранах. Прокрутка вбок вместо переноса/обрезки. */}
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+        <TabsList className="grid w-max min-w-full grid-cols-4 sm:w-full">
+          <TabsTrigger value="overview" className="px-4">{t("profile.tab.overview")}</TabsTrigger>
+          <TabsTrigger value="grades" className="px-4">{t("profile.tab.grades")}</TabsTrigger>
+          <TabsTrigger value="attendance" className="px-4">{t("profile.tab.attendance")}</TabsTrigger>
+          <TabsTrigger value="payments" className="px-4">{lang === "uz" ? "To'lovlar" : "Платежи"}</TabsTrigger>
         </TabsList>
+        </div>
 
         <TabsContent value="overview" className="mt-3 space-y-3">
           <Card className="p-4 shadow-elegant">

@@ -50,7 +50,11 @@ export function NotificationsPopover({ size = "md" }: { size?: "sm" | "md" }) {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[360px] p-0" sideOffset={8}>
+      {/* Radix Popover сдвигает позицию при столкновении с краем экрана, но не
+          сжимает фиксированную ширину — на 320-360px телефонах (iPhone SE и
+          похожие) w-[360px] вылезал бы за край. max-w ограничивает шириной
+          вьюпорта минус отступы. */}
+      <PopoverContent align="end" className="w-[360px] max-w-[calc(100vw-2rem)] p-0" sideOffset={8}>
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold">{t("notif.title")}</span>
