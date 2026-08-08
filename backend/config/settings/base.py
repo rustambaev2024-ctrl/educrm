@@ -231,6 +231,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.finance.tasks.update_debtor_statuses",
         "schedule": crontab(hour=0, minute=30),
     },
+    # РАСПИСАНИЕ — без этого горизонт уроков (90 дней от создания группы,
+    # генерируется один раз) молча заканчивается и учителя перестают видеть
+    # свои занятия. Найдено на проде 2026-08-08 — 9 из 36 активных групп в
+    # одном филиале уже остались без будущих уроков.
+    "extend-lesson-horizons": {
+        "task": "apps.lessons.tasks.extend_lesson_horizons",
+        "schedule": crontab(hour=1, minute=0),
+    },
     # УВЕДОМЛЕНИЯ
     "lead-follow-up-reminder": {
         "task": "apps.notifications.tasks.lead_follow_up_reminder",
