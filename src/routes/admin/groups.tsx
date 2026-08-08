@@ -711,8 +711,8 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
     <Sheet open={true} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle>Guruhni tahrirlash</SheetTitle>
-          <SheetDescription>Guruh ma'lumotlarini o'zgartirish</SheetDescription>
+          <SheetTitle>{t("groups.edit.title")}</SheetTitle>
+          <SheetDescription>{t("groups.edit.subtitle")}</SheetDescription>
         </SheetHeader>
         <div className="space-y-4 px-4 py-6">
           <div className="space-y-2">
@@ -748,14 +748,14 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>{t("groups.field.status")}</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as Group["status"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recruiting">Qabul ochiq</SelectItem>
-                  <SelectItem value="active">Faol</SelectItem>
-                  <SelectItem value="frozen">Muzlatilgan</SelectItem>
-                  <SelectItem value="completed">Tugallangan</SelectItem>
+                  <SelectItem value="recruiting">{t("gstatus.recruiting")}</SelectItem>
+                  <SelectItem value="active">{t("gstatus.active")}</SelectItem>
+                  <SelectItem value="frozen">{t("gstatus.frozen")}</SelectItem>
+                  <SelectItem value="completed">{t("gstatus.completed")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -798,7 +798,7 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
         </div>
         <SheetFooter>
           <Button variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
-          <Button onClick={submit} className="bg-gradient-primary text-primary-foreground">Saqlash</Button>
+          <Button onClick={submit} className="bg-gradient-primary text-primary-foreground">{t("common.save")}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

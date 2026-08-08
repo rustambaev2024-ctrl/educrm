@@ -164,6 +164,8 @@ const UZ: Dict = {
   // Groups
   "groups.title": "Guruhlar",
   "groups.subtitle": "Kurslar va o'quv guruhlari",
+  "groups.edit.title": "Guruhni tahrirlash",
+  "groups.edit.subtitle": "Guruh ma'lumotlarini o'zgartirish",
   "groups.add": "Yangi guruh",
   "groups.search": "Guruh nomi bo'yicha qidirish",
   "groups.empty": "Guruhlar yo'q",
@@ -940,6 +942,8 @@ const RU: Dict = {
   // Groups
   "groups.title": "Группы",
   "groups.subtitle": "Курсы и учебные группы",
+  "groups.edit.title": "Редактирование группы",
+  "groups.edit.subtitle": "Изменение данных группы",
   "groups.add": "Новая группа",
   "groups.search": "Поиск по названию группы",
   "groups.empty": "Групп нет",
