@@ -15,15 +15,13 @@ export function PhoneInput({ value, onChange, onFocus, placeholder = "+998 91 42
       value={typeof value === "string" ? formatUzPhone(value) : value}
       onFocus={(event) => {
         if (!event.currentTarget.value) {
-          event.currentTarget.value = "+998 ";
-          onChange(event);
+          onChange({ target: { value: "+998 " } } as React.ChangeEvent<HTMLInputElement>);
         }
         onFocus?.(event);
       }}
       onChange={(event) => {
         const formatted = formatUzPhone(event.target.value);
-        event.currentTarget.value = formatted;
-        onChange(event);
+        onChange({ target: { value: formatted } } as React.ChangeEvent<HTMLInputElement>);
       }}
     />
   );
