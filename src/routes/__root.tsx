@@ -7,6 +7,9 @@ import { I18nProvider, useI18n } from "@/lib/i18n";
 import { DataStoreProvider } from "@/lib/data/store";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { initSentry } from "@/lib/sentry";
+
+initSentry();
 
 function NotFoundComponent() {
   const { t } = useI18n();

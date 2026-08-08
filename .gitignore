@@ -84,3 +84,4 @@ output/
 
 # Claude Code local settings
 .claude/settings.json
+.claude/hooks/.tsc-cache.tsbuildinfo
