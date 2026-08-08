@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Save, Settings as SettingsIcon, ShieldCheck, Palette } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, Save, Settings as SettingsIcon, ShieldCheck, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
@@ -16,9 +16,10 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/superadmin/settings")({ component: SaSettings });
 
 function SaSettings() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const [platformName, setPlatformName] = useState("EduCRM");
   const [supportEmail, setSupportEmail] = useState("");
@@ -31,7 +32,13 @@ function SaSettings() {
 
   const [primaryColor, setPrimaryColor] = useState("#6366f1");
 
-  useEffect(() => {
+  // Если настройки не загрузились, форму показывать нельзя: поля останутся
+  // с захардкоженными значениями по умолчанию, и «Сохранить» запишет их
+  // поверх настоящих настроек платформы. Пустых данных не бывает — бывает
+  // «не загрузилось», и это отдельное состояние.
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     superadminApi.settings.get()
       .then((data: any) => {
         if (data) {
@@ -45,9 +52,16 @@ function SaSettings() {
           setStrongPwd(data.strong_password ?? true);
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error("Failed to load platform settings", err);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const save = async () => {
     setSaving(true);
@@ -75,6 +89,27 @@ function SaSettings() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-3 px-6 text-center">
+        <AlertTriangle className="size-8 text-destructive" />
+        <div className="text-sm font-medium text-foreground">
+          {lang === "uz"
+            ? "Platforma sozlamalari yuklanmadi"
+            : "Настройки платформы не загрузились"}
+        </div>
+        <p className="max-w-sm text-xs text-muted-foreground">
+          {lang === "uz"
+            ? "Forma ko'rsatilmaydi: bo'sh maydonlarni saqlash haqiqiy sozlamalarni o'chirib yuborardi."
+            : "Форма не показана намеренно: сохранение пустых полей затёрло бы настоящие настройки."}
+        </p>
+        <Button size="sm" variant="outline" onClick={load}>
+          {lang === "uz" ? "Qayta urinish" : "Повторить"}
+        </Button>
       </div>
     );
   }

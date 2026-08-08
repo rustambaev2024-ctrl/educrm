@@ -100,7 +100,11 @@ export function EnterpriseLayout({
         if (d.name) setInstName(d.name);
         if (d.logo) { setInstLogo(d.logo); setLogoError(false); }
       })
-      .catch(() => {});
+      // Брендинг не критичен для работы — экран остаётся рабочим с дефолтным
+      // названием. Но молчать нельзя: клиент весь сеанс видит «EduCRM» вместо
+      // названия своего центра, и без записи в консоль причину не найти.
+      // То же самое делает sidebar-layout.tsx — здесь просто забыли.
+      .catch((e) => console.error("Failed to load institution brand", e));
   }, [user]);
 
   useEffect(() => {

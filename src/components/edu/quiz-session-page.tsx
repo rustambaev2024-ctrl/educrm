@@ -195,6 +195,10 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
         .then((s) =>
           setParticipants((s as QuizSessionRow).participants.map((p) => ({ id: p.id, name: p.name })))
         )
+        // Здесь глушение ошибки — осознанное, а не забытое: опрос идёт раз
+        // в 3 секунды и сам починится на следующем тике. Показывать
+        // пользователю сообщение на каждый сетевой сбой и писать в консоль
+        // двадцать раз в минуту хуже, чем промолчать.
         .catch(() => {});
     }, 3000);
     return () => clearInterval(interval);
