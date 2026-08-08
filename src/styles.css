@@ -158,11 +158,37 @@
   }
   * {
     border-color: var(--color-border);
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+  }
+
+  /* Скроллбар видимый, но тонкий.
+     Раньше он был скрыт глобально (scrollbar-width: none + ::-webkit-scrollbar
+     display: none). При этом 16 экранов с таблицами прокручиваются вбок внутри
+     overflow-x-auto: половина колонок оказывалась за краем экрана без единого
+     признака, что она там есть. На телефоне это единственный способ увидеть,
+     например, баланс ученика. Полоса — это аффорданс, а не украшение. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
   }
   *::-webkit-scrollbar {
-    display: none;
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-corner {
+    background: transparent;
   }
   html, body {
     font-family: var(--font-sans);
