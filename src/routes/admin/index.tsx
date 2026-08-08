@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { AlertCircle, Clock, DollarSign, MapPin, TrendingUp, UserPlus, Users } from "lucide-react";
+import { AlertCircle, ArrowRight, Clock, DollarSign, MapPin, TrendingUp, UserPlus, Users } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { StatCardSkeleton } from "@/components/ui/skeleton";
 import { KpiCard } from "@/components/edu/kpi-card";
@@ -9,6 +9,10 @@ import { sumIncome } from "@/lib/data/mappers";
 import { useI18n } from "@/lib/i18n";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { formatMoney, formatTime, getLocalDateString, sameDay } from "@/lib/format";
+
+/** Сколько уроков показываем на панели. Остаток не исчезает: под списком
+ *  появляется строка «Ещё N» с переходом в расписание. */
+const TODAY_LESSONS_VISIBLE = 7;
 
 export const Route = createFileRoute("/admin/")({ component: AdminHome });
 
@@ -38,7 +42,7 @@ const paymentTypeLabels: Record<string, { uz: string; ru: string }> = {
 };
 
 function AdminHome() {
-  const { lang } = useI18n();
+  const { lang, plural } = useI18n();
   const navigate = useNavigate();
   const { students, groups, lessons, payments, staff, rooms, courses, attendance, isLoading } = useData();
 
@@ -136,7 +140,7 @@ function AdminHome() {
             </div>
           ) : (
             <div>
-              {todayLessons.slice(0, 7).map((lesson) => {
+              {todayLessons.slice(0, TODAY_LESSONS_VISIBLE).map((lesson) => {
                 const group = groupById[lesson.groupId];
                 if (!group) return null;
                 const teacher  = teacherById[group.teacherId];
@@ -173,6 +177,34 @@ function AdminHome() {
                   </div>
                 );
               })}
+
+              {todayLessons.length > TODAY_LESSONS_VISIBLE && (
+                <button
+                  onClick={() => navigate({ to: "/admin/schedule" })}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    width: "100%",
+                    minHeight: 44,
+                    padding: "10px 14px",
+                    border: "none",
+                    borderTop: "1px solid var(--border-color)",
+                    background: "transparent",
+                    color: "var(--brand)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  {tr(
+                    `Yana ${todayLessons.length - TODAY_LESSONS_VISIBLE} ta dars`,
+                    `Ещё ${todayLessons.length - TODAY_LESSONS_VISIBLE} ${plural(todayLessons.length - TODAY_LESSONS_VISIBLE, "урок", "урока", "уроков")}`,
+                  )}
+                  <ArrowRight style={{ width: 13, height: 13 }} />
+                </button>
+              )}
             </div>
           )}
         </div>
