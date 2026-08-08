@@ -1,19 +1,37 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from apps.chat.services import create_group_chat
-from apps.lessons.services import generate_lessons_for_group_sync
+from apps.lessons.services import generate_lessons_for_group_sync, resync_lessons_for_group
 
 from .models import Group, GroupMembership
 
 
+@receiver(pre_save, sender=Group)
+def stash_old_schedule(sender, instance, **kwargs):
+    """Snapshot the schedule before save so on_group_saved can tell whether
+    it actually changed — post_save alone can't see the previous value."""
+    if kwargs.get("raw") or not instance.pk:
+        instance._old_schedule = None
+        return
+    try:
+        instance._old_schedule = Group.objects.only("schedule").get(pk=instance.pk).schedule
+    except Group.DoesNotExist:
+        instance._old_schedule = None
+
+
 @receiver(post_save, sender=Group)
-def on_group_created(sender, instance, created, **kwargs):
+def on_group_saved(sender, instance, created, **kwargs):
     if kwargs.get("raw"):
         return
     if created:
         create_group_chat(instance)
         generate_lessons_for_group_sync(instance)
+        return
+
+    old_schedule = getattr(instance, "_old_schedule", None)
+    if old_schedule is not None and old_schedule != instance.schedule:
+        resync_lessons_for_group(instance)
 
 
 @receiver(post_save, sender=GroupMembership)

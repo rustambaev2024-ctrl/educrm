@@ -92,3 +92,20 @@ def generate_lessons_for_group_sync(
         current += timedelta(days=1)
 
     return created
+
+
+def resync_lessons_for_group(group: Group, *, horizon_days: int = 90) -> int:
+    """Re-align a group's not-yet-occurred lessons with its current schedule.
+
+    `generate_lessons_for_group_sync` only ever creates missing rows — it
+    never touches ones that already exist, so editing `group.schedule` (a
+    time change, a day change) silently left every already-generated future
+    `Lesson` on the OLD schedule forever (found on prod 2026-08-08: two
+    groups had been retimed via the admin UI but their calendar kept running
+    at the original time). Only `status="scheduled"` rows dated today or
+    later are removed — `conducted`/`cancelled`/`rescheduled` lessons carry
+    real attendance/history and must never be touched by a schedule edit.
+    """
+    today = timezone.now().date()
+    Lesson.objects.filter(group=group, datetime__date__gte=today, status="scheduled").delete()
+    return generate_lessons_for_group_sync(group, from_date=today, horizon_days=horizon_days)
