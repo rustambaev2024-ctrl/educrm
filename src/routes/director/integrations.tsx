@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { PageShell } from "@/components/edu/page-shell";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { branchApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
@@ -37,6 +38,7 @@ function DirectorIntegrationsPage() {
   const [hasKey, setHasKey] = useState(false);
   const [revealedKey, setRevealedKey] = useState("");
   const [leadKeyLoading, setLeadKeyLoading] = useState(false);
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
 
   const t = labels(lang);
 
@@ -81,14 +83,18 @@ function DirectorIntegrationsPage() {
     toast.success(lang === "uz" ? "Nusxalandi" : "Скопировано");
   };
 
-  const handleGenerateLeadApiKey = async () => {
-    if (hasKey && !window.confirm(
-      lang === "uz"
-        ? "Kalitni qayta yaratish eskisini darhol ishlamay qo'yadi. LidPixel tomonda ham yangilash kerak bo'ladi. Davom etasizmi?"
-        : "Перевыпуск ключа сразу же аннулирует старый. Понадобится обновить его и на стороне LidPixel. Продолжить?"
-    )) {
+  // Перевыпуск ключа необратим и ломает приём заявок до тех пор, пока новый
+  // ключ не пропишут на стороне LidPixel. Поэтому подтверждение обязательно,
+  // и оно называет последствие, а не спрашивает «вы уверены?».
+  const handleGenerateLeadApiKey = () => {
+    if (hasKey) {
+      setRegenerateOpen(true);
       return;
     }
+    void generateLeadApiKey();
+  };
+
+  const generateLeadApiKey = async () => {
     setLeadKeyLoading(true);
     try {
       const data = await branchApi.regenerateLeadApiKey();
@@ -96,6 +102,7 @@ function DirectorIntegrationsPage() {
       setRevealedKey(data.api_key);
       setMaskedKey(`****${data.api_key.slice(-4)}`);
       setHasKey(true);
+      setRegenerateOpen(false);
       toast.success(lang === "uz" ? "Kalit yaratildi" : "Ключ создан");
     } catch {
       toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
@@ -417,6 +424,22 @@ function DirectorIntegrationsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={regenerateOpen}
+        onOpenChange={setRegenerateOpen}
+        variant="destructive"
+        isLoading={leadKeyLoading}
+        title={lang === "uz" ? "Kalitni qayta yaratilsinmi?" : "Перевыпустить ключ?"}
+        description={
+          lang === "uz"
+            ? "Eski kalit shu zahoti ishlamay qoladi. Yangi kalitni LidPixel tomonida ko'rsatmaguningizcha saytdagi shakl murojaat yubormaydi."
+            : "Старый ключ перестанет работать сразу. Форма на сайте прекратит присылать заявки, пока вы не пропишете новый ключ на стороне LidPixel."
+        }
+        confirmText={lang === "uz" ? "Qayta yaratish" : "Перевыпустить"}
+        cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+        onConfirm={() => void generateLeadApiKey()}
+      />
     </PageShell>
   );
 }
