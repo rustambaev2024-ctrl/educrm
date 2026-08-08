@@ -13,6 +13,16 @@ educrm-railway-backups-missing), so an accidental/unreviewed migrate on the
 live database is not casually reversible. `showmigrations` (read-only) and
 local/dev migrate are intentionally NOT blocked here — only a real migrate
 verb reaching a Railway-attached shell.
+
+`showmigrations` is excluded implicitly by MIGRATE_VERB_RE requiring the verb
+`migrate`/`migrate_schemas` immediately after `manage.py` — "showmigrations"
+never matches that pattern (the substring "migrat" there is followed by
+"ions", not "e"), so no separate exemption regex is needed. An earlier
+version of this hook had a `SHOWMIGRATIONS_RE.search(command)` short-circuit
+that exempted the *whole command* if "showmigrations" appeared ANYWHERE in
+it — that was a real bypass: `railway ssh -- python manage.py showmigrations;
+python manage.py migrate` would have matched the exemption and slipped a real
+migrate through. Removed; don't re-add a substring-based exemption here.
 """
 import json
 import re
@@ -23,7 +33,6 @@ if hasattr(sys.stderr, "reconfigure"):
 
 RAILWAY_REMOTE_RE = re.compile(r"\brailway\s+(ssh|run)\b")
 MIGRATE_VERB_RE = re.compile(r"\bmanage\.py\s+migrate(_schemas)?\b")
-SHOWMIGRATIONS_RE = re.compile(r"\bshowmigrations\b")
 
 
 def main():
@@ -40,8 +49,6 @@ def main():
     if not RAILWAY_REMOTE_RE.search(command):
         return 0
     if not MIGRATE_VERB_RE.search(command):
-        return 0
-    if SHOWMIGRATIONS_RE.search(command):
         return 0
 
     sys.stderr.write(
