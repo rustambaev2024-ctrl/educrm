@@ -363,8 +363,11 @@ export function MessengerPanel({
     </div>
   );
 
+  // dvh, а не vh: на iOS Safari 100vh считается по развёрнутому окну, без
+  // учёта сворачивающейся адресной строки, поэтому лента чата прыгала при
+  // каждом её сворачивании и часть переписки уезжала под край экрана.
   return (
-    <div className="grid h-[calc(100vh-9rem)] grid-cols-1 md:grid-cols-[380px_minmax(0,1fr)] overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-elegant">
+    <div className="grid h-[calc(100dvh-9rem)] grid-cols-1 md:grid-cols-[380px_minmax(0,1fr)] overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-elegant">
       <div className={`flex flex-col overflow-hidden border-r border-border/60 ${selectedId ? "hidden md:flex" : "flex"}`}>
         {sidebar}
       </div>
