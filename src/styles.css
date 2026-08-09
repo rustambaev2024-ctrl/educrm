@@ -304,6 +304,69 @@
   background-attachment: local, local, scroll, scroll;
 }
 
+/* ── Таблица → карточки на телефоне ──────────────
+   Столп 8: «на мобиле таблица → карточки». Ни одна из 15 таблиц этого
+   не делала — все прокручивались вбок, и половина колонок оказывалась
+   за краем экрана.
+
+   Класс висит на самом компоненте Table (src/components/ui/table.tsx),
+   поэтому правило одно на все таблицы. Только до 768px; на планшете
+   и десктопе таблица остаётся таблицей.
+
+   Раскладка: первая ячейка — сущность (имя ученика, название группы,
+   ФИО сотрудника — так во всех 15 таблицах), занимает всю ширину
+   и читается как заголовок карточки. Остальные ячейки становятся
+   строчными значениями и переносятся, последняя (действия) уходит
+   вправо. Ячейка с `data-label` подписывает себя сама — это путь
+   для таблиц, где значение без подписи непонятно. */
+@media (max-width: 767px) {
+  table.edu-cards {
+    display: block;
+    width: 100%;
+  }
+  table.edu-cards thead {
+    display: none;
+  }
+  table.edu-cards tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  table.edu-cards tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--card-bg);
+  }
+  table.edu-cards tbody td {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+  table.edu-cards tbody td:first-child {
+    flex: 1 1 100%;
+  }
+  table.edu-cards tbody td:last-child {
+    margin-left: auto;
+  }
+  table.edu-cards tbody td[data-label]::before {
+    content: attr(data-label) ": ";
+    color: var(--text-secondary);
+    font-size: 11px;
+  }
+  /* Строка «ничего не найдено» и подобные — на всю ширину, без чипов. */
+  table.edu-cards tbody td[colspan] {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+}
+
 /* ── Тач-цели ────────────────────────────────────
    Иконочные кнопки в проекте задавались от 24px (size-6) до 36px:
    это иконки удаления, правки и отмены платежа в строках таблиц —
