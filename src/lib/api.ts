@@ -417,6 +417,17 @@ export const groupApi = {
 export const studentApi = {
   ...crudApi("/students/"),
   createWithFiles: (data: FormData) => requestForm("/students/", data),
+  /**
+   * Смена статуса нескольким ученикам за раз. Только обратимые переходы
+   * ("frozen" / "active") — так задано на бэкенде намеренно.
+   * Возвращает, сколько записей изменено и сколько не нашлось в скоупе
+   * пользователя, чтобы интерфейс не рапортовал об успехе впустую.
+   */
+  bulkStatus: (ids: string[], status: "frozen" | "active") =>
+    requestJson<{ updated: number; skipped: number; status: string }>(
+      "/students/bulk-status/",
+      { method: "POST", body: JSON.stringify({ ids, status }) },
+    ),
   assignParent: (studentId: string, parentData: {
     parentId?: string;
     parentName?: string;

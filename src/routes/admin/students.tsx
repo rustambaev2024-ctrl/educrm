@@ -7,6 +7,7 @@ import { KpiCard } from "@/components/edu/kpi-card";
 import { StudentStatusBadge } from "@/components/edu/status-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui/table";
 import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
-import { useData } from "@/lib/data/store";
+import { useData, apiErrorMessage } from "@/lib/data/store";
 import { formatMoney } from "@/lib/format";
 import type { Student, StudentStatus } from "@/lib/data/types";
 import { studentApi } from "@/lib/api";
@@ -92,6 +93,10 @@ export function StudentsPage() {
   // на клиенте отсортировала бы только текущую страницу и дала бы неверный
   // ответ на «у кого самый большой долг». Белый список полей — на бэкенде.
   const [sort, setSort] = useState<string>("");
+  // Массовый выбор. Хранится по id, а не по индексу: список серверный,
+  // и при смене страницы индексы указывали бы на других людей.
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [pageStudents, setPageStudents] = useState<Student[]>([]);
@@ -101,6 +106,9 @@ export function StudentsPage() {
   const debouncedSearch = useDebounced(search);
 
   useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter, sort]);
+  // Выбор сбрасывается при любой смене выборки: иначе «выбрано 3» осталось
+  // бы от людей, которых на экране уже нет.
+  useEffect(() => { setPicked(new Set()); }, [debouncedSearch, statusFilter, sort, page]);
 
   const loadStudents = useCallback(async () => {
     setPageLoading(true);
@@ -127,6 +135,67 @@ export function StudentsPage() {
   useEffect(() => {
     loadStudents();
   }, [loadStudents]);
+
+  const togglePick = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const applyBulkStatus = async (next: "frozen" | "active") => {
+    const ids = [...picked];
+    if (ids.length === 0) return;
+    // Снимок прежних статусов — для отмены. Действие обратимое, поэтому
+    // выполняем сразу и даём отменить, а не спрашиваем заранее.
+    const before = pageStudents
+      .filter((st) => picked.has(st.id))
+      .map((st) => ({ id: st.id, status: st.status }));
+
+    setBulkBusy(true);
+    try {
+      const res = await studentApi.bulkStatus(ids, next);
+      setPicked(new Set());
+      await loadStudents();
+
+      const label =
+        next === "frozen"
+          ? (lang === "uz" ? "muzlatildi" : "заморожено")
+          : (lang === "uz" ? "faollashtirildi" : "активировано");
+
+      toast.success(`${res.updated} ${lang === "uz" ? "ta o'quvchi" : "учеников"} ${label}`, {
+        description:
+          res.skipped > 0
+            ? (lang === "uz"
+                ? `${res.skipped} ta o'zgarmadi: sizning filialingizda emas`
+                : `${res.skipped} не изменено: не в вашем филиале`)
+            : undefined,
+        action: {
+          label: lang === "uz" ? "Bekor qilish" : "Отменить",
+          onClick: () => {
+            // Возвращаем каждому его прежний статус, а не «активен» всем.
+            const groups = new Map<string, string[]>();
+            before.forEach(({ id, status: was }) => {
+              if (was !== "frozen" && was !== "active") return;
+              const bucket = groups.get(was) ?? [];
+              bucket.push(id);
+              groups.set(was, bucket);
+            });
+            void Promise.all(
+              [...groups.entries()].map(([was, list]) =>
+                studentApi.bulkStatus(list, was as "frozen" | "active"),
+              ),
+            ).then(() => loadStudents());
+          },
+        },
+      });
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   const filtered = pageStudents;
 
@@ -202,6 +271,36 @@ export function StudentsPage() {
             </div>
           </div>
 
+          {picked.size > 0 && (
+            <div className="mx-4 mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+              <span className="text-sm font-semibold tabular-nums">
+                {lang === "uz" ? `${picked.size} ta belgilandi` : `Выбрано ${picked.size}`}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={bulkBusy}
+                onClick={() => void applyBulkStatus("frozen")}
+              >
+                {lang === "uz" ? "Muzlatish" : "Заморозить"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={bulkBusy}
+                onClick={() => void applyBulkStatus("active")}
+              >
+                {lang === "uz" ? "Faollashtirish" : "Активировать"}
+              </Button>
+              <button
+                onClick={() => setPicked(new Set())}
+                className="ml-auto min-h-11 px-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                {lang === "uz" ? "Bekor qilish" : "Снять выбор"}
+              </button>
+            </div>
+          )}
+
           {showSkeleton ? (
             <ListSkeleton rows={6} />
           ) : filtered.length === 0 ? (
@@ -223,6 +322,15 @@ export function StudentsPage() {
             <Table className="edu-table">
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      aria-label={lang === "uz" ? "Hammasini belgilash" : "Выбрать всех на странице"}
+                      checked={pageStudents.length > 0 && picked.size === pageStudents.length}
+                      onCheckedChange={(v) =>
+                        setPicked(v === true ? new Set(pageStudents.map((st) => st.id)) : new Set())
+                      }
+                    />
+                  </TableHead>
                   <SortHead field="name" sort={sort} onSort={setSort}>{lang === "uz" ? "O'quvchi" : "Ученик"}</SortHead>
                   <TableHead>{lang === "uz" ? "Guruhlar" : "Группы"}</TableHead>
                   <SortHead field="balance" sort={sort} onSort={setSort} align="right">{lang === "uz" ? "Balans" : "Баланс"}</SortHead>
@@ -245,6 +353,13 @@ export function StudentsPage() {
                       )}
                       onClick={() => setSelectedId(s.id)}
                     >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          aria-label={s.fullName}
+                          checked={picked.has(s.id)}
+                          onCheckedChange={() => togglePick(s.id)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {(() => {

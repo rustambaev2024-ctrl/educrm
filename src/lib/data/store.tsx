@@ -285,7 +285,12 @@ function fireAndForget(label: string, task: Promise<unknown>, rollback?: () => v
   });
 }
 
-function apiErrorMessage(err: unknown): string {
+/**
+ * Достаёт из ошибки API человеческую причину вместо голого «Xatolik».
+ * Экспортирован, потому что столп 5 в CLAUDE.md предписывает прокидывать
+ * детали именно через него, а до сих пор он был доступен только внутри стора.
+ */
+export function apiErrorMessage(err: unknown): string {
   const body = (err as { body?: unknown })?.body;
   if (typeof body === "string" && body.trim()) {
     return friendlyApiMessage(body);

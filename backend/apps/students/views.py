@@ -415,6 +415,56 @@ class StudentViewSet(viewsets.ModelViewSet):
         ]
         return Response({"groups": groups, "closed_at": last_closed.left_at})
 
+    @action(detail=False, methods=["post"], url_path="bulk-status")
+    @transaction.atomic
+    def bulk_status(self, request):
+        """Сменить статус нескольким ученикам за раз.
+
+        Массовые действия были доступны в 2 экранах из 16, потому что ручки
+        для них не существовало. Здесь она появляется в самом безопасном
+        виде: только смена статуса, только на «заморожен» и «активен» —
+        то есть обратимые операции, для которых в интерфейсе есть отмена.
+        Удаления и денежных операций пачкой тут нет намеренно.
+
+        Скоуп берётся из get_queryset(), поэтому массовое действие не может
+        задеть учеников чужого филиала: id, которых нет в скоупе, просто
+        не найдутся. Их количество возвращается отдельно, чтобы интерфейс
+        не рапортовал об успехе там, где ничего не произошло.
+        """
+        ids = request.data.get("ids")
+        new_status = request.data.get("status")
+
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {"detail": "ids must be a non-empty list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(ids) > 200:
+            return Response(
+                {"detail": "At most 200 students per request."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Только обратимые переходы. Расширять список — отдельное решение:
+        # «архивировать» и «отчислить» пачкой без подтверждения на каждого
+        # слишком легко сделать по ошибке.
+        if new_status not in ("frozen", "active"):
+            return Response(
+                {"detail": "status must be 'frozen' or 'active'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        scoped = self.get_queryset().filter(id__in=ids)
+        found_ids = list(scoped.values_list("id", flat=True))
+        updated = Student.objects.filter(id__in=found_ids).update(status=new_status)
+
+        return Response(
+            {
+                "updated": updated,
+                "skipped": len(set(map(str, ids))) - len(found_ids),
+                "status": new_status,
+            }
+        )
+
     @action(detail=True, methods=["post"], url_path="assign-parent")
     @transaction.atomic
     def assign_parent(self, request, pk=None):
