@@ -150,9 +150,8 @@ function AdminHome() {
                 return (
                   <div
                     key={lesson.id}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid #f8fafc", transition: "background 0.1s" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f8fafc"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    className="edu-row"
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid var(--border-light)" }}
                   >
                     <div style={{ minWidth: 44, fontWeight: 700, color: "#0077b6", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
                       <Clock style={{ width: 11, height: 11 }} />
@@ -239,9 +238,8 @@ function AdminHome() {
                 return (
                   <div
                     key={payment.id}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid #f8fafc", transition: "background 0.1s" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#f8fafc"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    className="edu-row"
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid var(--border-light)" }}
                   >
                     <div style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: avaBg[idx], color: avaTxt[idx] }}>
                       {initials(name)}

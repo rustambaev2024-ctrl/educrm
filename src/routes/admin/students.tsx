@@ -293,9 +293,8 @@ export function StudentsPage() {
                         <button
                           title={lang === "uz" ? "Ko'rish" : "Открыть"}
                           onClick={() => setSelectedId(s.id)}
-                          style={{ padding: "4px 8px", borderRadius: 6, color: "#0077b6", background: "transparent", border: "none", cursor: "pointer" }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#f1f5f9"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                          className="edu-ghost-btn"
+                          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, borderRadius: 6, color: "var(--brand)", background: "transparent", border: "none", cursor: "pointer" }}
                         >
                           <Pencil className="h-4 w-4" />
                         </button>

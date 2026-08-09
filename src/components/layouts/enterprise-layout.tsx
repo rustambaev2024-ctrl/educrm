@@ -216,34 +216,25 @@ export function EnterpriseLayout({
                           else onRailChange(rail.id);
                           onItemClick?.();
                         }}
+                        className="edu-nav-item"
+                        data-active={active ? "true" : undefined}
+                        aria-current={active ? "page" : undefined}
                         style={{
                           display: "flex",
                           alignItems: "center",
                           gap: 10,
                           margin: "1px 8px",
-                          padding: "8px 12px",
+                          padding: "10px 12px",
+                          minHeight: 44,
                           borderRadius: 7,
                           width: "calc(100% - 16px)",
                           border: "none",
                           cursor: "pointer",
                           fontSize: 13,
-                          transition: "background 0.12s, color 0.12s",
-                          background: active ? "#0077b6" : "transparent",
-                          color: active ? "#fff" : "rgba(255,255,255,0.55)",
+                          background: active ? "var(--sidebar-active)" : "transparent",
+                          color: active ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
                           fontWeight: active ? 600 : 400,
                           textAlign: "left",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!active) {
-                            (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.07)";
-                            (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.9)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!active) {
-                            (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                            (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)";
-                          }
                         }}
                       >
                         <item.icon style={{ width: 16, height: 16, flexShrink: 0 }} />
@@ -280,20 +271,19 @@ export function EnterpriseLayout({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
+              className="edu-nav-item"
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
                 width: "100%",
                 padding: "8px 10px",
+                minHeight: 44,
                 borderRadius: 8,
                 border: "none",
                 cursor: "pointer",
                 background: "transparent",
-                transition: "background 0.12s",
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.07)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
             >
               <div
                 style={{

@@ -400,8 +400,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
             border: "none",
             cursor: "pointer",
           }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#00b4d8")}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#0077b6")}
+          className="edu-brand-btn"
         >
           <Plus className="h-4 w-4" />
           {tr("Savol qo'shish", "Добавить вопрос")}
@@ -633,29 +632,29 @@ function QuestionCard({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
-
   return (
     <div
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-pressed={active}
+      className="edu-glass-item"
+      data-active={active ? "true" : undefined}
       style={{
         position: "relative",
         margin: "0 8px 4px",
         borderRadius: 12,
         cursor: "pointer",
-        border: active
-          ? "2px solid #0077b6"
-          : "2px solid transparent",
-        background: active
-          ? "rgba(255,255,255,0.1)"
-          : hovered
-          ? "rgba(255,255,255,0.08)"
-          : "rgba(255,255,255,0.05)",
+        border: active ? "2px solid var(--brand)" : "2px solid transparent",
+        background: active ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.05)",
         minHeight: 72,
         padding: "10px 12px",
-        transition: "all 0.15s",
       }}
     >
       <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>
@@ -701,52 +700,56 @@ function QuestionCard({
         ))}
       </div>
 
-      {/* Hover actions */}
-      {hovered && (
-        <div
+      {/* Действия над вопросом. Раньше отрисовывались только при hovered —
+          то есть на телефоне были недоступны в принципе. Теперь в разметке
+          всегда, а появление по наведению делает CSS и только там, где
+          курсор существует (см. .edu-glass-actions в styles.css). */}
+      <div
+        className="edu-glass-actions"
+        style={{
+          position: "absolute",
+          top: 4,
+          right: 4,
+          display: "flex",
+          gap: 4,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onDuplicate}
+          aria-label={lang === "uz" ? "Nusxalash" : "Дублировать"}
           style={{
-            position: "absolute",
-            top: 4,
-            right: 4,
+            width: 34,
+            height: 34,
+            borderRadius: 8,
+            background: "rgba(255,255,255,0.15)",
+            border: "none",
+            cursor: "pointer",
             display: "flex",
-            gap: 4,
+            alignItems: "center",
+            justifyContent: "center",
           }}
-          onClick={(e) => e.stopPropagation()}
         >
-          <button
-            onClick={onDuplicate}
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: 6,
-              background: "rgba(255,255,255,0.15)",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Copy className="h-3 w-3" style={{ color: "rgba(255,255,255,0.7)" }} />
-          </button>
-          <button
-            onClick={onDelete}
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: 6,
-              background: "rgba(239,68,68,0.25)",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Trash2 className="h-3 w-3" style={{ color: "#f87171" }} />
-          </button>
-        </div>
-      )}
+          <Copy className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.85)" }} />
+        </button>
+        <button
+          onClick={onDelete}
+          aria-label={lang === "uz" ? "O'chirish" : "Удалить"}
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 8,
+            background: "rgba(239,68,68,0.25)",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Trash2 className="h-3.5 w-3.5" style={{ color: "#f87171" }} />
+        </button>
+      </div>
     </div>
   );
 }

@@ -201,6 +201,85 @@
   }
 }
 
+/* ── Уменьшенное движение ────────────────────────
+   Столп 1 требует уважать prefers-reduced-motion, но в проекте этого
+   не было ни в одном месте. Оставляем только смену прозрачности:
+   ничего не едет, не масштабируется и не вращается. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Интерактивные состояния ─────────────────────
+   Ховер, навешенный обработчиками onMouseEnter/onMouseLeave, залипает
+   на тач-устройствах: события ухода курсора там не происходит, и элемент
+   остаётся подсвеченным до следующего тапа в другом месте. Кроме того,
+   через JS нельзя показать :focus-visible — навигация с клавиатуры
+   становится невидимой.
+   Ховер объявлен внутри @media (hover: hover), поэтому на устройствах
+   без курсора не срабатывает вообще. Утилиты Tailwind (hover:*) уже
+   обёрнуты так же самим фреймворком — здесь закрываются только
+   рукописные случаи. */
+.edu-row,
+.edu-ghost-btn,
+.edu-brand-btn,
+.edu-nav-item,
+.edu-glass-item {
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.edu-row:focus-visible,
+.edu-nav-item:focus-visible,
+.edu-glass-item:focus-visible {
+  outline: 2px solid var(--brand-hover);
+  outline-offset: -2px;
+}
+.edu-ghost-btn:focus-visible,
+.edu-brand-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .edu-row:hover,
+  .edu-ghost-btn:hover {
+    background: var(--border-light);
+  }
+  .edu-brand-btn:hover {
+    background: var(--brand-hover);
+  }
+  .edu-nav-item:not([data-active="true"]):hover {
+    background: var(--sidebar-hover);
+    color: rgba(255, 255, 255, 0.9);
+  }
+  .edu-glass-item:not([data-active="true"]):hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Действия внутри карточки: на тач-устройствах видны всегда — иначе они
+   недостижимы, потому что «навести» там нечем. Появление по наведению
+   существует только там, где курсор есть, и дополнительно по фокусу
+   с клавиатуры. */
+.edu-glass-actions {
+  opacity: 1;
+}
+@media (hover: hover) {
+  .edu-glass-actions {
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .edu-glass-item:hover .edu-glass-actions,
+  .edu-glass-item:focus-within .edu-glass-actions,
+  .edu-glass-item:focus-visible .edu-glass-actions {
+    opacity: 1;
+  }
+}
+
 /* ── Mobile pages ───────────────────────────────── */
 .mobile-page {
   width: 100%;
