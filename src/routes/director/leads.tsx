@@ -189,6 +189,9 @@ function DirectorLeadsPage() {
     groupId: "",
   });
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
+  // Какая колонка канбана показана на телефоне. На десктопе не используется:
+  // там видны все пять сразу (см. lg:flex у колонки).
+  const [mobileStatus, setMobileStatus] = useState<StudentLeadStatus>("new");
 
   const t = labels(lang);
   const selected = useMemo(() => leads.find((lead) => lead.id === selectedId) ?? null, [leads, selectedId]);
@@ -476,10 +479,38 @@ function DirectorLeadsPage() {
             </div>
           </div>
 
-          <div className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0">
+          {/* Переключатель колонок — только на телефоне. Пять колонок в 360px
+              давали по 60px на каждую, поэтому канбан прокручивался вбок:
+              карточку нельзя было ни рассмотреть, ни перетащить пальцем.
+              Столп 8 требует не сжатый десктоп, а другую раскладку. */}
+          <div className="mb-3 flex gap-2 overflow-x-auto px-1 pb-1 lg:hidden">
+            {STATUS_OPTIONS.map((status) => {
+              const count = filtered.filter((l) => l.status === status).length;
+              const on = status === mobileStatus;
+              return (
+                <button
+                  key={status}
+                  onClick={() => setMobileStatus(status)}
+                  aria-pressed={on}
+                  className={`flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium transition-colors ${
+                    on
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground"
+                  }`}
+                >
+                  {t.status[status]}
+                  <span className={`rounded-full px-1.5 text-[11px] font-bold tabular-nums ${on ? "bg-white/20" : "bg-muted"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="lg:mx-0 lg:overflow-visible lg:px-0">
             {/* На телефоне пять колонок в 360px превращаются в 60px каждая —
                 канбан прокручивается вбок, как расписание. */}
-            <div className="grid min-w-[1080px] grid-cols-5 gap-3 p-4 pb-6 h-[calc(100dvh-280px)] min-h-[520px] lg:min-w-0">
+            <div className="grid grid-cols-1 gap-3 p-4 pb-6 h-[calc(100dvh-280px)] min-h-[520px] lg:grid-cols-5">
             {STATUS_OPTIONS.map(status => {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
@@ -494,7 +525,7 @@ function DirectorLeadsPage() {
               const isDraggingOver = dragOverStatus === status;
 
               return (
-                <div key={status} className={`flex flex-col min-w-0 rounded-2xl bg-card border shadow-sm overflow-hidden h-full transition-colors ${
+                <div key={status} className={`${status === mobileStatus ? "flex" : "hidden lg:flex"} flex-col min-w-0 rounded-2xl bg-card border shadow-sm overflow-hidden h-full transition-colors ${
                   isDraggingOver
                     ? isDialogDrop
                       ? "border-amber-400 bg-amber-50/30 dark:bg-amber-950/20"

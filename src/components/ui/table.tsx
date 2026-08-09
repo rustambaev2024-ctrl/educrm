@@ -4,7 +4,10 @@ import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
+    // edu-scroll-x рисует тени у краёв, когда прокручивать есть куда:
+    // ни одна таблица в проекте не становится карточками на узком экране,
+    // и без этого признака половина колонок оказывалась за краем молча.
+    <div className="edu-scroll-x relative w-full overflow-auto">
       <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   ),
