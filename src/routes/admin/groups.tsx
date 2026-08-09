@@ -42,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
 import { groupApi } from "@/lib/api";
@@ -58,16 +59,18 @@ function GroupsPage() {
   const { groups, courses, staff, rooms, isLoading } = useData();
 
   const [search, setSearch] = useState("");
+  // Фильтр пересчитывался на каждое нажатие клавиши.
+  const searchQuery = useDebounced(search);
   const [createOpen, setCreateOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reportGroupId, setReportGroupId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     if (!q) return groups;
     return groups.filter((g) => g.name.toLowerCase().includes(q));
-  }, [groups, search]);
+  }, [groups, searchQuery]);
 
   const selected = useMemo(() => groups.find((g) => g.id === selectedId) ?? null, [groups, selectedId]);
   const editGroup = useMemo(() => groups.find((g) => g.id === editId) ?? null, [groups, editId]);
@@ -114,7 +117,7 @@ function GroupsPage() {
           <CardGridSkeleton count={6} />
         ) : filtered.length === 0 ? (
           <Card>
-            {search.trim() ? (
+            {searchQuery.trim() ? (
               <EmptyState
                 icon={<Search className="size-7" />}
                 title={lang === "uz" ? "Hech narsa topilmadi" : "Ничего не найдено"}

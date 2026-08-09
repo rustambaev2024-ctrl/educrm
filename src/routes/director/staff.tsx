@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useData } from "@/lib/data/store";
+import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 import type { Staff } from "@/lib/data/types";
@@ -60,6 +61,8 @@ function StaffPage() {
   const { t, lang } = useI18n();
   const { staff, branches, groups, payments, addStaff, updateStaff, deleteStaff, isLoading } = useData();
   const [search, setSearch] = useState("");
+  // Фильтр пересчитывался на каждое нажатие клавиши.
+  const searchQuery = useDebounced(search);
   const [tab, setTab] = useState<"all" | "teachers" | "admins">("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Staff | null>(null);
@@ -90,7 +93,7 @@ function StaffPage() {
     let list = enriched;
     if (tab === "teachers") list = list.filter((s) => s.role === "teacher");
     if (tab === "admins") list = list.filter((s) => s.role === "admin" || s.role === "branch_admin" || s.role === "director");
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     if (q) list = list.filter((s) => s.fullName.toLowerCase().includes(q) || s.phone.includes(q));
     return list;
   }, [enriched, tab, search]);
@@ -202,7 +205,7 @@ function StaffPage() {
           {isLoading && staff.length === 0 ? (
             <ListSkeleton rows={6} />
           ) : filtered.length === 0 ? (
-            search.trim() ? (
+            searchQuery.trim() ? (
               <EmptyState
                 icon={<Search className="size-7" />}
                 title={lang === "uz" ? "Hech narsa topilmadi" : "Ничего не найдено"}

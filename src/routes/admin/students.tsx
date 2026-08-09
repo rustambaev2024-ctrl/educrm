@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
 import { formatMoney } from "@/lib/format";
@@ -93,11 +94,7 @@ export function StudentsPage() {
   const [pageLoading, setPageLoading] = useState(false);
   const PAGE_SIZE = 50;
 
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(timer);
-  }, [search]);
+  const debouncedSearch = useDebounced(search);
 
   useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
 

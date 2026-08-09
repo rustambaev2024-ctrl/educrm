@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useData } from "@/lib/data/store";
+import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
 import { formatAuditSummary } from "@/lib/audit";
@@ -40,10 +41,12 @@ function AuditPage() {
   const { t, lang } = useI18n();
   const { auditLog, isLoading } = useData();
   const [search, setSearch] = useState("");
+  // Фильтр пересчитывался на каждое нажатие клавиши.
+  const searchQuery = useDebounced(search);
   const [action, setAction] = useState<"all" | AuditAction>("all");
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     return auditLog
       .filter((a) => action === "all" || a.action === action)
       .filter((a) => {

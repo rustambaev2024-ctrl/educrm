@@ -52,6 +52,7 @@ import {
 import { StudentDetailSheet } from "@/components/students/student-detail-sheet";
 import { useData } from "@/lib/data/store";
 import { sumIncome } from "@/lib/data/mappers";
+import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 import type { Course, Group, Student } from "@/lib/data/types";
@@ -75,6 +76,8 @@ function DirectorCoursesPage() {
   const { courses, groups, staff, students, payments, addCourse, updateCourse, deleteCourse, updateGroup, isLoading } = useData();
 
   const [search, setSearch] = useState("");
+  // Фильтр пересчитывался на каждое нажатие клавиши.
+  const searchQuery = useDebounced(search);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [deleteCourseId, setDeleteCourseId] = useState<string | null>(null);
@@ -86,12 +89,12 @@ function DirectorCoursesPage() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     if (!q) return courses;
     return courses.filter((c) =>
       [c.name, c.description ?? ""].some((v) => v.toLowerCase().includes(q)),
     );
-  }, [courses, search]);
+  }, [courses, searchQuery]);
 
   const courseStats = useMemo(
     () =>
@@ -229,7 +232,7 @@ function DirectorCoursesPage() {
             {isLoading && courses.length === 0 ? (
               <CardGridSkeleton count={6} className="p-4" />
             ) : filtered.length === 0 ? (
-              search.trim() ? (
+              searchQuery.trim() ? (
                 <EmptyState
                   icon={<Search className="size-7" />}
                   title={lang === "uz" ? "Hech narsa topilmadi" : "Ничего не найдено"}
