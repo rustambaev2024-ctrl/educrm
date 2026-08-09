@@ -238,6 +238,27 @@ class StudentViewSet(viewsets.ModelViewSet):
                 Q(user__full_name__icontains=value)
                 | Q(user__phone__icontains=value)
             )
+
+        # Сортировка по белому списку, а не через OrderingFilter: тот пускает
+        # обход по связям (`?ordering=user__branch__institution__...`), а здесь
+        # нужны ровно те колонки, по которым можно щёлкнуть в интерфейсе.
+        # Список серверно пагинирован, поэтому сортировать на клиенте нельзя —
+        # отсортировалась бы только текущая страница из пятидесяти строк,
+        # и пользователь получил бы неверный ответ на вопрос
+        # «у кого самый большой долг».
+        sortable = {
+            "name": "user__full_name",
+            "balance": "balance",
+            "status": "status",
+            "registered": "registered_at",
+        }
+        requested = params.get("sort") or ""
+        descending = requested.startswith("-")
+        field = sortable.get(requested.lstrip("-"))
+        if field:
+            order = f"-{field}" if descending else field
+            return scoped.distinct().order_by(order, "-registered_at")
+
         return scoped.distinct().order_by("-registered_at")
 
     @transaction.atomic

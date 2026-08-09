@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Users, UserCheck, AlertCircle, UserPlus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Users, UserCheck, AlertCircle, UserPlus, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
@@ -88,6 +88,10 @@ export function StudentsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // Сортировка серверная: список пагинирован по 50, поэтому сортировка
+  // на клиенте отсортировала бы только текущую страницу и дала бы неверный
+  // ответ на «у кого самый большой долг». Белый список полей — на бэкенде.
+  const [sort, setSort] = useState<string>("");
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [pageStudents, setPageStudents] = useState<Student[]>([]);
@@ -96,7 +100,7 @@ export function StudentsPage() {
 
   const debouncedSearch = useDebounced(search);
 
-  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter, sort]);
 
   const loadStudents = useCallback(async () => {
     setPageLoading(true);
@@ -107,6 +111,7 @@ export function StudentsPage() {
       };
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (statusFilter !== "all") params.status = statusFilter;
+      if (sort) params.sort = sort;
       const res = await studentApi.list(params) as any;
       const list = Array.isArray(res) ? res : (res.results ?? []);
       const count = res.count ?? list.length;
@@ -117,7 +122,7 @@ export function StudentsPage() {
     } finally {
       setPageLoading(false);
     }
-  }, [page, debouncedSearch, statusFilter]);
+  }, [page, debouncedSearch, statusFilter, sort]);
 
   useEffect(() => {
     loadStudents();
@@ -218,10 +223,10 @@ export function StudentsPage() {
             <Table className="edu-table">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{lang === "uz" ? "O'quvchi" : "Ученик"}</TableHead>
+                  <SortHead field="name" sort={sort} onSort={setSort}>{lang === "uz" ? "O'quvchi" : "Ученик"}</SortHead>
                   <TableHead>{lang === "uz" ? "Guruhlar" : "Группы"}</TableHead>
-                  <TableHead className="text-right">{lang === "uz" ? "Balans" : "Баланс"}</TableHead>
-                  <TableHead>{lang === "uz" ? "Holat" : "Статус"}</TableHead>
+                  <SortHead field="balance" sort={sort} onSort={setSort} align="right">{lang === "uz" ? "Balans" : "Баланс"}</SortHead>
+                  <SortHead field="status" sort={sort} onSort={setSort}>{lang === "uz" ? "Holat" : "Статус"}</SortHead>
                   <TableHead className="text-right">{lang === "uz" ? "Amallar" : "Действия"}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -367,5 +372,58 @@ export function StudentsPage() {
         }}
       />
     </PageShell>
+  );
+}
+
+/**
+ * Заголовок колонки с сортировкой. Три состояния по кругу:
+ * не сортировано → по возрастанию → по убыванию → снова не сортировано.
+ * Направление видно и иконкой, и через aria-sort — иначе с клавиатуры
+ * и через screen reader состояние неразличимо.
+ */
+function SortHead({
+  field,
+  sort,
+  onSort,
+  align,
+  children,
+}: {
+  field: string;
+  sort: string;
+  onSort: (next: string) => void;
+  align?: "right";
+  children: ReactNode;
+}) {
+  const active = sort === field || sort === `-${field}`;
+  const descending = sort === `-${field}`;
+
+  const cycle = () => {
+    if (sort === field) onSort(`-${field}`);
+    else if (sort === `-${field}`) onSort("");
+    else onSort(field);
+  };
+
+  return (
+    <TableHead
+      aria-sort={active ? (descending ? "descending" : "ascending") : "none"}
+      className={align === "right" ? "text-right" : undefined}
+    >
+      <button
+        type="button"
+        onClick={cycle}
+        className={cn(
+          "inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap",
+          align === "right" && "flex-row-reverse",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        {children}
+        {active ? (
+          descending ? <ArrowDown className="size-3.5" /> : <ArrowUp className="size-3.5" />
+        ) : (
+          <ArrowUpDown className="size-3.5 opacity-40" />
+        )}
+      </button>
+    </TableHead>
   );
 }
