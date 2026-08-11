@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentParentId } from "@/lib/data/identity";
+import { attendancePercentage } from "@/lib/data/metrics";
 import { formatDate, formatMoney, formatTime, getPaymentLabel, initialsOf } from "@/lib/format";
 
 export const Route = createFileRoute("/parent/children")({ component: ParentChildren });
@@ -75,7 +76,9 @@ function ParentChildren() {
     ? Math.round(childGrades.reduce((s, g) => s + (g.score / g.maxScore) * 100, 0) / childGrades.length)
     : 0;
   const att = attendance.filter((a) => a.studentId === child.id);
-  const attPct = att.length ? Math.round((att.filter((a) => a.status !== "absent").length / att.length) * 100) : 100;
+  // Общим правилом платформы: уважительные не входят в знаменатель, а не
+  // считаются присутствием, как было раньше.
+  const attPct = att.length ? attendancePercentage(att) : 100;
   const childHwIds = homework.filter((h) => myGroupIds.has(h.groupId)).map((h) => h.id);
   const childSubs = submissions.filter((s) => s.studentId === child.id && childHwIds.includes(s.homeworkId));
   const pendingHw = childHwIds.length - childSubs.filter((s) => s.status !== "pending").length;

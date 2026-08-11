@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { analyticsApi } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, getLocalDateTimeString } from "@/lib/format";
 import type { Group, Payment, PaymentMethod, Staff, StaffPenalty } from "@/lib/data/types";
 
 export const Route = createFileRoute("/director/salaries")({ component: DirectorSalaries });
@@ -206,25 +206,36 @@ function DirectorSalaries() {
     setPayMethod("cash");
   };
 
-  const handlePay = () => {
-    if (!payRow) return;
+  const [paying, setPaying] = useState(false);
+
+  const handlePay = async () => {
+    // Второй клик — вторая выплата тому же человеку. Блокируем до ответа.
+    if (!payRow || paying) return;
     const payout = Number(payAmount);
-    if (!payout || payout <= 0) return;
-    addPayment({
-      staffId: payRow.staff.id,
-      branchId: payRow.staff.branchId ?? branches[0]?.id ?? "",
-      amount: payout,
-      direction: "out",
-      type: "expense",
-      method: payMethod,
-      date: new Date().toISOString(),
-      category: "salary",
-      comment: `${period} salary payout for ${payRow.staff.fullName}`,
-    });
-    toast.success(lang === "uz" ? "Ish haqi to'lovi saqlandi" : "Выплата зарплаты сохранена");
-    setPayRow(null);
-    setPayAmount("");
-    fetchSalaryData(period, activeStaff);
+    if (!Number.isFinite(payout) || payout <= 0) return;
+    setPaying(true);
+    try {
+      const saved = await addPayment({
+        staffId: payRow.staff.id,
+        branchId: payRow.staff.branchId ?? branches[0]?.id ?? "",
+        amount: payout,
+        direction: "out",
+        type: "expense",
+        method: payMethod,
+        date: getLocalDateTimeString(),
+        category: "salary",
+        comment: `${period} salary payout for ${payRow.staff.fullName}`,
+      });
+      // «Выплата сохранена» — только после подтверждения сервера. Причину
+      // ошибки уже показал стор, он же откатил оптимистичную запись.
+      if (!saved) return;
+      toast.success(lang === "uz" ? "Ish haqi to'lovi saqlandi" : "Выплата зарплаты сохранена");
+      setPayRow(null);
+      setPayAmount("");
+      fetchSalaryData(period, activeStaff);
+    } finally {
+      setPaying(false);
+    }
   };
 
   if (isLoading) {
@@ -382,7 +393,7 @@ function DirectorSalaries() {
             <Button variant="outline" onClick={() => setPayRow(null)}>
               {lang === "uz" ? "Bekor qilish" : "Отмена"}
             </Button>
-            <Button onClick={handlePay} disabled={Number(payAmount) <= 0}>
+            <Button onClick={handlePay} disabled={paying || !(Number(payAmount) > 0)}>
               {lang === "uz" ? "Tasdiqlash" : "Подтвердить"}
             </Button>
           </DialogFooter>

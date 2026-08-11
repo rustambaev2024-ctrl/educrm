@@ -718,6 +718,22 @@ export function StudentDetailSheet({
                         </div>
                         {p.comment && <div className="text-[11px] text-muted-foreground truncate">{p.comment}</div>}
                       </div>
+                      {/* Денежный след операции. Бэкенд пишет balance_before и
+                          balance_after по каждому платежу, но до этого они не
+                          доходили до интерфейса — и на вопрос «почему у ученика
+                          такой баланс» ответить по экрану было нельзя. */}
+                      {p.balanceAfter !== undefined && (
+                        <div className="shrink-0 text-right">
+                          <div className="text-[11px] text-muted-foreground tabular-nums">
+                            {p.balanceBefore !== undefined ? formatMoney(p.balanceBefore, lang) : "—"} →
+                          </div>
+                          <div
+                            className={`text-xs font-medium tabular-nums ${p.balanceAfter < 0 ? "text-destructive" : "text-foreground"}`}
+                          >
+                            {formatMoney(p.balanceAfter, lang)}
+                          </div>
+                        </div>
+                      )}
                     </Card>
                   );
                 });

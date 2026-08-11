@@ -14,6 +14,7 @@ import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useCurrentParentId } from "@/lib/data/identity";
+import { attendancePercentage } from "@/lib/data/metrics";
 import { formatMoney, formatTime, initialsOf } from "@/lib/format";
 
 export const Route = createFileRoute("/parent/")({ component: ParentHome });
@@ -118,9 +119,8 @@ function ParentHome() {
 
         // attendance
         const att = attendance.filter((a) => a.studentId === child.id);
-        const attPct = att.length
-          ? Math.round((att.filter((a) => a.status !== "absent").length / att.length) * 100)
-          : 100;
+        // Общим правилом платформы, а не «всё, что не absent».
+        const attPct = att.length ? attendancePercentage(att) : 100;
 
         const debt = child.balance < 0;
 

@@ -11,6 +11,7 @@ import { PageLoadingState } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { attendancePercentage } from "@/lib/data/metrics";
+import { countActiveStudents, totalDebt } from "@/lib/data/definitions";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 
@@ -71,7 +72,12 @@ function AnalyticsPage() {
 
   const totalRevenue = sumIncome(payments);
   const totalExpense = sumExpense(payments);
-  const overdueAmount = students.filter((s) => s.status === "debtor").reduce((s, st) => s + Math.abs(st.balance), 0);
+  // Долг считается по балансу, а не по статусу "debtor": статус производный и
+  // умеет отставать от баланса, из-за этого сумма долга здесь не совпадала с
+  // числом должников на панели директора.
+  const overdueAmount = totalDebt(students);
+  const activeStudents = countActiveStudents(students);
+  const activeGroups = groups.filter((g) => g.status === "active").length;
   const attPct = attendancePercentage(attendance);
   const moneyUnit = lang === "uz" ? "mln so'm" : "млн сум";
   const lastSixMonthsLabel = lang === "uz" ? "So'nggi 6 oy" : "Последние 6 месяцев";
@@ -88,8 +94,8 @@ function AnalyticsPage() {
     <PageShell title={t("nav.analytics")} subtitle={t("director.subtitle")}>
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} iconColor="blue" subtitle={lang === "uz" ? "Barcha o'quvchilar" : "Все студенты"} />
-          <KpiCard label={t("director.activeGroups")} value={`${groups.length}`} icon={Layers} iconColor="violet" subtitle={lang === "uz" ? "Faol guruhlar" : "Активные группы"} />
+          <KpiCard label={t("director.activeStudents")} value={`${activeStudents}`} icon={Users} iconColor="blue" subtitle={lang === "uz" ? `${students.length} tadan` : `из ${students.length} всего`} />
+          <KpiCard label={t("director.activeGroups")} value={`${activeGroups}`} icon={Layers} iconColor="violet" subtitle={lang === "uz" ? `${groups.length} tadan` : `из ${groups.length} всего`} />
           <KpiCard label={t("director.monthlyRevenue")} value={formatMoney(totalRevenue, lang)} icon={Wallet} iconColor="green" subtitle={lang === "uz" ? "Jami tushum" : "Общий доход"} />
           <KpiCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={TrendingUp} iconColor="amber" subtitle={lang === "uz" ? "O'rtacha davomat" : "Средняя посещаемость"} />
         </div>

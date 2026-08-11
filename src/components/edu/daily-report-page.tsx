@@ -37,10 +37,13 @@ interface DailyReportData {
     cancelled_list: Array<{ group_name: string; teacher_name: string; time: string; reason: string }>;
   };
   students: {
+    /** Знаменатель посещаемости: отметки без уважительных. */
     total: number;
     present: number;
     absent: number;
     late: number;
+    /** Уважительные пропуски — в знаменатель не входят, показываются отдельно. */
+    excused?: number;
     attendance_rate: number;
     attendance_rate_yesterday: number;
     absent_list: Array<{ student_name: string; group_name: string; teacher_name: string }>;
@@ -105,6 +108,8 @@ const pageLabels = (lang: Lang) => ({
     present: lang === "uz" ? "Kelgan" : "Присутствуют",
     absent: lang === "uz" ? "Kelmagan" : "Отсутствуют",
     late: lang === "uz" ? "Kechikkan" : "Опоздали",
+    excused: lang === "uz" ? "Sababli" : "По уважительной",
+    counted: lang === "uz" ? "Hisobga olingan belgilar" : "Учтено отметок",
     rate: lang === "uz" ? "Davomat" : "Посещаемость",
     studentName: lang === "uz" ? "O'quvchi" : "Ученик",
     group: lang === "uz" ? "Guruh" : "Группа",
@@ -201,10 +206,14 @@ export function DailyReportPage() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lessonsData), "Darslar");
 
     const attendanceData = [
-      [lang === "uz" ? "Jami o'quvchilar" : "Всего учеников", data.students.total],
+      // «Всего учеников» здесь было неверной подписью: это количество отметок
+      // (ученик с двумя уроками в день даёт две), и уважительные в него не
+      // входят — они не в знаменателе посещаемости.
+      [labels.students.counted, data.students.total],
       [lang === "uz" ? "Kelgan" : "Присутствуют", data.students.present],
       [lang === "uz" ? "Kelmagan" : "Отсутствуют", data.students.absent],
       [lang === "uz" ? "Kechikkan" : "Опоздали", data.students.late],
+      [labels.students.excused, data.students.excused ?? 0],
       [lang === "uz" ? "Davomat foizi" : "Процент посещаемости", `${data.students.attendance_rate}%`],
       [],
       [lang === "uz" ? "Kelmagan o'quvchilar" : "Отсутствующие ученики"],
@@ -540,7 +549,10 @@ export function DailyReportPage() {
               </div>
               <Progress value={data.students.attendance_rate} className="h-3" />
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {/* Уважительные показаны отдельной плиткой, а не спрятаны: они не
+                входят в знаменатель посещаемости, и без этой цифры «присутствуют
+                + отсутствуют» не сходится с числом отмеченных учеников. */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="text-center p-3 bg-emerald-500/10 rounded">
                 <div className="text-2xl font-bold text-emerald-600">{data.students.present}</div>
                 <div className="text-xs text-muted-foreground">{labels.students.present}</div>
@@ -552,6 +564,12 @@ export function DailyReportPage() {
               <div className="text-center p-3 bg-amber-500/10 rounded">
                 <div className="text-2xl font-bold text-amber-600">{data.students.late}</div>
                 <div className="text-xs text-muted-foreground">{labels.students.late}</div>
+              </div>
+              <div className="text-center p-3 bg-muted rounded">
+                <div className="text-2xl font-bold text-muted-foreground">
+                  {data.students.excused ?? 0}
+                </div>
+                <div className="text-xs text-muted-foreground">{labels.students.excused}</div>
               </div>
             </div>
             {data.students.absent_list.length > 0 && (

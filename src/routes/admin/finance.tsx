@@ -41,8 +41,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useData } from "@/lib/data/store";
 import { sumIncome, sumExpense } from "@/lib/data/mappers";
+import { isDebtor, totalDebt as sumDebt } from "@/lib/data/definitions";
 import { useI18n } from "@/lib/i18n";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, getLocalDateTimeString } from "@/lib/format";
 import type { Payment, PaymentMethod } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
@@ -164,9 +165,7 @@ function FinancePage() {
   const monthPayments = payments.filter((p) => new Date(p.date) >= monthStart);
   const monthIncome = sumIncome(monthPayments);
   const monthExpense = sumExpense(monthPayments);
-  const totalDebt = students
-    .filter((s) => s.balance < 0)
-    .reduce((s, st) => s + Math.abs(st.balance), 0);
+  const totalDebt = sumDebt(students);
 
   const periodPayments = useMemo(() => {
     const fromTime = new Date(dateFrom).getTime();
@@ -193,8 +192,10 @@ function FinancePage() {
         .sort((a, b) => b.date.localeCompare(a.date)),
     [periodPayments, paymentFilter],
   );
+  // По балансу, а не по статусу: статус производный и умеет отставать, из-за
+  // чего в списке долгов пропадал ученик с отрицательным балансом.
   const debtors = students
-    .filter((s) => s.status === "debtor")
+    .filter(isDebtor)
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
     
   const wallets = useMemo(() => {
@@ -547,29 +548,40 @@ function PaymentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
     setComment("");
   };
 
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    // Защита от двойного нажатия: это приём денег, второй клик — второй платёж.
+    if (saving) return;
     const num = Number(amount);
-    if (!studentId || !num || num <= 0) {
+    if (!studentId || !Number.isFinite(num) || num <= 0) {
       toast.error(t("validation.fillAll"));
       return;
     }
     const student = students.find((s) => s.id === studentId);
-    addPayment({
-      studentId,
-      groupId: groupId || undefined,
-      branchId: student?.branchId ?? branches[0]?.id ?? "b1",
-      amount: num,
-      direction: "in",
-      type: "top_up",
-      method,
-      date: new Date().toISOString(),
-      comment: comment || undefined,
-      category: "tuition",
-    });
-    
-    toast.success(t("finance.received"));
-    reset();
-    onOpenChange(false);
+    setSaving(true);
+    try {
+      const saved = await addPayment({
+        studentId,
+        groupId: groupId || undefined,
+        branchId: student?.branchId ?? branches[0]?.id ?? "b1",
+        amount: num,
+        direction: "in",
+        type: "top_up",
+        method,
+        date: getLocalDateTimeString(),
+        comment: comment || undefined,
+        category: "tuition",
+      });
+      // «Оплата принята» — только после ответа сервера. При ошибке стор уже
+      // откатил баланс и показал причину, второй раз кричать не нужно.
+      if (!saved) return;
+      toast.success(t("finance.received"));
+      reset();
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -635,7 +647,7 @@ function PaymentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
-          <Button onClick={handleSave}>{t("common.save")}</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? "..." : t("common.save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -650,25 +662,34 @@ function ExpenseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
   const [category, setCategory] = useState<"salary" | "rent" | "utilities" | "marketing" | "other">("rent");
   const [comment, setComment] = useState("");
 
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (saving) return;
     const num = Number(amount);
-    if (!num || num <= 0) {
+    if (!Number.isFinite(num) || num <= 0) {
       toast.error(t("validation.fillAll"));
       return;
     }
-    addPayment({
-      branchId: branches[0]?.id,
-      amount: num,
-      direction: "out",
-      type: "expense",
-      method,
-      date: new Date().toISOString(),
-      comment: comment || undefined,
-      category,
-    });
-    toast.success(t("finance.expenseAdded"));
-    setAmount(""); setComment(""); setCategory("rent"); setMethod("transfer");
-    onOpenChange(false);
+    setSaving(true);
+    try {
+      const saved = await addPayment({
+        branchId: branches[0]?.id,
+        amount: num,
+        direction: "out",
+        type: "expense",
+        method,
+        date: getLocalDateTimeString(),
+        comment: comment || undefined,
+        category,
+      });
+      if (!saved) return;
+      toast.success(t("finance.expenseAdded"));
+      setAmount(""); setComment(""); setCategory("rent"); setMethod("transfer");
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -719,7 +740,7 @@ function ExpenseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
-          <Button onClick={handleSave}>{t("common.save")}</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? "..." : t("common.save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

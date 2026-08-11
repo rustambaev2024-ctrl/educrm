@@ -33,6 +33,7 @@ import { formatMoney } from "@/lib/format";
 import type { Student, StudentStatus } from "@/lib/data/types";
 import { studentApi } from "@/lib/api";
 import { mapStudents } from "@/lib/data/mappers";
+import { isActiveStudent, isDebtor } from "@/lib/data/definitions";
 import { cn } from "@/lib/utils";
 import { CreateStudentSheet, StudentDetailSheet } from "@/components/students";
 
@@ -206,8 +207,11 @@ export function StudentsPage() {
     let debtor = 0;
     let fresh = 0;
     for (const s of students) {
-      if (s.status === "active") active++;
-      if (s.status === "debtor") debtor++;
+      // «Активный» и «должник» — по общему правилу платформы, а не по строке
+      // статуса: ученик-должник продолжает учиться, а сам статус "debtor"
+      // производный и умеет отставать от баланса.
+      if (isActiveStudent(s)) active++;
+      if (isDebtor(s)) debtor++;
       if (s.registeredAt && new Date(s.registeredAt) >= monthStart) fresh++;
     }
     return { total: students.length, active, debtor, fresh };
@@ -236,8 +240,11 @@ export function StudentsPage() {
     >
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard label={t("students.title")} value={kpis.total} icon={Users} iconColor="blue" />
-        <KpiCard label={t("status.active")} value={kpis.active} icon={UserCheck} iconColor="green" />
-        <KpiCard label={t("status.debtor")} value={kpis.debtor} icon={AlertCircle} iconColor="red" />
+        {/* Подписи именно «Активные ученики» и «Должники», а не названия
+            статусов: считается по общему правилу платформы, и должник входит
+            в активных — он продолжает учиться. */}
+        <KpiCard label={t("director.activeStudents")} value={kpis.active} icon={UserCheck} iconColor="green" />
+        <KpiCard label={t("director.debtors")} value={kpis.debtor} icon={AlertCircle} iconColor="red" />
         <KpiCard label={lang === "uz" ? "Yangi (bu oy)" : "Новые (мес.)"} value={kpis.fresh} icon={UserPlus} iconColor="violet" />
       </div>
       <div>

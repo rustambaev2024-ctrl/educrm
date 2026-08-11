@@ -8,6 +8,7 @@ import { useData } from "@/lib/data/store";
 import { sumIncome } from "@/lib/data/mappers";
 import { useI18n } from "@/lib/i18n";
 import { attendancePercentage } from "@/lib/data/metrics";
+import { countActiveStudents, isDebtor } from "@/lib/data/definitions";
 import { formatMoney, formatTime, getLocalDateString, sameDay } from "@/lib/format";
 
 /** Сколько уроков показываем на панели. Остаток не исчезает: под списком
@@ -49,8 +50,8 @@ function AdminHome() {
   const today = new Date();
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
 
-  const activeStudents = students.filter((s) => s.status === "active" || s.status === "debtor").length;
-  const debtors = students.filter((s) => s.status === "debtor" || s.balance < 0);
+  const activeStudents = countActiveStudents(students);
+  const debtors = students.filter(isDebtor);
 
   const monthRevenue = useMemo(() => {
     const yr = today.getFullYear();

@@ -61,7 +61,7 @@ const STATUS_META: Record<AttendanceStatus, { icon: typeof Check; tone: string; 
 
 function AttendancePage() {
   const { t, lang } = useI18n();
-  const { groups, lessons, students, getAttendanceFor, setAttendance, isLoading } = useData();
+  const { groups, lessons, students, staff, getAttendanceFor, setAttendance, isLoading } = useData();
   const teacherId = useCurrentTeacherId();
 
   const myGroupIds = useMemo(
@@ -167,15 +167,36 @@ function AttendancePage() {
 
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
 
+  const savedRecords = useMemo(
+    () => (lesson ? getAttendanceFor(lesson.id) : []),
+    [lesson, getAttendanceFor],
+  );
+
   useEffect(() => {
     if (!lesson) return;
-    const existing = getAttendanceFor(lesson.id);
-    if (existing.length > 0) {
-      setMarks(Object.fromEntries(existing.map((r) => [r.studentId, r.status])));
-    } else {
-      setMarks({});
-    }
-  }, [lesson, getAttendanceFor]);
+    setMarks(
+      savedRecords.length > 0
+        ? Object.fromEntries(savedRecords.map((r) => [r.studentId, r.status]))
+        : {},
+    );
+  }, [lesson, savedRecords]);
+
+  // Кто и когда отметил журнал. Бэкенд пишет recorded_by/recorded_at по каждой
+  // отметке, но до этого они не доходили до интерфейса — и на вопрос «журнал
+  // забыли или его вёл кто-то другой» ответить по экрану было нельзя.
+  const recordedBy = useMemo(() => {
+    const withAuthor = savedRecords.find((r) => r.recordedAt);
+    if (!withAuthor?.recordedAt) return null;
+    const author = withAuthor.recordedByUserId
+      ? staff.find((s) => s.userId === withAuthor.recordedByUserId)
+      : undefined;
+    return { at: withAuthor.recordedAt, name: author?.fullName };
+  }, [savedRecords, staff]);
+
+  const chargedStudentIds = useMemo(
+    () => new Set(savedRecords.filter((r) => r.isCharged).map((r) => r.studentId)),
+    [savedRecords],
+  );
 
   const setStatus = (studentId: string, status: AttendanceStatus) => {
     setMarks((prev) => ({ ...prev, [studentId]: status }));
@@ -328,6 +349,19 @@ function AttendancePage() {
                     <div className="text-xs text-muted-foreground">
                       {formatDate(lesson.datetime, lang)} · {formatTime(lesson.datetime)}
                     </div>
+                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                      {recordedBy ? (
+                        <>
+                          {lang === "uz" ? "Belgilagan" : "Отметил"}
+                          {recordedBy.name ? `: ${recordedBy.name}` : ""} ·{" "}
+                          {formatDate(recordedBy.at, lang)} {formatTime(recordedBy.at)}
+                        </>
+                      ) : (
+                        <span className="text-warning-foreground">
+                          {lang === "uz" ? "Davomat hali belgilanmagan" : "Журнал ещё не отмечен"}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="text-success">● {summary.present}</span>
@@ -376,7 +410,17 @@ function AttendancePage() {
                             </Avatar>
                             <div className="min-w-0">
                               <div className="truncate text-sm font-medium">{student.fullName}</div>
-                              <div className="truncate text-xs text-muted-foreground">{student.phone}</div>
+                              <div className="truncate text-xs text-muted-foreground">
+                                {student.phone}
+                                {/* is_charged отвечает на «за этот урок уже
+                                    списали?» — без него разбор двойных списаний
+                                    упирался в базу. */}
+                                {chargedStudentIds.has(student.id) && (
+                                  <span className="ml-1.5 text-[11px] text-muted-foreground">
+                                    · {lang === "uz" ? "hisobdan yechilgan" : "списано"}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-1.5">

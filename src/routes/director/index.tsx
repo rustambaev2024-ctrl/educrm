@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { useData } from "@/lib/data/store";
 import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { attendancePercentage } from "@/lib/data/metrics";
+import { countActiveStudents, countDebtors } from "@/lib/data/definitions";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney, formatDateTime } from "@/lib/format";
 
@@ -40,8 +41,8 @@ function DirectorHome() {
     return { income, expense, profit: income - expense };
   }, [payments, monthStart]);
 
-  const activeStudents = students.filter((s) => s.status === "active" || s.status === "debtor").length;
-  const debtors = students.filter((s) => s.status === "debtor" || s.balance < 0).length;
+  const activeStudents = countActiveStudents(students);
+  const debtors = countDebtors(students);
   const activeGroups = groups.filter((g) => g.status === "active").length;
 
   const attendancePct = useMemo(() => attendancePercentage(attendance), [attendance]);
@@ -97,13 +98,14 @@ function DirectorHome() {
         const studentSet = new Set<string>();
         tGroups.forEach((g) => g.studentIds.forEach((sid) => studentSet.add(sid)));
         const courseName = tGroups.length > 0 ? courses.find((c) => c.id === tGroups[0].courseId)?.name ?? "—" : "—";
-        // Real attendance: filter attendance records for this teacher's groups' lessons
+        // Посещаемость по группам учителя — тем же правилом, что и везде.
+        // Раньше здесь считалось «всё, что не absent», то есть уважительные
+        // шли в присутствующие, и число не совпадало с карточкой посещаемости
+        // на том же экране.
         const tGroupIds = new Set(tGroups.map((g) => g.id));
         const tLessonIds = new Set(lessons.filter((l) => tGroupIds.has(l.groupId)).map((l) => l.id));
         const tAtt = attendance.filter((a) => tLessonIds.has(a.lessonId));
-        const attScore = tAtt.length > 0
-          ? Math.round((tAtt.filter((a) => a.status !== "absent").length / tAtt.length) * 100)
-          : 0;
+        const attScore = attendancePercentage(tAtt);
         return {
           id: tch.id,
           name: tch.fullName,

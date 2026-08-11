@@ -53,8 +53,12 @@ function SchedulePage() {
     return lessons.filter((l) => {
       if (filterGroup !== "all" && l.groupId !== filterGroup) return false;
       if (filterTeacher !== "all") {
+        // Фильтр по учителю урока, а не группы: иначе «показать уроки Ивана»
+        // прятало урок, который Иван вёл на замене, и показывало урок, который
+        // за него провёл кто-то другой.
         const g = groups.find((gr) => gr.id === l.groupId);
-        if (g && g.teacherId !== filterTeacher) return false;
+        const actualTeacherId = l.teacherId ?? g?.teacherId;
+        if (actualTeacherId !== filterTeacher) return false;
       }
       return true;
     });
@@ -174,7 +178,13 @@ function SchedulePage() {
                     {list.map((lesson) => {
                       const group = groupById[lesson.groupId];
                       if (!group) return null;
-                      const teacher = teacherById[group.teacherId];
+                      // Учитель берётся из урока, а не из группы: при замене
+                      // бэкенд переписывает Lesson.teacher, и урок, который
+                      // вёл заменяющий, показывался под именем штатного.
+                      const teacher = teacherById[lesson.teacherId ?? group.teacherId];
+                      const originalTeacher = lesson.originalTeacherId
+                        ? teacherById[lesson.originalTeacherId]
+                        : undefined;
                       const room = roomById[lesson.roomId];
                       const cancelled = lesson.status === "cancelled";
                       const completed = lesson.status === "completed";
@@ -210,6 +220,20 @@ function SchedulePage() {
                           </div>
                           <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
                             {teacher?.fullName ?? "-"}
+                            {lesson.isSubstitution && (
+                              <span
+                                className="ml-1 text-warning-foreground"
+                                title={
+                                  originalTeacher
+                                    ? (lang === "uz"
+                                        ? `Jadvalda: ${originalTeacher.fullName}`
+                                        : `По расписанию: ${originalTeacher.fullName}`)
+                                    : undefined
+                                }
+                              >
+                                · {lang === "uz" ? "almashtirish" : "замена"}
+                              </span>
+                            )}
                           </div>
                           {(cancelled || completed || lesson.status === "rescheduled") && (
                             <div className="mt-2">
@@ -259,7 +283,11 @@ function LessonDetailDialog({
   const open = lesson !== null;
   const group = lesson ? helpers.groupById[lesson.groupId] : null;
   const room = lesson ? helpers.roomById[lesson.roomId] : null;
-  const teacher = group ? helpers.teacherById[group.teacherId] : null;
+  // Учитель урока, а не группы — при замене они разные.
+  const teacher = lesson ? helpers.teacherById[lesson.teacherId ?? group?.teacherId ?? ""] : null;
+  const originalTeacher = lesson?.originalTeacherId
+    ? helpers.teacherById[lesson.originalTeacherId]
+    : null;
   const course = group ? helpers.courseById[group.courseId] : null;
 
   const handleClose = () => {
@@ -300,9 +328,21 @@ function LessonDetailDialog({
                 <Field
                   icon={Users}
                   label={t("groups.field.teacher")}
-                  value={teacher?.fullName ?? "-"}
+                  value={
+                    lesson.isSubstitution && originalTeacher
+                      ? `${teacher?.fullName ?? "-"} · ${lang === "uz" ? "almashtirish" : "замена"} (${lang === "uz" ? "jadvalda" : "по расписанию"}: ${originalTeacher.fullName})`
+                      : (teacher?.fullName ?? "-")
+                  }
                 />
               </div>
+              {lesson.notes && (
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+                  <div className="text-xs text-muted-foreground">
+                    {lang === "uz" ? "Dars izohi" : "Заметка к уроку"}
+                  </div>
+                  <div className="mt-0.5 whitespace-pre-wrap text-sm">{lesson.notes}</div>
+                </div>
+              )}
 
               {lesson.status === "scheduled" && (
                 <>
