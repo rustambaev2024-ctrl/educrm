@@ -1,6 +1,7 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.db.models import QuerySet
+from django.utils import timezone
 
 from apps.students.models import Parent
 
@@ -100,6 +101,42 @@ class NotificationService:
             body=f"{lesson.group.name} guruhi uchun dars bekor qilindi.",
             related_object_type="Lesson",
             related_object_id=str(lesson.id),
+        )
+
+    @staticmethod
+    def on_lesson_rescheduled(old_lesson, new_lesson):
+        """Урок сдвинули — те же адресаты, что и при отмене.
+
+        Раньше при переносе не уведомляли никого: занятие тихо уезжало на
+        другую дату, и ученик приходил к закрытой двери.
+        """
+        active_students = [
+            membership.student
+            for membership in (
+                old_lesson.group.memberships.filter(left_at__isnull=True).select_related(
+                    "student__user"
+                )
+            )
+        ]
+        recipients = [student.user for student in active_students]
+        recipients += [
+            parent.user
+            for parent in (
+                Parent.objects.filter(children__in=active_students)
+                .select_related("user")
+                .distinct()
+            )
+        ]
+        if old_lesson.teacher and old_lesson.teacher.user:
+            recipients.append(old_lesson.teacher.user)
+        when = timezone.localtime(new_lesson.datetime).strftime("%d.%m %H:%M")
+        NotificationService.notify(
+            recipients=recipients,
+            notification_type="lesson_rescheduled",
+            title="Dars ko'chirildi / Урок перенесён",
+            body=f"{old_lesson.group.name}: {when}",
+            related_object_type="Lesson",
+            related_object_id=str(new_lesson.id),
         )
 
     @staticmethod

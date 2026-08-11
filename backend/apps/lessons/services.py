@@ -106,6 +106,16 @@ def resync_lessons_for_group(group: Group, *, horizon_days: int = 90) -> int:
     later are removed — `conducted`/`cancelled`/`rescheduled` lessons carry
     real attendance/history and must never be touched by a schedule edit.
     """
-    today = timezone.now().date()
-    Lesson.objects.filter(group=group, datetime__date__gte=today, status="scheduled").delete()
+    today = timezone.localdate()
+    # Урок, на который что-то перенесли, стоит вне расписания — он и создан
+    # вручную взамен другого. Раньше он попадал под удаление наравне с
+    # обычными: правка расписания молча стирала перенос, у старого урока
+    # оставалась метка «перенесён» и указатель в пустоту, а занятие исчезало
+    # из календаря — ни ученик, ни учитель его больше не видели.
+    Lesson.objects.filter(
+        group=group,
+        datetime__date__gte=today,
+        status="scheduled",
+        rescheduled_from__isnull=True,
+    ).delete()
     return generate_lessons_for_group_sync(group, from_date=today, horizon_days=horizon_days)
