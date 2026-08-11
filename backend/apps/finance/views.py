@@ -91,23 +91,54 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
 @api_view(["POST"])
 @perm_classes([IsAuthenticated])
 def trigger_daily_charge(request):
-    """Manual trigger for daily_lesson_charge task (director/admin only)."""
+    """Ручной запуск списания за сегодняшние занятия — только своей организации.
+
+    Раньше здесь вызывалась сама задача daily_lesson_charge(), а она обходит
+    ВСЕ схемы тенантов. То есть директор одного учебного центра запускал
+    списание у всех остальных клиентов платформы разом, синхронно внутри
+    HTTP-запроса. Теперь списываем строго в текущей схеме.
+    """
     if request.user.role not in ("director", "branch_admin", "superadmin"):
         return Response({"detail": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
 
-    from .tasks import daily_lesson_charge
-    from datetime import date
+    from django.core.cache import cache
+    from django.db import connection
+    from django.utils import timezone
+
+    from .tasks import charge_groups_for_day
+
+    # localdate(), а не date.today(): контейнер живёт в UTC, платформа —
+    # в Asia/Tashkent. Ночью эти даты расходятся, и кнопка списывала за вчера.
+    today = timezone.localdate()
+    schema = getattr(connection, "schema_name", "default")
+
+    # Тот же замок, что у ночной задачи, но свой на организацию: два нажатия
+    # подряд не должны идти параллельно. От повторного списания защищает
+    # привязка к уроку внутри charge_groups_for_day, замок — от гонки.
+    lock_key = f"daily_lesson_charge:{schema}:{today}"
+    if not cache.add(lock_key, "running", timeout=600):
+        return Response(
+            {
+                "status": "busy",
+                "detail": {
+                    "uz": "Hisobdan yechish allaqachon bajarilmoqda",
+                    "ru": "Списание уже выполняется",
+                },
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
+
     try:
-        daily_lesson_charge()
-        today = date.today()
-        charge_count = Payment.objects.filter(
-            payment_type="charge",
-            created_at__date=today,
-        ).count()
+        before = Payment.objects.filter(payment_type="charge", lesson__datetime__date=today).count()
+        charge_groups_for_day(today, today.weekday())
+        after = Payment.objects.filter(payment_type="charge", lesson__datetime__date=today).count()
         return Response({
             "status": "ok",
-            "message": "daily_lesson_charge executed successfully",
-            "charges_today": charge_count,
+            "date": str(today),
+            "charges_created": after - before,
+            "charges_today": after,
         })
     except Exception as e:
         return Response({"status": "error", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    finally:
+        cache.delete(lock_key)
