@@ -34,7 +34,7 @@ def award_coins(student, amount: int, reason: str,
     wallet.level = _calculate_level(wallet.xp, setting.level_thresholds)
 
     # Обновить серию
-    today = timezone.now().date()
+    today = timezone.localdate()
     if wallet.last_activity_date:
         days_diff = (today - wallet.last_activity_date).days
         if days_diff == 1:

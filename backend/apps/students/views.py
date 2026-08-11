@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, SimpleRateThrottle
 
 from apps.accounts.permissions import IsBranchAdmin, IsTeacher
+from apps.core.definitions import attendance_rate_parts
 from apps.finance.serializers import PaymentSerializer
 from apps.lessons.serializers import AttendanceSerializer
 
@@ -348,8 +349,7 @@ class StudentViewSet(viewsets.ModelViewSet):
         if params.get("date_to"):
             attendance_qs = attendance_qs.filter(lesson__datetime__date__lte=params["date_to"])
 
-        total = attendance_qs.count()
-        present_count = attendance_qs.filter(status__in=["present", "late", "online"]).count()
+        present_count, total = attendance_rate_parts(attendance_qs)
         percent = round((present_count * 100 / total), 2) if total > 0 else 0
 
         serializer = AttendanceSerializer(attendance_qs.order_by("-lesson__datetime"), many=True)

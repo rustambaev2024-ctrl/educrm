@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
+from apps.core.definitions import attendance_rate_parts
 from apps.lessons.models import Lesson, Attendance
 
 from .exporters import export_excel, export_pdf
@@ -99,9 +100,8 @@ class TeacherLessonsView(APIView):
         result = []
         for lesson in lessons:
             attendance_qs = Attendance.objects.filter(lesson=lesson)
-            present = attendance_qs.filter(status__in=["present", "late"]).count()
+            present, total = attendance_rate_parts(attendance_qs)
             absent = attendance_qs.filter(status="absent").count()
-            total = attendance_qs.count()
             result.append({
                 "id": str(lesson.id),
                 "datetime": lesson.datetime.isoformat(),

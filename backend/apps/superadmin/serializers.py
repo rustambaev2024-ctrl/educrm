@@ -145,7 +145,7 @@ class InstitutionSerializer(serializers.ModelSerializer):
     def get_subscription_status(self, obj):
         if not obj.subscription_end:
             return "no_subscription"
-        days_left = (obj.subscription_end - timezone.now().date()).days
+        days_left = (obj.subscription_end - timezone.localdate()).days
         if days_left < 0:
             return "expired"
         if days_left <= 7:

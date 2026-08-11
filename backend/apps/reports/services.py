@@ -4,11 +4,21 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db.models import Count, Sum, Avg
+from django.db.models import Avg, Case, Count, DecimalField, F, Sum, Value, When
 from django.db.models.functions import Coalesce, TruncDate
 from django.utils import timezone
 
 from apps.audit.models import AuditLog
+from apps.core.definitions import (
+    ACTIVE_STUDENT_STATUSES,
+    ATTENDANCE_COUNTED_STATUSES,
+    ATTENDANCE_PRESENT_STATUSES,
+    CHARGE_PAYMENT_TYPES,
+    ENROLLED_STUDENT_STATUSES,
+    INCOME_PAYMENT_TYPES,
+    INCOME_REVERSAL_TYPES,
+    attendance_rate_parts,
+)
 from apps.courses.models import GroupMembership
 from apps.finance.models import Payment
 from apps.institutions.models import Branch, Room
@@ -17,20 +27,33 @@ from apps.staff.models import Staff, StaffBonus, StaffPenalty
 from apps.students.models import Student
 
 
-ATTENDANCE_PRESENT_STATUSES = ("present", "late", "online")
-ACTIVE_STUDENT_STATUSES = ("active", "frozen", "debtor")
+# Знаковая сумма операции с точки зрения выручки: поступление — плюс, его
+# отмена — минус, всё остальное не выручка.
+_SIGNED_REVENUE_AMOUNT = Case(
+    When(payment_type__in=INCOME_PAYMENT_TYPES, then=F("amount")),
+    When(payment_type__in=INCOME_REVERSAL_TYPES, then=-F("amount")),
+    default=Value(Decimal("0.00")),
+    output_field=DecimalField(max_digits=14, decimal_places=2),
+)
 
-# Revenue = wallet top-ups, including manual ones created by admins/directors.
-# "top_up" is the regular student-initiated/registered top-up; "manual_top_up" is
-# the same economic event entered manually (correction, cash received offline, etc.)
-# and must count toward income the same way. Historically only "top_up" was
-# checked here, which undercounted (or zeroed out) revenue for tenants that only
-# ever record manual top-ups.
-INCOME_PAYMENT_TYPES = ("top_up", "manual_top_up")
 
-# Charges = lesson billing and manual debits from a student's wallet. Both reduce
-# profit and must be subtracted symmetrically with INCOME_PAYMENT_TYPES above.
-CHARGE_PAYMENT_TYPES = ("charge", "manual_charge")
+def _net_revenue(payments_qs) -> Decimal:
+    """
+    Выручка за период: поступления минус их отмены.
+
+    Отмена пополнения создаёт "manual_charge" (finance.services.reverse_payment),
+    и без вычитания ошибочное пополнение вместе с исправлением дают в отчёте
+    двойную выручку вместо нуля. Фронт вычитал её и раньше — из-за этого
+    «Доход» на панели и «Выручка» в отчёте расходились на сумму всех
+    исправлений за период.
+    """
+    income = payments_qs.filter(payment_type__in=INCOME_PAYMENT_TYPES).aggregate(
+        total=Coalesce(Sum("amount"), Decimal("0.00"))
+    )["total"]
+    reversals = payments_qs.filter(payment_type__in=INCOME_REVERSAL_TYPES).aggregate(
+        total=Coalesce(Sum("amount"), Decimal("0.00"))
+    )["total"]
+    return income - reversals
 
 
 @dataclass(frozen=True)
@@ -96,12 +119,9 @@ def get_overview(user, filters: ReportFilters) -> dict:
     active_students = students_qs.filter(status__in=ACTIVE_STUDENT_STATUSES).count()
     debtors_count = Student.objects.filter(branch_id__in=branch_ids, wallet_balance__lt=0).count()
 
-    payments_qs = Payment.objects.filter(
-        branch_id__in=branch_ids,
-        payment_type__in=INCOME_PAYMENT_TYPES,
-    )
+    payments_qs = Payment.objects.filter(branch_id__in=branch_ids)
     payments_qs = _with_date_range(payments_qs, "created_at", filters.date_from, filters.date_to)
-    revenue_total = payments_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
+    revenue_total = _net_revenue(payments_qs)
 
     attendance_qs = Attendance.objects.filter(lesson__group__branch_id__in=branch_ids)
     attendance_qs = _with_date_range(
@@ -110,8 +130,7 @@ def get_overview(user, filters: ReportFilters) -> dict:
         filters.date_from,
         filters.date_to,
     )
-    attendance_total = attendance_qs.count()
-    attendance_present = attendance_qs.filter(status__in=ATTENDANCE_PRESENT_STATUSES).count()
+    attendance_present, attendance_total = attendance_rate_parts(attendance_qs)
 
     return {
         "period": {"date_from": str(filters.date_from), "date_to": str(filters.date_to)},
@@ -137,21 +156,23 @@ def get_attendance_report(user, filters: ReportFilters) -> dict:
     results = []
     for branch in branches:
         branch_qs = attendance_qs.filter(lesson__group__branch_id=branch.id)
-        total = branch_qs.count()
-        present = branch_qs.filter(status__in=ATTENDANCE_PRESENT_STATUSES).count()
+        present, total = attendance_rate_parts(branch_qs)
         results.append(
             {
                 "branch_id": str(branch.id),
                 "branch_name": branch.name,
+                # total_records — знаменатель посещаемости (без уважительных),
+                # а не «сколько всего отметок»: иначе present + absent никогда
+                # не сходится с total и таблицу нельзя проверить на глаз.
                 "total_records": total,
                 "present_records": present,
                 "absent_records": branch_qs.filter(status="absent").count(),
+                "excused_records": branch_qs.filter(status="excused").count(),
                 "attendance_rate": str(_percentage(present, total)),
             }
         )
 
-    overall_total = attendance_qs.count()
-    overall_present = attendance_qs.filter(status__in=ATTENDANCE_PRESENT_STATUSES).count()
+    overall_present, overall_total = attendance_rate_parts(attendance_qs)
     return {
         "period": {"date_from": str(filters.date_from), "date_to": str(filters.date_to)},
         "overall_rate": str(_percentage(overall_present, overall_total)),
@@ -161,24 +182,31 @@ def get_attendance_report(user, filters: ReportFilters) -> dict:
 
 def get_revenue_report(user, filters: ReportFilters) -> dict:
     branch_ids = branch_ids_for_user(user, filters.branch_id)
-    payments_qs = Payment.objects.filter(branch_id__in=branch_ids, payment_type__in=INCOME_PAYMENT_TYPES)
-    payments_qs = _with_date_range(payments_qs, "created_at", filters.date_from, filters.date_to)
+    all_payments_qs = Payment.objects.filter(branch_id__in=branch_ids)
+    all_payments_qs = _with_date_range(all_payments_qs, "created_at", filters.date_from, filters.date_to)
+    total_revenue = _net_revenue(all_payments_qs)
 
-    total_revenue = payments_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
+    # Разбивки считаются по знаковой сумме, а не только по поступлениям: иначе
+    # сумма строк таблицы не сходится с итогом на величину отмен, и таблицу
+    # нельзя сложить в столбик и проверить.
+    payments_qs = all_payments_qs.filter(
+        payment_type__in=INCOME_PAYMENT_TYPES + INCOME_REVERSAL_TYPES
+    ).annotate(signed_amount=_SIGNED_REVENUE_AMOUNT)
+    net = Coalesce(Sum("signed_amount"), Decimal("0.00"))
     by_branch = (
         payments_qs.values("branch_id", "branch__name")
-        .annotate(total=Coalesce(Sum("amount"), Decimal("0.00")), transactions=Count("id"))
+        .annotate(total=net, transactions=Count("id"))
         .order_by("-total")
     )
     by_group = (
         payments_qs.values("group_id", "group__name")
-        .annotate(total=Coalesce(Sum("amount"), Decimal("0.00")), transactions=Count("id"))
+        .annotate(total=net, transactions=Count("id"))
         .order_by("-total")
     )
     by_day = (
         payments_qs.annotate(day=TruncDate("created_at"))
         .values("day")
-        .annotate(total=Coalesce(Sum("amount"), Decimal("0.00")))
+        .annotate(total=net)
         .order_by("day")
     )
 
@@ -252,7 +280,7 @@ def get_teachers_report(user, filters: ReportFilters) -> dict:
         present_count=Count(
             "lessons__attendance",
             filter=Q(
-                lessons__attendance__status__in=["present", "late"],
+                lessons__attendance__status__in=ATTENDANCE_PRESENT_STATUSES,
                 lessons__datetime__date__gte=filters.date_from,
                 lessons__datetime__date__lte=filters.date_to,
             ),
@@ -371,7 +399,10 @@ def get_conversion_report(user, filters: ReportFilters) -> dict:
     students_qs = _with_date_range(students_qs, "registered_at", filters.date_from, filters.date_to)
 
     total_registered = students_qs.count()
-    active = students_qs.filter(status__in=ACTIVE_STUDENT_STATUSES).count()
+    # В воронке удержания вопрос не «сколько учится сегодня», а «сколько мы не
+    # потеряли», поэтому здесь ENROLLED (шире на "frozen"): заморозка — пауза,
+    # а не уход, и терять её между «активными» и «отчисленными» нельзя.
+    active = students_qs.filter(status__in=ENROLLED_STUDENT_STATUSES).count()
     graduated = students_qs.filter(status="graduate").count()
     expelled = students_qs.filter(status="expelled").count()
 
@@ -584,12 +615,8 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
         branch_id__in=branch_ids,
         created_at__date=yesterday,
     )
-    income_today = payments_today.filter(payment_type__in=INCOME_PAYMENT_TYPES).aggregate(
-        total=Coalesce(Sum("amount"), Decimal("0"))
-    )["total"]
-    income_yesterday = payments_yesterday.filter(payment_type__in=INCOME_PAYMENT_TYPES).aggregate(
-        total=Coalesce(Sum("amount"), Decimal("0"))
-    )["total"]
+    income_today = _net_revenue(payments_today)
+    income_yesterday = _net_revenue(payments_yesterday)
     charges_today = payments_today.filter(payment_type__in=CHARGE_PAYMENT_TYPES).aggregate(
         total=Coalesce(Sum("amount"), Decimal("0"))
     )["total"]
@@ -652,14 +679,13 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
         lesson__datetime__date=yesterday,
     )
 
-    total_students = attendance_today.count()
-    present_students = attendance_today.filter(status__in=["present", "late"]).count()
+    present_students, total_students = attendance_rate_parts(attendance_today)
     absent_students = attendance_today.filter(status="absent").count()
     late_students = attendance_today.filter(status="late").count()
+    excused_students = attendance_today.filter(status="excused").count()
     att_rate_today = round(present_students / total_students * 100, 1) if total_students else 0
 
-    total_students_y = attendance_yesterday.count()
-    present_students_y = attendance_yesterday.filter(status__in=["present", "late"]).count()
+    present_students_y, total_students_y = attendance_rate_parts(attendance_yesterday)
     att_rate_yesterday = round(present_students_y / total_students_y * 100, 1) if total_students_y else 0
 
     absent_list = []
@@ -730,10 +756,13 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
             "cancelled_list": cancelled_lessons,
         },
         "students": {
+            # total — знаменатель посещаемости: отметки без уважительных, чтобы
+            # present + absent сходилось с total. Уважительные отдаются отдельно.
             "total": total_students,
             "present": present_students,
             "absent": absent_students,
             "late": late_students,
+            "excused": excused_students,
             "attendance_rate": att_rate_today,
             "attendance_rate_yesterday": att_rate_yesterday,
             "absent_list": absent_list,
@@ -789,7 +818,9 @@ def get_group_report(group_id, date_from=None, date_to=None):
     except Group.DoesNotExist:
         return None
 
-    today = date.today()
+    # Период по умолчанию — по времени центра, а не сервера: иначе с полуночи
+    # до 05:00 отчёт открывался за вчерашний месяц.
+    today = timezone.localdate()
     if not date_from:
         date_from = date(today.year, today.month, 1)
     if not date_to:
@@ -808,8 +839,7 @@ def get_group_report(group_id, date_from=None, date_to=None):
     attendance_qs = Attendance.objects.filter(
         lesson__group=group, lesson__datetime__date__gte=date_from, lesson__datetime__date__lte=date_to
     )
-    total_att = attendance_qs.count()
-    present_att = attendance_qs.filter(status__in=["present", "late"]).count()
+    present_att, total_att = attendance_rate_parts(attendance_qs)
     attendance_rate = round(present_att / total_att * 100, 1) if total_att else 0
 
     # Monthly attendance (last 6 months)
@@ -821,8 +851,7 @@ def get_group_report(group_id, date_from=None, date_to=None):
         m_att = Attendance.objects.filter(
             lesson__group=group, lesson__datetime__date__gte=m_start, lesson__datetime__date__lte=m_end
         )
-        m_total = m_att.count()
-        m_present = m_att.filter(status__in=["present", "late"]).count()
+        m_present, m_total = attendance_rate_parts(m_att)
         monthly_attendance.append({
             "month": m_start.strftime("%b"),
             "rate": round(m_present / m_total * 100, 1) if m_total else 0,
@@ -832,9 +861,7 @@ def get_group_report(group_id, date_from=None, date_to=None):
     payments_qs = Payment.objects.filter(
         group=group, created_at__date__gte=date_from, created_at__date__lte=date_to
     )
-    income = float(payments_qs.filter(payment_type__in=INCOME_PAYMENT_TYPES).aggregate(
-        t=Coalesce(Sum("amount"), Decimal("0"))
-    )["t"])
+    income = float(_net_revenue(payments_qs))
     charges = float(payments_qs.filter(payment_type__in=CHARGE_PAYMENT_TYPES).aggregate(
         t=Coalesce(Sum("amount"), Decimal("0"))
     )["t"])
@@ -850,8 +877,9 @@ def get_group_report(group_id, date_from=None, date_to=None):
     recent_lessons = []
     for lesson in lessons_qs[:10]:
         att = Attendance.objects.filter(lesson=lesson)
-        present = att.filter(status__in=["present", "late"]).count()
-        total = att.count() or len(student_ids)
+        present, counted = attendance_rate_parts(att)
+        # Если журнал ещё не отмечен, показываем размер группы как знаменатель.
+        total = counted or len(student_ids)
         recent_lessons.append({
             "id": str(lesson.id),
             "date": lesson.datetime.strftime("%d %b"),
@@ -866,8 +894,7 @@ def get_group_report(group_id, date_from=None, date_to=None):
     for member in members:
         student = member.student
         s_att = attendance_qs.filter(student=student)
-        s_total = s_att.count()
-        s_present = s_att.filter(status__in=["present", "late"]).count()
+        s_present, s_total = attendance_rate_parts(s_att)
         s_rate = round(s_present / s_total * 100, 1) if s_total else 0
         last_grade = Grade.objects.filter(student=student, group=group).order_by("-graded_at").first()
         students_data.append({

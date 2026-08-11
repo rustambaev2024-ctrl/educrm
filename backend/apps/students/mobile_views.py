@@ -11,6 +11,7 @@ from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsParent, IsStudent
+from apps.core.definitions import attendance_rate_parts
 from apps.courses.models import GroupMembership
 from apps.finance.models import Payment
 from apps.grades.models import Grade
@@ -18,9 +19,6 @@ from apps.homework.models import HomeworkStatus
 from apps.lessons.models import Attendance, Lesson
 
 from .models import Parent, ParentStudentLink, Student
-
-
-ATTENDANCE_PRESENT_STATUSES = {"present", "late", "online"}
 
 
 def _parse_period(request):
@@ -140,8 +138,7 @@ class StudentMeAttendanceView(APIView):
         if group_id:
             queryset = queryset.filter(lesson__group_id=group_id)
 
-        total = queryset.count()
-        present = queryset.filter(status__in=ATTENDANCE_PRESENT_STATUSES).count()
+        present, total = attendance_rate_parts(queryset)
         attendance_percent = round((present * 100 / total), 2) if total else 0
 
         return Response(
@@ -381,8 +378,7 @@ class ParentMeChildrenView(APIView):
                 lesson__datetime__date__gte=window_start,
                 lesson__datetime__date__lte=today,
             )
-            total = attendance_qs.count()
-            present = attendance_qs.filter(status__in=ATTENDANCE_PRESENT_STATUSES).count()
+            present, total = attendance_rate_parts(attendance_qs)
             attendance_percent = round((present * 100 / total), 2) if total else 0
             active_homeworks = HomeworkStatus.objects.filter(
                 student=child,

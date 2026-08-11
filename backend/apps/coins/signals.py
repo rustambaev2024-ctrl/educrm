@@ -1,12 +1,25 @@
+import logging
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
+from apps.core.definitions import ATTENDANCE_COUNTED_STATUSES
+
+logger = logging.getLogger(__name__)
+
+# Начисление монет не должно ронять сохранение посещаемости, оценки или
+# сдачи работы — учитель не поймёт, почему не сохранилась отметка. Поэтому
+# ошибки здесь гасятся. Но гасить их МОЛЧА нельзя: функция срабатывает сама,
+# никто её не запускает, и о поломке узнать неоткуда. Пишем в журнал.
 
 
 @receiver(post_save, sender="lessons.Attendance")
 def award_coins_for_attendance(sender, instance, created, **kwargs):
     if kwargs.get("raw"):
         return
-    if instance.status not in ("present", "late", "absent"):
+    # Коины начисляются/снимаются по тем же отметкам, что попадают в
+    # посещаемость: уважительный пропуск не наказывается и не награждается.
+    if instance.status not in ATTENDANCE_COUNTED_STATUSES:
         return
     try:
         from apps.coins.services import award_coins, deduct_coins
@@ -34,7 +47,7 @@ def award_coins_for_attendance(sender, instance, created, **kwargs):
             try:
                 lesson = Lesson.objects.get(id=instance.lesson_id)
                 lesson_date = lesson.datetime.date()
-                if (timezone.now().date() - lesson_date).days > 2:
+                if (timezone.localdate() - lesson_date).days > 2:
                     return
             except Lesson.DoesNotExist:
                 return
@@ -67,7 +80,11 @@ def award_coins_for_attendance(sender, instance, created, **kwargs):
                              "penalty", f"Absent from lesson {lesson_tag}")
 
     except Exception:
-        pass
+        logger.exception(
+            "Монеты за посещаемость не начислены (ученик %s, урок %s)",
+            getattr(instance, "student_id", None),
+            getattr(instance, "lesson_id", None),
+        )
 
 
 @receiver(post_save, sender="grades.Grade")
@@ -101,7 +118,7 @@ def award_coins_for_grade(sender, instance, created, **kwargs):
             comment=f"Grade {instance.score}/100 (id {instance.pk})",
         )
     except Exception:
-        pass
+        logger.exception("Монеты за оценку не начислены (оценка %s)", instance.pk)
 
 
 @receiver(post_save, sender="homework.HomeworkStatus")
@@ -138,7 +155,11 @@ def award_coins_for_homework(sender, instance, created, **kwargs):
             comment=f"Homework submitted on time (hw {instance.homework_id})",
         )
     except Exception:
-        pass
+        logger.exception(
+            "Монеты за домашнюю работу не начислены (работа %s, ученик %s)",
+            getattr(instance, "homework_id", None),
+            getattr(instance, "student_id", None),
+        )
 
 
 @receiver(post_save, sender="students.Student")
@@ -152,4 +173,4 @@ def create_wallet_for_new_student(sender, instance, created, **kwargs):
         from apps.coins.models import CoinWallet
         CoinWallet.objects.get_or_create(student=instance)
     except Exception:
-        pass
+        logger.exception("Кошелёк монет не создан для ученика %s", instance.pk)

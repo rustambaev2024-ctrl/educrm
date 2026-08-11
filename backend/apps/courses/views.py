@@ -119,7 +119,7 @@ class GroupViewSet(
         if not force and (active_students > 0 or payments_count > 0):
             future_lessons = Lesson.objects.filter(
                 group=instance,
-                datetime__date__gte=timezone.now().date(),
+                datetime__date__gte=timezone.localdate(),
                 status__in=["scheduled", "in_progress"],
             ).count()
             return Response(
