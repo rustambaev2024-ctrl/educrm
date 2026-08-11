@@ -4,9 +4,29 @@ from celery import shared_task
 from django.utils import timezone
 from django_tenants.utils import get_public_schema_name, get_tenant_model, schema_context
 
+from apps.core.definitions import ENROLLED_STUDENT_STATUSES
 from apps.notifications.sms import EskizSmsService
 
 logger = logging.getLogger(__name__)
+
+# Напоминания запускаются раз в 30 минут, поэтому окно поиска обязано быть
+# ШИРЕ шага запуска — иначе между двумя запусками остаётся слепая зона, и
+# занятие, начинающееся в ней, не получает напоминания вовсе. Было окно в
+# 10 минут при шаге 30: напоминание доходило примерно до трети уроков.
+# Ширина 35 минут даёт перекрытие; от повторов защищает проверка ниже —
+# одно напоминание на один урок.
+REMINDER_SCAN_MINUTES = 35
+
+
+def _already_notified(notification_type: str, object_id: str, since) -> bool:
+    """Не отправлять второе напоминание об одном и том же событии."""
+    from .models import Notification
+
+    return Notification.objects.filter(
+        notification_type=notification_type,
+        related_object_id=str(object_id),
+        created_at__gte=since,
+    ).exists()
 
 
 def _iter_tenant_schemas():
@@ -23,7 +43,7 @@ def lead_follow_up_reminder():
     from apps.notifications.services import NotificationService
     from apps.students.models import StudentLead
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
             overdue_leads = StudentLead.objects.filter(
@@ -53,7 +73,13 @@ def debtor_reminder():
 
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
-            debtors = Student.objects.filter(wallet_balance__lt=0)
+            # Только те, кто числится в центре: отчисленный с давним долгом
+            # раздувал счётчик в уведомлении директора, и число не сходилось
+            # ни с одним экраном.
+            debtors = Student.objects.filter(
+                wallet_balance__lt=0,
+                status__in=ENROLLED_STUDENT_STATUSES,
+            )
             if not debtors.exists():
                 continue
             count = debtors.count()
@@ -78,8 +104,8 @@ def lesson_reminder():
     from apps.notifications.services import NotificationService
 
     now = timezone.now()
-    window_start = now + timedelta(minutes=25)
-    window_end = now + timedelta(minutes=35)
+    window_start = now
+    window_end = now + timedelta(minutes=REMINDER_SCAN_MINUTES)
 
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
@@ -90,6 +116,10 @@ def lesson_reminder():
                 teacher__isnull=False,
             ).select_related("teacher__user", "group")
             for lesson in upcoming:
+                if _already_notified(
+                    "lesson_reminder", lesson.id, now - timedelta(hours=6)
+                ):
+                    continue
                 NotificationService.notify(
                     recipients=[lesson.teacher.user],
                     notification_type="lesson_reminder",
@@ -111,8 +141,8 @@ def trial_lesson_reminder():
     from apps.students.models import StudentLead
 
     now = timezone.now()
-    window_start = now + timedelta(hours=1, minutes=50)
-    window_end = now + timedelta(hours=2, minutes=10)
+    window_start = now + timedelta(hours=2)
+    window_end = window_start + timedelta(minutes=REMINDER_SCAN_MINUTES)
 
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
@@ -127,12 +157,18 @@ def trial_lesson_reminder():
             if not admins:
                 continue
             for lead in upcoming:
+                if _already_notified(
+                    "trial_lesson_reminder", lead.id, now - timedelta(hours=12)
+                ):
+                    continue
                 group_name = lead.trial_lesson_group.name if lead.trial_lesson_group else ""
                 NotificationService.notify(
                     recipients=admins,
                     notification_type="trial_lesson_reminder",
                     title="Sinov darsi 2 soatdan boshlanadi",
                     body=f"{lead.full_name} — {group_name} · {lead.trial_lesson_date.strftime('%H:%M')}",
+                    related_object_type="StudentLead",
+                    related_object_id=str(lead.id),
                 )
     logger.info("trial_lesson_reminder completed")
 
@@ -146,7 +182,9 @@ def homework_deadline_reminder():
     from apps.homework.models import Homework, HomeworkStatus
     from apps.notifications.services import NotificationService
 
-    tomorrow = (timezone.now() + timedelta(days=1)).date()
+    # Завтра по времени ЦЕНТРА, а не сервера: контейнер живёт в UTC, и
+    # вечером «завтра» получалось на сутки не тем днём.
+    tomorrow = timezone.localdate() + timedelta(days=1)
 
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
@@ -158,8 +196,13 @@ def homework_deadline_reminder():
                     group=hw.group, left_at__isnull=True
                 ).select_related("student__user")
                 for member in members:
+                    # Уже сданные И уже проверенные работы напоминать не надо.
+                    # Раньше проверялось только "сдана", и ученик, чью работу
+                    # учитель уже проверил, всё равно получал «сдать завтра».
                     already = HomeworkStatus.objects.filter(
-                        homework=hw, student=member.student, status="submitted"
+                        homework=hw,
+                        student=member.student,
+                        status__in=("submitted", "checked"),
                     ).exists()
                     if not already:
                         NotificationService.notify(
@@ -187,9 +230,14 @@ def send_debtor_sms():
                 continue
             if not institution.sms_enabled:
                 continue
+            # По балансу и по «числится в центре», а не по status="active".
+            # Ученик с долгом получает статус "debtor" автоматически — то есть
+            # прежний фильтр (минус на балансе И статус active) отбирал только
+            # тех, у кого статус ещё не успел обновиться. SMS о задолженности
+            # не уходили практически никому.
             debtors = Student.objects.filter(
                 wallet_balance__lt=0,
-                status="active",
+                status__in=ENROLLED_STUDENT_STATUSES,
             ).select_related("user")
             for student in debtors:
                 if not student.user.phone:
@@ -212,14 +260,20 @@ def send_debtor_sms():
 @shared_task
 def send_trial_lesson_sms():
     """За день до пробного урока — SMS лиду"""
-    from datetime import timedelta
+    from datetime import datetime, timedelta
 
     from apps.students.models import StudentLead
     from apps.tenants.models import Institution
 
-    now = timezone.now()
-    tomorrow_start = now + timedelta(hours=20)
-    tomorrow_end = now + timedelta(hours=28)
+    # Задача идёт раз в сутки в 09:00, поэтому окно обязано покрывать ЦЕЛЫЕ
+    # завтрашние сутки. Было 20–28 часов вперёд, то есть с 05:00 до 13:00
+    # завтрашнего дня: пробные уроки во второй половине дня — а это почти все
+    # они — SMS не получали никогда.
+    tomorrow = timezone.localdate() + timedelta(days=1)
+    tomorrow_start = timezone.make_aware(
+        datetime.combine(tomorrow, datetime.min.time())
+    )
+    tomorrow_end = tomorrow_start + timedelta(days=1)
 
     for schema in _iter_tenant_schemas():
         with schema_context(schema):

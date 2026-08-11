@@ -2,6 +2,7 @@ import logging
 from datetime import date, datetime, timedelta
 
 from celery import shared_task
+from django.utils import timezone
 from django_tenants.utils import get_public_schema_name, get_tenant_model, schema_context
 
 from apps.courses.models import Group
@@ -46,7 +47,11 @@ def extend_lesson_horizons(horizon_days: int = 90) -> int:
     generator (get_or_create keyed on group+datetime, so it's always safe
     to re-run) daily for every active/recruiting group in every tenant.
     """
-    today = date.today()
+    # localdate(), а не date.today(): задача идёт в 01:00 по Ташкенту, а это
+    # ещё вчерашние сутки по времени сервера. Горизонт получался на день
+    # короче заказанного, и календарь занятий подходил к концу раньше, чем
+    # рассчитано.
+    today = timezone.localdate()
     horizon_end = today + timedelta(days=horizon_days)
     total_created = 0
 
