@@ -216,3 +216,48 @@ def test_idempotency_does_not_depend_on_when_the_task_ran():
         "повтор поймался только потому, что ключ идемпотентности — урок, "
         "а не дата создания платежа"
     )
+
+
+# ─────────── Итог в журнале должен быть правдой ───────────
+
+
+def test_the_task_reports_how_much_it_charged():
+    """
+    Раньше задача писала «completed» независимо от результата, поэтому
+    рабочую ночь нельзя было отличить от полностью сломанной — о списаниях
+    в пустоту узнали от клиентов, а не из журнала.
+    """
+    group = _group()
+    _enrol(group)
+    _enrol(group)
+
+    charged, without_lesson = charge_groups_for_day(MONDAY, MONDAY.weekday())
+
+    assert charged == 2, "оба ученика группы должны попасть в счётчик"
+    assert without_lesson == 0
+
+
+def test_groups_without_a_lesson_are_counted_separately():
+    """Расхождение расписания и календаря обязано быть видно числом."""
+    group = _group()
+    _enrol(group)
+    _lessons_on(group, MONDAY).delete()
+
+    charged, without_lesson = charge_groups_for_day(MONDAY, MONDAY.weekday())
+
+    assert charged == 0
+    assert without_lesson == 1, (
+        "группа с учебным днём, но без урока — то самое расхождение, "
+        "которое раньше молча превращалось в списание"
+    )
+
+
+def test_a_repeat_run_reports_zero_new_charges():
+    group = _group()
+    _enrol(group)
+
+    first, _ = charge_groups_for_day(MONDAY, MONDAY.weekday())
+    second, _ = charge_groups_for_day(MONDAY, MONDAY.weekday())
+
+    assert first == 1
+    assert second == 0, "повтор не списывает — и обязан честно показать ноль"

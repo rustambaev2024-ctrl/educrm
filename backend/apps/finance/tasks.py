@@ -57,19 +57,50 @@ def daily_lesson_charge():
 
 
 def _charge_all_tenants(today: date, weekday: int):
+    """Обходит организации и пишет ИТОГ, а не просто «завершено».
+
+    Раньше в журнал уходило "completed for schema X" независимо от того,
+    списалось хоть что-то или ни копейки. По такой записи нельзя отличить
+    рабочую ночь от полностью сломанной — и именно поэтому о списаниях в
+    пустоту узнали от клиентов, а не из логов.
+    """
+    grand_charged = 0
+    grand_skipped = 0
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
-            charge_groups_for_day(today, weekday)
-            logger.info(f"daily_lesson_charge completed for schema '{schema}'")
+            charged, skipped = charge_groups_for_day(today, weekday)
+            grand_charged += charged
+            grand_skipped += skipped
+            logger.info(
+                "daily_lesson_charge %s: списаний %s, групп без урока %s (%s)",
+                schema,
+                charged,
+                skipped,
+                today,
+            )
+    if grand_skipped:
+        # Группа, у которой в её же учебный день нет занятия, — расхождение
+        # расписания и календаря. Раньше по нему молча списывали деньги.
+        logger.warning(
+            "daily_lesson_charge: %s групп в учебный день остались без урока "
+            "— проверьте, указано ли у них ВРЕМЯ в расписании",
+            grand_skipped,
+        )
+    return grand_charged, grand_skipped
 
 
-def charge_groups_for_day(today: date, weekday: int):
+def charge_groups_for_day(today: date, weekday: int) -> tuple[int, int]:
     """Списание за занятия одного дня в ТЕКУЩЕЙ схеме.
+
+    Возвращает (сколько списаний создано, сколько групп пропущено из-за
+    отсутствия урока).
 
     Вынесено из обхода тенантов, чтобы логику можно было проверить тестом:
     _charge_all_tenants требует django_tenants и настоящий Postgres, поэтому
     сам расчёт списаний до сих пор не был покрыт ни одним тестом.
     """
+    charged_total = 0
+    groups_without_lesson = 0
     active_groups = Group.objects.filter(
         status__in=["active", "recruiting"]
     ).prefetch_related("students")
@@ -108,6 +139,7 @@ def charge_groups_for_day(today: date, weekday: int):
             # Не тихий пропуск: если у активной группы в её же учебный день
             # нет урока — это расхождение данных, и его надо видеть в логах,
             # а не узнавать от клиента.
+            groups_without_lesson += 1
             logger.warning(
                 "daily_lesson_charge: у группы %s (%s) на %s нет урока, "
                 "хотя расписание этот день включает — списание пропущено",
@@ -193,12 +225,15 @@ def charge_groups_for_day(today: date, weekday: int):
                     )
                     if att:
                         charged_attendance_ids.append(att.id)
+                    charged_total += 1
             except Exception as e:
                 logger.error(f"Charge failed for student {student.id}: {e}")
 
         # ОПТИМИЗАЦИЯ 4: bulk update is_charged одним запросом
         if charged_attendance_ids:
             Attendance.objects.filter(id__in=charged_attendance_ids).update(is_charged=True)
+
+    return charged_total, groups_without_lesson
 
 
 @shared_task
