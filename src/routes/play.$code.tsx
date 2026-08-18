@@ -149,7 +149,7 @@ function PlayPage() {
   // ─── WAITING ────────────────────────────────────────────────────────────────
   if (phase === "waiting") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-muted text-white">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[var(--quiz-bg)] text-white">
         <Loader2 className="size-10 animate-spin text-[var(--primary)]" />
         <div className="text-lg font-medium">
           {uz ? "Test boshlanishini kuting..." : "Ожидайте начала теста..."}
@@ -162,7 +162,7 @@ function PlayPage() {
   // ─── ACTIVE / ANSWERED ──────────────────────────────────────────────────────
   if ((phase === "active" || phase === "answered") && question) {
     return (
-      <div className="flex min-h-screen flex-col bg-muted p-4 text-white">
+      <div className="flex min-h-dvh flex-col bg-[var(--quiz-bg)] p-4 text-white">
         <div className="flex flex-1 items-center justify-center py-6">
           <h2 className="max-w-2xl text-center text-2xl font-bold">{question.text}</h2>
         </div>
@@ -215,7 +215,7 @@ function PlayPage() {
   // ─── FINISHED ───────────────────────────────────────────────────────────────
   const me = results.find((r) => r.participant_id === participantId);
   return (
-    <div className="flex min-h-screen flex-col items-center gap-6 bg-muted p-6 text-white">
+    <div className="flex min-h-dvh flex-col items-center gap-6 bg-[var(--quiz-bg)] p-6 text-white">
       <div className="mt-8 flex flex-col items-center gap-3">
         <Trophy className="size-14 text-warn" />
         {me ? (

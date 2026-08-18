@@ -128,3 +128,61 @@ test("каждый семантический класс цвета реальн
       `Объявите цвет в блоке @theme в src/styles.css либо замените класс на существующий.`,
   ).toEqual([]);
 });
+
+/** Светлые поверхности палитры — на них белый текст не читается. */
+const LIGHT_SURFACES = [
+  "bg-muted",
+  "bg-background",
+  "bg-card",
+  "bg-popover",
+  "bg-secondary",
+  "bg-accent",
+  "bg-ok-soft",
+  "bg-warn-soft",
+  "bg-bad-soft",
+  "bg-info-soft",
+  "bg-reward-soft",
+  "bg-white",
+];
+
+test("белый текст не стоит на светлом фоне", () => {
+  /**
+   * Найдено 2026-08-15 по скриншоту, а не по коду.
+   *
+   * При переводе цвета на токены тёмный фон игровых экранов викторины
+   * (bg-slate-900) отобразился в светлый bg-muted, а весь текст на них
+   * белый. Экран входа по коду стал белым по кремовому — не читался
+   * вообще. Сборка при этом проходила, типы были чисты, тесты зелены.
+   *
+   * Проверка статическая: ищет элементы, у которых в одном и том же
+   * наборе классов и text-white, и светлая поверхность.
+   */
+  const offenders: string[] = [];
+
+  for (const file of walk("src")) {
+    const text = readFileSync(file, "utf8");
+    const lines = text.split("\n");
+    for (const match of text.matchAll(/className="([^"]*)"/g)) {
+      const value = match[1];
+      if (!value.includes("text-white")) continue;
+      // Только непрозрачные поверхности. `bg-white/5` — это плёнка поверх
+      // тёмного фона (так сделаны поля ввода на игровых экранах), она белый
+      // текст не портит; запрет на неё был бы ложной тревогой.
+      const surfaces = LIGHT_SURFACES.filter((s) =>
+        new RegExp(`(?<![\\w-])${s}(?![\\w-/])`).test(value),
+      );
+      if (surfaces.length === 0) continue;
+      const line = text.slice(0, match.index).split("\n").length;
+      offenders.push(
+        `${file.replace(/\\/g, "/")}:${line} — ${surfaces.join(", ")}\n    ${lines[line - 1]?.trim().slice(0, 100)}`,
+      );
+    }
+  }
+
+  expect(
+    offenders,
+    `Белый текст на светлой поверхности — такой текст не виден:\n${offenders.join("\n")}\n\n` +
+      `Либо фон должен быть тёмным (--sidebar, --quiz-bg, --public-bg, bg-primary),\n` +
+      `либо текст — не белым (text-foreground, text-muted-foreground).`,
+  ).toEqual([]);
+});

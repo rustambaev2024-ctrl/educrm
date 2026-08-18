@@ -121,7 +121,11 @@ function JoinPage() {
   const isLead = meta?.quiz_type === "lead";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted p-4 text-white">
+    // Тёмная игровая подложка, как на /play: этот экран — вход в викторину,
+    // а не часть рабочего интерфейса. Весь текст здесь белый, поэтому фон
+    // обязан оставаться тёмным. min-h-dvh, а не vh: в iOS Safari адресная
+    // строка сворачивается и экран прыгает.
+    <div className="flex min-h-dvh items-center justify-center bg-[var(--quiz-bg)] p-4 text-white">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold">E</div>

@@ -240,7 +240,7 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   // ─── WAITING ────────────────────────────────────────────────────────────────
   if (phase === "waiting") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-muted p-6 text-white">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-[var(--quiz-bg)] p-6 text-white">
         <div className="text-center">
           <div className="text-sm uppercase tracking-widest text-white/50">{session.quiz_title}</div>
           <div className="mt-4 font-mono text-7xl font-bold tracking-[0.2em] tabular-nums">
@@ -303,7 +303,7 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
     const danger = secondsLeft <= 5;
     const displayAnswered = totalParticipants > 0 ? answeredCount : answeredCount;
     return (
-      <div className="flex min-h-screen flex-col bg-muted p-6 text-white">
+      <div className="flex min-h-dvh flex-col bg-[var(--quiz-bg)] p-6 text-white">
         <div className="flex items-center justify-between">
           <div className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium">
             {qIndex + 1}/{qTotal} {tr("savol", "вопрос")}
@@ -354,7 +354,7 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   // потому что там не было своего условия — просто дефолтный рендер.
   if (phase === "active" && !question) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-muted text-white">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[var(--quiz-bg)] text-white">
         <Loader2 className="size-10 animate-spin text-white/60" />
         <div className="text-white/60">
           {restoringQuestion
@@ -369,7 +369,7 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   if (phase !== "finished") return null;
   const top = results.slice(0, 10);
   return (
-    <div className="flex min-h-screen flex-col items-center gap-6 bg-muted p-6 text-white">
+    <div className="flex min-h-dvh flex-col items-center gap-6 bg-[var(--quiz-bg)] p-6 text-white">
       <div className="mt-6 flex flex-col items-center gap-2">
         <Trophy className="size-12 text-warn" />
         <h1 className="text-3xl font-bold">{tr("Test yakunlandi!", "Тест завершён!")}</h1>
