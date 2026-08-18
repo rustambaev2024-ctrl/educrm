@@ -34,9 +34,9 @@ function ProductThumb({ src, alt }: { src?: string | null; alt: string }) {
     return (
       <div
         className="flex h-24 w-full items-center justify-center rounded-xl"
-        style={{ background: "#e0f2fe" }}
+        style={{ background: "var(--muted)" }}
       >
-        <ShoppingBag className="h-8 w-8 text-[#0077b6]" />
+        <ShoppingBag className="h-8 w-8 text-muted-foreground" />
       </div>
     );
   }
@@ -241,7 +241,7 @@ function StudentCoins() {
       {/* ── HERO CARD ── */}
       <div
         className="rounded-2xl p-5 text-white space-y-4"
-        style={{ background: "linear-gradient(135deg, #0077b6 0%, #00b4d8 100%)" }}
+        style={{ background: "linear-gradient(135deg, var(--sidebar) 0%, color-mix(in srgb, var(--sidebar) 70%, var(--primary)) 100%)" }}
       >
         {/* Avatar + Name + Level */}
         <div className="flex items-center gap-3">
@@ -323,21 +323,21 @@ function StudentCoins() {
       {/* ── QUICK STATS ── */}
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-card border border-border rounded-xl p-3 text-center">
-          <Star className="h-5 w-5 text-[#0077b6] mx-auto mb-1" />
+          <Star className="h-5 w-5 text-reward mx-auto mb-1" />
           <div className="text-xl font-bold text-foreground">{level}</div>
           <div className="text-xs text-muted-foreground">
             {lang === "uz" ? "Daraja" : "Уровень"}
           </div>
         </div>
         <div className="bg-card border border-border rounded-xl p-3 text-center">
-          <Package className="h-5 w-5 text-amber-500 mx-auto mb-1" />
+          <Package className="h-5 w-5 text-primary mx-auto mb-1" />
           <div className="text-xl font-bold text-foreground">{activeOrders}</div>
           <div className="text-xs text-muted-foreground">
             {lang === "uz" ? "Xaridlar" : "Покупки"}
           </div>
         </div>
         <div className="bg-card border border-border rounded-xl p-3 text-center">
-          <Trophy className="h-5 w-5 text-emerald-500 mx-auto mb-1" />
+          <Trophy className="h-5 w-5 text-reward mx-auto mb-1" />
           <div className="text-xl font-bold text-foreground">
             {unlockedCount}/{totalCount}
           </div>
@@ -351,7 +351,7 @@ function StudentCoins() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-bold text-foreground flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-[#0077b6]" />
+            <ShoppingBag className="h-5 w-5 text-primary" />
             {lang === "uz" ? "Do'kon" : "Магазин"}
           </h2>
           <span className="text-sm text-muted-foreground flex items-center gap-1">
@@ -395,7 +395,7 @@ function StudentCoins() {
       {achievements.length > 0 && (
         <div className="space-y-3">
           <h2 className="font-bold text-foreground flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-amber-500" />
+            <Trophy className="h-5 w-5 text-reward" />
             {lang === "uz" ? "Yutuqlar" : "Достижения"}
             <span className="text-sm font-normal text-muted-foreground">
               ({unlockedCount}/{totalCount})
@@ -409,8 +409,8 @@ function StudentCoins() {
                   key={ach.id}
                   className="bg-card border border-border rounded-xl p-3 text-center"
                 >
-                  <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-2">
-                    <Trophy className="h-5 w-5 text-amber-500" />
+                  <div className="w-10 h-10 rounded-full bg-reward-soft flex items-center justify-center mx-auto mb-2">
+                    <Trophy className="h-5 w-5 text-reward" />
                   </div>
                   <div className="text-xs font-semibold text-foreground leading-tight">
                     {lang === "uz" ? ach.title_uz : ach.title_ru}
@@ -435,7 +435,7 @@ function StudentCoins() {
       {/* ── TRANSACTION HISTORY ── */}
       <div className="space-y-2">
         <h2 className="font-bold text-foreground flex items-center gap-2">
-          <History className="h-5 w-5 text-[#0077b6]" />
+          <History className="h-5 w-5 text-primary" />
           {lang === "uz" ? "So'nggi faollik" : "Последняя активность"}
         </h2>
 
@@ -457,13 +457,13 @@ function StudentCoins() {
               >
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    tx.amount > 0 ? "bg-emerald-500/10" : "bg-red-500/10"
+                    tx.amount > 0 ? "bg-ok-soft" : "bg-muted"
                   }`}
                 >
                   {tx.amount > 0 ? (
-                    <TrendingUp className="h-4 w-4 text-emerald-600" />
+                    <TrendingUp className="h-4 w-4 text-ok" />
                   ) : (
-                    <TrendingDown className="h-4 w-4 text-red-600" />
+                    <TrendingDown className="h-4 w-4 text-muted-foreground" />
                   )}
                 </div>
 
@@ -478,7 +478,7 @@ function StudentCoins() {
 
                 <div
                   className={`text-sm font-bold flex-shrink-0 flex items-center gap-0.5 ${
-                    tx.amount > 0 ? "text-emerald-600" : "text-red-600"
+                    tx.amount > 0 ? "text-ok" : "text-muted-foreground"
                   }`}
                 >
                   {tx.amount > 0 ? "+" : ""}
@@ -538,7 +538,7 @@ function ProductCard({
           {lang === "uz" ? product.name_uz : product.name_ru}
         </div>
         {(product.min_level || 1) > 1 && (
-          <div className="text-xs text-amber-500 mt-0.5 flex items-center justify-center gap-0.5">
+          <div className="text-xs text-reward mt-0.5 flex items-center justify-center gap-0.5">
             <Star className="h-3 w-3" />
             {lang === "uz"
               ? `Daraja ${product.min_level}+`
@@ -555,7 +555,7 @@ function ProductCard({
       </div>
 
       <div className="mt-auto">
-        <div className="text-center font-bold text-[#0077b6] mb-2 flex items-center justify-center gap-1">
+        <div className="text-center font-bold text-reward mb-2 flex items-center justify-center gap-1">
           <Coins className="h-4 w-4" />
           <span className="text-lg">{product.price_coins}</span>
         </div>
@@ -567,7 +567,7 @@ function ProductCard({
               ? "text-white hover:opacity-90"
               : "bg-muted text-muted-foreground cursor-not-allowed"
           }`}
-          style={buyable ? { background: "#0077b6" } : undefined}
+          style={buyable ? { background: "var(--primary)" } : undefined}
         >
           {!buyable
             ? (noCoins
