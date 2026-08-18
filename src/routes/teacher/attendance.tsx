@@ -27,33 +27,46 @@ export const Route = createFileRoute("/teacher/attendance")({ component: Attenda
 
 const STATUS_ORDER: AttendanceStatus[] = ["present", "late", "excused", "absent"];
 
+/**
+ * Отметки посещаемости.
+ *
+ * Цвета здесь были фантомными: `bg-success`, `text-warning-foreground`
+ * и подобные не объявлены ни в одном наборе токенов, поэтому Tailwind
+ * их просто не выпускал — проверено по собранному CSS, ноль правил.
+ * Самый нажимаемый элемент учителя был бесцветным: «был» и «не был»
+ * отличались только иконкой.
+ *
+ * Теперь смысловые токены: пришёл — подтверждение, опоздал — внимание,
+ * уважительная — информация (за неё не списывают деньги, это не провинность),
+ * не пришёл — потеря.
+ */
 const STATUS_META: Record<AttendanceStatus, { icon: typeof Check; tone: string; activeTone: string; key: string; short: string }> = {
   present: {
     icon: Check,
-    tone: "border-border text-muted-foreground hover:bg-success/10 hover:text-success",
-    activeTone: "border-success bg-success text-success-foreground",
+    tone: "border-border text-muted-foreground hover:bg-ok-soft hover:text-ok",
+    activeTone: "border-ok bg-ok text-ok-foreground",
     key: "att.present",
     short: "K",
   },
   late: {
     icon: Clock,
-    tone: "border-border text-muted-foreground hover:bg-warning/15 hover:text-warning-foreground",
-    activeTone: "border-warning bg-warning text-warning-foreground",
+    tone: "border-border text-muted-foreground hover:bg-warn-soft hover:text-warn",
+    activeTone: "border-warn bg-warn text-warn-foreground",
     key: "att.late",
     short: "Q",
   },
 
   excused: {
     icon: FileText,
-    tone: "border-border text-muted-foreground hover:bg-accent",
-    activeTone: "border-primary bg-primary text-primary-foreground",
+    tone: "border-border text-muted-foreground hover:bg-info-soft hover:text-info",
+    activeTone: "border-info bg-info text-info-foreground",
     key: "att.excused",
     short: "S",
   },
   absent: {
     icon: X,
-    tone: "border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
-    activeTone: "border-destructive bg-destructive text-destructive-foreground",
+    tone: "border-border text-muted-foreground hover:bg-bad-soft hover:text-bad",
+    activeTone: "border-bad bg-bad text-bad-foreground",
     key: "att.absent",
     short: "Y",
   },

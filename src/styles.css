@@ -57,15 +57,38 @@
   --color-ok-foreground: var(--ok-foreground);
   --color-ok-soft: var(--ok-soft);
   --color-warn: var(--warn);
+  --color-warn-foreground: var(--warn-foreground);
   --color-warn-soft: var(--warn-soft);
   --color-bad: var(--bad);
+  --color-bad-foreground: var(--bad-foreground);
   --color-bad-soft: var(--bad-soft);
   --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-info-soft: var(--info-soft);
 
   /* Награда — только система монет */
   --color-reward: var(--reward);
   --color-reward-soft: var(--reward-soft);
+
+  /* ══ Мост для старых имён утилит ══
+     bg-success, text-warning, border-success и родня используются в 29
+     файлах — и не выпускали НИ ОДНОГО правила CSS: таких цветов не было
+     объявлено ни в одном наборе токенов, Tailwind просто отбрасывал их
+     как неизвестные. Все статусные плашки, плитки показателей и
+     уведомления, задуманные зелёными и жёлтыми, были бесцветными.
+
+     Проверялось по собранному CSS, а не на глаз: класс есть в разметке,
+     правила нет. Молчаливый отказ — поэтому и жил так долго.
+
+     Здесь они получают значения. Пофайловый разбор — какой именно
+     оттенок смысла нужен в каждом месте — идёт вместе с пересборкой
+     соответствующей роли; блок удаляется после последней. */
+  --color-success: var(--ok);
+  --color-success-foreground: var(--ok-foreground);
+  --color-warning: var(--warn);
+  --color-warning-foreground: var(--warn-foreground);
+  --color-danger: var(--bad);
+  --color-danger-foreground: var(--bad-foreground);
 }
 
 :root {
@@ -130,10 +153,13 @@
   --ok-foreground: #ffffff;
   --ok-soft: #ebf2dc;
   --warn: #8f5509;
+  --warn-foreground: #ffffff;
   --warn-soft: #f7ebd7;
   --bad: #bc3226;
+  --bad-foreground: #ffffff;
   --bad-soft: #f8e3e0;
   --info: #1c5fbe;
+  --info-foreground: #ffffff;
   --info-soft: #e0eaf9;
 
   /* ── Награда ──
