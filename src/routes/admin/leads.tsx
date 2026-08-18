@@ -459,7 +459,7 @@ function AdminLeadsPage() {
                 onClick={() => setShowWon(!showWon)}
                 className={`flex h-9 items-center rounded-md border px-3 text-xs transition-colors ${
                   showWon
-                    ? "border-[#0077b6] bg-[#0077b6] text-white"
+                    ? "border-[var(--primary)] bg-[var(--primary)] text-white"
                     : "border-border bg-background text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -507,10 +507,10 @@ function AdminLeadsPage() {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
                 new: "bg-primary/10 text-primary border-primary/20",
-                contacted: "border-[#e2e8f0] bg-white text-[#64748b]",
-                trial: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-                won: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-                lost: "bg-destructive/10 text-red-400 border-destructive/20",
+                contacted: "border-[var(--border)] bg-white text-[var(--muted-foreground)]",
+                trial: "bg-warn-soft text-warn border-warn/30",
+                won: "bg-ok-soft text-ok border-ok/30",
+                lost: "bg-destructive/10 text-bad border-destructive/20",
               }[status] || "bg-muted text-foreground border-border";
 
               const isDialogDrop = status === "won" || status === "trial";
@@ -520,7 +520,7 @@ function AdminLeadsPage() {
                 <div key={status} className={`${status === mobileStatus ? "flex" : "hidden lg:flex"} flex-col min-w-0 rounded-2xl bg-card border shadow-sm overflow-hidden h-full transition-colors ${
                   isDraggingOver
                     ? isDialogDrop
-                      ? "border-amber-400 bg-amber-50/30 dark:bg-amber-950/20"
+                      ? "border-warn/30 bg-warn-soft dark:bg-warn-soft"
                       : "border-primary/60 bg-primary/5"
                     : "border-border"
                 }`}
@@ -561,7 +561,7 @@ function AdminLeadsPage() {
                     <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-background/50 backdrop-blur-sm">{columnLeads.length}</Badge>
                   </div>
                   {isDialogDrop && isDraggingOver && (
-                    <div className="mx-3 mt-2 rounded-md bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                    <div className="mx-3 mt-2 rounded-md bg-warn-soft px-2.5 py-1.5 text-[11px] text-warn dark:text-warn font-medium">
                       {lang === "uz" ? "Dialog oynasi ochiladi" : "Откроется диалог"}
                     </div>
                   )}
@@ -586,7 +586,7 @@ function AdminLeadsPage() {
                         <div className="flex items-center justify-between mt-4 text-xs">
                           <span className="text-muted-foreground font-medium">{t.source[lead.source]}</span>
                           {isFollowUpDue(lead) ? (
-                            <span className="text-orange-400 font-semibold flex items-center gap-1.5 bg-orange-500/10 px-2 py-1 rounded-md">
+                            <span className="text-warn font-semibold flex items-center gap-1.5 bg-warn-soft px-2 py-1 rounded-md">
                               <Clock3 className="size-3.5" /> {lead.nextFollowUp ? formatDate(lead.nextFollowUp, lang) : "!"}
                             </span>
                           ) : (
@@ -619,7 +619,7 @@ function AdminLeadsPage() {
                               <div className="flex gap-1.5 mt-2">
                                 <Button
                                   size="sm"
-                                  className="h-6 text-[11px] flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                  className="h-6 text-[11px] flex-1 bg-ok hover:bg-ok text-white border-none"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     void handleTrialAttendance(lead.id, true);
@@ -640,7 +640,7 @@ function AdminLeadsPage() {
                                 </Button>
                               </div>
                             ) : (
-                              <div className={`text-xs font-medium mt-1 ${lead.trialLessonAttended ? "text-emerald-600" : "text-destructive"}`}>
+                              <div className={`text-xs font-medium mt-1 ${lead.trialLessonAttended ? "text-ok" : "text-destructive"}`}>
                                 {lead.trialLessonAttended
                                   ? (lang === "uz" ? "Keldi" : "Пришёл")
                                   : (lang === "uz" ? "Kelmadi" : "Не пришёл")}
@@ -900,7 +900,7 @@ function LeadFormFields({
 function LeadStatusBadge({ status, labels }: { status: StudentLeadStatus; labels: Record<StudentLeadStatus, string> }) {
   const cls = {
     new: "border-primary/30 bg-primary/10 text-primary",
-    contacted: "border-[#e2e8f0] bg-white text-[#64748b]",
+    contacted: "border-[var(--border)] bg-white text-[var(--muted-foreground)]",
     trial: "border-warning/30 bg-warning/10 text-warning-foreground",
     won: "border-success/30 bg-success/10 text-success",
     lost: "border-destructive/30 bg-destructive/10 text-destructive",

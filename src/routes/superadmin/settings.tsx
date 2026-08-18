@@ -30,7 +30,9 @@ function SaSettings() {
   const [strongPwd, setStrongPwd] = useState(true);
   const [sessionTimeout, setSessionTimeout] = useState(30);
 
-  const [primaryColor, setPrimaryColor] = useState("#6366f1");
+  // Значение по умолчанию — фирменный цвет платформы (--primary).
+  // Раньше стоял фиолетовый, не встречающийся в продукте нигде.
+  const [primaryColor, setPrimaryColor] = useState("#0e7a57");
 
   // Если настройки не загрузились, форму показывать нельзя: поля останутся
   // с захардкоженными значениями по умолчанию, и «Сохранить» запишет их
@@ -46,7 +48,7 @@ function SaSettings() {
           setSupportEmail(data.support_email ?? "");
           setSupportPhone(data.support_phone ?? "");
           setDefaultLang(data.default_language ?? "uz");
-          setPrimaryColor(data.primary_color ?? "#6366f1");
+          setPrimaryColor(data.primary_color ?? "#0e7a57");
           setSessionTimeout(data.session_timeout ?? 30);
           setTwoFactor(data.require_2fa ?? false);
           setStrongPwd(data.strong_password ?? true);

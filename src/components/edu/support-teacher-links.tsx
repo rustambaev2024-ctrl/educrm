@@ -93,7 +93,7 @@ export function SupportTeacherLinks() {
   return (
     <Card className="overflow-hidden shadow-elegant">
       <div className="flex items-center gap-2 border-b border-border/60 p-4">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-warn-soft text-warn">
           <Users className="size-4" />
         </div>
         <div>
@@ -109,8 +109,8 @@ export function SupportTeacherLinks() {
       </div>
 
       {supportTeachers.length === 0 ? (
-        <div className="flex items-center gap-3 p-4 m-4 rounded-xl bg-amber-500/10">
-          <AlertCircle className="size-4 shrink-0 text-amber-500" />
+        <div className="flex items-center gap-3 p-4 m-4 rounded-xl bg-warn-soft">
+          <AlertCircle className="size-4 shrink-0 text-warn" />
           <p className="text-sm text-muted-foreground">
             {lang === "uz"
               ? "Hozircha yordamchi o'qituvchilar yo'q. Direktor yangi yordamchi yaratishi kerak."
@@ -139,7 +139,7 @@ export function SupportTeacherLinks() {
                     <div className="text-xs text-muted-foreground">{st.phone}</div>
                   </div>
                 </div>
-                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/15 text-amber-600">
+                <Badge variant="outline" className="border-warn/30 bg-warn-soft text-warn">
                   {stLinks.length} {lang === "uz" ? "o'qituvchi" : "учителей"}
                 </Badge>
               </div>

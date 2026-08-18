@@ -55,7 +55,7 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
                 {g?.teacher_name} · {g?.room_name} · {g?.course_name}
               </p>
               <div className="flex flex-wrap gap-2 mt-2">
-                <Badge className="bg-emerald-500/15 text-emerald-600 border-none">
+                <Badge className="bg-ok-soft text-ok border-none">
                   {g?.status === "active" ? (lang === "uz" ? "Faol" : "Активна") : g?.status}
                 </Badge>
                 <Badge variant="outline">{formatMoney(g?.monthly_price, lang)}/{lang === "uz" ? "oy" : "мес"}</Badge>
@@ -64,10 +64,10 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
 
               {/* KPI */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                <KpiMini icon={Users} color="text-[#0077b6]" bg="bg-[#e0f2fe]" label={lang === "uz" ? "O'quvchilar" : "Студентов"} value={String(kpi?.students_count)} />
-                <KpiMini icon={TrendingUp} color="text-emerald-500" bg="bg-emerald-500/10" label={lang === "uz" ? "Davomat" : "Посещаемость"} value={`${kpi?.attendance_rate}%`} />
-                <KpiMini icon={BookOpen} color="text-orange-500" bg="bg-orange-500/10" label={lang === "uz" ? "Darslar" : "Уроки"} value={`${kpi?.conducted_lessons}/${kpi?.total_lessons}`} />
-                <KpiMini icon={Award} color="text-rose-500" bg="bg-rose-500/10" label={lang === "uz" ? "O'rtacha baho" : "Ср. балл"} value={kpi?.avg_grade ? String(kpi.avg_grade) : "—"} />
+                <KpiMini icon={Users} color="text-[var(--primary)]" bg="bg-[var(--info-soft)]" label={lang === "uz" ? "O'quvchilar" : "Студентов"} value={String(kpi?.students_count)} />
+                <KpiMini icon={TrendingUp} color="text-ok" bg="bg-ok-soft" label={lang === "uz" ? "Davomat" : "Посещаемость"} value={`${kpi?.attendance_rate}%`} />
+                <KpiMini icon={BookOpen} color="text-warn" bg="bg-warn-soft" label={lang === "uz" ? "Darslar" : "Уроки"} value={`${kpi?.conducted_lessons}/${kpi?.total_lessons}`} />
+                <KpiMini icon={Award} color="text-bad" bg="bg-bad-soft" label={lang === "uz" ? "O'rtacha baho" : "Ср. балл"} value={kpi?.avg_grade ? String(kpi.avg_grade) : "—"} />
               </div>
             </div>
 
@@ -83,7 +83,7 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
                       <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                       <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                       <Tooltip formatter={(v: any) => [`${v}%`, ""]} />
-                      <Bar dataKey="rate" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="rate" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </Card>
@@ -92,12 +92,12 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
               {/* Debtors */}
               <Card className="p-4">
                 <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <AlertTriangle className="h-4 w-4 text-warn" />
                   {lang === "uz" ? "Qarzdorlar" : "Должники"}
                   {data.debtors.length > 0 && <Badge variant="destructive" className="text-[10px]">{data.debtors.length}</Badge>}
                 </h3>
                 {data.debtors.length === 0 ? (
-                  <div className="flex items-center gap-2 text-emerald-600 text-sm py-2">
+                  <div className="flex items-center gap-2 text-ok text-sm py-2">
                     <CheckCircle2 className="h-4 w-4" />
                     {lang === "uz" ? "Barcha o'quvchilar to'lagan" : "Все оплатили"}
                   </div>
@@ -126,9 +126,9 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
                         <div className="text-xs text-muted-foreground">{s.phone}</div>
                       </div>
                       <div className="text-xs text-center">
-                        <div className={s.attendance_rate >= 80 ? "text-emerald-600 font-medium" : s.attendance_rate >= 60 ? "text-amber-600 font-medium" : "text-destructive font-medium"}>{s.attendance_rate}%</div>
+                        <div className={s.attendance_rate >= 80 ? "text-ok font-medium" : s.attendance_rate >= 60 ? "text-warn font-medium" : "text-destructive font-medium"}>{s.attendance_rate}%</div>
                       </div>
-                      <div className={`text-xs font-medium ${s.balance >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                      <div className={`text-xs font-medium ${s.balance >= 0 ? "text-ok" : "text-destructive"}`}>
                         {formatMoney(s.balance, lang)}
                       </div>
                     </div>
@@ -140,9 +140,9 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
               <Card className="p-4">
                 <h3 className="text-sm font-medium mb-3">{lang === "uz" ? "Moliya" : "Финансы"}</h3>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
+                  <div className="bg-ok-soft rounded-lg p-3 text-center">
                     <div className="text-xs text-muted-foreground">{lang === "uz" ? "Tushum" : "Доход"}</div>
-                    <div className="text-sm font-semibold text-emerald-600 mt-1">{formatMoney(data.finance.income, lang)}</div>
+                    <div className="text-sm font-semibold text-ok mt-1">{formatMoney(data.finance.income, lang)}</div>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-3 text-center">
                     <div className="text-xs text-muted-foreground">{lang === "uz" ? "Yechildi" : "Списано"}</div>

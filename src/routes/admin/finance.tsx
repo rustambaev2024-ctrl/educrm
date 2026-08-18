@@ -57,11 +57,11 @@ const localDateInputValue = (date: Date) =>
 
 const getAvatarStyle = (name: string) => {
   const colors = [
-    { bg: "#dbeafe", text: "#1d4ed8" },
-    { bg: "#dcfce7", text: "#15803d" },
-    { bg: "#fce7f3", text: "#9d174d" },
-    { bg: "#fef3c7", text: "#d97706" },
-    { bg: "#f3e8ff", text: "#7c3aed" },
+    { bg: "var(--info-soft)", text: "var(--info)" },
+    { bg: "var(--ok-soft)", text: "var(--ok)" },
+    { bg: "color-mix(in srgb, var(--chart-5) 15%, transparent)", text: "var(--chart-5)" },
+    { bg: "var(--warn-soft)", text: "var(--warn)" },
+    { bg: "color-mix(in srgb, var(--chart-5) 15%, transparent)", text: "var(--chart-5)" },
   ];
   return colors[(name.trim().charCodeAt(0) || 0) % colors.length];
 };
@@ -82,15 +82,15 @@ const isOutgoingPayment = (payment: Payment) =>
 
 const paymentVisual = (payment: Payment) => {
   if (isManualPayment(payment)) {
-    return { icon: Wallet, cls: "bg-sky-500/10 text-sky-600" };
+    return { icon: Wallet, cls: "bg-info-soft text-info" };
   }
   if (isOutgoingPayment(payment)) {
     return { icon: TrendingDown, cls: "bg-destructive/10 text-destructive" };
   }
   if (payment.type === "refund" || payment.type === "discount") {
-    return { icon: Receipt, cls: "bg-amber-500/10 text-amber-600" };
+    return { icon: Receipt, cls: "bg-warn-soft text-warn" };
   }
-  return { icon: TrendingUp, cls: "bg-emerald-500/10 text-emerald-600" };
+  return { icon: TrendingUp, cls: "bg-ok-soft text-ok" };
 };
 
 const methodBadgeClass = (method: PaymentMethod) => {
@@ -292,7 +292,7 @@ function FinancePage() {
                       <TableCell className="font-medium">{w.fullName}</TableCell>
                       <TableCell className="text-muted-foreground">{w.phone}</TableCell>
                       <TableCell><Badge variant={w.status === "debtor" ? "destructive" : "outline"}>{t(`status.${w.status}`)}</Badge></TableCell>
-                      <TableCell className={`text-right font-bold ${w.balance < 0 ? "text-destructive" : w.balance > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>{formatMoney(w.balance, lang)}</TableCell>
+                      <TableCell className={`text-right font-bold ${w.balance < 0 ? "text-destructive" : w.balance > 0 ? "text-ok" : "text-muted-foreground"}`}>{formatMoney(w.balance, lang)}</TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
                         {w.lastPaymentDate ? `${formatDate(w.lastPaymentDate, lang)} (+${formatMoney(w.lastPaymentAmount || 0, lang)})` : "—"}
                       </TableCell>
@@ -378,7 +378,7 @@ function FinancePage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className={`text-right font-bold tabular-nums ${outgoing ? "text-destructive" : "text-emerald-600"}`}>
+                        <TableCell className={`text-right font-bold tabular-nums ${outgoing ? "text-destructive" : "text-ok"}`}>
                           {sign}{formatMoney(p.amount, lang)}
                         </TableCell>
                         <TableCell>
@@ -423,7 +423,7 @@ function FinancePage() {
                       <TableCell>
                         <PaymentTypeBadge type={p.type} lang={lang} />
                       </TableCell>
-                      <TableCell className={`text-right font-semibold ${p.direction === 'in' ? 'text-success' : p.direction === 'out' ? 'text-destructive' : 'text-amber-600'}`}>
+                      <TableCell className={`text-right font-semibold ${p.direction === 'in' ? 'text-success' : p.direction === 'out' ? 'text-destructive' : 'text-warn'}`}>
                         {p.direction === 'in' ? '+' : p.direction === 'out' ? '-' : '•'} {formatMoney(p.amount, lang)}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{formatDate(p.date, lang)}</TableCell>
@@ -445,7 +445,7 @@ function FinancePage() {
           <TabsContent value="debtors" className="mt-4">
             {debtors.length === 0 ? (
               <div className="edu-card flex flex-col items-center gap-3 p-12 text-center">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-ok-soft text-ok">
                   <Wallet className="size-6" />
                 </div>
                 <div className="text-[15px] font-semibold text-foreground">{t("finance.emptyDebtors")}</div>
@@ -757,7 +757,7 @@ function PaymentTypeBadge({ type, lang }: { type: string; lang: "uz" | "ru" }) {
     manual_charge: "bg-destructive/15 text-destructive border-destructive/30",
     manual_top_up: "bg-success/15 text-success border-success/30",
     refund: "bg-warning/15 text-warning border-warning/30",
-    discount: "bg-purple-500/15 text-purple-600 border-purple-500/30",
+    discount: "bg-chart-5/10 text-chart-5 border-chart-5/30",
     expense: "bg-destructive/15 text-destructive border-destructive/30",
   };
   const className = classMap[type] ?? "bg-muted text-muted-foreground";

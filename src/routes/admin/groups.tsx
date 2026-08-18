@@ -422,7 +422,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
             <SheetTitle className="text-left">{group.name}</SheetTitle>
             <div className="flex items-center gap-1">
               {group.status !== "completed" && (
-                <Button variant="ghost" size="icon" onClick={completeGroup} className="text-muted-foreground hover:text-emerald-600" title="Guruhni tugallash">
+                <Button variant="ghost" size="icon" onClick={completeGroup} className="text-muted-foreground hover:text-ok" title="Guruhni tugallash">
                   <CheckCircle2 className="size-4" />
                 </Button>
               )}

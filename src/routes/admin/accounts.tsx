@@ -128,7 +128,7 @@ function AccountsPage() {
         <SupportTeacherLinks />
         <Card className="border-border bg-card p-4">
           <div className="flex gap-3">
-            <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#0077b6]" />
+            <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--primary)]" />
             <p className="text-sm text-muted-foreground">{t("note")}</p>
           </div>
         </Card>

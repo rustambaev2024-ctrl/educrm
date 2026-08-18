@@ -14,13 +14,13 @@ import { Users, BookOpen, AlertTriangle, Calendar, DollarSign } from "lucide-rea
 export const Route = createFileRoute("/admin/notifications")({ component: NotificationsPage });
 
 const typeConfig: Record<string, { icon: any; color: string; bg: string; label: string; labelRu: string }> = {
-  lead_follow_up: { icon: Users, color: "text-amber-500", bg: "bg-amber-500/10", label: "Murojaat", labelRu: "Заявка" },
+  lead_follow_up: { icon: Users, color: "text-warn", bg: "bg-warn-soft", label: "Murojaat", labelRu: "Заявка" },
   debtor_alert: { icon: DollarSign, color: "text-destructive", bg: "bg-destructive/10", label: "Qarzdor", labelRu: "Должник" },
-  lesson_reminder: { icon: Calendar, color: "text-[#0077b6]", bg: "bg-[#e0f2fe]", label: "Dars", labelRu: "Урок" },
-  trial_lesson_reminder: { icon: Calendar, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Sinov darsi", labelRu: "Пробный урок" },
-  homework_deadline: { icon: BookOpen, color: "text-violet-500", bg: "bg-violet-500/10", label: "Vazifa", labelRu: "Задание" },
+  lesson_reminder: { icon: Calendar, color: "text-[var(--primary)]", bg: "bg-[var(--info-soft)]", label: "Dars", labelRu: "Урок" },
+  trial_lesson_reminder: { icon: Calendar, color: "text-ok", bg: "bg-ok-soft", label: "Sinov darsi", labelRu: "Пробный урок" },
+  homework_deadline: { icon: BookOpen, color: "text-chart-5", bg: "bg-chart-5/10", label: "Vazifa", labelRu: "Задание" },
   lesson_cancelled: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", label: "Bekor", labelRu: "Отмена" },
-  payment_due: { icon: DollarSign, color: "text-amber-500", bg: "bg-amber-500/10", label: "To'lov", labelRu: "Платёж" },
+  payment_due: { icon: DollarSign, color: "text-warn", bg: "bg-warn-soft", label: "To'lov", labelRu: "Платёж" },
   default: { icon: Bell, color: "text-muted-foreground", bg: "bg-muted", label: "", labelRu: "" },
 };
 

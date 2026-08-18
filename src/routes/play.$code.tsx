@@ -24,11 +24,13 @@ interface WsResult {
   rank: number | null;
 }
 
+// Цвет варианта — категориальная метка, а не оценка: красный здесь
+// значит «вариант А», а не «неверно». Поэтому свои токены, не смысловые.
 const ANSWER_COLORS = [
-  "bg-red-500 hover:bg-red-600",
-  "bg-[#0077b6] hover:bg-[#006da8]",
-  "bg-emerald-500 hover:bg-emerald-600",
-  "bg-amber-500 hover:bg-amber-600",
+  "bg-[var(--quiz-a)] hover:opacity-90",
+  "bg-[var(--quiz-b)] hover:opacity-90",
+  "bg-[var(--quiz-c)] hover:opacity-90",
+  "bg-[var(--quiz-d)] hover:opacity-90",
 ];
 
 function PlayPage() {
@@ -57,7 +59,7 @@ function PlayPage() {
   // Guard — участник не прошёл join
   if (!participantId) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0d1b2a]">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--quiz-bg)]">
         <div className="space-y-4 text-center">
           <div className="text-lg font-semibold text-white">
             {uz
@@ -66,7 +68,7 @@ function PlayPage() {
           </div>
           <a
             href="/join"
-            className="inline-block rounded-xl bg-[#0077b6] px-6 py-3 font-semibold text-white"
+            className="inline-block rounded-xl bg-primary px-6 py-3 font-semibold text-white"
           >
             {uz ? "Kodni kiriting" : "Ввести код"}
           </a>
@@ -147,8 +149,8 @@ function PlayPage() {
   // ─── WAITING ────────────────────────────────────────────────────────────────
   if (phase === "waiting") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-900 text-white">
-        <Loader2 className="size-10 animate-spin text-[#0077b6]" />
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-muted text-white">
+        <Loader2 className="size-10 animate-spin text-[var(--primary)]" />
         <div className="text-lg font-medium">
           {uz ? "Test boshlanishini kuting..." : "Ожидайте начала теста..."}
         </div>
@@ -160,7 +162,7 @@ function PlayPage() {
   // ─── ACTIVE / ANSWERED ──────────────────────────────────────────────────────
   if ((phase === "active" || phase === "answered") && question) {
     return (
-      <div className="flex min-h-screen flex-col bg-slate-900 p-4 text-white">
+      <div className="flex min-h-screen flex-col bg-muted p-4 text-white">
         <div className="flex flex-1 items-center justify-center py-6">
           <h2 className="max-w-2xl text-center text-2xl font-bold">{question.text}</h2>
         </div>
@@ -170,16 +172,16 @@ function PlayPage() {
             {isCorrect === null ? (
               <Loader2 className="size-12 animate-spin text-white/60" />
             ) : isCorrect ? (
-              <div className="flex flex-col items-center gap-3 text-emerald-400">
-                <div className="flex size-20 items-center justify-center rounded-full bg-emerald-500/20">
+              <div className="flex flex-col items-center gap-3 text-ok">
+                <div className="flex size-20 items-center justify-center rounded-full bg-ok-soft">
                   <Check className="size-10" />
                 </div>
                 <div className="text-xl font-bold">{uz ? "To'g'ri!" : "Правильно!"}</div>
                 <div className="text-white/60">{myScore} {uz ? "ball" : "очков"}</div>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-3 text-red-400">
-                <div className="flex size-20 items-center justify-center rounded-full bg-red-500/20">
+              <div className="flex flex-col items-center gap-3 text-bad">
+                <div className="flex size-20 items-center justify-center rounded-full bg-bad-soft">
                   <X className="size-10" />
                 </div>
                 <div className="text-xl font-bold">{uz ? "Noto'g'ri" : "Неверно"}</div>
@@ -213,9 +215,9 @@ function PlayPage() {
   // ─── FINISHED ───────────────────────────────────────────────────────────────
   const me = results.find((r) => r.participant_id === participantId);
   return (
-    <div className="flex min-h-screen flex-col items-center gap-6 bg-slate-900 p-6 text-white">
+    <div className="flex min-h-screen flex-col items-center gap-6 bg-muted p-6 text-white">
       <div className="mt-8 flex flex-col items-center gap-3">
-        <Trophy className="size-14 text-amber-400" />
+        <Trophy className="size-14 text-warn" />
         {me ? (
           <>
             <div className="text-6xl font-bold tabular-nums">{me.rank ?? "—"}</div>
@@ -239,7 +241,7 @@ function PlayPage() {
           {results.slice(0, 10).map((r, i) => (
             <div
               key={r.participant_id}
-              className={`flex items-center gap-3 p-3 ${r.participant_id === participantId ? "bg-[#0077b6]/15" : ""}`}
+              className={`flex items-center gap-3 p-3 ${r.participant_id === participantId ? "bg-primary/15" : ""}`}
             >
               <span className="w-6 text-center text-sm font-bold tabular-nums">
                 {r.rank ?? i + 1}

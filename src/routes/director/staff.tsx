@@ -39,7 +39,7 @@ const ROLE_TONE: Record<string, string> = {
   director: "bg-primary/15 text-primary border-primary/30",
   admin: "bg-info/15 text-info border-info/30",
   teacher: "bg-success/15 text-success border-success/30",
-  support_teacher: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  support_teacher: "bg-warn-soft text-warn border-warn/30",
 };
 
 type StaffRole = Staff["role"];

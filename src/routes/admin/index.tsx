@@ -19,8 +19,8 @@ export const Route = createFileRoute("/admin/")({ component: AdminHome });
 
 /* avatar color index 0-4 */
 const avaIdx = (name: string) => (name.trim().charCodeAt(0) || 0) % 5;
-const avaBg  = ["#dbeafe","#dcfce7","#fce7f3","#fef3c7","#f3e8ff"];
-const avaTxt = ["#1d4ed8","#15803d","#9d174d","#92400e","#7c3aed"];
+const avaBg  = ["var(--info-soft)","var(--ok-soft)","color-mix(in srgb, var(--chart-5) 15%, transparent)","var(--warn-soft)","color-mix(in srgb, var(--chart-5) 15%, transparent)"];
+const avaTxt = ["var(--info)","var(--ok)","var(--chart-5)","var(--warn)","var(--chart-5)"];
 
 const initials = (name: string) =>
   name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
@@ -120,16 +120,16 @@ function AdminHome() {
 
         {/* Today's lessons */}
         <div className="edu-card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--muted)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{tr("Bugungi darslar", "Сегодняшние уроки")}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--foreground)" }}>{tr("Bugungi darslar", "Сегодняшние уроки")}</div>
+              <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>
                 {todayLessons.length} {tr("ta dars", "урок(ов)")}
               </div>
             </div>
             <button
               onClick={() => navigate({ to: "/admin/schedule" })}
-              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#f1f5f9", color: "#475569", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "var(--muted)", color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
             >
               {tr("Barchasi", "Все")}
             </button>
@@ -154,14 +154,14 @@ function AdminHome() {
                     className="edu-row"
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid var(--border-light)" }}
                   >
-                    <div style={{ minWidth: 44, fontWeight: 700, color: "#0077b6", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
+                    <div style={{ minWidth: 44, fontWeight: 700, color: "var(--primary)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
                       <Clock style={{ width: 11, height: 11 }} />
                       {formatTime(lesson.datetime)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontWeight: 600, color: "var(--foreground)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {course?.name ?? group.name}
-                        {" "}<span style={{ fontWeight: 400, color: "#64748b" }}>{group.name}</span>
+                        {" "}<span style={{ fontWeight: 400, color: "var(--muted-foreground)" }}>{group.name}</span>
                       </div>
                       <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1, display: "flex", gap: 8 }}>
                         {teacher?.fullName && <span>{teacher.fullName.split(" ")[0]}</span>}
@@ -211,14 +211,14 @@ function AdminHome() {
 
         {/* Recent payments */}
         <div className="edu-card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--muted)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{tr("So'nggi to'lovlar", "Последние платежи")}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--foreground)" }}>{tr("So'nggi to'lovlar", "Последние платежи")}</div>
+              <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
             </div>
             <button
               onClick={() => navigate({ to: "/admin/finance" })}
-              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#f1f5f9", color: "#475569", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "var(--muted)", color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
             >
               {tr("Barchasi", "Все")}
             </button>
@@ -246,14 +246,14 @@ function AdminHome() {
                       {initials(name)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontWeight: 600, color: "var(--foreground)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {name}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1 }}>
                         {formatTime(payment.date)} · {payment.method ?? tr(typeLabel.uz, typeLabel.ru)}
                       </div>
                     </div>
-                    <div className={`flex-shrink-0 text-[13px] font-bold ${isCharge ? "text-destructive" : "text-emerald-600"}`}>
+                    <div className={`flex-shrink-0 text-[13px] font-bold ${isCharge ? "text-destructive" : "text-ok"}`}>
                       {isCharge ? "−" : "+"}{formatMoney(payment.amount, lang)}
                     </div>
                   </div>

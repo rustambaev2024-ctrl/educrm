@@ -291,7 +291,7 @@ function DirectorSalaries() {
                     <div className="flex items-center gap-1.5">
                       <span className="font-medium">{row.staff.fullName}</span>
                       {row.fromApi && (
-                        <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600">API</span>
+                        <span className="rounded bg-ok-soft px-1.5 py-0.5 text-[10px] text-ok">API</span>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">

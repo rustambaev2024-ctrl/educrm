@@ -28,10 +28,10 @@ interface WsResult {
 }
 
 const ANSWER_COLORS = [
-  "bg-red-500 hover:bg-red-600",
-  "bg-[#0077b6] hover:bg-[#006da8]",
-  "bg-emerald-500 hover:bg-emerald-600",
-  "bg-amber-500 hover:bg-amber-600",
+  "bg-bad hover:bg-bad",
+  "bg-[var(--primary)] hover:bg-[var(--primary)]",
+  "bg-ok hover:bg-ok",
+  "bg-warn hover:bg-warn",
 ];
 
 export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
@@ -240,7 +240,7 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   // ─── WAITING ────────────────────────────────────────────────────────────────
   if (phase === "waiting") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-slate-900 p-6 text-white">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-muted p-6 text-white">
         <div className="text-center">
           <div className="text-sm uppercase tracking-widest text-white/50">{session.quiz_title}</div>
           <div className="mt-4 font-mono text-7xl font-bold tracking-[0.2em] tabular-nums">
@@ -288,7 +288,7 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
 
         <Button
           size="lg"
-          className="gap-2 bg-emerald-600 px-8 text-lg hover:bg-emerald-700"
+          className="gap-2 bg-ok px-8 text-lg hover:bg-ok"
           disabled={participants.length === 0 || !wsConnected}
           onClick={startQuiz}
         >
@@ -303,13 +303,13 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
     const danger = secondsLeft <= 5;
     const displayAnswered = totalParticipants > 0 ? answeredCount : answeredCount;
     return (
-      <div className="flex min-h-screen flex-col bg-slate-900 p-6 text-white">
+      <div className="flex min-h-screen flex-col bg-muted p-6 text-white">
         <div className="flex items-center justify-between">
           <div className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium">
             {qIndex + 1}/{qTotal} {tr("savol", "вопрос")}
           </div>
           <div
-            className={`font-mono text-5xl font-bold tabular-nums ${danger ? "animate-pulse text-red-500" : ""}`}
+            className={`font-mono text-5xl font-bold tabular-nums ${danger ? "animate-pulse text-bad" : ""}`}
           >
             {secondsLeft}
           </div>
@@ -354,7 +354,7 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   // потому что там не было своего условия — просто дефолтный рендер.
   if (phase === "active" && !question) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-900 text-white">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-muted text-white">
         <Loader2 className="size-10 animate-spin text-white/60" />
         <div className="text-white/60">
           {restoringQuestion
@@ -369,9 +369,9 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
   if (phase !== "finished") return null;
   const top = results.slice(0, 10);
   return (
-    <div className="flex min-h-screen flex-col items-center gap-6 bg-slate-900 p-6 text-white">
+    <div className="flex min-h-screen flex-col items-center gap-6 bg-muted p-6 text-white">
       <div className="mt-6 flex flex-col items-center gap-2">
-        <Trophy className="size-12 text-amber-400" />
+        <Trophy className="size-12 text-warn" />
         <h1 className="text-3xl font-bold">{tr("Test yakunlandi!", "Тест завершён!")}</h1>
       </div>
 
@@ -385,11 +385,11 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
                 <span
                   className={`flex size-8 items-center justify-center rounded-full text-sm font-bold ${
                     i === 0
-                      ? "bg-amber-400 text-slate-900"
+                      ? "bg-warn text-foreground"
                       : i === 1
-                      ? "bg-slate-300 text-slate-900"
+                      ? "bg-muted text-foreground"
                       : i === 2
-                      ? "bg-amber-700 text-white"
+                      ? "bg-warn text-white"
                       : "bg-white/10"
                   }`}
                 >
@@ -411,7 +411,7 @@ export function QuizSessionPage({ basePath }: { basePath: "/admin" | "/teacher" 
         >
           {tr("Testlarga qaytish", "К тестам")}
         </Button>
-        <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700" onClick={newSession}>
+        <Button className="gap-2 bg-ok hover:bg-ok" onClick={newSession}>
           <RotateCcw className="size-4" /> {tr("Yangi sessiya", "Новая сессия")}
         </Button>
       </div>

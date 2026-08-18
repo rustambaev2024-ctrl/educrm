@@ -14,12 +14,12 @@ import { Users, BookOpen, AlertTriangle, Calendar, DollarSign } from "lucide-rea
 export const Route = createFileRoute("/director/notifications")({ component: NotificationsPage });
 
 const typeConfig: Record<string, { icon: any; color: string; bg: string; label: string }> = {
-  lead_follow_up: { icon: Users, color: "text-amber-500", bg: "bg-amber-500/10", label: "Murojaat" },
+  lead_follow_up: { icon: Users, color: "text-warn", bg: "bg-warn-soft", label: "Murojaat" },
   debtor_alert: { icon: DollarSign, color: "text-destructive", bg: "bg-destructive/10", label: "Qarzdor" },
-  lesson_reminder: { icon: Calendar, color: "text-[#0077b6]", bg: "bg-[#e0f2fe]", label: "Dars" },
-  homework_deadline: { icon: BookOpen, color: "text-violet-500", bg: "bg-violet-500/10", label: "Vazifa" },
+  lesson_reminder: { icon: Calendar, color: "text-[var(--primary)]", bg: "bg-[var(--info-soft)]", label: "Dars" },
+  homework_deadline: { icon: BookOpen, color: "text-chart-5", bg: "bg-chart-5/10", label: "Vazifa" },
   lesson_cancelled: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", label: "Bekor" },
-  payment_due: { icon: DollarSign, color: "text-amber-500", bg: "bg-amber-500/10", label: "To'lov" },
+  payment_due: { icon: DollarSign, color: "text-warn", bg: "bg-warn-soft", label: "To'lov" },
   default: { icon: Bell, color: "text-muted-foreground", bg: "bg-muted", label: "" },
 };
 

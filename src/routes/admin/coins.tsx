@@ -40,9 +40,9 @@ interface LeaderRow {
 }
 
 const AVATAR_COLORS = [
-  "bg-blue-500/10 text-blue-600", "bg-emerald-500/10 text-emerald-600",
-  "bg-purple-500/10 text-purple-600", "bg-amber-500/10 text-amber-600",
-  "bg-pink-500/10 text-pink-600",
+  "bg-info-soft text-info", "bg-ok-soft text-ok",
+  "bg-chart-5/10 text-chart-5", "bg-warn-soft text-warn",
+  "bg-chart-5/10 text-chart-5",
 ];
 const initials = (name: string) => name.split(" ").slice(0, 2).map((p) => p[0] ?? "").join("").toUpperCase();
 const colorFor = (name: string) => AVATAR_COLORS[(name.charCodeAt(0) || 0) % AVATAR_COLORS.length];
@@ -70,10 +70,10 @@ function AdminCoinsPage() {
 
 /* ── Вкладка 2: Заказы ────────────────────────────────────────── */
 const ORDER_STATUS: Record<string, { uz: string; ru: string; cls: string }> = {
-  new: { uz: "Yangi", ru: "Новый", cls: "bg-blue-500/10 text-blue-600" },
-  confirmed: { uz: "Tasdiqlangan", ru: "Подтверждён", cls: "bg-amber-500/10 text-amber-600" },
-  delivered: { uz: "Yetkazildi", ru: "Доставлен", cls: "bg-emerald-500/10 text-emerald-600" },
-  cancelled: { uz: "Bekor qilingan", ru: "Отменён", cls: "bg-red-500/10 text-red-600" },
+  new: { uz: "Yangi", ru: "Новый", cls: "bg-info-soft text-info" },
+  confirmed: { uz: "Tasdiqlangan", ru: "Подтверждён", cls: "bg-warn-soft text-warn" },
+  delivered: { uz: "Yetkazildi", ru: "Доставлен", cls: "bg-ok-soft text-ok" },
+  cancelled: { uz: "Bekor qilingan", ru: "Отменён", cls: "bg-bad-soft text-bad" },
 };
 
 function OrdersTab() {
@@ -148,7 +148,7 @@ function OrdersTab() {
               <TableRow key={o.id}>
                 <TableCell className="font-medium">{o.student_name}</TableCell>
                 <TableCell>{lang === "uz" ? o.product_name.uz : o.product_name.ru}</TableCell>
-                <TableCell className="text-right font-semibold text-amber-600">{o.coins_spent}</TableCell>
+                <TableCell className="text-right font-semibold text-warn">{o.coins_spent}</TableCell>
                 <TableCell><span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${st.cls}`}>{tr(st.uz, st.ru)}</span></TableCell>
                 <TableCell className="text-xs text-muted-foreground">{formatDate(o.created_at, lang)}</TableCell>
                 <TableCell className="text-right">
@@ -200,9 +200,9 @@ function LeadersTab() {
   }
 
   const rankColor = (rank: number) =>
-    rank === 1 ? "bg-amber-400 text-white"
-    : rank === 2 ? "bg-slate-300 text-slate-700"
-    : rank === 3 ? "bg-orange-400 text-white"
+    rank === 1 ? "bg-warn text-white"
+    : rank === 2 ? "bg-muted text-foreground"
+    : rank === 3 ? "bg-warn text-white"
     : "bg-muted text-muted-foreground";
 
   return (
@@ -217,7 +217,7 @@ function LeadersTab() {
           </div>
           <div className="text-right">
             <div className="font-semibold tabular-nums">{r.xp} XP</div>
-            <div className="inline-flex items-center gap-1 text-xs text-amber-600"><Coins className="size-3" />{r.balance}</div>
+            <div className="inline-flex items-center gap-1 text-xs text-warn"><Coins className="size-3" />{r.balance}</div>
           </div>
         </Card>
       ))}

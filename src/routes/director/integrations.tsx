@@ -216,8 +216,8 @@ function DirectorIntegrationsPage() {
             <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                    <MessageSquare className="h-5 w-5 text-emerald-500" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ok-soft">
+                    <MessageSquare className="h-5 w-5 text-ok" />
                   </div>
                   <div>
                     <h3 className="font-medium">{lang === "uz" ? "SMS xabarnomalar" : "SMS уведомления"}</h3>
@@ -327,8 +327,8 @@ function DirectorIntegrationsPage() {
 
             <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
-                  <KeyRound className="h-5 w-5 text-amber-500" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warn-soft">
+                  <KeyRound className="h-5 w-5 text-warn" />
                 </div>
                 <div>
                   <h3 className="font-medium">LidPixel</h3>
@@ -361,7 +361,7 @@ function DirectorIntegrationsPage() {
                           <Copy className="size-4" />
                         </Button>
                       </div>
-                      <p className="text-[11px] text-amber-500 mt-1">
+                      <p className="text-[11px] text-warn mt-1">
                         {lang === "uz"
                           ? "Kalit faqat bir marta to'liq ko'rsatiladi — uni hozir saqlab qo'ying."
                           : "Ключ показывается полностью только один раз — сохраните его сейчас."}

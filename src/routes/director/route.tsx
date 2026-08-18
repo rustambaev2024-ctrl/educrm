@@ -1,26 +1,23 @@
-import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import {
-  LayoutDashboard,
-  Users,
-  Briefcase,
-  Layers,
-  DollarSign,
-  BarChart3,
-  Settings,
-  GraduationCap,
-  MessageSquarePlus,
-  MessageSquare,
   BadgeDollarSign,
-  ShieldCheck,
-  ClipboardList,
-  FileClock,
-  Building,
-  BookOpen,
+  BarChart3,
   Bell,
+  BookOpen,
+  Building,
+  ClipboardList,
   Coins,
-  type LucideIcon,
+  DollarSign,
+  FileClock,
+  GraduationCap,
+  LayoutDashboard,
+  MessageSquare,
+  MessageSquarePlus,
+  Settings,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
-import { EnterpriseLayout, type RailItem, type SidebarItem } from "@/components/layouts/enterprise-layout";
+import { AppShell, type NavItem } from "@/components/layouts/app-shell";
 import { RoleGuard } from "@/components/edu/role-guard";
 import { useI18n } from "@/lib/i18n";
 
@@ -28,161 +25,52 @@ export const Route = createFileRoute("/director")({
   component: DirectorLayout,
 });
 
-interface NavLeaf {
-  id: string;
-  to: string;
-  icon: LucideIcon;
-  label: string;
-  section?: string;
-}
-
-interface RailGroup {
-  rail: RailItem;
-  sidebar: NavLeaf[];
-}
-
 function DirectorLayout() {
   const { lang } = useI18n();
-  const location = useLocation();
-  const navigate = useNavigate();
-
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
 
-  const groups: RailGroup[] = [
-    {
-      rail: { id: "dashboard", icon: LayoutDashboard, label: tr("Boshqaruv", "Управление") },
-      sidebar: [{ id: "dashboard", to: "/director", icon: LayoutDashboard, label: tr("Boshqaruv paneli", "Панель управления") }],
-    },
-    {
-      rail: { id: "students", icon: Users, label: tr("O'quvchilar", "Ученики") },
-      sidebar: [
-        { id: "students", to: "/director/students", icon: GraduationCap, label: tr("Barcha o'quvchilar", "Все ученики"), section: tr("O'QUVCHILAR", "УЧЕНИКИ") },
-        { id: "leads", to: "/director/leads", icon: MessageSquarePlus, label: tr("Murojaatlar", "Заявки"), section: tr("O'QUVCHILAR", "УЧЕНИКИ") },
-      ],
-    },
-    {
-      rail: { id: "staff", icon: Briefcase, label: tr("Xodimlar", "Сотрудники") },
-      sidebar: [
-        { id: "staff", to: "/director/staff", icon: Users, label: tr("Xodimlar", "Сотрудники"), section: tr("XODIMLAR", "СОТРУДНИКИ") },
-        { id: "salaries", to: "/director/salaries", icon: BadgeDollarSign, label: tr("Ish haqi", "Зарплаты"), section: tr("XODIMLAR", "СОТРУДНИКИ") },
-        { id: "penalties", to: "/director/penalties", icon: ShieldCheck, label: tr("Jarimalar va bonuslar", "Штрафы и бонусы"), section: tr("XODIMLAR", "СОТРУДНИКИ") },
-      ],
-    },
-    {
-      rail: { id: "groups", icon: Layers, label: tr("Guruhlar", "Группы") },
-      sidebar: [
-        { id: "courses", to: "/director/courses", icon: BookOpen, label: tr("Kurslar", "Курсы"), section: tr("GURUHLAR", "ГРУППЫ") },
-      ],
-    },
-    {
-      rail: { id: "finance", icon: DollarSign, label: tr("Moliya", "Финансы") },
-      sidebar: [
-        { id: "finance", to: "/director/finance", icon: DollarSign, label: tr("Moliya", "Финансы"), section: tr("MOLIYA", "ФИНАНСЫ") },
-      ],
-    },
-    {
-      rail: { id: "coins", icon: Coins, label: "Coins" },
-      sidebar: [
-        { id: "coins", to: "/director/coins", icon: Coins, label: "Coins", section: tr("GAMIFIKATSIYA", "ГЕЙМИФИКАЦИЯ") },
-      ],
-    },
-    {
-      rail: { id: "analytics", icon: BarChart3, label: tr("Hisobotlar", "Отчёты") },
-      sidebar: [
-        { id: "analytics", to: "/director/analytics", icon: BarChart3, label: tr("Analitika", "Аналитика"), section: tr("HISOBOTLAR", "ОТЧЁТЫ") },
-        { id: "daily-report", to: "/director/daily-report", icon: ClipboardList, label: tr("Kunlik hisobot", "Дневной отчёт"), section: tr("HISOBOTLAR", "ОТЧЁТЫ") },
-        { id: "audit", to: "/director/audit", icon: FileClock, label: tr("Audit", "Аудит"), section: tr("HISOBOTLAR", "ОТЧЁТЫ") },
-      ],
-    },
-    {
-      rail: { id: "messages", icon: MessageSquare, label: tr("Xabarlar", "Сообщения") },
-      sidebar: [
-        { id: "messages", to: "/director/messages", icon: MessageSquare, label: tr("Xabarlar", "Сообщения"), section: tr("ALOQA", "СВЯЗЬ") },
-      ],
-    },
-    {
-      rail: { id: "settings", icon: Settings, label: tr("Sozlamalar", "Настройки") },
-      sidebar: [
-        { id: "branches", to: "/director/branches", icon: Building, label: tr("Filiallar", "Филиалы"), section: tr("SOZLAMALAR", "НАСТРОЙКИ") },
-        { id: "integrations", to: "/director/integrations", icon: Settings, label: tr("Integratsiyalar", "Интеграции"), section: tr("SOZLAMALAR", "НАСТРОЙКИ") },
-        { id: "settings", to: "/director/settings", icon: Building, label: tr("Sozlamalar", "Настройки"), section: tr("SOZLAMALAR", "НАСТРОЙКИ") },
-        { id: "notifications", to: "/director/notifications", icon: Bell, label: tr("Bildirishnomalar", "Уведомления"), section: tr("SOZLAMALAR", "НАСТРОЙКИ") },
-      ],
-    },
-  ];
+  const PEOPLE = tr("ODAMLAR", "ЛЮДИ");
+  const MONEY = tr("MOLIYA", "ФИНАНСЫ");
+  const REPORTS = tr("HISOBOTLAR", "ОТЧЁТЫ");
+  const SETUP = tr("SOZLAMALAR", "НАСТРОЙКИ");
 
-  const path = location.pathname;
-  let activeRailId = groups[0].rail.id;
-  let activeSidebarId = groups[0].sidebar[0].id;
-  let bestLen = -1;
-  for (const g of groups) {
-    for (const leaf of g.sidebar) {
-      const matches = path === leaf.to || (leaf.to !== "/director" && path.startsWith(`${leaf.to}/`));
-      if ((matches || (leaf.to === "/director" && path === "/director")) && leaf.to.length > bestLen) {
-        bestLen = leaf.to.length;
-        activeRailId = g.rail.id;
-        activeSidebarId = leaf.id;
-      }
-    }
-  }
+  /**
+   * Семнадцать разделов — больше всех на платформе. В нижние вкладки
+   * отобрано то, ради чего директор открывает телефон между делами:
+   * сводка, деньги, дневной отчёт и заявки. Всё остальное — работа
+   * за столом, уходит в «Ещё».
+   */
+  const items: NavItem[] = [
+    { to: "/director", label: tr("Boshqaruv paneli", "Панель управления"), icon: LayoutDashboard, primary: true },
 
-  const activeGroup = groups.find((g) => g.rail.id === activeRailId) ?? groups[0];
+    { to: "/director/students", label: tr("Barcha o'quvchilar", "Все ученики"), icon: GraduationCap, section: PEOPLE },
+    { to: "/director/leads", label: tr("Murojaatlar", "Заявки"), icon: MessageSquarePlus, section: PEOPLE, primary: true },
+    { to: "/director/staff", label: tr("Xodimlar", "Сотрудники"), icon: Users, section: PEOPLE },
 
-  const sidebarItems: SidebarItem[] = activeGroup.sidebar.map((leaf) => ({
-    id: leaf.id,
-    icon: leaf.icon,
-    label: leaf.label,
-    section: leaf.section,
-  }));
+    { to: "/director/finance", label: tr("Moliya", "Финансы"), icon: DollarSign, section: MONEY, primary: true },
+    { to: "/director/salaries", label: tr("Ish haqi", "Зарплаты"), icon: BadgeDollarSign, section: MONEY },
+    { to: "/director/penalties", label: tr("Jarimalar va bonuslar", "Штрафы и бонусы"), icon: ShieldCheck, section: MONEY },
 
-  const handleRailChange = (id: string) => {
-    const g = groups.find((x) => x.rail.id === id);
-    if (g) navigate({ to: g.sidebar[0].to });
-  };
+    { to: "/director/daily-report", label: tr("Kunlik hisobot", "Дневной отчёт"), icon: ClipboardList, section: REPORTS, primary: true },
+    { to: "/director/analytics", label: tr("Analitika", "Аналитика"), icon: BarChart3, section: REPORTS },
+    { to: "/director/audit", label: tr("Audit", "Аудит"), icon: FileClock, section: REPORTS },
 
-  const handleSidebarChange = (id: string) => {
-    const leaf = activeGroup.sidebar.find((x) => x.id === id);
-    if (leaf) navigate({ to: leaf.to });
-  };
+    { to: "/director/coins", label: tr("Coinlar", "Монеты"), icon: Coins, section: tr("GAMIFIKATSIYA", "ГЕЙМИФИКАЦИЯ") },
+    { to: "/director/messages", label: tr("Xabarlar", "Сообщения"), icon: MessageSquare, section: tr("ALOQA", "СВЯЗЬ") },
 
-  const handleNavigate = (railId: string, sidebarId: string) => {
-    const g = groups.find((x) => x.rail.id === railId);
-    const leaf = g?.sidebar.find((x) => x.id === sidebarId);
-    if (leaf) navigate({ to: leaf.to });
-  };
-
-  const railSidebars = Object.fromEntries(
-    groups.map((g) => [
-      g.rail.id,
-      {
-        title: g.rail.label,
-        items: g.sidebar.map((leaf) => ({ id: leaf.id, icon: leaf.icon, label: leaf.label, section: leaf.section })),
-      },
-    ]),
-  );
-
-  const activeLeaf = activeGroup.sidebar.find((l) => l.id === activeSidebarId);
-  const breadcrumb = [
-    { label: activeGroup.rail.label },
-    ...(activeLeaf && activeLeaf.label !== activeGroup.rail.label ? [{ label: activeLeaf.label }] : []),
+    { to: "/director/courses", label: tr("Kurslar", "Курсы"), icon: BookOpen, section: SETUP },
+    { to: "/director/branches", label: tr("Filiallar", "Филиалы"), icon: Building, section: SETUP },
+    { to: "/director/integrations", label: tr("Integratsiyalar", "Интеграции"), icon: Settings, section: SETUP },
+    { to: "/director/notifications", label: tr("Bildirishnomalar", "Уведомления"), icon: Bell, section: SETUP },
+    { to: "/director/settings", label: tr("Sozlamalar", "Настройки"), icon: Building, section: SETUP },
   ];
 
   return (
     <RoleGuard allow="director">
-      <EnterpriseLayout
-        railItems={groups.map((g) => g.rail)}
-        activeRailId={activeRailId}
-        onRailChange={handleRailChange}
-        sidebarTitle={activeGroup.rail.label}
-        sidebarItems={sidebarItems}
-        activeSidebarId={activeSidebarId}
-        onSidebarChange={handleSidebarChange}
-        railSidebars={railSidebars}
-        onNavigate={handleNavigate}
-        breadcrumb={breadcrumb}
-      >
+      {/* compact: сводные таблицы по всем филиалам, зарплатам и оплатам. */}
+      <AppShell items={items} density="compact">
         <Outlet />
-      </EnterpriseLayout>
+      </AppShell>
     </RoleGuard>
   );
 }

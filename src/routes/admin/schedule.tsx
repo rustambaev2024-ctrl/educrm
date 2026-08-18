@@ -190,11 +190,11 @@ function SchedulePage() {
                       const completed = lesson.status === "completed";
                       const statusTone =
                         lesson.status === "completed"
-                          ? "bg-emerald-500"
+                          ? "bg-ok"
                           : lesson.status === "cancelled"
                             ? "bg-destructive"
                             : lesson.status === "rescheduled"
-                              ? "bg-amber-500"
+                              ? "bg-warn"
                               : "bg-primary";
                       return (
                         <button

@@ -64,11 +64,11 @@ function initialsOf(name: string) {
 }
 
 const AVATAR_COLORS = [
-  "bg-blue-500/10 text-blue-600",
-  "bg-emerald-500/10 text-emerald-600",
-  "bg-purple-500/10 text-purple-600",
-  "bg-amber-500/10 text-amber-600",
-  "bg-pink-500/10 text-pink-600",
+  "bg-info-soft text-info",
+  "bg-ok-soft text-ok",
+  "bg-chart-5/10 text-chart-5",
+  "bg-warn-soft text-warn",
+  "bg-chart-5/10 text-chart-5",
 ];
 
 function DirectorCoursesPage() {
@@ -380,9 +380,9 @@ function DirectorCoursesPage() {
                                 <span
                                   className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                                     group.status === "active"
-                                      ? "bg-emerald-500/10 text-emerald-600"
+                                      ? "bg-ok-soft text-ok"
                                       : group.status === "completed"
-                                      ? "bg-blue-500/10 text-blue-600"
+                                      ? "bg-info-soft text-info"
                                       : "bg-muted text-muted-foreground"
                                   }`}
                                 >
@@ -524,17 +524,17 @@ function DirectorCoursesPage() {
                                 <div className="truncate text-sm font-medium text-foreground">{student.fullName}</div>
                                 <div className="text-xs text-muted-foreground">{student.phone}</div>
                               </div>
-                              <span className={`shrink-0 text-sm font-semibold tabular-nums ${student.balance >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                              <span className={`shrink-0 text-sm font-semibold tabular-nums ${student.balance >= 0 ? "text-ok" : "text-destructive"}`}>
                                 {formatMoney(student.balance, lang)}
                               </span>
                               <span
                                 className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                                   student.status === "active"
-                                    ? "bg-emerald-500/10 text-emerald-600"
+                                    ? "bg-ok-soft text-ok"
                                     : student.status === "frozen"
-                                    ? "bg-amber-500/10 text-amber-600"
+                                    ? "bg-warn-soft text-warn"
                                     : student.status === "expelled"
-                                    ? "bg-red-500/10 text-red-600"
+                                    ? "bg-bad-soft text-bad"
                                     : "bg-muted text-muted-foreground"
                                 }`}
                               >

@@ -26,9 +26,9 @@ interface WalletData {
 }
 
 const AVATAR_COLORS = [
-  "bg-blue-500/10 text-blue-600", "bg-emerald-500/10 text-emerald-600",
-  "bg-purple-500/10 text-purple-600", "bg-amber-500/10 text-amber-600",
-  "bg-pink-500/10 text-pink-600",
+  "bg-info-soft text-info", "bg-ok-soft text-ok",
+  "bg-chart-5/10 text-chart-5", "bg-warn-soft text-warn",
+  "bg-chart-5/10 text-chart-5",
 ];
 const initials = (name: string) => name.split(" ").slice(0, 2).map((p) => p[0] ?? "").join("").toUpperCase();
 const colorFor = (name: string) => AVATAR_COLORS[(name.charCodeAt(0) || 0) % AVATAR_COLORS.length];
@@ -114,10 +114,10 @@ export function CoinStudentsTab() {
                     <span className="font-medium">{w.student_name}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-right font-semibold text-amber-600"><span className="inline-flex items-center gap-1"><Coins className="size-3.5" />{w.balance}</span></TableCell>
+                <TableCell className="text-right font-semibold text-warn"><span className="inline-flex items-center gap-1"><Coins className="size-3.5" />{w.balance}</span></TableCell>
                 <TableCell className="text-right tabular-nums text-muted-foreground">{w.xp}</TableCell>
                 <TableCell className="text-right font-medium">{w.level}</TableCell>
-                <TableCell className="text-right"><span className="inline-flex items-center gap-1 text-orange-500"><Flame className="size-3.5" />{w.streak}</span></TableCell>
+                <TableCell className="text-right"><span className="inline-flex items-center gap-1 text-warn"><Flame className="size-3.5" />{w.streak}</span></TableCell>
               </TableRow>
             ))}
           </TableBody>

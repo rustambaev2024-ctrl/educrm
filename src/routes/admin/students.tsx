@@ -53,8 +53,8 @@ const STATUS_OPTIONS: StatusFilter[] = [
   "archived",
 ];
 
-const _avaBg  = ["#dbeafe","#dcfce7","#fce7f3","#fef3c7","#f3e8ff"];
-const _avaTxt = ["#1d4ed8","#15803d","#9d174d","#92400e","#7c3aed"];
+const _avaBg  = ["var(--info-soft)","var(--ok-soft)","color-mix(in srgb, var(--chart-5) 15%, transparent)","var(--warn-soft)","color-mix(in srgb, var(--chart-5) 15%, transparent)"];
+const _avaTxt = ["var(--info)","var(--ok)","var(--chart-5)","var(--warn)","var(--chart-5)"];
 const getAvatarStyle = (name: string) => {
   const i = (name.trim().charCodeAt(0) || 0) % 5;
   return { bg: _avaBg[i], text: _avaTxt[i] };
@@ -404,7 +404,7 @@ export function StudentsPage() {
                         )}
                       </TableCell>
                       <TableCell
-                        className={`text-right font-bold tabular-nums ${s.balance > 0 ? "text-emerald-600" : s.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}
+                        className={`text-right font-bold tabular-nums ${s.balance > 0 ? "text-ok" : s.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}
                       >
                         {s.balance > 0 ? "+" : ""}{formatMoney(s.balance, lang)}
                       </TableCell>

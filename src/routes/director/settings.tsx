@@ -221,7 +221,7 @@ function DirectorSettingsPage() {
           <Card className="shadow-elegant border-border/60">
             <CardHeader className="border-b border-border/40 pb-4 bg-muted/20">
               <div className="flex items-center gap-2">
-                <div className="rounded-lg bg-[#e0f2fe] p-2 text-[#0077b6]">
+                <div className="rounded-lg bg-[var(--info-soft)] p-2 text-[var(--primary)]">
                   <User className="size-5" />
                 </div>
                 <div>
@@ -258,7 +258,7 @@ function DirectorSettingsPage() {
           <Card className="shadow-elegant border-border/60">
             <CardHeader className="border-b border-border/40 pb-4 bg-muted/20">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-orange-500/10 rounded-lg text-orange-500">
+                <div className="p-2 bg-warn-soft rounded-lg text-warn">
                   <KeyRound className="size-5" />
                 </div>
                 <div>

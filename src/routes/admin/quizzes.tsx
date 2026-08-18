@@ -129,8 +129,8 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
 
   const statusBadge = (status: QuizSessionRow["status"]) => {
     const map = {
-      waiting: { cls: "bg-amber-500/10 text-amber-600", label: tr("Kutilmoqda", "Ожидание") },
-      active: { cls: "bg-emerald-500/10 text-emerald-600", label: tr("Faol", "Активна") },
+      waiting: { cls: "bg-warn-soft text-warn", label: tr("Kutilmoqda", "Ожидание") },
+      active: { cls: "bg-ok-soft text-ok", label: tr("Faol", "Активна") },
       finished: { cls: "bg-muted text-muted-foreground", label: tr("Tugadi", "Завершена") },
     }[status];
     return <Badge variant="outline" className={map.cls}>{map.label}</Badge>;
@@ -166,10 +166,10 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
               {quizzes.map((quiz) => (
                 <div key={quiz.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-[#e0f2fe] text-[#0077b6]">
+                    <div className="flex size-9 items-center justify-center rounded-lg bg-[var(--info-soft)] text-[var(--primary)]">
                       <FileText className="size-4" />
                     </div>
-                    <Badge variant="outline" className={quiz.quiz_type === "lead" ? "bg-violet-500/10 text-violet-600" : "bg-[#e0f2fe] text-[#0077b6]"}>
+                    <Badge variant="outline" className={quiz.quiz_type === "lead" ? "bg-chart-5/10 text-chart-5" : "bg-[var(--info-soft)] text-[var(--primary)]"}>
                       {quiz.quiz_type === "lead" ? tr("Lidlar", "Лиды") : tr("O'quvchilar", "Ученики")}
                     </Badge>
                   </div>
@@ -184,7 +184,7 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
                     <span className="flex items-center gap-1"><Play className="size-3" /> {quiz.sessions_count} {tr("sessiya", "сессий")}</span>
                   </div>
                   <div className="mt-auto flex gap-2 pt-1">
-                    <Button size="sm" className="h-8 flex-1 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => startSession(quiz.id)}>
+                    <Button size="sm" className="h-8 flex-1 gap-1.5 bg-ok text-white hover:bg-ok" onClick={() => startSession(quiz.id)}>
                       <Play className="size-3.5" /> {tr("Boshlash", "Запустить")}
                     </Button>
                     <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => navigate({ to: `${basePath}/quiz-create?edit=${quiz.id}` as string })}>

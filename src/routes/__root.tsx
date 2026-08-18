@@ -91,7 +91,10 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "theme-color", content: "#0F172A" },
+      // Цвет системной панели браузера. Совпадает с --sidebar: на телефоне
+      // адресная строка красится в него, и она должна быть частью продукта,
+      // а не остатком прежнего синего бренда.
+      { name: "theme-color", content: "#0a3527" },
       { title: "EduCRM — Платформа управления образовательными центрами" },
       { name: "description", content: "Управление учениками, группами, расписанием, финансами и аналитикой образовательного центра в одной системе." },
       { property: "og:title", content: "EduCRM — Управление учебным центром" },

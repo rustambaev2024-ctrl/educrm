@@ -227,7 +227,7 @@ function DirectorFinancePage() {
           {wallets.length > walletsLimit && (
             <button
               onClick={() => setWalletsLimit((l) => l + 50)}
-              className="w-full border-t py-2 text-sm text-[#0077b6] hover:bg-[#f0f9ff]"
+              className="w-full border-t py-2 text-sm text-[var(--primary)] hover:bg-[var(--info-soft)]"
             >
               {lang === "uz"
                 ? `Yana ${wallets.length - walletsLimit} ta ko'rsatish`
@@ -306,7 +306,7 @@ function PaymentTypeBadge({ type, lang }: { type: string; lang: "uz" | "ru" }) {
     manual_charge: { uz: "Yechish", ru: "Списание", className: "bg-destructive/15 text-destructive border-destructive/30" },
     manual_top_up: { uz: "Qo'shish", ru: "Зачисление", className: "bg-success/15 text-success border-success/30" },
     refund: { uz: "Qaytarish", ru: "Возврат", className: "bg-warning/15 text-warning border-warning/30" },
-    discount: { uz: "Chegirma", ru: "Скидка", className: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
+    discount: { uz: "Chegirma", ru: "Скидка", className: "bg-chart-5/10 text-chart-5 border-chart-5/30" },
     expense: { uz: "Xarajat", ru: "Расход", className: "bg-destructive/15 text-destructive border-destructive/30" },
   };
   const info = map[type];
