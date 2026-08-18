@@ -43,7 +43,10 @@ function CardSkeleton() {
 /** Сетка карточек. */
 function CardGridSkeleton({ count = 4, className }: { count?: number; className?: string }) {
   return (
-    <div className={cn("grid gap-3 md:grid-cols-2 xl:grid-cols-3", className)}>
+    // grid-cols-1 обязателен: без базового числа колонок одинокая мобильная
+    // колонка получает ширину max-content и уезжает за экран. Это тот самый
+    // blowout из PR #17 — здесь он пережил ту чистку.
+    <div className={cn("grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3", className)}>
       {Array.from({ length: count }).map((_, i) => (
         <CardSkeleton key={i} />
       ))}

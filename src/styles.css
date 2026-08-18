@@ -3,33 +3,46 @@
 @import "tw-animate-css";
 @import "sonner/dist/styles.css";
 
+/* Вариант `dark:` объявлен, но класса `dark` на <html> не ставит никто.
+   Тёмная тема убрана осознанно (решение владельца, 2026-08-15): блок `.dark`
+   был копией светлых значений — переключатель существовал, эффекта не давал.
+   Объявление оставлено, чтобы утилиты `dark:*` в ещё не переписанных файлах
+   компилировались; они просто никогда не срабатывают. Удаляется вместе
+   с последним из них. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 6px);
+
+  /* Поверхности и текст */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Бренд */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  /* Навигация */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -38,122 +51,184 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Смысловые — доступны как bg-ok / text-warn / border-bad и т.д. */
+  --color-ok: var(--ok);
+  --color-ok-foreground: var(--ok-foreground);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  /* Награда — только система монет */
+  --color-reward: var(--reward);
+  --color-reward-soft: var(--reward-soft);
 }
 
 :root {
-  /* ── Brand — используется ТОЛЬКО для акцентов ── */
-  --brand: #0077b6;
-  --brand-hover: #00b4d8;
-  --brand-light: #e0f2fe;
-  --brand-pale: #f0f9ff;
+  --radius: 0.625rem;
 
-  /* ── Sidebar ── */
-  --sidebar-bg: #1a2332;
-  --sidebar-hover: rgba(255, 255, 255, 0.07);
-  --sidebar-active: #0077b6;
-  --sidebar-text: rgba(255, 255, 255, 0.55);
-  --sidebar-text-active: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.07);
+  /* ══════════════════════════════════════════════════════════════
+     ПАЛИТРА — единственный источник цвета во всём продукте.
 
-  /* ── Content ── */
-  --page-bg: #f8fafc;
-  --card-bg: #ffffff;
-  --card-border: #f1f5f9;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+     До 2026-08-15 цвет жил в трёх параллельных системах: свои
+     переменные (--page-bg, --text-primary), токены shadcn и 343
+     прямых класса Tailwind плюс 159 hex-кодов в 26 файлах. Менять
+     цвет было негде — поэтому дизайн и «ложился как было».
 
-  /* ── Text ── */
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
+     У каждого цвета одна работа. Это не украшение, а разметка смысла.
+     ══════════════════════════════════════════════════════════════ */
 
-  /* ── Borders ── */
-  --border-color: #e2e8f0;
-  --border-light: #f1f5f9;
+  /* ── Поверхности: холст → карточка → всплывающее ── */
+  --background: #f4f2ed;          /* кремовый холст */
+  --foreground: #141a17;
+  --card: #ffffff;
+  --card-foreground: #141a17;
+  --popover: #ffffff;
+  --popover-foreground: #141a17;
+  --muted: #eeebe3;
+  --muted-foreground: #4c564f;
+  --accent: #e1f0e9;
+  --accent-foreground: #0b4634;
+  --border: #e2dfd6;
+  --input: #e2dfd6;
+  --ring: #0e7a57;
 
-  /* ── Semantic ── */
-  --success: #16a34a;
-  --success-bg: #f0fdf4;
-  --success-light: #dcfce7;
-  --danger: #dc2626;
-  --danger-bg: #fef2f2;
-  --warning: #d97706;
-  --warning-bg: #fef3c7;
-  --info: #0077b6;
-  --info-bg: #e0f2fe;
+  /* ── Действие ──
+     Изумруд взят затемнённым намеренно. Светлый #0f9e7a даёт с белым
+     текстом контраст 3.49:1 — кнопка нечитаема. Этот даёт 5.32:1. */
+  --primary: #0e7a57;
+  --primary-foreground: #ffffff;
+  --secondary: #eeebe3;
+  --secondary-foreground: #141a17;
+  --destructive: #bc3226;
+  --destructive-foreground: #ffffff;
 
-  /* ── Chart colors ── */
-  --chart-1: #0077b6;
-  --chart-2: #00b4d8;
-  --chart-3: #16a34a;
-  --chart-4: #d97706;
-  --chart-5: #dc2626;
-  --chart-6: #7c3aed;
+  /* ── Оправа: боковое меню и нижняя панель ── */
+  --sidebar: #0a3527;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #17a06f;
+  --sidebar-primary-foreground: #04150e;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #2cc98d;
 
-  /* ── shadcn/ui tokens ── */
-  --radius: 0.5rem;
-  --background: hsl(210 40% 98%);
-  --foreground: hsl(222 47% 11%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(222 47% 11%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(222 47% 11%);
-  --primary: hsl(199 89% 36%);
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(210 40% 96%);
-  --secondary-foreground: hsl(222 47% 11%);
-  --muted: hsl(210 40% 96%);
-  --muted-foreground: hsl(215 16% 47%);
-  --accent: hsl(210 40% 94%);
-  --accent-foreground: hsl(222 47% 11%);
-  --destructive: hsl(0 72% 51%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(214 32% 91%);
-  --input: hsl(214 32% 91%);
-  --ring: hsl(199 89% 36%);
+  /* ── Смысловые ──
+     Шкала измеряемых значений: нейтральный → --warn → --bad.
+     Норма НЕ окрашивается.
 
-  --sidebar: hsl(0 0% 100%);
-  --sidebar-foreground: hsl(222 47% 11%);
-  --sidebar-primary: hsl(199 89% 36%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(210 40% 96%);
-  --sidebar-accent-foreground: hsl(222 47% 11%);
-  --sidebar-border: hsl(214 32% 91%);
-  --sidebar-ring: hsl(199 89% 36%);
+     --ok и --primary близки по светлоте (контраст между ними ~1.1:1),
+     и разведением оттенка это не лечится — проверено расчётом. Решение
+     структурное, а не цветовое: --ok не участвует в шкале оценки
+     показателя, он появляется только в момент подтверждения действия,
+     где --primary рядом не стоит. */
+  --ok: #47700f;
+  --ok-foreground: #ffffff;
+  --ok-soft: #ebf2dc;
+  --warn: #8f5509;
+  --warn-soft: #f7ebd7;
+  --bad: #bc3226;
+  --bad-soft: #f8e3e0;
+  --info: #1c5fbe;
+  --info-soft: #e0eaf9;
+
+  /* ── Награда ──
+     Золото из эскиза не стало общим акцентом: оно спорило бы с жёлтым
+     цветом предупреждения. У него одна работа — система монет
+     (разделы coins у ученика, учителя и директора) и знак в меню.
+     --reward читается как текст (5.99:1 на белом, 5.21:1 на своей
+     подложке); --reward-bright только заливка на тёмной оправе,
+     текстом на светлом фоне его использовать нельзя — 2.42:1. */
+  --reward: #7a6008;
+  --reward-soft: #f6efd8;
+  --reward-bright: #c9a227;
+
+  /* ── Графики: доход всегда 1, расход всегда 4 ── */
+  --chart-1: #0e7a57;
+  --chart-2: #1c5fbe;
+  --chart-3: #8f5509;
+  --chart-4: #bc3226;
+  --chart-5: #61479e;
+  --chart-6: #0f7683;
+
+  /* ── Глубина ── */
+  --shadow-1: 0 1px 2px rgba(20, 26, 23, 0.06), 0 1px 3px rgba(20, 26, 23, 0.04);
+  --shadow-2: 0 2px 4px rgba(20, 26, 23, 0.05), 0 8px 20px rgba(20, 26, 23, 0.07);
+
+  /* ── Экран заявки (/apply) ──
+     Намеренно тёмный и не зависит от остальной палитры: это лендинговая
+     форма, её видят до входа в систему. Не «забытый хардкод». */
+  --public-bg: #070d0a;
+  --public-brand: #2cc98d;
+  --public-brand-2: #35bacb;
+  --public-ink: #f0f5f2;
+  /* Свой красный, а не общий --bad: тот тёмный (#bc3226) и на почти
+     чёрном фоне заявки нечитаем. Светлый красный — правильный выбор
+     для тёмной поверхности, а не забытый хардкод. */
+  --public-bad: #f87171;
+
+  /* ══ Алиасы старых имён ══
+     Мост на время пересборки. Роли переписываются по одной, и ещё
+     не переписанные страницы ссылаются на эти имена. Каждый алиас
+     умирает вместе с последним обращением к нему; блок удаляется
+     целиком после последней роли. Новый код их НЕ использует. */
+  --brand: var(--primary);
+  --brand-hover: var(--ring);
+  --brand-light: var(--accent);
+  --brand-pale: var(--ok-soft);
+
+  --sidebar-bg: var(--sidebar);
+  --sidebar-hover: var(--sidebar-accent);
+  --sidebar-active: var(--sidebar-primary);
+  --sidebar-text: var(--sidebar-accent-foreground);
+  --sidebar-text-active: var(--sidebar-primary-foreground);
+
+  --page-bg: var(--background);
+  --card-bg: var(--card);
+  --card-border: var(--border);
+  --card-shadow: var(--shadow-1);
+
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --text-muted: var(--muted-foreground);
+
+  --border-color: var(--border);
+  --border-light: var(--muted);
+
+  --success: var(--ok);
+  --success-bg: var(--ok-soft);
+  --success-light: var(--ok-soft);
+  --danger: var(--bad);
+  --danger-bg: var(--bad-soft);
+  --warning: var(--warn);
+  --warning-bg: var(--warn-soft);
+  --info-bg: var(--info-soft);
 }
 
-/* Override dark mode — force light theme always */
-.dark {
-  --background: hsl(210 40% 98%);
-  --foreground: hsl(222 47% 11%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(222 47% 11%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(222 47% 11%);
-  --primary: hsl(199 89% 36%);
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(210 40% 96%);
-  --secondary-foreground: hsl(222 47% 11%);
-  --muted: hsl(210 40% 96%);
-  --muted-foreground: hsl(215 16% 47%);
-  --accent: hsl(210 40% 94%);
-  --accent-foreground: hsl(222 47% 11%);
-  --destructive: hsl(0 72% 51%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(214 32% 91%);
-  --input: hsl(214 32% 91%);
-  --ring: hsl(199 89% 36%);
-  --sidebar: hsl(0 0% 100%);
-  --sidebar-foreground: hsl(222 47% 11%);
-  --sidebar-primary: hsl(199 89% 36%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(210 40% 96%);
-  --sidebar-accent-foreground: hsl(222 47% 11%);
-  --sidebar-border: hsl(214 32% 91%);
-  --sidebar-ring: hsl(199 89% 36%);
+/* ══ Плотность по ролям ══
+   В Tailwind v4 каждая утилита отступа считается как
+   calc(var(--spacing) * N). Одно переопределение меняет всю шкалу
+   разом — поэтому плотность это НЕ второй набор компонентов, а одно
+   число. Атрибут ставится на корне каркаса (AppShell).
+
+   comfortable — учитель, помощник, ученик, родитель: экран читают,
+   а не обрабатывают. Значение совпадает с умолчанием Tailwind,
+   поэтому для этих ролей ничего не меняется.
+
+   compact — админ, директор, суперадмин: на экране бывает 1000+
+   учеников и финансовые таблицы, где воздух мешает работать. */
+[data-density="compact"] {
+  --spacing: 0.215rem;
 }
 
 @layer base {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
   }
   * {
@@ -168,7 +243,7 @@
      например, баланс ученика. Полоса — это аффорданс, а не украшение. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--border-color) transparent;
+    scrollbar-color: var(--border) transparent;
   }
   *::-webkit-scrollbar {
     width: 10px;
@@ -178,26 +253,27 @@
     background: transparent;
   }
   *::-webkit-scrollbar-thumb {
-    background: var(--border-color);
+    background: var(--border);
     border-radius: 999px;
     border: 3px solid transparent;
     background-clip: content-box;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: var(--muted-foreground);
     background-clip: content-box;
   }
   *::-webkit-scrollbar-corner {
     background: transparent;
   }
-  html, body {
+  html,
+  body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
   body {
-    background: var(--page-bg);
-    color: var(--text-primary);
+    background: var(--background);
+    color: var(--foreground);
   }
 }
 
@@ -206,7 +282,9 @@
    не было ни в одном месте. Оставляем только смену прозрачности:
    ничего не едет, не масштабируется и не вращается. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -235,26 +313,26 @@
 .edu-row:focus-visible,
 .edu-nav-item:focus-visible,
 .edu-glass-item:focus-visible {
-  outline: 2px solid var(--brand-hover);
+  outline: 2px solid var(--ring);
   outline-offset: -2px;
 }
 .edu-ghost-btn:focus-visible,
 .edu-brand-btn:focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
 @media (hover: hover) {
   .edu-row:hover,
   .edu-ghost-btn:hover {
-    background: var(--border-light);
+    background: var(--muted);
   }
   .edu-brand-btn:hover {
-    background: var(--brand-hover);
+    background: color-mix(in srgb, var(--primary) 88%, #000);
   }
   .edu-nav-item:not([data-active="true"]):hover {
-    background: var(--sidebar-hover);
-    color: rgba(255, 255, 255, 0.9);
+    background: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
   }
   .edu-glass-item:not([data-active="true"]):hover {
     background: rgba(255, 255, 255, 0.08);
@@ -281,10 +359,6 @@
 }
 
 /* ── Признак горизонтальной прокрутки ────────────
-   Ни одна из 16 таблиц не превращается в карточки на узком экране — все
-   прокручиваются вбок. Скроллбар теперь виден, но его мало: он снизу,
-   а «есть что-то справа» нужно понимать глядя на сами данные.
-
    Тени у краёв появляются только когда прокручивать реально есть куда,
    и исчезают при достижении края. Работает без JS: пары градиентов
    с background-attachment local (маска, едет вместе с контентом)
@@ -295,30 +369,25 @@
    этого проекта воспроизвести нельзя. */
 .edu-scroll-x {
   background:
-    linear-gradient(to right, var(--card-bg) 34%, rgba(255, 255, 255, 0)) left center,
-    linear-gradient(to left, var(--card-bg) 34%, rgba(255, 255, 255, 0)) right center,
-    radial-gradient(farthest-side at 0 50%, rgba(15, 23, 42, 0.13), rgba(255, 255, 255, 0)) left center,
-    radial-gradient(farthest-side at 100% 50%, rgba(15, 23, 42, 0.13), rgba(255, 255, 255, 0)) right center;
+    linear-gradient(to right, var(--card) 34%, rgba(255, 255, 255, 0)) left center,
+    linear-gradient(to left, var(--card) 34%, rgba(255, 255, 255, 0)) right center,
+    radial-gradient(farthest-side at 0 50%, rgba(20, 26, 23, 0.13), rgba(255, 255, 255, 0)) left center,
+    radial-gradient(farthest-side at 100% 50%, rgba(20, 26, 23, 0.13), rgba(255, 255, 255, 0)) right center;
   background-repeat: no-repeat;
   background-size: 36px 100%, 36px 100%, 13px 100%, 13px 100%;
   background-attachment: local, local, scroll, scroll;
 }
 
 /* ── Таблица → карточки на телефоне ──────────────
-   Столп 8: «на мобиле таблица → карточки». Ни одна из 15 таблиц этого
-   не делала — все прокручивались вбок, и половина колонок оказывалась
-   за краем экрана.
+   Столп 8: «на мобиле таблица → карточки».
 
    Класс висит на самом компоненте Table (src/components/ui/table.tsx),
    поэтому правило одно на все таблицы. Только до 768px; на планшете
    и десктопе таблица остаётся таблицей.
 
-   Раскладка: первая ячейка — сущность (имя ученика, название группы,
-   ФИО сотрудника — так во всех 15 таблицах), занимает всю ширину
-   и читается как заголовок карточки. Остальные ячейки становятся
-   строчными значениями и переносятся, последняя (действия) уходит
-   вправо. Ячейка с `data-label` подписывает себя сама — это путь
-   для таблиц, где значение без подписи непонятно. */
+   Это общий страховочный слой для ещё не переписанных экранов.
+   Новые экраны используют DataView, который строит карточку осмысленно,
+   а не переворачивает строку вслепую. */
 @media (max-width: 767px) {
   table.edu-cards {
     display: block;
@@ -338,9 +407,9 @@
     align-items: center;
     gap: 6px 12px;
     padding: 10px 12px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border);
     border-radius: 10px;
-    background: var(--card-bg);
+    background: var(--card);
   }
   table.edu-cards tbody td {
     display: block;
@@ -357,7 +426,7 @@
   }
   table.edu-cards tbody td[data-label]::before {
     content: attr(data-label) ": ";
-    color: var(--text-secondary);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
   /* Строка «ничего не найдено» и подобные — на всю ширину, без чипов. */
@@ -374,8 +443,9 @@
 
    min-width/min-height намеренно, а не width/height: минимум перебивает
    заданную ширину, поэтому правило работает и для базового размера,
-   и для всех переопределений у вызывающих (size-6, size-7, size-8,
-   h-8 w-8) — без правок в сорока местах.
+   и для всех переопределений у вызывающих — без правок в сорока местах.
+   По той же причине оно устойчиво к плотности: --spacing на нём
+   не сказывается, 44px остаются 44px и в compact.
 
    Только @media (pointer: coarse): на десктопе с мышью 36px достаточно,
    и плотные таблицы не разъезжаются. */
@@ -397,19 +467,19 @@
 
 /* ── Cards ──────────────────────────────────────── */
 .edu-card {
-  background: var(--card-bg);
-  border-radius: 10px;
-  border: 1px solid var(--card-border);
-  box-shadow: var(--card-shadow);
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
 }
 
 /* Legacy overrides */
 .shadow-elegant,
 .card-elevated {
-  background: #fff !important;
-  border-radius: 10px !important;
-  border: 1px solid #f1f5f9 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  background: var(--card) !important;
+  border-radius: var(--radius) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-1) !important;
 }
 
 /* ── Table ──────────────────────────────────────── */
@@ -423,18 +493,18 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-secondary);
-  background: var(--border-light);
-  border-bottom: 1px solid var(--border-color);
+  color: var(--muted-foreground);
+  background: var(--muted);
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
   text-align: left;
 }
 .edu-table tbody tr {
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border);
   transition: background 0.1s;
 }
 .edu-table tbody tr:hover {
-  background: var(--border-light);
+  background: var(--muted);
 }
 .edu-table tbody tr:last-child {
   border-bottom: none;
@@ -442,31 +512,33 @@
 .edu-table tbody td {
   padding: 10px 14px;
   font-size: 13px;
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 /* ── Badges ─────────────────────────────────────── */
 .badge-active,
-.badge-status-active {
+.badge-status-active,
+.badge-done {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 700;
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--ok-soft);
+  color: var(--ok);
 }
 .badge-debt,
-.badge-status-debt {
+.badge-status-debt,
+.badge-cancel {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 700;
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--bad-soft);
+  color: var(--bad);
 }
 .badge-frozen,
 .badge-status-frozen {
@@ -476,40 +548,11 @@
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 700;
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 .badge-trial,
-.badge-status-trial {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 700;
-  background: #e0f2fe;
-  color: #0077b6;
-}
-.badge-done {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 700;
-  background: #dcfce7;
-  color: #15803d;
-}
-.badge-cancel {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 700;
-  background: #fee2e2;
-  color: #dc2626;
-}
+.badge-status-trial,
 .badge-plan {
   display: inline-flex;
   align-items: center;
@@ -517,8 +560,8 @@
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 700;
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--info-soft);
+  color: var(--info);
 }
 .badge-archive {
   display: inline-flex;
@@ -527,40 +570,62 @@
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 700;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--muted);
+  color: var(--muted-foreground);
 }
 
-/* ── Avatar colors (ava-0 … ava-4) ─────────────── */
-.ava-0 { background: #dbeafe; color: #1d4ed8; }
-.ava-1 { background: #dcfce7; color: #15803d; }
-.ava-2 { background: #fce7f3; color: #9d174d; }
-.ava-3 { background: #fef3c7; color: #92400e; }
-.ava-4 { background: #f3e8ff; color: #7c3aed; }
-
-/* Legacy avatar aliases */
-.avatar-indigo, .avatar-blue  { background: #dbeafe; color: #1d4ed8; }
-.avatar-green                  { background: #dcfce7; color: #15803d; }
-.avatar-red                    { background: #fee2e2; color: #dc2626; }
-.avatar-amber                  { background: #fef3c7; color: #92400e; }
-.avatar-violet                 { background: #f3e8ff; color: #7c3aed; }
-.avatar-cyan                   { background: #e0f2fe; color: #0077b6; }
+/* ── Avatar colors ───────────────────────────────
+   Цвет детерминирован по имени; ряды берутся из палитры графиков,
+   поэтому различимы между собой по построению. */
+.ava-0,
+.avatar-indigo,
+.avatar-blue {
+  background: color-mix(in srgb, var(--chart-2) 15%, transparent);
+  color: var(--chart-2);
+}
+.ava-1,
+.avatar-green {
+  background: color-mix(in srgb, var(--chart-1) 15%, transparent);
+  color: var(--chart-1);
+}
+.ava-2 {
+  background: color-mix(in srgb, var(--chart-5) 15%, transparent);
+  color: var(--chart-5);
+}
+.ava-3,
+.avatar-amber {
+  background: color-mix(in srgb, var(--chart-3) 15%, transparent);
+  color: var(--chart-3);
+}
+.ava-4,
+.avatar-violet {
+  background: color-mix(in srgb, var(--chart-5) 15%, transparent);
+  color: var(--chart-5);
+}
+.avatar-red {
+  background: color-mix(in srgb, var(--chart-4) 15%, transparent);
+  color: var(--chart-4);
+}
+.avatar-cyan {
+  background: color-mix(in srgb, var(--chart-6) 15%, transparent);
+  color: var(--chart-6);
+}
 
 /* ── Input focus ─────────────────────────────────── */
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid #0077b6 !important;
+  outline: 2px solid var(--ring) !important;
   outline-offset: 1px;
-  border-color: #0077b6 !important;
+  border-color: var(--ring) !important;
 }
 
 /* ── Primary button ─────────────────────────────── */
 .btn-primary {
-  background: #0077b6;
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 600;
@@ -571,14 +636,24 @@ select:focus-visible {
   transition: background 0.15s;
   line-height: 1;
 }
-.btn-primary:hover:not(:disabled) { background: #00b4d8; }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-/* bg-gradient-primary override → brand blue */
-.bg-gradient-primary {
-  background: linear-gradient(135deg, #0077b6, #00b4d8) !important;
+.btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 88%, #000);
 }
-.text-primary-foreground { color: #fff !important; }
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(
+    135deg,
+    var(--primary),
+    color-mix(in srgb, var(--primary) 70%, var(--chart-6))
+  ) !important;
+}
+.text-primary-foreground {
+  color: var(--primary-foreground) !important;
+}
 
 /* ── Apply / Landing page ──────────────────────── */
 .apply-page {
@@ -588,21 +663,25 @@ select:focus-visible {
   justify-content: center;
   position: relative;
   overflow: hidden;
-  background: #0a0e1a;
+  background: var(--public-bg);
   font-family: "Inter", system-ui, sans-serif;
 }
 .apply-bg {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(0, 119, 182, 0.25), transparent),
-    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0, 180, 216, 0.15), transparent),
-    radial-gradient(ellipse 50% 40% at 10% 60%, rgba(144, 224, 239, 0.12), transparent);
+    radial-gradient(ellipse 80% 60% at 50% -20%, color-mix(in srgb, var(--public-brand) 25%, transparent), transparent),
+    radial-gradient(ellipse 60% 50% at 80% 80%, color-mix(in srgb, var(--public-brand-2) 15%, transparent), transparent),
+    radial-gradient(ellipse 50% 40% at 10% 60%, color-mix(in srgb, var(--public-brand-2) 12%, transparent), transparent);
   animation: apply-bg-pulse 8s ease-in-out infinite alternate;
 }
 @keyframes apply-bg-pulse {
-  0% { opacity: 0.8; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 .apply-container {
   position: relative;
@@ -626,17 +705,22 @@ select:focus-visible {
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #0077b6, #00b4d8);
+  background: linear-gradient(135deg, var(--public-brand), var(--public-brand-2));
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 8px 32px rgba(0, 119, 182, 0.35);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--public-brand) 35%, transparent);
   animation: apply-logo-float 3s ease-in-out infinite;
 }
 @keyframes apply-logo-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 .apply-header h1 {
   font-size: 28px;
@@ -646,7 +730,7 @@ select:focus-visible {
   margin: 0;
 }
 .apply-gradient-text {
-  background: linear-gradient(135deg, #90e0ef, #caf0f8, #e0f2fe);
+  background: linear-gradient(135deg, var(--public-brand), var(--public-ink), var(--public-brand-2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -674,7 +758,9 @@ select:focus-visible {
   box-shadow: 0 16px 64px rgba(0, 0, 0, 0.3);
   transition: border-color 0.3s;
 }
-.apply-card:focus-within { border-color: rgba(0, 180, 216, 0.4); }
+.apply-card:focus-within {
+  border-color: color-mix(in srgb, var(--public-brand-2) 40%, transparent);
+}
 .apply-card-header {
   display: flex;
   align-items: center;
@@ -685,8 +771,14 @@ select:focus-visible {
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
-.apply-card-header svg { color: #90e0ef; }
-.apply-field { display: flex; flex-direction: column; gap: 6px; }
+.apply-card-header svg {
+  color: var(--public-brand-2);
+}
+.apply-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .apply-field label {
   display: flex;
   align-items: center;
@@ -695,8 +787,13 @@ select:focus-visible {
   font-weight: 500;
   color: rgba(255, 255, 255, 0.65);
 }
-.apply-field label svg { color: rgba(144, 224, 239, 0.7); flex-shrink: 0; }
-.apply-required { color: #f87171; }
+.apply-field label svg {
+  color: color-mix(in srgb, var(--public-brand-2) 70%, transparent);
+  flex-shrink: 0;
+}
+.apply-required {
+  color: var(--public-bad);
+}
 .apply-field input,
 .apply-field textarea {
   width: 100%;
@@ -711,19 +808,24 @@ select:focus-visible {
   font-family: inherit;
 }
 .apply-field input::placeholder,
-.apply-field textarea::placeholder { color: rgba(255, 255, 255, 0.25); }
+.apply-field textarea::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
 .apply-field input:focus,
 .apply-field textarea:focus {
-  border-color: rgba(0, 180, 216, 0.6);
-  background: rgba(0, 180, 216, 0.08);
-  box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+  border-color: color-mix(in srgb, var(--public-brand-2) 60%, transparent);
+  background: color-mix(in srgb, var(--public-brand-2) 8%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--public-brand-2) 15%, transparent);
 }
-.apply-field textarea { resize: vertical; min-height: 72px; }
+.apply-field textarea {
+  resize: vertical;
+  min-height: 72px;
+}
 .apply-error {
   font-size: 13px;
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.1);
-  border: 1px solid rgba(248, 113, 113, 0.2);
+  color: var(--public-bad);
+  background: color-mix(in srgb, var(--public-bad) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--public-bad) 20%, transparent);
   border-radius: 10px;
   padding: 10px 14px;
   text-align: center;
@@ -738,23 +840,34 @@ select:focus-visible {
   font-size: 15px;
   font-weight: 600;
   color: white;
-  background: linear-gradient(135deg, #0077b6, #00b4d8);
+  background: linear-gradient(135deg, var(--public-brand), var(--public-brand-2));
   border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 20px rgba(0, 119, 182, 0.35);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--public-brand) 35%, transparent);
   font-family: inherit;
   margin-top: 4px;
 }
 .apply-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 119, 182, 0.5);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--public-brand) 50%, transparent);
 }
-.apply-btn:active:not(:disabled) { transform: translateY(0); }
-.apply-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-.apply-spinner { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.apply-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+.apply-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.apply-spinner {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .apply-success-card {
   background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(24px);
@@ -770,22 +883,50 @@ select:focus-visible {
   animation: apply-success-in 0.5s ease-out;
 }
 @keyframes apply-success-in {
-  from { opacity: 0; transform: scale(0.9) translateY(20px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 .apply-success-icon {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--public-brand) 20%, transparent),
+    color-mix(in srgb, var(--public-brand) 5%, transparent)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #22c55e;
+  color: var(--public-brand);
   margin-bottom: 8px;
 }
-.apply-success-card h2 { font-size: 22px; font-weight: 700; color: white; margin: 0; }
-.apply-success-card p  { font-size: 14px; color: rgba(255, 255, 255, 0.6); margin: 0; }
-.apply-success-sub { font-size: 13px !important; color: rgba(255, 255, 255, 0.4) !important; }
-.apply-footer { text-align: center; }
-.apply-footer p { font-size: 12px; color: rgba(255, 255, 255, 0.3); margin: 0; }
+.apply-success-card h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+.apply-success-card p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+.apply-success-sub {
+  font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+.apply-footer {
+  text-align: center;
+}
+.apply-footer p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  margin: 0;
+}
