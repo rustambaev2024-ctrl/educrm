@@ -711,7 +711,6 @@ function gradeFromRaw(raw: GradeRaw): Grade {
     homeworkStatusId: mapped.homeworkStatusId,
     title: mapped.title,
     score: mapped.score,
-    maxScore: mapped.maxScore,
     date: mapped.date,
     comment: mapped.comment,
   };
@@ -1836,7 +1835,6 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
             kind: "homework",
             title: hw.title,
             score: grade,
-            maxScore: 10,
             date: getLocalDateString(),
             comment: feedback,
           };
