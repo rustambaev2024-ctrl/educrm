@@ -57,8 +57,14 @@
 100-балльной/10-балльной систем на единую школьную 2-3-4-5 — бэкенд
 (`Grade.score`, `HomeworkStatus.grade`, `ExamResult.score` — валидаторы
 теперь 2-5; `Exam.max_score` оставлено историческим read-only полем,
-дефолт стал 5) и все 6 фронтенд-страниц, показывающих/редактирующих
-оценки. Спека: `docs/superpowers/specs/2026-08-21-grades-scale-rebuild-design.md`,
+дефолт стал 5) и все фронтенд-страницы, показывающие/редактирующие
+оценки — 6 страниц оценок из исходного плана плюс отдельно найденные
+после финального ревью формы выставления оценок за ДЗ
+(`teacher/homework.tsx`, `support-teacher/homework.tsx`,
+`student/homework.tsx` — план изначально их не перечислял, форма всё
+ещё звала себя «(0-10)» и бэкенд её бы отклонял) и подписи настроек
+монет в `director/coins.tsx` («10/10 baho» → «Baho 5»). Спека:
+`docs/superpowers/specs/2026-08-21-grades-scale-rebuild-design.md`,
 план: `docs/superpowers/plans/2026-08-21-grades-scale-rebuild.md`
 (оба закоммичены).
 
