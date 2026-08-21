@@ -95,12 +95,18 @@ def award_coins_for_grade(sender, instance, created, **kwargs):
         from apps.coins.services import award_coins
         from apps.coins.models import CoinSetting, CoinTransaction
 
-        score_pct = instance.score or 0
-        if score_pct < 80:
+        # Награда — только за 4 и 5 по новой школьной шкале 2-5.
+        # До перехода здесь стояло "score_pct >= 80" — сравнение с числом,
+        # которое для оценок за домашку было уже испорчено (8 из 10 хранилось
+        # как 8 из 100), из-за чего монеты за отличную домашку почти никогда
+        # не начислялись. Теперь оценка сама по себе уже 2-5, сравнивать
+        # больше не с чем — сравниваем напрямую.
+        score = instance.score
+        if score < 4:
             return
 
         setting = CoinSetting.get_or_create_default()
-        coins = setting.coins_grade_perfect if score_pct >= 100 else setting.coins_grade_good
+        coins = setting.coins_grade_perfect if score == 5 else setting.coins_grade_good
 
         # Защита от двойного начисления за одну и ту же оценку
         already = CoinTransaction.objects.filter(
@@ -115,7 +121,7 @@ def award_coins_for_grade(sender, instance, created, **kwargs):
             student=instance.student,
             amount=coins,
             reason="grade",
-            comment=f"Grade {instance.score}/100 (id {instance.pk})",
+            comment=f"Grade {instance.score}/5 (id {instance.pk})",
         )
     except Exception:
         logger.exception("Монеты за оценку не начислены (оценка %s)", instance.pk)
