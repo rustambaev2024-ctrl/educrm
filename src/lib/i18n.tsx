@@ -336,6 +336,7 @@ const UZ: Dict = {
   "validation.fillAll": "Barcha majburiy maydonlarni to'ldiring",
   "validation.fillField": "To'ldiring: {fields}",
   "grades.scoreRange": "Baho 0 dan 100 gacha bo'lishi kerak",
+  "grades.scoreRange5": "Baho 2 dan 5 gacha bo'lishi kerak",
 
   // Homework — teacher
   "hw.title": "Uy vazifalari",
@@ -1114,6 +1115,7 @@ const RU: Dict = {
   "validation.fillAll": "Заполните все обязательные поля",
   "validation.fillField": "Заполните поле: {fields}",
   "grades.scoreRange": "Оценка должна быть от 0 до 100",
+  "grades.scoreRange5": "Оценка должна быть от 2 до 5",
 
   // Homework — teacher
   "hw.title": "Домашние задания",

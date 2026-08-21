@@ -62,7 +62,7 @@ function TeacherGrades() {
       (byStudent[g.studentId] ??= []).push(g);
     }
     return Object.fromEntries(
-      Object.entries(byStudent).map(([studentId, grades]) => [studentId, gradeAverage(grades)]),
+      Object.entries(byStudent).map(([studentId, studentGrades]) => [studentId, gradeAverage(studentGrades)]),
     );
   }, [groupGrades]);
 
@@ -87,8 +87,8 @@ function TeacherGrades() {
     }
     // Диапазон проверяется отдельно — общий тост «заполните поля» вводит
     // в заблуждение, когда поле заполнено, но значение вне шкалы (BUG-031).
-    if (score < 2 || score > 5) {
-      toast.error(t("grades.scoreRange"));
+    if (score < 2 || score > 5 || !Number.isInteger(score)) {
+      toast.error(t("grades.scoreRange5"));
       return;
     }
     addGrade({
