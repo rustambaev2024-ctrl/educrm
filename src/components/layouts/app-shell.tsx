@@ -117,7 +117,14 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
   );
 
   return (
-    <div data-density={density} className="min-h-dvh bg-background text-foreground">
+    <div
+      data-density={density}
+      // --app-bottom-nav — высота нижней панели. Её знает только каркас,
+      // а нужна она страницам: липкие панели действий обязаны вставать НАД
+      // навигацией, иначе кнопка «Сохранить» окажется под ней и до неё
+      // нельзя дотянуться. На широком экране панели нет — значение 0.
+      className="min-h-dvh bg-background text-foreground [--app-bottom-nav:3.5rem] lg:[--app-bottom-nav:0rem]"
+    >
       {/* ══ Боковое меню — широкий экран ══ */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex">
         <div className="flex items-center gap-3 border-b border-sidebar-border px-4 py-4">
