@@ -103,7 +103,7 @@ class ExamResult(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="results")
     student = models.ForeignKey("students.Student", on_delete=models.CASCADE)
-    score = models.PositiveSmallIntegerField()
+    score = models.PositiveSmallIntegerField(validators=[MinValueValidator(2), MaxValueValidator(5)])
     pass_status = models.CharField(max_length=10, choices=PASS_STATUS_CHOICES)
     comment = models.CharField(max_length=500, blank=True)
     recorded_by = models.ForeignKey(

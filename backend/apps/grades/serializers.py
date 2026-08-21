@@ -21,11 +21,6 @@ class GradeSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "graded_by", "graded_at")
 
-    def validate_score(self, value):
-        if value < 2 or value > 5:
-            raise serializers.ValidationError("Score must be between 2 and 5.")
-        return value
-
 
 class ExamSerializer(serializers.ModelSerializer):
     class Meta:
@@ -53,8 +48,3 @@ class ExamResultSerializer(serializers.ModelSerializer):
             "recorded_at",
         )
         read_only_fields = ("id", "recorded_by", "recorded_at")
-
-    def validate_score(self, value):
-        if value < 2 or value > 5:
-            raise serializers.ValidationError("Score must be between 2 and 5.")
-        return value
