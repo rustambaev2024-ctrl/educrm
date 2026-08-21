@@ -115,6 +115,71 @@ def test_dry_run_leaves_data_untouched():
     assert counts["other"] == 1
 
 
+def test_second_apply_run_is_idempotent_for_homework():
+    """
+    Критическая находка ревью: без защиты второй прогон --apply тихо портит
+    уже пересчитанные данные (9 -> 90% -> 5 в первый раз; 5 интерпретируется
+    как "5 из 10" -> 50% -> 3 во второй). Теперь вторая ветка должна
+    обнаружить, что HomeworkStatus.grade уже целиком в 2-5, и пропустить
+    её без изменений.
+    """
+    branch, director, teacher_user, student, group = _setup()
+    homework = Homework.objects.create(
+        title="Chapter 1", assign_type="group", group=group, created_by=teacher_user,
+    )
+    hw_status = HomeworkStatus.objects.create(
+        homework=homework, student=student, status="checked", grade=9,  # 9 из 10 = 90%
+    )
+    Grade.objects.create(
+        student=student, group=group, homework_status=hw_status,
+        grade_type="homework", score=9, graded_by=teacher_user,
+    )
+
+    cmd = Command()
+    first_counts = cmd._process_schema(schema="public", apply_changes=True)
+    hw_status.refresh_from_db()
+    assert hw_status.grade == 5
+    assert first_counts["homework"] == 1
+
+    second_counts = cmd._process_schema(schema="public", apply_changes=True)
+
+    hw_status.refresh_from_db()
+    assert hw_status.grade == 5, "второй прогон не должен был тронуть уже пересчитанное значение"
+    linked_grade = Grade.objects.get(homework_status=hw_status)
+    assert linked_grade.score == 5
+    assert second_counts["homework"] == 0, "уже пересчитанная ветка должна быть пропущена, а не учтена в счётчике"
+
+
+def test_force_bypasses_idempotency_guard():
+    """--force — явный обход проверки "уже пересчитано", оператор берёт
+    ответственность за повторный пересчёт на себя."""
+    branch, director, teacher_user, student, group = _setup()
+    homework = Homework.objects.create(
+        title="Chapter 1", assign_type="group", group=group, created_by=teacher_user,
+    )
+    hw_status = HomeworkStatus.objects.create(
+        homework=homework, student=student, status="checked", grade=9,
+    )
+    Grade.objects.create(
+        student=student, group=group, homework_status=hw_status,
+        grade_type="homework", score=9, graded_by=teacher_user,
+    )
+
+    cmd = Command()
+    cmd._process_schema(schema="public", apply_changes=True)
+    hw_status.refresh_from_db()
+    assert hw_status.grade == 5
+
+    forced_counts = cmd._process_schema(schema="public", apply_changes=True, force=True)
+
+    assert forced_counts["homework"] == 1, "--force должен обойти защиту и реально обработать ветку заново"
+    hw_status.refresh_from_db()
+    assert hw_status.grade == 3, (
+        "осознанный повторный прогон с --force трактует уже пересчитанное 5 как "
+        "'5 из 10' -> 50% -> 3 — это ответственность оператора, не баг, который нужно чинить здесь"
+    )
+
+
 def test_orphan_homework_grade_is_flagged_and_recalculated_from_own_score():
     branch, director, teacher_user, student, group = _setup()
     # Оценка типа homework без связанного HomeworkStatus — аномалия,
