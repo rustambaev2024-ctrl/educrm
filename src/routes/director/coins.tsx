@@ -166,8 +166,8 @@ function SettingsTab() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <NumberField label={tr("Darsga kelganlik", "Присутствие")} k="coins_present" />
           <NumberField label={tr("Kechikish (bonus)", "Опоздание (бонус)")} k="coins_late" />
-          <NumberField label={tr("10/10 baho", "Оценка 100%")} k="coins_grade_perfect" />
-          <NumberField label={tr("8-9/10 baho", "Оценка 80%+")} k="coins_grade_good" />
+          <NumberField label={tr("Baho 5", "Оценка 5")} k="coins_grade_perfect" />
+          <NumberField label={tr("Baho 4", "Оценка 4")} k="coins_grade_good" />
           <NumberField label={tr("Uy vazifasi", "Домашка вовремя")} k="coins_homework_done" />
           <NumberField label={tr("Test (to'g'ri javob)", "Тест (верный ответ)")} k="coins_quiz_correct" />
           <PenaltyField
