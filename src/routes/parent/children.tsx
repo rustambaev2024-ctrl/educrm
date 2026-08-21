@@ -10,17 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentParentId } from "@/lib/data/identity";
-import { attendancePercentage } from "@/lib/data/metrics";
+import { attendancePercentage, gradeAverage, gradeTone } from "@/lib/data/metrics";
 import { formatDate, formatMoney, formatTime, getPaymentLabel, initialsOf } from "@/lib/format";
 
 export const Route = createFileRoute("/parent/children")({ component: ParentChildren });
-
-function scoreTone(pct: number) {
-  if (pct >= 85) return "bg-success/15 text-success";
-  if (pct >= 65) return "bg-info/15 text-info";
-  if (pct >= 50) return "bg-warning/15 text-warning";
-  return "bg-destructive/15 text-destructive";
-}
 
 function ParentChildren() {
   const { t, lang } = useI18n();
@@ -72,9 +65,7 @@ function ParentChildren() {
     .sort((a, b) => a.datetime.localeCompare(b.datetime))
     .slice(0, 5);
   const childGrades = grades.filter((g) => g.studentId === child.id).sort((a, b) => b.date.localeCompare(a.date));
-  const avg = childGrades.length
-    ? Math.round(childGrades.reduce((s, g) => s + (g.score / g.maxScore) * 100, 0) / childGrades.length)
-    : 0;
+  const avg = gradeAverage(childGrades);
   const att = attendance.filter((a) => a.studentId === child.id);
   // Общим правилом платформы: уважительные не входят в знаменатель, а не
   // считаются присутствием, как было раньше.
@@ -124,7 +115,7 @@ function ParentChildren() {
           </div>
         </div>
         <div className="grid grid-cols-2 divide-y divide-x divide-border/40 text-center sm:grid-cols-4 sm:divide-y-0">
-          <Mini icon={Award} value={`${avg}%`} label={t("profile.avgGrade")} />
+          <Mini icon={Award} value={`${avg}/5`} label={t("profile.avgGrade")} />
           <Mini icon={Calendar} value={`${attPct}%`} label={t("profile.attendance")} />
           <Mini icon={BookOpen} value={String(pendingHw)} label={t("parent.activeHw")} />
           <Mini icon={Wallet} value={formatMoney(child.balance, lang)} label={t("parent.balance")} valueClass={child.balance < 0 ? "text-destructive" : "text-success"} />
@@ -190,14 +181,13 @@ function ParentChildren() {
             </div>
             <div className="space-y-2">
               {childGrades.slice(0, 3).map((g) => {
-                const pct = (g.score / g.maxScore) * 100;
                 return (
                   <div key={g.id} className="flex items-center gap-2 text-sm">
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{g.title}</div>
                       <div className="text-[11px] text-muted-foreground">{t(`gkind.${g.kind}`)} · {formatDate(g.date, lang)}</div>
                     </div>
-                    <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${scoreTone(pct)}`}>{g.score}</span>
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${gradeTone(g.score)}`}>{g.score}</span>
                   </div>
                 );
               })}
@@ -218,7 +208,6 @@ function ParentChildren() {
           {childGrades.length === 0 ? (
             <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{t("grades.empty")}</Card>
           ) : childGrades.map((g) => {
-            const pct = (g.score / g.maxScore) * 100;
             return (
               <Card key={g.id} className="p-3 shadow-elegant">
                 <div className="flex items-center justify-between gap-2">
@@ -227,8 +216,8 @@ function ParentChildren() {
                     <div className="mt-1 truncate text-sm font-medium">{g.title}</div>
                     <div className="text-[11px] text-muted-foreground">{formatDate(g.date, lang)}</div>
                   </div>
-                  <div className={`flex items-center gap-1 rounded-md px-2 py-1 text-sm font-bold ${scoreTone(pct)}`}>
-                    <Star className="size-3.5" /> {g.score}<span className="text-xs opacity-60">/{g.maxScore}</span>
+                  <div className={`flex items-center gap-1 rounded-md px-2 py-1 text-sm font-bold ${gradeTone(g.score)}`}>
+                    <Star className="size-3.5" /> {g.score}<span className="text-xs opacity-60">/5</span>
                   </div>
                 </div>
                 {g.comment && <p className="mt-2 border-t border-border/40 pt-2 text-xs text-muted-foreground">{g.comment}</p>}

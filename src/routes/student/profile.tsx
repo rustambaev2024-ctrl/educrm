@@ -12,19 +12,12 @@ import { useData } from "@/lib/data/store";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentStudentId } from "@/lib/data/identity";
-import { attendancePercentage } from "@/lib/data/metrics";
+import { attendancePercentage, gradeAverage, gradeTone } from "@/lib/data/metrics";
 import { LangToggle } from "@/components/edu/lang-toggle";
 import { StudentStatusBadge } from "@/components/edu/status-badge";
 import { formatDate, formatMoney, initialsOf } from "@/lib/format";
 
 export const Route = createFileRoute("/student/profile")({ component: StudentProfile });
-
-function scoreTone(pct: number) {
-  if (pct >= 85) return "bg-success/15 text-success";
-  if (pct >= 65) return "bg-info/15 text-info";
-  if (pct >= 50) return "bg-warning/15 text-warning";
-  return "bg-destructive/15 text-destructive";
-}
 
 function StudentProfile() {
   const { t, lang } = useI18n();
@@ -41,9 +34,7 @@ function StudentProfile() {
     () => grades.filter((g) => g.studentId === studentId).sort((a, b) => b.date.localeCompare(a.date)),
     [grades, studentId],
   );
-  const avg = myGrades.length
-    ? Math.round((myGrades.reduce((s, g) => s + (g.score / g.maxScore) * 10, 0) / myGrades.length) * 10) / 10
-    : 0;
+  const avg = gradeAverage(myGrades);
 
   const myAttendance = useMemo(() => attendance.filter((a) => a.studentId === studentId), [attendance, studentId]);
   const attPct = attendancePercentage(myAttendance);
@@ -163,7 +154,6 @@ function StudentProfile() {
             <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{t("grades.empty")}</Card>
           ) : (
             myGrades.map((g) => {
-              const pct = (g.score / g.maxScore) * 100;
               return (
                 <Card key={g.id} className="p-3 shadow-elegant">
                   <div className="flex items-center justify-between gap-2">
@@ -172,8 +162,8 @@ function StudentProfile() {
                       <div className="mt-1 truncate text-sm font-medium">{g.title}</div>
                       <div className="text-[11px] text-muted-foreground">{formatDate(g.date, lang)}</div>
                     </div>
-                    <div className={`flex items-center gap-1 rounded-md px-2 py-1 text-sm font-bold ${scoreTone(pct)}`}>
-                      <Star className="size-3.5" /> {g.score}<span className="text-xs opacity-60">/{g.maxScore}</span>
+                    <div className={`flex items-center gap-1 rounded-md px-2 py-1 text-sm font-bold ${gradeTone(g.score)}`}>
+                      <Star className="size-3.5" /> {g.score}<span className="text-xs opacity-60">/5</span>
                     </div>
                   </div>
                   {g.comment && <p className="mt-2 border-t border-border/40 pt-2 text-xs text-muted-foreground">{g.comment}</p>}

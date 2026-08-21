@@ -19,7 +19,7 @@ import { LessonStatusBadge } from "@/components/edu/status-badge";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentTeacherId } from "@/lib/data/identity";
-import { attendancePercentage } from "@/lib/data/metrics";
+import { attendancePercentage, gradeAverage } from "@/lib/data/metrics";
 import { formatDate, formatTime, sameDay } from "@/lib/format";
 
 export const Route = createFileRoute("/teacher/")({ component: TeacherHome });
@@ -55,10 +55,7 @@ function TeacherHome() {
   );
   const attPct = attendancePercentage(myAttendance);
   const myGrades = useMemo(() => grades.filter((g) => myGroupIds.has(g.groupId)), [grades, myGroupIds]);
-  const avgGrade = useMemo(() => {
-    if (!myGrades.length) return 0;
-    return Math.round((myGrades.reduce((s, g) => s + (g.score / g.maxScore) * 10, 0) / myGrades.length) * 10) / 10;
-  }, [myGrades]);
+  const avgGrade = useMemo(() => gradeAverage(myGrades), [myGrades]);
 
   const groupById = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
   const roomById = useMemo(() => Object.fromEntries(rooms.map((r) => [r.id, r])), [rooms]);

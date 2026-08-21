@@ -8,15 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
+import { gradeAverage, gradeTone } from "@/lib/data/metrics";
 
 export const Route = createFileRoute("/student/grades")({ component: StudentGradesPage });
-
-function scoreTone(pct: number) {
-  if (pct >= 85) return "bg-success/15 text-success";
-  if (pct >= 65) return "bg-info/15 text-info";
-  if (pct >= 50) return "bg-warning/15 text-warning";
-  return "bg-destructive/15 text-destructive";
-}
 
 function StudentGradesPage() {
   const { t, lang } = useI18n();
@@ -29,9 +23,7 @@ function StudentGradesPage() {
     () => grades.filter((grade) => grade.studentId === studentId).sort((a, b) => b.date.localeCompare(a.date)),
     [grades, studentId],
   );
-  const average = myGrades.length
-    ? Math.round((myGrades.reduce((sum, grade) => sum + (grade.score / grade.maxScore) * 10, 0) / myGrades.length) * 10) / 10
-    : 0;
+  const average = gradeAverage(myGrades);
 
   if (isLoading) {
     return (
@@ -61,7 +53,7 @@ function StudentGradesPage() {
             </div>
             <div>
               <div className="text-xs uppercase tracking-wider opacity-80">{t("grades.average")}</div>
-              <div className="text-3xl font-bold">{average}/10</div>
+              <div className="text-3xl font-bold">{average}/5</div>
             </div>
           </div>
         </div>
@@ -76,7 +68,6 @@ function StudentGradesPage() {
           myGrades.map((grade) => {
             const group = groupById[grade.groupId];
             const course = group ? courseById[group.courseId] : undefined;
-            const pct = (grade.score / grade.maxScore) * 100;
             return (
               <Card key={grade.id} className="p-4 shadow-elegant">
                 <div className="flex items-start justify-between gap-3">
@@ -92,10 +83,10 @@ function StudentGradesPage() {
                       {course?.name ?? group?.name ?? ""}
                     </div>
                   </div>
-                  <div className={`flex shrink-0 items-center gap-1 rounded-xl px-2 py-1 text-sm font-bold ${scoreTone(pct)}`}>
+                  <div className={`flex shrink-0 items-center gap-1 rounded-xl px-2 py-1 text-sm font-bold ${gradeTone(grade.score)}`}>
                     <Star className="size-3.5" />
                     {grade.score}
-                    <span className="text-xs opacity-60">/{grade.maxScore}</span>
+                    <span className="text-xs opacity-60">/5</span>
                   </div>
                 </div>
                 {grade.comment && (
