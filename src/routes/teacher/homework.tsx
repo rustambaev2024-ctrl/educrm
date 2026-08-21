@@ -406,11 +406,11 @@ function ReviewPanel({
                   <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
                     <div className="flex items-end gap-2">
                       <div className="flex-1 space-y-1">
-                        <Label className="text-[11px]">{t("hw.grade")} (0-10)</Label>
+                        <Label className="text-[11px]">{t("hw.grade")} (2-5)</Label>
                         <Input
                           type="number"
-                          min={0}
-                          max={10}
+                          min={2}
+                          max={5}
                           step={1}
                           value={draft.score}
                           onChange={(e) => setDrafts({ ...drafts, [sid]: { ...draft, score: e.target.value } })}
@@ -421,7 +421,7 @@ function ReviewPanel({
                         size="sm"
                         onClick={() => {
                           const n = Number(draft.score);
-                          if (Number.isNaN(n) || n < 0 || n > 10) return;
+                          if (Number.isNaN(n) || n < 2 || n > 5 || !Number.isInteger(n)) return;
                           onGrade(sid, n, draft.feedback || undefined);
                         }}
                       >
