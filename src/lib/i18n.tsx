@@ -335,7 +335,6 @@ const UZ: Dict = {
   // Validation
   "validation.fillAll": "Barcha majburiy maydonlarni to'ldiring",
   "validation.fillField": "To'ldiring: {fields}",
-  "grades.scoreRange": "Baho 0 dan 100 gacha bo'lishi kerak",
   "grades.scoreRange5": "Baho 2 dan 5 gacha bo'lishi kerak",
 
   // Homework — teacher
@@ -396,7 +395,6 @@ const UZ: Dict = {
   "grades.field.kind": "Tur",
   "grades.field.title": "Nomi",
   "grades.field.score": "Baho",
-  "grades.field.maxScore": "Maksimal",
   "grades.field.date": "Sana",
   "grades.field.comment": "Izoh",
   "grades.created": "Baho qo'shildi",
@@ -1114,7 +1112,6 @@ const RU: Dict = {
   // Validation
   "validation.fillAll": "Заполните все обязательные поля",
   "validation.fillField": "Заполните поле: {fields}",
-  "grades.scoreRange": "Оценка должна быть от 0 до 100",
   "grades.scoreRange5": "Оценка должна быть от 2 до 5",
 
   // Homework — teacher
@@ -1175,7 +1172,6 @@ const RU: Dict = {
   "grades.field.kind": "Тип",
   "grades.field.title": "Название",
   "grades.field.score": "Оценка",
-  "grades.field.maxScore": "Максимум",
   "grades.field.date": "Дата",
   "grades.field.comment": "Комментарий",
   "grades.created": "Оценка добавлена",

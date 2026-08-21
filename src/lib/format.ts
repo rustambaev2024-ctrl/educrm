@@ -116,12 +116,6 @@ export function initialsOf(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-export function scoreTone(pct: number): string {
-  if (pct >= 85) return "text-green-600";
-  if (pct >= 65) return "text-yellow-600";
-  return "text-red-600";
-}
-
 export function getPaymentLabel(type: string, lang: string): string {
   const map: Record<string, { uz: string; ru: string }> = {
     top_up:        { uz: "To'ldirish",  ru: "Пополнение" },

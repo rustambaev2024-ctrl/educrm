@@ -283,7 +283,7 @@ export interface HomeworkSubmission {
   status: HomeworkSubmissionStatus;
   submittedAt?: string;
   comment?: string;
-  grade?: number;     // 0..10
+  grade?: number;     // 2..5, школьная шкала (как и Grade.score)
   feedback?: string;
   attachments?: HomeworkAttachment[];
 }
