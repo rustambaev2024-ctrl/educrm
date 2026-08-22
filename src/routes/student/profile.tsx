@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell } from "@/components/edu/page-shell";
+import { StatTile } from "@/components/edu/stat-tile";
 import { CardSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { useAuth } from "@/lib/auth";
@@ -119,9 +120,9 @@ function StudentProfile() {
             </div>
           </div>
           <div className="grid grid-cols-3 divide-x divide-border/40">
-            <Stat label={t("profile.attendance")} value={`${attPct}%`} icon={ClipboardCheck} />
-            <Stat label={t("profile.avgGrade")} value={String(avg)} icon={Award} />
-            <Stat label={t("profile.activeHomework")} value={String(activeHw)} icon={BookOpen} />
+            <StatTile variant="bare" label={t("profile.attendance")} value={`${attPct}%`} icon={ClipboardCheck} />
+            <StatTile variant="bare" label={t("profile.avgGrade")} value={String(avg)} icon={Award} />
+            <StatTile variant="bare" label={t("profile.activeHomework")} value={String(activeHw)} icon={BookOpen} />
           </div>
         </Card>
 
@@ -251,16 +252,6 @@ function StudentProfile() {
         </Button>
       </div>
     </PageShell>
-  );
-}
-
-function Stat({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Wallet }) {
-  return (
-    <div className="flex flex-col items-center gap-1 p-3 text-center">
-      <Icon className="size-4 text-muted-foreground" />
-      <div className="text-lg font-bold leading-none">{value}</div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-    </div>
   );
 }
 

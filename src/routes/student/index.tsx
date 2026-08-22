@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell } from "@/components/edu/page-shell";
+import { StatTile } from "@/components/edu/stat-tile";
 import { CardSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { useCurrentStudentId } from "@/lib/data/identity";
 import { useAuth } from "@/lib/auth";
@@ -122,7 +123,7 @@ function StudentHome() {
         </Card>
 
         <div className="grid grid-cols-2 gap-3">
-          <QuickCard
+          <StatTile
             to="/student/profile"
             icon={Wallet}
             label={t("studentHome.balance")}
@@ -130,7 +131,7 @@ function StudentHome() {
             hint={student.balance < 0 ? t("studentHome.debt") : t("studentHome.paid")}
             tone={student.balance < 0 ? "warning" : "success"}
           />
-          <QuickCard
+          <StatTile
             to="/student/homework"
             icon={BookOpen}
             label={t("studentHome.homework")}
@@ -138,7 +139,7 @@ function StudentHome() {
             hint={t("studentHome.activeTasks")}
             tone="warning"
           />
-          <QuickCard
+          <StatTile
             to="/student/schedule"
             icon={Calendar}
             label={t("studentHome.lessons")}
@@ -245,33 +246,5 @@ function StudentHome() {
         </Card>
       </div>
     </PageShell>
-  );
-}
-
-function QuickCard({ to, icon: Icon, label, value, hint, tone }: {
-  to: string;
-  icon: typeof Clock;
-  label: string;
-  value: string;
-  hint: string;
-  tone: "primary" | "success" | "warning" | "info";
-}) {
-  const tones = {
-    primary: "bg-accent text-primary",
-    success: "bg-success/10 text-success",
-    warning: "bg-warning/15 text-warning",
-    info: "bg-info/10 text-info",
-  };
-  return (
-    <Link to={to} className="block">
-      <Card className="gap-2 p-4 shadow-elegant transition-all active:scale-95">
-        <div className={`flex size-9 items-center justify-center rounded-xl ${tones[tone]}`}>
-          <Icon className="size-4" />
-        </div>
-        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="text-xl font-bold leading-none">{value}</div>
-        <div className="text-[11px] text-muted-foreground">{hint}</div>
-      </Card>
-    </Link>
   );
 }

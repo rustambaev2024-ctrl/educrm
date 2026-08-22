@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell } from "@/components/edu/page-shell";
+import { StatTile } from "@/components/edu/stat-tile";
 import { ScrollableTabsList } from "@/components/edu/scrollable-tabs-list";
 import { CardSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
@@ -134,10 +135,17 @@ function ParentChildren() {
             </div>
           </div>
           <div className="grid grid-cols-2 divide-y divide-x divide-border/40 text-center sm:grid-cols-4 sm:divide-y-0">
-            <Mini icon={Award} value={`${avg}/5`} label={t("profile.avgGrade")} />
-            <Mini icon={Calendar} value={`${attPct}%`} label={t("profile.attendance")} />
-            <Mini icon={BookOpen} value={String(pendingHw)} label={t("parent.activeHw")} />
-            <Mini icon={Wallet} value={formatMoney(child.balance, lang)} label={t("parent.balance")} valueClass={child.balance < 0 ? "text-destructive" : "text-success"} />
+            <StatTile variant="bare" size="sm" icon={Award} value={`${avg}/5`} label={t("profile.avgGrade")} />
+            <StatTile variant="bare" size="sm" icon={Calendar} value={`${attPct}%`} label={t("profile.attendance")} />
+            <StatTile variant="bare" size="sm" icon={BookOpen} value={String(pendingHw)} label={t("parent.activeHw")} />
+            <StatTile
+              variant="bare"
+              size="sm"
+              icon={Wallet}
+              value={formatMoney(child.balance, lang)}
+              label={t("parent.balance")}
+              valueClass={child.balance < 0 ? "text-destructive" : "text-success"}
+            />
           </div>
         </Card>
 
@@ -295,15 +303,5 @@ function ParentChildren() {
         </Tabs>
       </div>
     </PageShell>
-  );
-}
-
-function Mini({ icon: Icon, value, label, valueClass }: { icon: typeof Calendar; value: string; label: string; valueClass?: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1 p-3">
-      <Icon className="size-3.5 text-muted-foreground" />
-      <div className={`text-base font-bold leading-none ${valueClass ?? ""}`}>{value}</div>
-      <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
-    </div>
   );
 }
