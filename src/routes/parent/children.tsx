@@ -6,8 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell } from "@/components/edu/page-shell";
+import { ScrollableTabsList } from "@/components/edu/scrollable-tabs-list";
 import { CardSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentParentId } from "@/lib/data/identity";
@@ -141,16 +142,12 @@ function ParentChildren() {
         </Card>
 
         <Tabs defaultValue="overview">
-          {/* whitespace-nowrap на TabsTrigger + grid-cols-4 = текст вылезает за
-              ячейку на узких экранах. Прокрутка вбок вместо переноса/обрезки. */}
-          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
-          <TabsList className="grid w-max min-w-full grid-cols-4 sm:w-full">
+          <ScrollableTabsList columns={4}>
             <TabsTrigger value="overview" className="px-4">{t("profile.tab.overview")}</TabsTrigger>
             <TabsTrigger value="grades" className="px-4">{t("profile.tab.grades")}</TabsTrigger>
             <TabsTrigger value="attendance" className="px-4">{t("profile.tab.attendance")}</TabsTrigger>
             <TabsTrigger value="payments" className="px-4">{lang === "uz" ? "To'lovlar" : "Платежи"}</TabsTrigger>
-          </TabsList>
-          </div>
+          </ScrollableTabsList>
 
           <TabsContent value="overview" className="mt-3 space-y-3">
             <Card className="p-4 shadow-elegant">
