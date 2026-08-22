@@ -68,7 +68,7 @@ function StudentProfile() {
   if (isLoading) {
     return (
       <PageShell title={t("profile.title")}>
-        <div className="space-y-4 pb-24">
+        <div className="mx-auto max-w-md space-y-4 pb-24">
           <div className="flex items-center gap-3 rounded-xl border border-border p-5">
             <Skeleton className="size-16 rounded-full" />
             <div className="flex-1 space-y-2">
@@ -99,7 +99,7 @@ function StudentProfile() {
 
   return (
     <PageShell title={t("profile.title")}>
-      <div className="space-y-4 pb-24">
+      <div className="mx-auto max-w-md space-y-4 pb-24">
         {/* Header */}
         <Card className="overflow-hidden p-0 shadow-elegant">
           <div className="bg-gradient-primary p-5 text-primary-foreground">
