@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ListSkeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -117,9 +118,18 @@ function SupportTeacherGrades() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t("grades.title")} subtitle={t("grades.subtitle")}>
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-2 min-[360px]:gap-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <StatCardSkeleton key={i} />
+            ))}
+          </div>
+          <Card className="overflow-hidden p-0 shadow-elegant">
+            <ListSkeleton rows={6} />
+          </Card>
+        </div>
+      </PageShell>
     );
   }
 
