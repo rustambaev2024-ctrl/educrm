@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import { TabsList } from "@/components/ui/tabs";
 
+type ColumnCount = 2 | 3 | 4 | 5 | 6;
+
 /** Полный набор `grid-cols-N`, которые реально встречаются в разметке ниже —
  *  класс должен быть литералом в исходнике, иначе Tailwind его не соберёт. */
-const COLUMN_CLASSES: Record<number, string> = {
+const COLUMN_CLASSES: Record<ColumnCount, string> = {
   2: "grid-cols-2",
   3: "grid-cols-3",
   4: "grid-cols-4",
@@ -21,7 +23,8 @@ const COLUMN_CLASSES: Record<number, string> = {
  * где сетка становится `w-full`); задаётся явно, а не через
  * `React.Children.count`, чтобы число колонок было видно на месте вызова.
  */
-export function ScrollableTabsList({ columns, children }: { columns: number; children: ReactNode }) {
+export function ScrollableTabsList({ columns, children }: { columns: ColumnCount; children: ReactNode }) {
+  // Недостижимо при валидном ColumnCount — защитный фолбэк на случай обхода типов (as/any).
   const colsClass = COLUMN_CLASSES[columns] ?? "grid-cols-4";
   return (
     <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
