@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { BookOpen, Calendar, ChevronRight, Clock, MapPin, Wallet, Layers, Receipt } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -75,7 +75,7 @@ function StudentHome() {
       <PageShell title={t("studentHome.today")}>
         <div className="flex flex-col gap-4">
           <Skeleton className="h-28 w-full rounded-xl" />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3">
             <StatCardSkeleton />
             <StatCardSkeleton />
             <StatCardSkeleton />
