@@ -145,9 +145,13 @@ function StudentCoins() {
       setOrders(o?.results || o || []);
       setLoadFailed(false);
     } catch {
-      setLoadFailed(true);
+      if (!opts?.silent) {
+        setLoadFailed(true);
+      } else {
+        toast.error(lang === "uz" ? "Ma'lumotlarni yangilab bo'lmadi" : "Не удалось обновить данные");
+      }
     } finally {
-      setIsLoading(false);
+      if (!opts?.silent) setIsLoading(false);
     }
   };
 
