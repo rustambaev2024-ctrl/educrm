@@ -3,7 +3,9 @@ import { useMemo } from "react";
 import { Clock, MapPin, Users, ChevronRight, ClipboardCheck, Calendar, BookOpen, AlertCircle } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
+import { StatCardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { LessonStatusBadge } from "@/components/edu/status-badge";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
@@ -56,9 +58,13 @@ function SupportTeacherHome() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
-      </div>
+      <PageShell title={tr("Bugun", "Сегодня")} subtitle={formatDate(today.toISOString(), lang)}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+      </PageShell>
     );
   }
 
@@ -134,9 +140,10 @@ function SupportTeacherHome() {
           <span className="text-[12px] text-muted-foreground">{todayLessons.length}</span>
         </div>
         {todayLessons.length === 0 ? (
-          <div className="py-10 text-center text-[13px] text-muted-foreground">
-            {tr("Bugun darslar yo'q", "Сегодня занятий нет")}
-          </div>
+          <EmptyState
+            icon={<Calendar className="size-6" />}
+            title={tr("Bugun darslar yo'q", "Сегодня занятий нет")}
+          />
         ) : (
           <div className="divide-y divide-border">
             {todayLessons.map((lesson) => {
@@ -148,7 +155,7 @@ function SupportTeacherHome() {
                 <Link
                   key={lesson.id}
                   to="/support-teacher/attendance"
-                  className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40"
+                  className="edu-row flex min-h-11 items-center gap-3 px-4 py-2.5"
                 >
                   <div className="flex w-12 shrink-0 items-center gap-1 text-[13px] font-medium tabular-nums">
                     <Clock className="size-3 text-muted-foreground" />
