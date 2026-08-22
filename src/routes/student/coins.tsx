@@ -18,7 +18,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageShell } from "@/components/edu/page-shell";
-import { CardGridSkeleton, CardSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
+import { CardSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { formatDate, initialsOf } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -128,8 +128,8 @@ function StudentCoins() {
   const [buyTarget, setBuyTarget] = useState<any>(null);
   const [buying, setBuying] = useState(false);
 
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsLoading(true);
     try {
       const [w, p, a, t, o] = await Promise.all([
         coinApi.wallet.my(),
@@ -167,7 +167,7 @@ function StudentCoins() {
     try {
       await coinApi.products.buy(buyTarget.id);
       toast.success(lang === "uz" ? "Xarid muvaffaqiyatli!" : "Покупка успешна!");
-      loadData();
+      loadData({ silent: true });
     } catch (err) {
       const msg = err instanceof ApiError ? String((err.body as { error?: string })?.error ?? "") : "";
       if (msg.includes("Insufficient")) {
@@ -180,7 +180,7 @@ function StudentCoins() {
         toast.error(lang === "uz" ? "Do'kon bugun yopiq" : "Магазин сегодня закрыт");
       } else if (msg.includes("not available") || msg.includes("Out of stock")) {
         toast.error(lang === "uz" ? "Mahsulot mavjud emas — ro'yxat yangilandi" : "Товар больше недоступен — список обновлён");
-        loadData();
+        loadData({ silent: true });
       } else {
         toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
       }
@@ -248,7 +248,12 @@ function StudentCoins() {
           </div>
           <div className="space-y-2">
             <Skeleton className="h-5 w-32" />
-            <CardGridSkeleton count={4} />
+            <div className="grid grid-cols-2 gap-3">
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+            </div>
           </div>
           <div className="space-y-2">
             <Skeleton className="h-5 w-32" />
@@ -278,7 +283,6 @@ function StudentCoins() {
               : "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите."
           }
           onRetry={() => void loadData()}
-          isRetrying={isLoading}
           retryLabel={lang === "uz" ? "Qayta urinish" : "Повторить"}
         />
       </PageShell>
