@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageShell } from "@/components/edu/page-shell";
+import { CardSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
@@ -39,22 +40,40 @@ function ParentChildren() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-md space-y-4 px-4 py-5">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-28 w-full rounded-xl" />
-        <Skeleton className="h-10 w-full rounded-lg" />
-        <Skeleton className="h-44 w-full rounded-xl" />
-      </div>
+      <PageShell title={t("nav.children")}>
+        <div className="mx-auto max-w-md space-y-4 pb-24">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <Skeleton className="h-8 w-24 rounded-full" />
+            <Skeleton className="h-8 w-24 rounded-full" />
+          </div>
+          <div className="flex items-center gap-3 rounded-xl border border-border p-5">
+            <Skeleton className="size-14 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-40 max-w-[70%]" />
+              <Skeleton className="h-3 w-28 max-w-[50%]" />
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      </PageShell>
     );
   }
 
   if (!child) {
     return (
-      <div className="mx-auto max-w-md px-4 py-5">
+      <PageShell title={t("nav.children")}>
         <Card className="shadow-elegant">
           <EmptyState icon={<Users className="size-7" />} title={t("parent.noChildren")} />
         </Card>
-      </div>
+      </PageShell>
     );
   }
 
@@ -75,9 +94,8 @@ function ParentChildren() {
   const pendingHw = childHwIds.length - childSubs.filter((s) => s.status !== "pending").length;
 
   return (
-    <div className="mx-auto max-w-md space-y-4 px-4 py-5">
-      <h1 className="text-2xl font-bold">{t("nav.children")}</h1>
-
+    <PageShell title={t("nav.children")}>
+    <div className="mx-auto max-w-md space-y-4 pb-24">
       {children.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {children.map((c) => (
@@ -147,14 +165,14 @@ function ParentChildren() {
                   </div>
                 </div>
               ))}
-              {myGroups.length === 0 && <div className="text-xs text-muted-foreground">{t("students.noGroups")}</div>}
+              {myGroups.length === 0 && <EmptyState icon={<Users className="size-6" />} title={t("students.noGroups")} />}
             </div>
           </Card>
 
           <Card className="p-4 shadow-elegant">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("parent.upcomingLessons")}</div>
             <div className="space-y-2">
-              {upcoming.length === 0 && <div className="text-xs text-muted-foreground">{t("schedule.empty")}</div>}
+              {upcoming.length === 0 && <EmptyState icon={<Clock className="size-6" />} title={t("schedule.empty")} />}
               {upcoming.map((l) => {
                 const g = groupById[l.groupId];
                 const r = roomById[l.roomId];
@@ -191,7 +209,7 @@ function ParentChildren() {
                   </div>
                 );
               })}
-              {childGrades.length === 0 && <div className="text-xs text-muted-foreground">{t("grades.empty")}</div>}
+              {childGrades.length === 0 && <EmptyState icon={<Award className="size-6" />} title={t("grades.empty")} />}
             </div>
           </Card>
 
@@ -232,8 +250,14 @@ function ParentChildren() {
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("profile.attendance")}</div>
               <div className="text-3xl font-bold">{attPct}%</div>
             </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
-              <div className="h-full bg-gradient-primary" style={{ width: `${attPct}%` }} />
+            <div
+              className="mt-3 h-2 overflow-hidden rounded-full bg-secondary"
+              role="progressbar"
+              aria-valuenow={Math.min(100, attPct)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div className="h-full bg-gradient-primary" style={{ width: `${Math.min(100, attPct)}%` }} />
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
               <div className="rounded-md bg-success/10 p-2"><div className="font-bold text-success">{att.filter((a) => a.status === "present").length}</div><div className="text-muted-foreground">{t("att.present")}</div></div>
@@ -273,6 +297,7 @@ function ParentChildren() {
         </TabsContent>
       </Tabs>
     </div>
+    </PageShell>
   );
 }
 
