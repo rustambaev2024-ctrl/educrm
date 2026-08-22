@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { coinApi, ApiError } from "@/lib/api";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageShell } from "@/components/edu/page-shell";
+import { CardGridSkeleton, CardSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { formatDate, initialsOf } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -120,10 +124,12 @@ function StudentCoins() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [buyTarget, setBuyTarget] = useState<any>(null);
   const [buying, setBuying] = useState(false);
 
   const loadData = async () => {
+    setIsLoading(true);
     try {
       const [w, p, a, t, o] = await Promise.all([
         coinApi.wallet.my(),
@@ -137,8 +143,9 @@ function StudentCoins() {
       setAchievements(a?.results || a || []);
       setTransactions((t?.results || t || []).slice(0, 10));
       setOrders(o?.results || o || []);
+      setLoadFailed(false);
     } catch {
-      // silent
+      setLoadFailed(true);
     } finally {
       setIsLoading(false);
     }
@@ -224,19 +231,63 @@ function StudentCoins() {
   const initials = initialsOf(studentName);
   const activeOrders = orders.filter((o) => o.status !== "cancelled").length;
 
+  const pageTitle = "Coins";
+  const pageSubtitle = lang === "uz"
+    ? "Do'kon, yutuqlar va faollik tarixi"
+    : "Магазин, достижения и история активности";
+
   if (isLoading) {
     return (
-      <div className="p-4 space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />
-        ))}
-      </div>
+      <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
+        <div className="space-y-4 pb-24 max-w-lg mx-auto">
+          <Skeleton className="h-44 w-full rounded-2xl" />
+          <div className="grid grid-cols-3 gap-2">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <CardGridSkeleton count={4} />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <div className="grid grid-cols-3 gap-2">
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <CardSkeleton />
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
+        <ErrorState
+          title={lang === "uz" ? "Ma'lumotlar yuklanmadi" : "Данные не загрузились"}
+          description={
+            lang === "uz"
+              ? "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring."
+              : "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите."
+          }
+          onRetry={() => void loadData()}
+          isRetrying={isLoading}
+          retryLabel={lang === "uz" ? "Qayta urinish" : "Повторить"}
+        />
+      </PageShell>
     );
   }
 
   return (
-    <>
-    <div className="p-4 pb-24 space-y-4 max-w-lg mx-auto">
+    <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
+    <div className="space-y-4 pb-24 max-w-lg mx-auto">
 
       {/* ── HERO CARD ── */}
       <div
@@ -361,14 +412,19 @@ function StudentCoins() {
         </div>
 
         {products.length === 0 ? (
-          <div className="bg-card border border-border rounded-xl p-8 text-center text-muted-foreground">
-            <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">
-              {lang === "uz"
-                ? "Do'kon hozircha bo'sh. Tez orada yangi sovg'alar!"
-                : "Магазин пока пуст. Скоро появятся новые призы!"}
-            </p>
-          </div>
+          <EmptyState
+            icon={<ShoppingBag className="size-6" />}
+            title={
+              lang === "uz"
+                ? "Do'kon hozircha bo'sh"
+                : "Магазин пока пуст"
+            }
+            description={
+              lang === "uz"
+                ? "Tez orada yangi sovg'alar!"
+                : "Скоро появятся новые призы!"
+            }
+          />
         ) : hasCategories ? (
           <div className="space-y-4">
             {productGroups.map((group) => (
@@ -440,14 +496,19 @@ function StudentCoins() {
         </h2>
 
         {transactions.length === 0 ? (
-          <div className="bg-card border border-border rounded-xl p-8 text-center text-muted-foreground">
-            <History className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">
-              {lang === "uz"
-                ? "Hali faollik yo'q. Darslarga qatnashing!"
-                : "Активности пока нет. Посещайте уроки!"}
-            </p>
-          </div>
+          <EmptyState
+            icon={<History className="size-6" />}
+            title={
+              lang === "uz"
+                ? "Hali faollik yo'q"
+                : "Активности пока нет"
+            }
+            description={
+              lang === "uz"
+                ? "Darslarga qatnashing!"
+                : "Посещайте уроки!"
+            }
+          />
         ) : (
           <div className="bg-card border border-border rounded-xl px-4 py-1">
             {transactions.map((tx) => (
@@ -507,7 +568,7 @@ function StudentCoins() {
       onConfirm={confirmBuy}
       isLoading={buying}
     />
-    </>
+    </PageShell>
   );
 }
 
