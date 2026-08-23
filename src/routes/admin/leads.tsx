@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card } from "@/components/ui/card";
+import { ErrorState } from "@/components/ui/error-state";
+import { CardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -173,7 +175,8 @@ function AdminLeadsPage() {
   const { lang } = useI18n();
   const { branches, courses, groups, reload } = useData();
   const [leads, setLeads] = useState<StudentLead[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<LeadForm>(emptyForm);
@@ -201,16 +204,25 @@ function AdminLeadsPage() {
     setDetailForm(formFromLead(selected));
   }, [selected]);
 
-  const loadLeads = async () => {
-    setIsLoading(true);
+  const loadLeads = async (opts?: { silent?: boolean }) => {
+    // silent: true — фоновый рефреш после конвертации лида в ученика
+    // (handleConvertSubmit). Он не должен трогать isLoading — иначе
+    // `isLoading ? <KanbanBoardSkeleton> : ...` схлопывает всю доску
+    // полноэкранным скелетоном сразу после успешного действия пользователя.
+    if (!opts?.silent) setIsLoading(true);
     try {
       const data = await leadApi.list() as { results: LeadRaw[] } | LeadRaw[];
       setLeads(toResults(data).map(mapLead));
+      setLoadFailed(false);
     } catch (err) {
       console.error("[leads] load failed", err);
+      // Та же логика для ошибки: тихий рефреш не должен схлопывать уже
+      // отображённую доску в полноэкранную ErrorState из-за временного
+      // сбоя сети — только тост, доска остаётся как есть.
+      if (!opts?.silent) setLoadFailed(true);
       toast.error(t.loadError);
     } finally {
-      setIsLoading(false);
+      if (!opts?.silent) setIsLoading(false);
     }
   };
 
@@ -393,7 +405,9 @@ function AdminLeadsPage() {
       // живёт в локальном стейте (loadLeads), а ученики — в сторе (reload):
       // перечитываем оба, иначе карточка залипает на доске (BUG-015).
       // Отдельный PATCH был бы отклонён гардом "Won lead cannot be edited".
-      await Promise.all([loadLeads(), reload()]);
+      // silent: true — доска уже показывает актуальный список лидов, это
+      // фоновая ресинхронизация после мутации, а не первая загрузка.
+      await Promise.all([loadLeads({ silent: true }), reload()]);
       toast.success(t.converted);
       setConvertSheetOpen(false);
       setSelectedId(null);
@@ -471,6 +485,18 @@ function AdminLeadsPage() {
             </div>
           </div>
 
+          {isLoading ? (
+            <KanbanBoardSkeleton mobileStatus={mobileStatus} />
+          ) : loadFailed ? (
+            <ErrorState
+              title={t.loadError}
+              description={t.loadErrorDescription}
+              onRetry={() => void loadLeads()}
+              isRetrying={isLoading}
+              retryLabel={t.retry}
+            />
+          ) : (
+          <>
           {/* Переключатель колонок — только на телефоне. Пять колонок в 360px
               давали по 60px на каждую, поэтому канбан прокручивался вбок:
               карточку нельзя было ни рассмотреть, ни перетащить пальцем.
@@ -659,6 +685,8 @@ function AdminLeadsPage() {
             })}
           </div>
           </div>
+          </>
+          )}
         </Card>
       </div>
 
@@ -780,6 +808,34 @@ function AdminLeadsPage() {
         isLoading={isDeleting}
       />
     </PageShell>
+  );
+}
+
+/**
+ * Скелет канбан-доски на первую загрузку — та же сетка из 5 колонок,
+ * что и у настоящей доски (шапка + карточки-заглушки), а не голый спиннер.
+ * До этого фикса на первой загрузке каждая колонка просто рисовала свой
+ * пустой текст, визуально неотличимый от "заявок правда нет".
+ */
+function KanbanBoardSkeleton({ mobileStatus }: { mobileStatus: StudentLeadStatus }) {
+  return (
+    <div className="grid grid-cols-1 gap-3 p-4 pb-6 h-[calc(100dvh-280px)] min-h-[520px] lg:grid-cols-5">
+      {STATUS_OPTIONS.map((status) => (
+        <div
+          key={status}
+          className={`${status === mobileStatus ? "flex" : "hidden lg:flex"} flex-col min-w-0 rounded-2xl bg-card border border-border shadow-sm overflow-hidden h-full`}
+        >
+          <div className="p-4 border-b border-border flex items-center justify-between">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-5 w-6 rounded-full" />
+          </div>
+          <div className="flex flex-col gap-3 p-3 flex-1 bg-muted/20">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -964,6 +1020,8 @@ function labels(lang: "uz" | "ru") {
       deleted: "Заявка удалена",
       converted: "Ученик создан, заявка закрыта",
       loadError: "Не удалось загрузить заявки",
+      loadErrorDescription: "Доска может выглядеть пустой, но это не значит, что заявок нет. Проверьте связь и повторите.",
+      retry: "Повторить",
       saveError: "Не удалось сохранить заявку",
       convertError: "Не удалось создать ученика",
       branchRequired: "Для создания ученика укажите филиал",
@@ -1032,6 +1090,8 @@ function labels(lang: "uz" | "ru") {
     deleted: "Murojaat o'chirildi",
     converted: "O'quvchi yaratildi, murojaat yopildi",
     loadError: "Murojaatlarni yuklab bo'lmadi",
+    loadErrorDescription: "Doska bo'sh ko'rinishi mumkin, lekin bu murojaatlar yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+    retry: "Qayta urinish",
     saveError: "Murojaatni saqlab bo'lmadi",
     convertError: "O'quvchini yaratib bo'lmadi",
     branchRequired: "O'quvchi yaratish uchun filialni tanlang",
