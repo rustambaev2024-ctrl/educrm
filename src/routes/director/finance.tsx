@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ListSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -40,11 +41,13 @@ function DirectorFinancePage() {
     if (!reverseTarget) return;
     setReversingId(reverseTarget.id);
     try {
-      await reversePayment(reverseTarget.id);
+      // reversePayment резолвится записью возврата при успехе и null при
+      // ошибке (стор уже показал свой toast с причиной) — «Платёж отменён»
+      // и закрытие диалога должны звучать только когда сервер подтвердил.
+      const reversed = await reversePayment(reverseTarget.id);
+      if (!reversed) return;
       toast.success(lang === "uz" ? "To'lov bekor qilindi" : "Платёж отменён");
       setReverseTarget(null);
-    } catch {
-      toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
     } finally {
       setReversingId(null);
     }
@@ -110,26 +113,36 @@ function DirectorFinancePage() {
 
   const visibleWallets = wallets.slice(0, walletsLimit);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
   return (
     <PageShell
       title={t("finance.title")}
       subtitle={t("finance.directorSubtitle")}
       actions={
-        <div className="flex items-center gap-2">
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
-          <span>-</span>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
-        </div>
+        !isLoading && (
+          <div className="flex items-center gap-2">
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+            <span>-</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+          </div>
+        )
       }
     >
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Skeleton className="h-64 rounded-xl" />
+            <Skeleton className="h-64 rounded-xl" />
+          </div>
+          <ListSkeleton rows={6} />
+          <ListSkeleton rows={6} />
+        </div>
+      ) : (
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard iconColor="green" icon={TrendingUp} label={t("finance.kpi.income")} value={formatMoney(income, lang)} />
@@ -278,6 +291,7 @@ function DirectorFinancePage() {
           </Table>
         </Card>
       </div>
+      )}
       <ConfirmDialog
         open={reverseTarget !== null}
         onOpenChange={(open) => !open && setReverseTarget(null)}

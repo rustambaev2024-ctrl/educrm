@@ -164,7 +164,12 @@ interface DataStoreActions {
    * Откат оптимистичной записи и сообщение об ошибке делает стор.
    */
   addPayment: (input: Omit<Payment, "id">) => Promise<Payment | null>;
-  reversePayment: (id: string) => Promise<void>;
+  /**
+   * Отменяет платёж. Резолвится записью возврата при успехе и null при
+   * ошибке — по аналогии с addPayment экран не должен говорить «отменено»,
+   * пока сервер не ответил. Сообщение об ошибке показывает сам стор.
+   */
+  reversePayment: (id: string) => Promise<Payment | null>;
   addPenalty: (input: Omit<StaffPenalty, "id" | "createdAt" | "updatedAt">) => StaffPenalty;
   updatePenalty: (id: string, patch: Partial<StaffPenalty>) => void;
   deletePenalty: (id: string) => void;
@@ -1417,7 +1422,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       const raw = await paymentApi.reverse(id);
       const refund = paymentFromRaw(raw as PaymentRaw);
       setPayments((prev) => [refund, ...prev]);
-      
+
       if (refund.studentId) {
         setStudents((prev) => prev.map((s) => {
           if (s.id === refund.studentId) {
@@ -1429,9 +1434,12 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
           return s;
         }));
       }
-      toast.success("Transaction reversed");
+      // Успех сообщает вызывающий экран (после проверки результата) — сам
+      // стор здесь ничего не подтверждает, только сообщает об ошибке.
+      return refund;
     } catch (err) {
       toast.error(apiErrorMessage(err));
+      return null;
     }
   }, []);
 
