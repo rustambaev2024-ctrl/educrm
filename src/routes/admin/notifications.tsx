@@ -10,6 +10,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListSkeleton } from "@/components/ui/skeleton";
 import { notificationApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -55,7 +56,7 @@ function NotificationsPage() {
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     } catch (err) {
       console.error(err);
-      toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+      toast.error(apiErrorMessage(err));
     }
   };
 
@@ -65,7 +66,7 @@ function NotificationsPage() {
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
     } catch (err) {
       console.error(err);
-      toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+      toast.error(apiErrorMessage(err));
     }
   };
 
