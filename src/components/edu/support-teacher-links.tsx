@@ -41,7 +41,7 @@ export function SupportTeacherLinks() {
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     try {
       const raw = (await supportTeacherApi.links.list()) as LinkRaw[];
       setLinks(Array.isArray(raw) ? raw : []);
@@ -54,7 +54,7 @@ export function SupportTeacherLinks() {
       if (!opts?.silent) setLoadFailed(true);
       toast.error(apiErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
