@@ -19,6 +19,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatCardSkeleton, ListSkeleton } from "@/components/ui/skeleton";
@@ -118,6 +119,8 @@ function SuperadminHome() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [forceDeleteTarget, setForceDeleteTarget] = useState<{ inst: Institution; activeCount: number } | null>(null);
+  const [branchDeleteTarget, setBranchDeleteTarget] = useState<Branch | null>(null);
+  const [deletingBranch, setDeletingBranch] = useState(false);
   const activeBranchInst = useMemo(() => {
     if (!branchInst) return null;
     return (
@@ -244,6 +247,20 @@ function SuperadminHome() {
       }
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const confirmDeleteBranch = async () => {
+    if (!branchDeleteTarget) return;
+    setDeletingBranch(true);
+    try {
+      deleteBranch(branchDeleteTarget.id);
+      toast.success(t("sa.branches.deleted"));
+      setBranchDeleteTarget(null);
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
+    } finally {
+      setDeletingBranch(false);
     }
   };
 
@@ -547,28 +564,14 @@ function SuperadminHome() {
                             <div className="text-xs text-muted-foreground">{b.address}</div>
                           </div>
                         </div>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="ghost" className="text-destructive">
-                              <Trash2 className="size-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>{t("common.delete")}</AlertDialogTitle>
-                              <AlertDialogDescription>{t("common.confirmDelete")} — {b.name}</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => { deleteBranch(b.id); toast.success(t("sa.branches.deleted")); }}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                {t("common.delete")}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => setBranchDeleteTarget(b)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -583,31 +586,33 @@ function SuperadminHome() {
       </Dialog>
 
       {/* Force-delete confirmation when active students exist */}
-      <AlertDialog open={!!forceDeleteTarget} onOpenChange={(o) => !o && setForceDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("sa.activeStudentsTitle")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {tf("sa.activeStudentsBody", {
-                name: forceDeleteTarget?.inst.name ?? "",
-                count: forceDeleteTarget?.activeCount ?? 0,
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setForceDeleteTarget(null)}>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => forceDeleteTarget && handleDelete(forceDeleteTarget.inst, true)}
-              disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleting ? "..." : t("sa.forceDelete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!forceDeleteTarget}
+        onOpenChange={(o) => !o && setForceDeleteTarget(null)}
+        title={t("sa.activeStudentsTitle")}
+        description={tf("sa.activeStudentsBody", {
+          name: forceDeleteTarget?.inst.name ?? "",
+          count: forceDeleteTarget?.activeCount ?? 0,
+        })}
+        confirmText={t("sa.forceDelete")}
+        cancelText={t("common.cancel")}
+        variant="destructive"
+        isLoading={deleting}
+        onConfirm={() => forceDeleteTarget && handleDelete(forceDeleteTarget.inst, true)}
+      />
+
+      {/* Branch delete confirmation */}
+      <ConfirmDialog
+        open={!!branchDeleteTarget}
+        onOpenChange={(o) => !o && setBranchDeleteTarget(null)}
+        title={t("common.delete")}
+        description={branchDeleteTarget ? `${t("common.confirmDelete")} — ${branchDeleteTarget.name}` : undefined}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
+        variant="destructive"
+        isLoading={deletingBranch}
+        onConfirm={confirmDeleteBranch}
+      />
     </PageShell>
   );
 }
