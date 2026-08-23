@@ -21,7 +21,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useData } from "@/lib/data/store";
+import { StatCardSkeleton, ListSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useData, apiErrorMessage } from "@/lib/data/store";
 import { superadminApi, ApiError } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
@@ -102,7 +104,8 @@ function SuperadminHome() {
       try {
         const r = await superadminApi.institutions.checkSlug(form.slug);
         setSlugStatus(r.available ? "available" : "taken");
-      } catch {
+      } catch (err) {
+        console.error("slug availability check failed", err);
         setSlugStatus("idle");
       }
     }, 500);
@@ -237,7 +240,7 @@ function SuperadminHome() {
         setDeleteTarget(null);
         setDeleteConfirmText("");
       } else {
-        toast.error(t("sa.deleteError"));
+        toast.error(apiErrorMessage(err));
       }
     } finally {
       setDeleting(false);
@@ -265,14 +268,6 @@ function SuperadminHome() {
 
   const branchesOf = (id: string) => branches.filter((b) => b.institutionId === id);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
   return (
     <PageShell
       title={t("sa.institutions.title")}
@@ -283,6 +278,19 @@ function SuperadminHome() {
         </Button>
       }
     >
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <Card className="overflow-hidden p-0 shadow-elegant">
+            <ListSkeleton />
+          </Card>
+        </div>
+      ) : (
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard label={t("sa.kpi.totalOrg")} value={institutions.length} icon={Building2} iconColor="blue" />
@@ -310,7 +318,7 @@ function SuperadminHome() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="p-12 text-center text-sm text-muted-foreground">{t("sa.empty")}</div>
+            <EmptyState icon={<Building2 className="size-7" />} title={t("sa.empty")} />
           ) : (
             <Table>
               <TableHeader>
@@ -409,6 +417,7 @@ function SuperadminHome() {
           )}
         </Card>
       </div>
+      )}
 
       {/* Institution create/edit dialog */}
       <Dialog open={openInst} onOpenChange={(o) => { if (creationStep >= 0) return; setOpenInst(o); }}>
@@ -524,7 +533,7 @@ function SuperadminHome() {
 
               <div className="rounded-xl border border-border/60">
                 {branchesOf(activeBranchInst.id).length === 0 ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">{t("sa.branches.empty")}</div>
+                  <EmptyState icon={<DoorOpen className="size-7" />} title={t("sa.branches.empty")} />
                 ) : (
                   <div className="divide-y divide-border/60">
                     {branchesOf(activeBranchInst.id).map((b: Branch) => (
