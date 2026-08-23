@@ -30,7 +30,7 @@ function StudentGradesPage() {
   if (isLoading) {
     return (
       <PageShell title={t("grades.title")}>
-        <div className="space-y-4 pb-24">
+        <div className="mx-auto max-w-md space-y-4 pb-24">
           <Skeleton className="h-24 w-full rounded-xl" />
           <div className="space-y-3">
             <CardSkeleton />
@@ -47,7 +47,7 @@ function StudentGradesPage() {
       title={t("grades.title")}
       subtitle={`${myGrades.length} ${t("grades.title").toLowerCase()} · ${t("grades.average")} ${average}`}
     >
-      <div className="space-y-4 pb-24">
+      <div className="mx-auto max-w-md space-y-4 pb-24">
         <Card className="overflow-hidden p-0 shadow-elegant">
           <div className="bg-gradient-primary p-5 text-primary-foreground">
             <div className="flex items-center gap-3">

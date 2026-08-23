@@ -74,7 +74,7 @@ function StudentHome() {
   if (isLoading) {
     return (
       <PageShell title={t("studentHome.today")}>
-        <div className="flex flex-col gap-4">
+        <div className="mx-auto max-w-md flex flex-col gap-4">
           <Skeleton className="h-28 w-full rounded-xl" />
           <div className="grid grid-cols-2 gap-3">
             <StatCardSkeleton />
@@ -103,7 +103,7 @@ function StudentHome() {
 
   return (
     <PageShell title={student.fullName} subtitle={t("studentHome.today")}>
-      <div className="flex flex-col gap-4 pb-20">
+      <div className="mx-auto max-w-md flex flex-col gap-4 pb-20">
         <Card className="overflow-hidden bg-gradient-primary p-5 text-primary-foreground shadow-glow">
           <div className="flex items-center gap-2 text-xs opacity-80">
             <Clock className="size-3" /> {t("studentHome.nextLesson")}

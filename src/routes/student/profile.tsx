@@ -170,7 +170,7 @@ function StudentProfile() {
 
           <TabsContent value="grades" className="mt-3 space-y-2">
             {myGrades.length === 0 ? (
-              <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{t("grades.empty")}</Card>
+              <EmptyState icon={<Award className="size-6" />} title={t("grades.empty")} />
             ) : (
               myGrades.map((g) => {
                 return (
@@ -217,7 +217,7 @@ function StudentProfile() {
 
           <TabsContent value="payments" className="mt-3 space-y-2">
             {myPayments.length === 0 ? (
-              <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{t("finance.empty")}</Card>
+              <EmptyState icon={<Wallet className="size-6" />} title={t("finance.empty")} />
             ) : (
               myPayments.map((p) => (
                 <Card key={p.id} className="flex items-center gap-3 p-3 shadow-elegant">

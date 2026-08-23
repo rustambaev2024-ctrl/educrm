@@ -229,7 +229,7 @@ function ParentChildren() {
 
           <TabsContent value="grades" className="mt-3 space-y-2">
             {childGrades.length === 0 ? (
-              <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{t("grades.empty")}</Card>
+              <EmptyState icon={<Award className="size-6" />} title={t("grades.empty")} />
             ) : childGrades.map((g) => {
               return (
                 <Card key={g.id} className="p-3 shadow-elegant">
@@ -279,7 +279,7 @@ function ParentChildren() {
                 .sort((a, b) => b.date.localeCompare(a.date))
                 .slice(0, 20);
               if (childPayments.length === 0) {
-                return <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{lang === "uz" ? "To'lovlar tarixi yo'q" : "История платежей пуста"}</Card>;
+                return <EmptyState icon={<Wallet className="size-6" />} title={lang === "uz" ? "To'lovlar tarixi yo'q" : "История платежей пуста"} />;
               }
               return childPayments.map((p) => {
                 const isIncome = p.direction === "in";
