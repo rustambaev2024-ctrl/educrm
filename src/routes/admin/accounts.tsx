@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton, StatCardSkeleton, CardGridSkeleton } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import type { Parent, Staff, Student } from "@/lib/data/types";
@@ -116,9 +118,22 @@ function AccountsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t("title")} subtitle={t("description")}>
+        <div className="space-y-4">
+          <Skeleton className="h-44 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Skeleton className="h-10 w-full rounded-lg md:max-w-sm" />
+            <Skeleton className="h-10 w-full rounded-lg md:w-80" />
+          </div>
+          <CardGridSkeleton count={6} />
+        </div>
+      </PageShell>
     );
   }
 
@@ -158,7 +173,7 @@ function AccountsPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <Card className="p-12 text-center text-sm text-muted-foreground">{t("empty")}</Card>
+          <EmptyState icon={<Search className="size-6" />} title={t("empty")} />
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((row) => {
