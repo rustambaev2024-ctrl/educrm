@@ -3,6 +3,9 @@ import { Coins, Plus, Minus, Flame } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton } from "@/components/ui/skeleton";
 import { apiErrorText } from "@/lib/api-error";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/edu/number-input";
@@ -17,7 +20,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { coinApi } from "@/lib/api";
-import { useData } from "@/lib/data/store";
+import { useData, apiErrorMessage } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { initialsOf } from "@/lib/format";
 import { getAvatarColor } from "@/lib/avatar-color";
@@ -40,17 +43,27 @@ export function CoinStudentsTab() {
   const { students } = useData();
   const [wallets, setWallets] = useState<WalletData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [mode, setMode] = useState<"award" | "deduct" | null>(null);
   const [form, setForm] = useState({ studentId: "", amount: "", comment: "" });
 
-  const load = () => {
+  const load = (opts?: { silent?: boolean }) => {
     setLoading(true);
     coinApi.wallet.list()
-      .then((d) => setWallets(d as WalletData[]))
-      .catch(() => toast.error(tr("Xatolik", "Ошибка")))
+      .then((d) => {
+        setWallets(d as WalletData[]);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        // Фоновый рефреш после submit() (silent) не должен схлопывать уже
+        // отображённый список кошельков в полноэкранную ErrorState из-за
+        // временного сбоя сети — только тост, список остаётся как есть.
+        if (!opts?.silent) setLoadFailed(true);
+        toast.error(apiErrorMessage(err));
+      })
       .finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const activeStudents = useMemo(
     () => students.filter((s) => s.status !== "archived").sort((a, b) => a.fullName.localeCompare(b.fullName)),
@@ -70,13 +83,28 @@ export function CoinStudentsTab() {
       else await coinApi.wallet.deduct(form.studentId, amt, form.comment);
       toast.success(tr("Bajarildi", "Выполнено"));
       setMode(null);
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
   };
 
-  if (loading) return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading) return <ListSkeleton rows={5} />;
+
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+        description={tr(
+          "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+          "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите.",
+        )}
+        onRetry={() => load()}
+        isRetrying={loading}
+        retryLabel={tr("Qayta urinish", "Повторить")}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -85,6 +113,14 @@ export function CoinStudentsTab() {
         <Button size="sm" variant="outline" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => open("deduct")}><Minus className="size-3.5" />{tr("Coin olish", "Списать")}</Button>
       </div>
 
+      {wallets.length === 0 ? (
+        <Card className="shadow-elegant">
+          <EmptyState
+            icon={<Coins className="size-7" />}
+            title={tr("Hamyonlar yo'q", "Кошельков нет")}
+          />
+        </Card>
+      ) : (
       <Card className="overflow-hidden shadow-elegant">
         <Table>
           <TableHeader>
@@ -97,9 +133,6 @@ export function CoinStudentsTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {wallets.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">{tr("Hamyonlar yo'q", "Кошельков нет")}</TableCell></TableRow>
-            )}
             {wallets.map((w) => (
               <TableRow key={w.id}>
                 <TableCell>
@@ -117,6 +150,7 @@ export function CoinStudentsTab() {
           </TableBody>
         </Table>
       </Card>
+      )}
 
       <Dialog open={mode !== null} onOpenChange={(v) => !v && setMode(null)}>
         <DialogContent className="max-w-md">
