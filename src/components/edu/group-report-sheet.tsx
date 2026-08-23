@@ -1,23 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { ErrorState } from "@/components/ui/error-state";
 import { Users, BookOpen, DollarSign, TrendingUp, AlertTriangle, Award, CheckCircle2 } from "lucide-react";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { analyticsApi } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
+import { apiErrorText } from "@/lib/api-error";
 
 export function GroupReportSheet({ groupId, onClose }: { groupId: string | null; onClose: () => void }) {
   const { lang } = useI18n();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
-  useEffect(() => {
+  const loadReport = useCallback(() => {
     if (!groupId) return;
     setLoading(true);
+    setLoadFailed(false);
     setData(null);
     const now = new Date();
     const dateFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
@@ -25,8 +30,17 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
     const dateTo = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
     analyticsApi.groupReport(groupId, { date_from: dateFrom, date_to: dateTo })
       .then((res) => setData(res))
-      .catch(console.error)
+      .catch((err) => {
+        console.error("[group-report] load failed", err);
+        setLoadFailed(true);
+        toast.error(apiErrorText(err, lang, lang === "uz" ? "Hisobot yuklanmadi" : "Отчёт не загрузился"));
+      })
       .finally(() => setLoading(false));
+  }, [groupId, lang]);
+
+  useEffect(() => {
+    loadReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
   const g = data?.group;
@@ -46,7 +60,15 @@ export function GroupReportSheet({ groupId, onClose }: { groupId: string | null;
             </div>
           </div>
         )}
-        {!loading && data && (
+        {!loading && loadFailed && (
+          <ErrorState
+            title={lang === "uz" ? "Hisobot yuklanmadi" : "Отчёт не загрузился"}
+            description={lang === "uz" ? "Ulanishni tekshirib, qayta urinib ko'ring." : "Проверьте соединение и повторите попытку."}
+            onRetry={loadReport}
+            isRetrying={loading}
+          />
+        )}
+        {!loading && !loadFailed && data && (
           <div className="flex-1 overflow-y-auto">
             {/* Header */}
             <div className="p-6 pb-4 border-b">

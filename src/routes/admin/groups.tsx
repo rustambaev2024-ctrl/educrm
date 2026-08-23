@@ -24,16 +24,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -353,6 +343,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
   const [studentSearch, setStudentSearch] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [forceDeleteOpen, setForceDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [paymentsCount, setPaymentsCount] = useState(0);
   const [removeStudentTarget, setRemoveStudentTarget] = useState<{ id: string; name: string } | null>(null);
   const open = group !== null;
@@ -391,6 +382,8 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
   };
 
   const doDelete = async (force = false) => {
+    if (isDeleting) return;
+    setIsDeleting(true);
     try {
       if (force) {
         await groupApi.deleteForce(group.id);
@@ -410,6 +403,8 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
       } else {
         toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
       }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -594,40 +589,32 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
         </div>
       </SheetContent>
     </Sheet>
-    <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{lang === "uz" ? "Guruhni o'chirish" : "Удалить группу?"}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {lang === "uz" ? "Guruhni butunlay o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi." : "Удалить группу полностью? Это действие необратимо."}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
-          <AlertDialogAction onClick={() => doDelete(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            {lang === "uz" ? "O'chirish" : "Удалить"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-    <AlertDialog open={forceDeleteOpen} onOpenChange={setForceDeleteOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{lang === "uz" ? "To'lovlar bor — baribir o'chirasizmi?" : "В группе есть платежи — продолжить?"}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {lang === "uz"
-              ? `Bu guruhda ${paymentsCount} ta to'lov mavjud. O'chirilsa, o'qituvchi daromadi hisobidan bu to'lovlar tushib qoladi.`
-              : `В этой группе ${paymentsCount} платежей. При удалении они выпадут из расчёта дохода учителя.`}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
-          <AlertDialogAction onClick={() => doDelete(true)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            {lang === "uz" ? "Baribir o'chirish" : "Всё равно удалить"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={confirmDeleteOpen}
+      onOpenChange={setConfirmDeleteOpen}
+      title={lang === "uz" ? "Guruhni o'chirish" : "Удалить группу?"}
+      description={lang === "uz" ? "Guruhni butunlay o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi." : "Удалить группу полностью? Это действие необратимо."}
+      confirmText={lang === "uz" ? "O'chirish" : "Удалить"}
+      cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+      variant="destructive"
+      isLoading={isDeleting}
+      onConfirm={() => doDelete(false)}
+    />
+    <ConfirmDialog
+      open={forceDeleteOpen}
+      onOpenChange={setForceDeleteOpen}
+      title={lang === "uz" ? "To'lovlar bor — baribir o'chirasizmi?" : "В группе есть платежи — продолжить?"}
+      description={
+        lang === "uz"
+          ? `Bu guruhda ${paymentsCount} ta to'lov mavjud. O'chirilsa, o'qituvchi daromadi hisobidan bu to'lovlar tushib qoladi.`
+          : `В этой группе ${paymentsCount} платежей. При удалении они выпадут из расчёта дохода учителя.`
+      }
+      confirmText={lang === "uz" ? "Baribir o'chirish" : "Всё равно удалить"}
+      cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+      variant="destructive"
+      isLoading={isDeleting}
+      onConfirm={() => doDelete(true)}
+    />
     <ConfirmDialog
       open={removeStudentTarget !== null}
       onOpenChange={(next) => !next && setRemoveStudentTarget(null)}
