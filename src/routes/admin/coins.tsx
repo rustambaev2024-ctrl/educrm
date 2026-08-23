@@ -23,7 +23,8 @@ import {
 import { coinApi } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
-import { formatDate } from "@/lib/format";
+import { formatDate, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 
 export const Route = createFileRoute("/admin/coins")({ component: AdminCoinsPage });
 
@@ -38,14 +39,6 @@ interface OrderData {
 interface LeaderRow {
   rank: number; student_name: string; xp: number; level: number; balance: number;
 }
-
-const AVATAR_COLORS = [
-  "bg-info-soft text-info", "bg-ok-soft text-ok",
-  "bg-chart-5/10 text-chart-5", "bg-warn-soft text-warn",
-  "bg-chart-5/10 text-chart-5",
-];
-const initials = (name: string) => name.split(" ").slice(0, 2).map((p) => p[0] ?? "").join("").toUpperCase();
-const colorFor = (name: string) => AVATAR_COLORS[(name.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 function AdminCoinsPage() {
   const { lang } = useI18n();
@@ -210,7 +203,7 @@ function LeadersTab() {
       {rows.map((r) => (
         <Card key={r.rank} className="flex items-center gap-3 p-3 shadow-elegant">
           <div className={`flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${rankColor(r.rank)}`}>{r.rank}</div>
-          <div className={`flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${colorFor(r.student_name)}`}>{initials(r.student_name)}</div>
+          <div className={`flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${getAvatarColor(r.student_name)}`}>{initialsOf(r.student_name)}</div>
           <div className="min-w-0 flex-1">
             <div className="truncate font-medium">{r.student_name}</div>
             <div className="text-xs text-muted-foreground">{tr("Daraja", "Уровень")} {r.level}</div>

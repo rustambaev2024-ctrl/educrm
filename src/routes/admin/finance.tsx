@@ -43,7 +43,8 @@ import { useData } from "@/lib/data/store";
 import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { isDebtor, totalDebt as sumDebt } from "@/lib/data/definitions";
 import { useI18n } from "@/lib/i18n";
-import { formatDate, formatMoney, getLocalDateTimeString } from "@/lib/format";
+import { formatDate, formatMoney, getLocalDateTimeString, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 import type { Payment, PaymentMethod } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
@@ -54,27 +55,6 @@ type PaymentFilter = "all" | "in" | "out" | "manual";
 
 const localDateInputValue = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
-const getAvatarStyle = (name: string) => {
-  const colors = [
-    { bg: "var(--info-soft)", text: "var(--info)" },
-    { bg: "var(--ok-soft)", text: "var(--ok)" },
-    { bg: "color-mix(in srgb, var(--chart-5) 15%, transparent)", text: "var(--chart-5)" },
-    { bg: "var(--warn-soft)", text: "var(--warn)" },
-    { bg: "color-mix(in srgb, var(--chart-5) 15%, transparent)", text: "var(--chart-5)" },
-  ];
-  return colors[(name.trim().charCodeAt(0) || 0) % colors.length];
-};
-
-
-const initials = (name: string) =>
-  name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 
 const isManualPayment = (payment: Payment) => payment.type === "manual_top_up" || payment.type === "manual_charge";
 const isOutgoingPayment = (payment: Payment) =>
@@ -352,11 +332,14 @@ function FinancePage() {
                       <TableRow key={p.id} className="transition-colors hover:bg-muted/30">
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            {(() => { const av = getAvatarStyle(name); return (
-                              <div style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: av.bg, color: av.text, flexShrink: 0 }}>
-                                {initials(name)}
-                              </div>
-                            ); })()}
+                            <div
+                              className={cn(
+                                "flex size-[34px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white",
+                                getAvatarColor(name),
+                              )}
+                            >
+                              {initialsOf(name)}
+                            </div>
                             <div className="min-w-0">
                               <div className="truncate font-semibold text-foreground">{name}</div>
                               <div className="mt-px truncate text-[11px] text-muted-foreground">

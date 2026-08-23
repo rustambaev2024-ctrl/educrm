@@ -29,7 +29,8 @@ import {
 import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
 import { useData, apiErrorMessage } from "@/lib/data/store";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 import type { Student, StudentStatus } from "@/lib/data/types";
 import { studentApi } from "@/lib/api";
 import { mapStudents } from "@/lib/data/mappers";
@@ -52,22 +53,6 @@ const STATUS_OPTIONS: StatusFilter[] = [
   "expelled",
   "archived",
 ];
-
-const _avaBg  = ["var(--info-soft)","var(--ok-soft)","color-mix(in srgb, var(--chart-5) 15%, transparent)","var(--warn-soft)","color-mix(in srgb, var(--chart-5) 15%, transparent)"];
-const _avaTxt = ["var(--info)","var(--ok)","var(--chart-5)","var(--warn)","var(--chart-5)"];
-const getAvatarStyle = (name: string) => {
-  const i = (name.trim().charCodeAt(0) || 0) % 5;
-  return { bg: _avaBg[i], text: _avaTxt[i] };
-};
-
-const studentInitials = (name: string) =>
-  name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 
 const studentStatusClass = (status: StudentStatus) => {
   const map: Record<StudentStatus, string> = {
@@ -370,20 +355,18 @@ export function StudentsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          {(() => {
-                            const av = getAvatarStyle(s.fullName);
-                            return (
-                              <div
-                                style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: av.bg, color: av.text, flexShrink: 0, overflow: "hidden" }}
-                              >
-                                {s.photo ? (
-                                  <img src={s.photo} alt={s.fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                ) : (
-                                  studentInitials(s.fullName)
-                                )}
-                              </div>
-                            );
-                          })()}
+                          <div
+                            className={cn(
+                              "flex size-[34px] shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold text-white",
+                              getAvatarColor(s.fullName),
+                            )}
+                          >
+                            {s.photo ? (
+                              <img src={s.photo} alt={s.fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            ) : (
+                              initialsOf(s.fullName)
+                            )}
+                          </div>
                           <div className="min-w-0">
                             <div className="truncate font-semibold text-foreground">{s.fullName}</div>
                             <div className="mt-px text-[11px] text-muted-foreground">{s.phone}</div>

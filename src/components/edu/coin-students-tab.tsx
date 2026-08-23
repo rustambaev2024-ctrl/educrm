@@ -19,19 +19,13 @@ import {
 import { coinApi } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
+import { initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 
 interface WalletData {
   id: string; balance: number; xp: number; level: number; streak: number;
   student_name: string; student_id: string;
 }
-
-const AVATAR_COLORS = [
-  "bg-info-soft text-info", "bg-ok-soft text-ok",
-  "bg-chart-5/10 text-chart-5", "bg-warn-soft text-warn",
-  "bg-chart-5/10 text-chart-5",
-];
-const initials = (name: string) => name.split(" ").slice(0, 2).map((p) => p[0] ?? "").join("").toUpperCase();
-const colorFor = (name: string) => AVATAR_COLORS[(name.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 /**
  * Кошельки учеников с начислением и списанием монет.
@@ -110,7 +104,7 @@ export function CoinStudentsTab() {
               <TableRow key={w.id}>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
-                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${colorFor(w.student_name)}`}>{initials(w.student_name)}</div>
+                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${getAvatarColor(w.student_name)}`}>{initialsOf(w.student_name)}</div>
                     <span className="font-medium">{w.student_name}</span>
                   </div>
                 </TableCell>

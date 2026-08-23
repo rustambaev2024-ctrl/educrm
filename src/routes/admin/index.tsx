@@ -9,21 +9,14 @@ import { sumIncome } from "@/lib/data/mappers";
 import { useI18n } from "@/lib/i18n";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { countActiveStudents, isDebtor } from "@/lib/data/definitions";
-import { formatMoney, formatTime, getLocalDateString, sameDay } from "@/lib/format";
+import { formatMoney, formatTime, getLocalDateString, initialsOf, sameDay } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 
 /** Сколько уроков показываем на панели. Остаток не исчезает: под списком
  *  появляется строка «Ещё N» с переходом в расписание. */
 const TODAY_LESSONS_VISIBLE = 7;
 
 export const Route = createFileRoute("/admin/")({ component: AdminHome });
-
-/* avatar color index 0-4 */
-const avaIdx = (name: string) => (name.trim().charCodeAt(0) || 0) % 5;
-const avaBg  = ["var(--info-soft)","var(--ok-soft)","color-mix(in srgb, var(--chart-5) 15%, transparent)","var(--warn-soft)","color-mix(in srgb, var(--chart-5) 15%, transparent)"];
-const avaTxt = ["var(--info)","var(--ok)","var(--chart-5)","var(--warn)","var(--chart-5)"];
-
-const initials = (name: string) =>
-  name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 
 const lessonStatusBadge: Record<string, { cls: string; uz: string; ru: string }> = {
   scheduled:  { cls: "badge-plan",   uz: "Rejalashtirilgan", ru: "Запланирован" },
@@ -235,15 +228,16 @@ function AdminHome() {
                 const name     = student?.fullName ?? paymentTypeLabels[payment.type]?.uz ?? tr("To'lov", "Платеж");
                 const isCharge = payment.type === "charge" || payment.type === "manual_charge" || payment.direction === "out";
                 const typeLabel = paymentTypeLabels[payment.type] ?? { uz: payment.type, ru: payment.type };
-                const idx = avaIdx(name);
                 return (
                   <div
                     key={payment.id}
                     className="edu-row"
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid var(--border-light)" }}
                   >
-                    <div style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: avaBg[idx], color: avaTxt[idx] }}>
-                      {initials(name)}
+                    <div
+                      className={`flex size-[30px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${getAvatarColor(name)}`}
+                    >
+                      {initialsOf(name)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, color: "var(--foreground)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
