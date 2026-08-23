@@ -9,6 +9,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import {
   Tabs,
   TabsContent,
@@ -197,12 +199,21 @@ function FinancePage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t("finance.title")} subtitle={t("finance.subtitle")}>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <Skeleton className="h-10 w-full max-w-md rounded-lg" />
+          <ListSkeleton rows={6} />
+        </div>
+      </PageShell>
     );
   }
-  
+
   return (
     <PageShell
       title={t("finance.title")}
@@ -229,17 +240,19 @@ function FinancePage() {
 
         <Tabs defaultValue="wallets">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <TabsList>
-              <TabsTrigger value="wallets">{lang === "uz" ? "Hamyonlar" : "Кошельки"}</TabsTrigger>
-              <TabsTrigger value="payments">{t("finance.tab.payments")}</TabsTrigger>
-              <TabsTrigger value="debtors">
-                {t("finance.tab.debtors")}
-                {debtors.length > 0 && <Badge className="ml-2 h-4 min-w-4 px-1 text-[10px]">{debtors.length}</Badge>}
-              </TabsTrigger>
-              <TabsTrigger value="expenses">{t("finance.tab.expenses")}</TabsTrigger>
-              <TabsTrigger value="history">{lang === "uz" ? "Tarix" : "История"}</TabsTrigger>
-            </TabsList>
-            
+            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+              <TabsList>
+                <TabsTrigger value="wallets">{lang === "uz" ? "Hamyonlar" : "Кошельки"}</TabsTrigger>
+                <TabsTrigger value="payments">{t("finance.tab.payments")}</TabsTrigger>
+                <TabsTrigger value="debtors">
+                  {t("finance.tab.debtors")}
+                  {debtors.length > 0 && <Badge className="ml-2 h-4 min-w-4 px-1 text-[10px]">{debtors.length}</Badge>}
+                </TabsTrigger>
+                <TabsTrigger value="expenses">{t("finance.tab.expenses")}</TabsTrigger>
+                <TabsTrigger value="history">{lang === "uz" ? "Tarix" : "История"}</TabsTrigger>
+              </TabsList>
+            </div>
+
             <div className="flex items-center gap-2">
               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
               <span>-</span>
@@ -262,8 +275,8 @@ function FinancePage() {
                 <TableBody>
                   {wallets.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                        {t("finance.empty")}
+                      <TableCell colSpan={5} className="p-0">
+                        <EmptyState icon={<Wallet className="size-7" />} title={t("finance.empty")} />
                       </TableCell>
                     </TableRow>
                   )}
@@ -314,8 +327,8 @@ function FinancePage() {
                 <TableBody>
                   {filteredPayments.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
-                        {t("finance.empty")}
+                      <TableCell colSpan={7} className="p-0">
+                        <EmptyState icon={<Receipt className="size-7" />} title={t("finance.empty")} />
                       </TableCell>
                     </TableRow>
                   )}
@@ -400,6 +413,13 @@ function FinancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {periodPayments.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="p-0">
+                        <EmptyState icon={<Receipt className="size-7" />} title={t("finance.empty")} />
+                      </TableCell>
+                    </TableRow>
+                  )}
                   {[...periodPayments].sort((a,b) => b.date.localeCompare(a.date)).map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.studentId ? studentById[p.studentId]?.fullName : "—"}</TableCell>
@@ -427,11 +447,8 @@ function FinancePage() {
 
           <TabsContent value="debtors" className="mt-4">
             {debtors.length === 0 ? (
-              <div className="edu-card flex flex-col items-center gap-3 p-12 text-center">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-ok-soft text-ok">
-                  <Wallet className="size-6" />
-                </div>
-                <div className="text-[15px] font-semibold text-foreground">{t("finance.emptyDebtors")}</div>
+              <div className="edu-card">
+                <EmptyState icon={<Wallet className="size-7" />} title={t("finance.emptyDebtors")} />
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -470,8 +487,8 @@ function FinancePage() {
                 <TableBody>
                   {outgoingPayments.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                        {t("finance.empty")}
+                      <TableCell colSpan={5} className="p-0">
+                        <EmptyState icon={<TrendingDown className="size-7" />} title={t("finance.empty")} />
                       </TableCell>
                     </TableRow>
                   )}
