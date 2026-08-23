@@ -128,6 +128,7 @@ export function StudentsPage() {
       setTotalCount(count);
     } catch (err) {
       console.warn("[students] load failed:", err);
+      toast.error(apiErrorMessage(err));
     } finally {
       setPageLoading(false);
     }
