@@ -48,20 +48,24 @@ export function CoinStudentsTab() {
   const [form, setForm] = useState({ studentId: "", amount: "", comment: "" });
 
   const load = (opts?: { silent?: boolean }) => {
-    setLoading(true);
+    // silent: true — фоновый рефреш после submit() (начисление/списание).
+    // Он не должен трогать loading — иначе `if (loading) return
+    // <ListSkeleton>` схлопывает всё дерево (кнопки, таблицу) полноэкранным
+    // скелетоном сразу после успешного действия пользователя.
+    if (!opts?.silent) setLoading(true);
     coinApi.wallet.list()
       .then((d) => {
         setWallets(d as WalletData[]);
         setLoadFailed(false);
       })
       .catch((err) => {
-        // Фоновый рефреш после submit() (silent) не должен схлопывать уже
+        // Та же логика для ошибки: тихий рефреш не должен схлопывать уже
         // отображённый список кошельков в полноэкранную ErrorState из-за
         // временного сбоя сети — только тост, список остаётся как есть.
         if (!opts?.silent) setLoadFailed(true);
         toast.error(apiErrorMessage(err));
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   };
   useEffect(() => { load(); }, []);
 

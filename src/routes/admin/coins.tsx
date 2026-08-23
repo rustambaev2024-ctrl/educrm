@@ -82,20 +82,25 @@ function OrdersTab() {
   const [cancelling, setCancelling] = useState(false);
 
   const load = (opts?: { silent?: boolean }) => {
-    setLoading(true);
+    // silent: true — фоновый рефреш после applyStatus() (в т.ч. отмены
+    // заказа через ConfirmDialog). Он не должен трогать loading — иначе
+    // `if (loading) return <ListSkeleton>` схлопывает всё дерево, включая
+    // ещё открытый ConfirmDialog, полноэкранным скелетоном сразу после
+    // успешного действия пользователя.
+    if (!opts?.silent) setLoading(true);
     coinApi.orders.list()
       .then((d) => {
         setOrders(d as OrderData[]);
         setLoadFailed(false);
       })
       .catch((err) => {
-        // Фоновый рефреш после applyStatus() (silent) не должен схлопывать
-        // уже отображённый список в полноэкранную ErrorState из-за
-        // временного сбоя сети — только тост, список остаётся как есть.
+        // Та же логика для ошибки: тихий рефреш не должен схлопывать уже
+        // отображённый список в полноэкранную ErrorState из-за временного
+        // сбоя сети — только тост, список остаётся как есть.
         if (!opts?.silent) setLoadFailed(true);
         toast.error(apiErrorMessage(err));
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   };
   useEffect(() => { load(); }, []);
 
@@ -216,18 +221,21 @@ function LeadersTab() {
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const load = (opts?: { silent?: boolean }) => {
+    // Сейчас у лидерборда нет мутаций, вызывающих silent-рефреш, но опция
+    // проведена симметрично OrdersTab/CoinStudentsTab — если такой рефреш
+    // появится, loading не должен схлопнуть отрисованный список.
+    if (!opts?.silent) setLoading(true);
     coinApi.leaderboard.get()
       .then((d) => {
         setRows(d as LeaderRow[]);
         setLoadFailed(false);
       })
       .catch((err) => {
-        setLoadFailed(true);
+        if (!opts?.silent) setLoadFailed(true);
         toast.error(apiErrorMessage(err));
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   };
   useEffect(() => { load(); }, []);
 
