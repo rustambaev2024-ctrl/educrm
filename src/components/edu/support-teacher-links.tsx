@@ -40,7 +40,7 @@ export function SupportTeacherLinks() {
   const [picker, setPicker] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
     setLoading(true);
     try {
       const raw = (await supportTeacherApi.links.list()) as LinkRaw[];
@@ -48,7 +48,10 @@ export function SupportTeacherLinks() {
       setLoadFailed(false);
     } catch (err) {
       console.error("[support-teacher-links] load failed:", err);
-      setLoadFailed(true);
+      // Фоновый рефреш после attach() (silent) не должен схлопывать рабочий
+      // список в полноэкранную ErrorState из-за временного сбоя сети — на
+      // экране всё ещё валидный (пусть и стейл) список, только тост.
+      if (!opts?.silent) setLoadFailed(true);
       toast.error(apiErrorMessage(err));
     } finally {
       setLoading(false);
@@ -74,7 +77,7 @@ export function SupportTeacherLinks() {
     try {
       await supportTeacherApi.links.create({ support_teacher: supportUserId, teacher: teacherId });
       setPicker((prev) => ({ ...prev, [supportUserId]: "" }));
-      await load();
+      await load({ silent: true });
       toast.success(lang === "uz" ? "O'qituvchi biriktirildi" : "Учитель привязан");
     } catch (err) {
       console.error("[support-teacher-links] attach failed:", err);
