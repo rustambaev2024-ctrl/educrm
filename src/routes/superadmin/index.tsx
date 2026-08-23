@@ -251,10 +251,11 @@ function SuperadminHome() {
   };
 
   const confirmDeleteBranch = async () => {
-    if (!branchDeleteTarget) return;
+    if (!branchDeleteTarget || !branchDeleteTarget.institutionId) return;
     setDeletingBranch(true);
     try {
-      deleteBranch(branchDeleteTarget.id);
+      await superadminApi.branches.delete(branchDeleteTarget.institutionId, branchDeleteTarget.id);
+      deleteBranch(branchDeleteTarget.id, { alreadyDeleted: true });
       toast.success(t("sa.branches.deleted"));
       setBranchDeleteTarget(null);
     } catch (err) {
