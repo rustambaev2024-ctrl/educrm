@@ -1,10 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Bell, CheckCheck } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton } from "@/components/ui/skeleton";
 import { notificationApi } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
@@ -28,29 +32,41 @@ function NotificationsPage() {
   const { lang } = useI18n();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [typeFilter, setTypeFilter] = useState("all");
 
-  useEffect(() => {
+  const loadData = () => {
     setLoading(true);
     notificationApi.list()
-      .then((res: any) => setNotifications(Array.isArray(res) ? res : res.results ?? []))
-      .catch(console.error)
+      .then((res: any) => {
+        setNotifications(Array.isArray(res) ? res : res.results ?? []);
+        setLoadFailed(false);
+      })
+      .catch(() => setLoadFailed(true))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const markAllRead = async () => {
     try {
       await notificationApi.markAllRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+    }
   };
 
   const markRead = async (id: string) => {
     try {
       await notificationApi.markRead(id);
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
+    }
   };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -60,11 +76,36 @@ function NotificationsPage() {
     return true;
   });
 
+  const pageTitle = lang === "uz" ? "Bildirishnomalar" : "Уведомления";
+  const pageSubtitle = lang === "uz" ? "Barcha xabar va ogohlantirishlar" : "Все уведомления и напоминания";
+
+  if (loading) {
+    return (
+      <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
+        <ListSkeleton rows={5} />
+      </PageShell>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
+        <ErrorState
+          title={lang === "uz" ? "Ma'lumotlar yuklanmadi" : "Данные не загрузились"}
+          description={
+            lang === "uz"
+              ? "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring."
+              : "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите."
+          }
+          onRetry={loadData}
+          retryLabel={lang === "uz" ? "Qayta urinish" : "Повторить"}
+        />
+      </PageShell>
+    );
+  }
+
   return (
-    <PageShell
-      title={lang === "uz" ? "Bildirishnomalar" : "Уведомления"}
-      subtitle={lang === "uz" ? "Barcha xabar va ogohlantirishlar" : "Все уведомления и напоминания"}
-    >
+    <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
@@ -96,22 +137,12 @@ function NotificationsPage() {
           )}
         </div>
 
-        {loading && (
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {!loading && filtered.length === 0 && (
-          <div className="text-center py-16 text-muted-foreground">
-            <Bell className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p>{lang === "uz" ? "Bildirishnomalar yo'q" : "Уведомлений нет"}</p>
-          </div>
-        )}
-
-        {!loading && (
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon={<Bell className="size-6" />}
+            title={lang === "uz" ? "Bildirishnomalar yo'q" : "Уведомлений нет"}
+          />
+        ) : (
           <div className="space-y-2">
             {filtered.map((n) => {
               const cfg = typeConfig[n.notification_type] ?? typeConfig.default;
