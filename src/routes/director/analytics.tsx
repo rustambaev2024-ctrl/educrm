@@ -87,7 +87,11 @@ function AnalyticsPage() {
   const hasCourseOccupancy = courseOccupancy.some((c) => c.value > 0);
 
   if (isLoading) {
-    return <PageLoadingState />;
+    return (
+      <PageShell title={t("nav.analytics")} subtitle={t("director.subtitle")}>
+        <PageLoadingState />
+      </PageShell>
+    );
   }
 
   return (
