@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { AlertCircle, ArrowRight, Clock, DollarSign, MapPin, TrendingUp, UserPlus, Users } from "lucide-react";
+import { AlertCircle, ArrowRight, Calendar, Clock, DollarSign, MapPin, Receipt, TrendingUp, UserPlus, Users } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { StatCardSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { useData } from "@/lib/data/store";
 import { sumIncome } from "@/lib/data/mappers";
@@ -112,90 +113,77 @@ function AdminHome() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
         {/* Today's lessons */}
-        <div className="edu-card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--muted)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="edu-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-muted px-3.5 py-3">
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--foreground)" }}>{tr("Bugungi darslar", "Сегодняшние уроки")}</div>
-              <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>
+              <div className="text-[13px] font-bold text-foreground">{tr("Bugungi darslar", "Сегодняшние уроки")}</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
                 {todayLessons.length} {tr("ta dars", "урок(ов)")}
               </div>
             </div>
             <button
               onClick={() => navigate({ to: "/admin/schedule" })}
-              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "var(--muted)", color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+              className="rounded-md bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70"
             >
               {tr("Barchasi", "Все")}
             </button>
           </div>
 
           {todayLessons.length === 0 ? (
-            <div style={{ padding: "36px 14px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 13 }}>
-              {tr("Bugun darslar yo'q", "Сегодня уроков нет")}
-            </div>
+            <EmptyState
+              icon={<Calendar className="size-6" />}
+              title={tr("Bugun darslar yo'q", "Сегодня уроков нет")}
+            />
           ) : (
             <div>
-              {todayLessons.slice(0, TODAY_LESSONS_VISIBLE).map((lesson) => {
-                const group = groupById[lesson.groupId];
-                if (!group) return null;
-                const teacher  = teacherById[group.teacherId];
-                const room     = roomById[lesson.roomId];
-                const course   = courseById[group.courseId];
-                const meta     = lessonStatusBadge[lesson.status] ?? lessonStatusBadge.scheduled;
-                return (
-                  <div
-                    key={lesson.id}
-                    className="edu-row"
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid var(--border-light)" }}
-                  >
-                    <div style={{ minWidth: 44, fontWeight: 700, color: "var(--primary)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
-                      <Clock style={{ width: 11, height: 11 }} />
-                      {formatTime(lesson.datetime)}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "var(--foreground)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {course?.name ?? group.name}
-                        {" "}<span style={{ fontWeight: 400, color: "var(--muted-foreground)" }}>{group.name}</span>
+              <div className="divide-y divide-border">
+                {todayLessons.slice(0, TODAY_LESSONS_VISIBLE).map((lesson) => {
+                  const group = groupById[lesson.groupId];
+                  if (!group) return null;
+                  const teacher  = teacherById[group.teacherId];
+                  const room     = roomById[lesson.roomId];
+                  const course   = courseById[group.courseId];
+                  const meta     = lessonStatusBadge[lesson.status] ?? lessonStatusBadge.scheduled;
+                  return (
+                    <div
+                      key={lesson.id}
+                      className="edu-row flex min-h-11 items-center gap-3 px-4 py-2.5"
+                    >
+                      <div className="flex min-w-11 items-center gap-1 text-[12px] font-bold text-primary">
+                        <Clock className="size-3" />
+                        {formatTime(lesson.datetime)}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1, display: "flex", gap: 8 }}>
-                        {teacher?.fullName && <span>{teacher.fullName.split(" ")[0]}</span>}
-                        {room?.name && (
-                          <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                            <MapPin style={{ width: 10, height: 10 }} />
-                            {room.name}
-                          </span>
-                        )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13px] font-semibold text-foreground">
+                          {course?.name ?? group.name}
+                          {" "}<span className="font-normal text-muted-foreground">{group.name}</span>
+                        </div>
+                        <div className="mt-px flex gap-2 text-[11px] text-muted-foreground">
+                          {teacher?.fullName && <span>{teacher.fullName.split(" ")[0]}</span>}
+                          {room?.name && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="size-2.5" />
+                              {room.name}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      <span className={meta.cls}>{tr(meta.uz, meta.ru)}</span>
                     </div>
-                    <span className={meta.cls}>{tr(meta.uz, meta.ru)}</span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
 
               {todayLessons.length > TODAY_LESSONS_VISIBLE && (
                 <button
                   onClick={() => navigate({ to: "/admin/schedule" })}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    width: "100%",
-                    minHeight: 44,
-                    padding: "10px 14px",
-                    border: "none",
-                    borderTop: "1px solid var(--border-color)",
-                    background: "transparent",
-                    color: "var(--brand)",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
+                  className="flex min-h-11 w-full items-center justify-center gap-1.5 border-t border-border bg-transparent px-3.5 py-2.5 text-[12px] font-semibold text-primary transition-colors hover:bg-muted/50"
                 >
                   {tr(
                     `Yana ${todayLessons.length - TODAY_LESSONS_VISIBLE} ta dars`,
                     `Ещё ${todayLessons.length - TODAY_LESSONS_VISIBLE} ${plural(todayLessons.length - TODAY_LESSONS_VISIBLE, "урок", "урока", "уроков")}`,
                   )}
-                  <ArrowRight style={{ width: 13, height: 13 }} />
+                  <ArrowRight className="size-[13px]" />
                 </button>
               )}
             </div>
@@ -203,26 +191,27 @@ function AdminHome() {
         </div>
 
         {/* Recent payments */}
-        <div className="edu-card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--muted)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="edu-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-muted px-3.5 py-3">
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--foreground)" }}>{tr("So'nggi to'lovlar", "Последние платежи")}</div>
-              <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
+              <div className="text-[13px] font-bold text-foreground">{tr("So'nggi to'lovlar", "Последние платежи")}</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
             </div>
             <button
               onClick={() => navigate({ to: "/admin/finance" })}
-              style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "var(--muted)", color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+              className="rounded-md bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70"
             >
               {tr("Barchasi", "Все")}
             </button>
           </div>
 
           {recentPayments.length === 0 ? (
-            <div style={{ padding: "36px 14px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 13 }}>
-              {tr("To'lovlar yo'q", "Платежей нет")}
-            </div>
+            <EmptyState
+              icon={<Receipt className="size-6" />}
+              title={tr("To'lovlar yo'q", "Платежей нет")}
+            />
           ) : (
-            <div>
+            <div className="divide-y divide-border">
               {recentPayments.map((payment) => {
                 const student  = payment.studentId ? studentById[payment.studentId] : undefined;
                 const name     = student?.fullName ?? paymentTypeLabels[payment.type]?.uz ?? tr("To'lov", "Платеж");
@@ -231,19 +220,18 @@ function AdminHome() {
                 return (
                   <div
                     key={payment.id}
-                    className="edu-row"
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid var(--border-light)" }}
+                    className="edu-row flex min-h-11 items-center gap-3 px-4 py-2.5"
                   >
                     <div
                       className={`flex size-[30px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${getAvatarColor(name)}`}
                     >
                       {initialsOf(name)}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "var(--foreground)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px] font-semibold text-foreground">
                         {name}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1 }}>
+                      <div className="mt-px text-[11px] text-muted-foreground">
                         {formatTime(payment.date)} · {payment.method ?? tr(typeLabel.uz, typeLabel.ru)}
                       </div>
                     </div>
