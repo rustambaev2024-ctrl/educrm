@@ -21,15 +21,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useData } from "@/lib/data/store";
+import { useData, apiErrorMessage } from "@/lib/data/store";
 import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, initialsOf } from "@/lib/format";
 import type { Staff } from "@/lib/data/types";
 import { SupportTeacherLinks } from "@/components/edu/support-teacher-links";
 
@@ -69,6 +66,7 @@ function StaffPage() {
   const [form, setForm] = useState<FormState>(empty);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Staff | null>(null);
 
   const branchById = useMemo(() => Object.fromEntries(branches.map((b) => [b.id, b])), [branches]);
 
@@ -151,8 +149,8 @@ function StaffPage() {
         toast.success(t("staff.created"));
       }
       setOpen(false);
-    } catch {
-      toast.error(t("common.error") ?? "Xatolik yuz berdi");
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -164,8 +162,9 @@ function StaffPage() {
     try {
       await deleteStaff(s.id);
       toast.success(t("staff.deleted"));
-    } catch {
-      toast.error(t("common.error") ?? "Xatolik yuz berdi");
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setIsDeletingId(null);
     }
@@ -239,7 +238,7 @@ function StaffPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className={cn("flex size-9 items-center justify-center rounded-full text-xs font-semibold text-white", getAvatarColor(s.fullName))}>
-                          {s.fullName.split(" ").slice(0, 2).map((p) => p[0]).join("")}
+                          {initialsOf(s.fullName)}
                         </div>
                         <div>
                           <div className="font-medium leading-tight">{s.fullName}</div>
@@ -272,30 +271,14 @@ function StaffPage() {
                           </TooltipTrigger>
                           <TooltipContent>{t("staff.edit")}</TooltipContent>
                         </Tooltip>
-                        <AlertDialog>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <AlertDialogTrigger asChild>
-                                <Button size="icon" variant="ghost" className="text-destructive max-sm:size-11">
-                                  <Trash2 className="size-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>{t("staff.delete")}</TooltipContent>
-                          </Tooltip>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>{t("staff.delete")}</AlertDialogTitle>
-                              <AlertDialogDescription>{t("common.confirmDelete")} — {s.fullName}</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => remove(s)} disabled={isDeletingId === s.id} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                {isDeletingId === s.id ? "..." : t("common.delete")}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" className="text-destructive max-sm:size-11" onClick={() => setDeleteTarget(s)}>
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{t("staff.delete")}</TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -402,6 +385,18 @@ function StaffPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(next) => !next && setDeleteTarget(null)}
+        title={t("staff.delete")}
+        description={deleteTarget ? `${t("common.confirmDelete")} — ${deleteTarget.fullName}` : undefined}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
+        variant="destructive"
+        isLoading={deleteTarget !== null && isDeletingId === deleteTarget.id}
+        onConfirm={() => deleteTarget && remove(deleteTarget)}
+      />
     </PageShell>
   );
 }
