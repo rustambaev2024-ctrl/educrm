@@ -5,10 +5,13 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CardSkeleton, Skeleton } from "@/components/ui/skeleton";
+import { PageShell } from "@/components/edu/page-shell";
+import { dueState } from "@/components/edu/homework-review-panel";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentStudentId } from "@/lib/data/identity";
@@ -16,15 +19,6 @@ import { formatDate } from "@/lib/format";
 import type { Homework } from "@/lib/data/types";
 
 export const Route = createFileRoute("/student/homework")({ component: StudentHomeworkPage });
-
-function dueState(dueIso: string) {
-  const now = new Date();
-  const due = new Date(dueIso);
-  const diff = Math.ceil((due.getTime() - now.getTime()) / 86400000);
-  if (diff < 0) return { tone: "bg-destructive/10 text-destructive", label: "overdue" as const, days: -diff };
-  if (diff === 0) return { tone: "bg-warning/15 text-warning", label: "today" as const, days: 0 };
-  return { tone: "bg-success/10 text-success", label: "upcoming" as const, days: diff };
-}
 
 function StudentHomeworkPage() {
   const { t, lang } = useI18n();
@@ -65,12 +59,16 @@ function StudentHomeworkPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-md space-y-4 px-4 py-5">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-10 w-full rounded-lg" />
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <Skeleton className="h-24 w-full rounded-xl" />
-      </div>
+      <PageShell title={t("shw.title")}>
+        <div className="mx-auto max-w-md space-y-4">
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <div className="space-y-3">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        </div>
+      </PageShell>
     );
   }
 
@@ -102,7 +100,7 @@ function StudentHomeworkPage() {
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-[10px]">{grp?.name}</Badge>
           <span className={`ml-auto rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${due.tone}`}>
-            {due.label === "overdue" ? `${t("hw.overdue")} ${due.days}${lang === "uz" ? " kun" : " дн."}` : due.label === "today" ? t("hw.dueToday") : t("hw.dueIn").replace("{n}", String(due.days))}
+            {due.key === "overdue" ? `${t("hw.overdue")} ${due.days}${lang === "uz" ? " kun" : " дн."}` : due.key === "dueToday" ? t("hw.dueToday") : t("hw.dueIn").replace("{n}", String(due.days))}
           </span>
         </div>
         <h3 className="mt-2 text-sm font-semibold">{h.title}</h3>
@@ -113,7 +111,7 @@ function StudentHomeworkPage() {
         </div>
         {sub && sub.status === "graded" && sub.grade !== undefined && (
           <div className="mt-2 flex items-center gap-1.5 rounded-md bg-success/10 px-2 py-1 text-xs font-semibold text-success">
-            <Star className="size-3.5" /> {sub.grade}/10
+            <Star className="size-3.5" /> {sub.grade}/5
           </div>
         )}
         {sub && sub.status === "submitted" && (
@@ -131,38 +129,36 @@ function StudentHomeworkPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md space-y-4 px-4 py-5">
-      <div>
-        <h1 className="text-2xl font-bold">{t("shw.title")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{todo.length} {t("hw.assigned")} · {done.length} {t("subst.submitted")}</p>
+    <PageShell
+      title={t("shw.title")}
+      subtitle={`${todo.length} ${t("hw.assigned")} · ${done.length} ${t("subst.submitted")}`}
+    >
+      <div className="mx-auto max-w-md space-y-4">
+        <Tabs defaultValue="todo">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="todo">{t("shw.tab.todo")} ({todo.length})</TabsTrigger>
+            <TabsTrigger value="done">{t("shw.tab.done")} ({done.length})</TabsTrigger>
+          </TabsList>
+          <TabsContent value="todo" className="mt-3 space-y-3">
+            {todo.length === 0 ? (
+              <Card className="shadow-elegant">
+                <EmptyState icon={<CheckCircle2 className="size-6 text-success" />} title={t("shw.empty")} />
+              </Card>
+            ) : (
+              todo.map(renderCard)
+            )}
+          </TabsContent>
+          <TabsContent value="done" className="mt-3 space-y-3">
+            {done.length === 0 ? (
+              <Card className="shadow-elegant">
+                <EmptyState icon={<BookOpen className="size-6" />} title={t("shw.empty")} />
+              </Card>
+            ) : (
+              done.map(renderCard)
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs defaultValue="todo">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="todo">{t("shw.tab.todo")} ({todo.length})</TabsTrigger>
-          <TabsTrigger value="done">{t("shw.tab.done")} ({done.length})</TabsTrigger>
-        </TabsList>
-        <TabsContent value="todo" className="mt-3 space-y-3">
-          {todo.length === 0 ? (
-            <Card className="flex flex-col items-center gap-2 p-10 text-center shadow-elegant">
-              <CheckCircle2 className="size-8 text-success" />
-              <div className="text-sm font-semibold">{t("shw.empty")}</div>
-            </Card>
-          ) : (
-            todo.map(renderCard)
-          )}
-        </TabsContent>
-        <TabsContent value="done" className="mt-3 space-y-3">
-          {done.length === 0 ? (
-            <Card className="flex flex-col items-center gap-2 p-10 text-center shadow-elegant">
-              <BookOpen className="size-8 text-muted-foreground" />
-              <div className="text-sm text-muted-foreground">{t("shw.empty")}</div>
-            </Card>
-          ) : (
-            done.map(renderCard)
-          )}
-        </TabsContent>
-      </Tabs>
 
       <Sheet open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-2xl">
@@ -191,7 +187,7 @@ function StudentHomeworkPage() {
                     <Card className="space-y-2 bg-success/5 p-3 shadow-elegant">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("shw.score")}</span>
-                        <span className="rounded-md bg-success px-2 py-0.5 text-sm font-bold text-success-foreground">{sub.grade}/10</span>
+                        <span className="rounded-md bg-success px-2 py-0.5 text-sm font-bold text-success-foreground">{sub.grade}/5</span>
                       </div>
                       {sub.feedback && (
                         <div className="border-t border-border/60 pt-2">
@@ -233,6 +229,6 @@ function StudentHomeworkPage() {
           })()}
         </SheetContent>
       </Sheet>
-    </div>
+    </PageShell>
   );
 }

@@ -6,6 +6,9 @@ import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton } from "@/components/ui/skeleton";
 import { apiErrorText } from "@/lib/api-error";
 import { Input } from "@/components/ui/input";
 import { CoinStudentsTab } from "@/components/edu/coin-students-tab";
@@ -21,9 +24,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { coinApi } from "@/lib/api";
-import { useData } from "@/lib/data/store";
+import { useData, apiErrorMessage } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
-import { formatDate } from "@/lib/format";
+import { formatDate, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 
 export const Route = createFileRoute("/admin/coins")({ component: AdminCoinsPage });
 
@@ -38,14 +42,6 @@ interface OrderData {
 interface LeaderRow {
   rank: number; student_name: string; xp: number; level: number; balance: number;
 }
-
-const AVATAR_COLORS = [
-  "bg-blue-500/10 text-blue-600", "bg-emerald-500/10 text-emerald-600",
-  "bg-purple-500/10 text-purple-600", "bg-amber-500/10 text-amber-600",
-  "bg-pink-500/10 text-pink-600",
-];
-const initials = (name: string) => name.split(" ").slice(0, 2).map((p) => p[0] ?? "").join("").toUpperCase();
-const colorFor = (name: string) => AVATAR_COLORS[(name.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 function AdminCoinsPage() {
   const { lang } = useI18n();
@@ -70,10 +66,10 @@ function AdminCoinsPage() {
 
 /* ── Вкладка 2: Заказы ────────────────────────────────────────── */
 const ORDER_STATUS: Record<string, { uz: string; ru: string; cls: string }> = {
-  new: { uz: "Yangi", ru: "Новый", cls: "bg-blue-500/10 text-blue-600" },
-  confirmed: { uz: "Tasdiqlangan", ru: "Подтверждён", cls: "bg-amber-500/10 text-amber-600" },
-  delivered: { uz: "Yetkazildi", ru: "Доставлен", cls: "bg-emerald-500/10 text-emerald-600" },
-  cancelled: { uz: "Bekor qilingan", ru: "Отменён", cls: "bg-red-500/10 text-red-600" },
+  new: { uz: "Yangi", ru: "Новый", cls: "bg-info-soft text-info" },
+  confirmed: { uz: "Tasdiqlangan", ru: "Подтверждён", cls: "bg-warn-soft text-warn" },
+  delivered: { uz: "Yetkazildi", ru: "Доставлен", cls: "bg-ok-soft text-ok" },
+  cancelled: { uz: "Bekor qilingan", ru: "Отменён", cls: "bg-bad-soft text-bad" },
 };
 
 function OrdersTab() {
@@ -81,23 +77,38 @@ function OrdersTab() {
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const load = (opts?: { silent?: boolean }) => {
+    // silent: true — фоновый рефреш после applyStatus() (в т.ч. отмены
+    // заказа через ConfirmDialog). Он не должен трогать loading — иначе
+    // `if (loading) return <ListSkeleton>` схлопывает всё дерево, включая
+    // ещё открытый ConfirmDialog, полноэкранным скелетоном сразу после
+    // успешного действия пользователя.
+    if (!opts?.silent) setLoading(true);
     coinApi.orders.list()
-      .then((d) => setOrders(d as OrderData[]))
-      .catch(() => toast.error(tr("Xatolik", "Ошибка")))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        setOrders(d as OrderData[]);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        // Та же логика для ошибки: тихий рефреш не должен схлопывать уже
+        // отображённый список в полноэкранную ErrorState из-за временного
+        // сбоя сети — только тост, список остаётся как есть.
+        if (!opts?.silent) setLoadFailed(true);
+        toast.error(apiErrorMessage(err));
+      })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const applyStatus = async (id: string, status: string) => {
     try {
       await coinApi.orders.updateStatus(id, status);
       toast.success(tr("Yangilandi", "Обновлено"));
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
@@ -122,7 +133,33 @@ function OrdersTab() {
     }
   };
 
-  if (loading) return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading) return <ListSkeleton rows={5} />;
+
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+        description={tr(
+          "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+          "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите.",
+        )}
+        onRetry={() => load()}
+        isRetrying={loading}
+        retryLabel={tr("Qayta urinish", "Повторить")}
+      />
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <Card className="shadow-elegant">
+        <EmptyState
+          icon={<ShoppingBag className="size-7" />}
+          title={tr("Buyurtmalar yo'q", "Заказов нет")}
+        />
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -139,16 +176,13 @@ function OrdersTab() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {orders.length === 0 && (
-            <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">{tr("Buyurtmalar yo'q", "Заказов нет")}</TableCell></TableRow>
-          )}
           {orders.map((o) => {
             const st = ORDER_STATUS[o.status] ?? ORDER_STATUS.new;
             return (
               <TableRow key={o.id}>
                 <TableCell className="font-medium">{o.student_name}</TableCell>
                 <TableCell>{lang === "uz" ? o.product_name.uz : o.product_name.ru}</TableCell>
-                <TableCell className="text-right font-semibold text-amber-600">{o.coins_spent}</TableCell>
+                <TableCell className="text-right font-semibold text-warn">{o.coins_spent}</TableCell>
                 <TableCell><span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${st.cls}`}>{tr(st.uz, st.ru)}</span></TableCell>
                 <TableCell className="text-xs text-muted-foreground">{formatDate(o.created_at, lang)}</TableCell>
                 <TableCell className="text-right">
@@ -185,24 +219,58 @@ function LeadersTab() {
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
   const [rows, setRows] = useState<LeaderRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
-  useEffect(() => {
+  const load = (opts?: { silent?: boolean }) => {
+    // Сейчас у лидерборда нет мутаций, вызывающих silent-рефреш, но опция
+    // проведена симметрично OrdersTab/CoinStudentsTab — если такой рефреш
+    // появится, loading не должен схлопнуть отрисованный список.
+    if (!opts?.silent) setLoading(true);
     coinApi.leaderboard.get()
-      .then((d) => setRows(d as LeaderRow[]))
-      .catch(() => toast.error(tr("Xatolik", "Ошибка")))
-      .finally(() => setLoading(false));
-  }, []);
+      .then((d) => {
+        setRows(d as LeaderRow[]);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        if (!opts?.silent) setLoadFailed(true);
+        toast.error(apiErrorMessage(err));
+      })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
+  };
+  useEffect(() => { load(); }, []);
 
-  if (loading) return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading) return <ListSkeleton rows={5} />;
+
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+        description={tr(
+          "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+          "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите.",
+        )}
+        onRetry={load}
+        isRetrying={loading}
+        retryLabel={tr("Qayta urinish", "Повторить")}
+      />
+    );
+  }
 
   if (rows.length === 0) {
-    return <Card className="p-12 text-center text-sm text-muted-foreground shadow-elegant">{tr("Ma'lumot yo'q", "Данных нет")}</Card>;
+    return (
+      <Card className="shadow-elegant">
+        <EmptyState
+          icon={<Trophy className="size-7" />}
+          title={tr("Ma'lumot yo'q", "Данных нет")}
+        />
+      </Card>
+    );
   }
 
   const rankColor = (rank: number) =>
-    rank === 1 ? "bg-amber-400 text-white"
-    : rank === 2 ? "bg-slate-300 text-slate-700"
-    : rank === 3 ? "bg-orange-400 text-white"
+    rank === 1 ? "bg-warn text-white"
+    : rank === 2 ? "bg-muted text-foreground"
+    : rank === 3 ? "bg-warn text-white"
     : "bg-muted text-muted-foreground";
 
   return (
@@ -210,14 +278,14 @@ function LeadersTab() {
       {rows.map((r) => (
         <Card key={r.rank} className="flex items-center gap-3 p-3 shadow-elegant">
           <div className={`flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${rankColor(r.rank)}`}>{r.rank}</div>
-          <div className={`flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${colorFor(r.student_name)}`}>{initials(r.student_name)}</div>
+          <div className={`flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${getAvatarColor(r.student_name)}`}>{initialsOf(r.student_name)}</div>
           <div className="min-w-0 flex-1">
             <div className="truncate font-medium">{r.student_name}</div>
             <div className="text-xs text-muted-foreground">{tr("Daraja", "Уровень")} {r.level}</div>
           </div>
           <div className="text-right">
             <div className="font-semibold tabular-nums">{r.xp} XP</div>
-            <div className="inline-flex items-center gap-1 text-xs text-amber-600"><Coins className="size-3" />{r.balance}</div>
+            <div className="inline-flex items-center gap-1 text-xs text-warn"><Coins className="size-3" />{r.balance}</div>
           </div>
         </Card>
       ))}

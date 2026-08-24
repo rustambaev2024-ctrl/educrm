@@ -93,7 +93,7 @@ def test_homework_grade_exam_cycle(api_client):
         {
             "status_id": str(status_id),
             "status": "checked",
-            "grade": 9,
+            "grade": 5,
             "teacher_comment": "Good",
         },
         format="json",
@@ -119,7 +119,7 @@ def test_homework_grade_exam_cycle(api_client):
         {
             "exam": str(exam_id),
             "student": str(student.id),
-            "score": 9,
+            "score": 5,
             "pass_status": "passed",
             "comment": "Great",
         },

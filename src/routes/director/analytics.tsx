@@ -87,7 +87,11 @@ function AnalyticsPage() {
   const hasCourseOccupancy = courseOccupancy.some((c) => c.value > 0);
 
   if (isLoading) {
-    return <PageLoadingState />;
+    return (
+      <PageShell title={t("nav.analytics")} subtitle={t("director.subtitle")}>
+        <PageLoadingState />
+      </PageShell>
+    );
   }
 
   return (
@@ -113,8 +117,8 @@ function AnalyticsPage() {
                 <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip formatter={(value: any, name: string) => [`${Number(value).toFixed(1)} ${moneyUnit}`, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
                 <ChartLegend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="income" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyRevenue")} />
-                <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyExpense")} />
+                <Line type="monotone" dataKey="income" stroke="var(--chart-1)" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyRevenue")} />
+                <Line type="monotone" dataKey="expense" stroke="var(--chart-4)" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyExpense")} />
               </LineChart>
             </ResponsiveContainer>
           ) : (

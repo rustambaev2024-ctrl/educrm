@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { coinApi, ApiError } from "@/lib/api";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageShell } from "@/components/edu/page-shell";
+import { CardSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { formatDate, initialsOf } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -34,9 +38,9 @@ function ProductThumb({ src, alt }: { src?: string | null; alt: string }) {
     return (
       <div
         className="flex h-24 w-full items-center justify-center rounded-xl"
-        style={{ background: "#e0f2fe" }}
+        style={{ background: "var(--muted)" }}
       >
-        <ShoppingBag className="h-8 w-8 text-[#0077b6]" />
+        <ShoppingBag className="h-8 w-8 text-muted-foreground" />
       </div>
     );
   }
@@ -120,10 +124,12 @@ function StudentCoins() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [buyTarget, setBuyTarget] = useState<any>(null);
   const [buying, setBuying] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsLoading(true);
     try {
       const [w, p, a, t, o] = await Promise.all([
         coinApi.wallet.my(),
@@ -137,10 +143,15 @@ function StudentCoins() {
       setAchievements(a?.results || a || []);
       setTransactions((t?.results || t || []).slice(0, 10));
       setOrders(o?.results || o || []);
+      setLoadFailed(false);
     } catch {
-      // silent
+      if (!opts?.silent) {
+        setLoadFailed(true);
+      } else {
+        toast.error(lang === "uz" ? "Ma'lumotlarni yangilab bo'lmadi" : "Не удалось обновить данные");
+      }
     } finally {
-      setIsLoading(false);
+      if (!opts?.silent) setIsLoading(false);
     }
   };
 
@@ -160,7 +171,7 @@ function StudentCoins() {
     try {
       await coinApi.products.buy(buyTarget.id);
       toast.success(lang === "uz" ? "Xarid muvaffaqiyatli!" : "Покупка успешна!");
-      loadData();
+      loadData({ silent: true });
     } catch (err) {
       const msg = err instanceof ApiError ? String((err.body as { error?: string })?.error ?? "") : "";
       if (msg.includes("Insufficient")) {
@@ -173,7 +184,7 @@ function StudentCoins() {
         toast.error(lang === "uz" ? "Do'kon bugun yopiq" : "Магазин сегодня закрыт");
       } else if (msg.includes("not available") || msg.includes("Out of stock")) {
         toast.error(lang === "uz" ? "Mahsulot mavjud emas — ro'yxat yangilandi" : "Товар больше недоступен — список обновлён");
-        loadData();
+        loadData({ silent: true });
       } else {
         toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
       }
@@ -224,24 +235,72 @@ function StudentCoins() {
   const initials = initialsOf(studentName);
   const activeOrders = orders.filter((o) => o.status !== "cancelled").length;
 
+  const pageTitle = "Coins";
+  const pageSubtitle = lang === "uz"
+    ? "Do'kon, yutuqlar va faollik tarixi"
+    : "Магазин, достижения и история активности";
+
   if (isLoading) {
     return (
-      <div className="p-4 space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />
-        ))}
-      </div>
+      <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
+        <div className="space-y-4 pb-24 max-w-lg mx-auto">
+          <Skeleton className="h-44 w-full rounded-2xl" />
+          <div className="grid grid-cols-3 gap-2">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <div className="grid grid-cols-2 gap-3">
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <div className="grid grid-cols-3 gap-2">
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <CardSkeleton />
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
+        <ErrorState
+          title={lang === "uz" ? "Ma'lumotlar yuklanmadi" : "Данные не загрузились"}
+          description={
+            lang === "uz"
+              ? "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring."
+              : "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите."
+          }
+          onRetry={() => void loadData()}
+          retryLabel={lang === "uz" ? "Qayta urinish" : "Повторить"}
+        />
+      </PageShell>
     );
   }
 
   return (
-    <>
-    <div className="p-4 pb-24 space-y-4 max-w-lg mx-auto">
+    <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
+    <div className="space-y-4 pb-24 max-w-lg mx-auto">
 
       {/* ── HERO CARD ── */}
       <div
         className="rounded-2xl p-5 text-white space-y-4"
-        style={{ background: "linear-gradient(135deg, #0077b6 0%, #00b4d8 100%)" }}
+        style={{ background: "linear-gradient(135deg, var(--sidebar) 0%, color-mix(in srgb, var(--sidebar) 70%, var(--primary)) 100%)" }}
       >
         {/* Avatar + Name + Level */}
         <div className="flex items-center gap-3">
@@ -323,21 +382,21 @@ function StudentCoins() {
       {/* ── QUICK STATS ── */}
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-card border border-border rounded-xl p-3 text-center">
-          <Star className="h-5 w-5 text-[#0077b6] mx-auto mb-1" />
+          <Star className="h-5 w-5 text-reward mx-auto mb-1" />
           <div className="text-xl font-bold text-foreground">{level}</div>
           <div className="text-xs text-muted-foreground">
             {lang === "uz" ? "Daraja" : "Уровень"}
           </div>
         </div>
         <div className="bg-card border border-border rounded-xl p-3 text-center">
-          <Package className="h-5 w-5 text-amber-500 mx-auto mb-1" />
+          <Package className="h-5 w-5 text-primary mx-auto mb-1" />
           <div className="text-xl font-bold text-foreground">{activeOrders}</div>
           <div className="text-xs text-muted-foreground">
             {lang === "uz" ? "Xaridlar" : "Покупки"}
           </div>
         </div>
         <div className="bg-card border border-border rounded-xl p-3 text-center">
-          <Trophy className="h-5 w-5 text-emerald-500 mx-auto mb-1" />
+          <Trophy className="h-5 w-5 text-reward mx-auto mb-1" />
           <div className="text-xl font-bold text-foreground">
             {unlockedCount}/{totalCount}
           </div>
@@ -351,7 +410,7 @@ function StudentCoins() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-bold text-foreground flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-[#0077b6]" />
+            <ShoppingBag className="h-5 w-5 text-primary" />
             {lang === "uz" ? "Do'kon" : "Магазин"}
           </h2>
           <span className="text-sm text-muted-foreground flex items-center gap-1">
@@ -361,14 +420,19 @@ function StudentCoins() {
         </div>
 
         {products.length === 0 ? (
-          <div className="bg-card border border-border rounded-xl p-8 text-center text-muted-foreground">
-            <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">
-              {lang === "uz"
-                ? "Do'kon hozircha bo'sh. Tez orada yangi sovg'alar!"
-                : "Магазин пока пуст. Скоро появятся новые призы!"}
-            </p>
-          </div>
+          <EmptyState
+            icon={<ShoppingBag className="size-6" />}
+            title={
+              lang === "uz"
+                ? "Do'kon hozircha bo'sh"
+                : "Магазин пока пуст"
+            }
+            description={
+              lang === "uz"
+                ? "Tez orada yangi sovg'alar!"
+                : "Скоро появятся новые призы!"
+            }
+          />
         ) : hasCategories ? (
           <div className="space-y-4">
             {productGroups.map((group) => (
@@ -395,7 +459,7 @@ function StudentCoins() {
       {achievements.length > 0 && (
         <div className="space-y-3">
           <h2 className="font-bold text-foreground flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-amber-500" />
+            <Trophy className="h-5 w-5 text-reward" />
             {lang === "uz" ? "Yutuqlar" : "Достижения"}
             <span className="text-sm font-normal text-muted-foreground">
               ({unlockedCount}/{totalCount})
@@ -409,8 +473,8 @@ function StudentCoins() {
                   key={ach.id}
                   className="bg-card border border-border rounded-xl p-3 text-center"
                 >
-                  <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-2">
-                    <Trophy className="h-5 w-5 text-amber-500" />
+                  <div className="w-10 h-10 rounded-full bg-reward-soft flex items-center justify-center mx-auto mb-2">
+                    <Trophy className="h-5 w-5 text-reward" />
                   </div>
                   <div className="text-xs font-semibold text-foreground leading-tight">
                     {lang === "uz" ? ach.title_uz : ach.title_ru}
@@ -435,19 +499,24 @@ function StudentCoins() {
       {/* ── TRANSACTION HISTORY ── */}
       <div className="space-y-2">
         <h2 className="font-bold text-foreground flex items-center gap-2">
-          <History className="h-5 w-5 text-[#0077b6]" />
+          <History className="h-5 w-5 text-primary" />
           {lang === "uz" ? "So'nggi faollik" : "Последняя активность"}
         </h2>
 
         {transactions.length === 0 ? (
-          <div className="bg-card border border-border rounded-xl p-8 text-center text-muted-foreground">
-            <History className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">
-              {lang === "uz"
-                ? "Hali faollik yo'q. Darslarga qatnashing!"
-                : "Активности пока нет. Посещайте уроки!"}
-            </p>
-          </div>
+          <EmptyState
+            icon={<History className="size-6" />}
+            title={
+              lang === "uz"
+                ? "Hali faollik yo'q"
+                : "Активности пока нет"
+            }
+            description={
+              lang === "uz"
+                ? "Darslarga qatnashing!"
+                : "Посещайте уроки!"
+            }
+          />
         ) : (
           <div className="bg-card border border-border rounded-xl px-4 py-1">
             {transactions.map((tx) => (
@@ -457,13 +526,13 @@ function StudentCoins() {
               >
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    tx.amount > 0 ? "bg-emerald-500/10" : "bg-red-500/10"
+                    tx.amount > 0 ? "bg-ok-soft" : "bg-muted"
                   }`}
                 >
                   {tx.amount > 0 ? (
-                    <TrendingUp className="h-4 w-4 text-emerald-600" />
+                    <TrendingUp className="h-4 w-4 text-ok" />
                   ) : (
-                    <TrendingDown className="h-4 w-4 text-red-600" />
+                    <TrendingDown className="h-4 w-4 text-muted-foreground" />
                   )}
                 </div>
 
@@ -478,7 +547,7 @@ function StudentCoins() {
 
                 <div
                   className={`text-sm font-bold flex-shrink-0 flex items-center gap-0.5 ${
-                    tx.amount > 0 ? "text-emerald-600" : "text-red-600"
+                    tx.amount > 0 ? "text-ok" : "text-muted-foreground"
                   }`}
                 >
                   {tx.amount > 0 ? "+" : ""}
@@ -507,7 +576,7 @@ function StudentCoins() {
       onConfirm={confirmBuy}
       isLoading={buying}
     />
-    </>
+    </PageShell>
   );
 }
 
@@ -538,7 +607,7 @@ function ProductCard({
           {lang === "uz" ? product.name_uz : product.name_ru}
         </div>
         {(product.min_level || 1) > 1 && (
-          <div className="text-xs text-amber-500 mt-0.5 flex items-center justify-center gap-0.5">
+          <div className="text-xs text-reward mt-0.5 flex items-center justify-center gap-0.5">
             <Star className="h-3 w-3" />
             {lang === "uz"
               ? `Daraja ${product.min_level}+`
@@ -555,7 +624,7 @@ function ProductCard({
       </div>
 
       <div className="mt-auto">
-        <div className="text-center font-bold text-[#0077b6] mb-2 flex items-center justify-center gap-1">
+        <div className="text-center font-bold text-reward mb-2 flex items-center justify-center gap-1">
           <Coins className="h-4 w-4" />
           <span className="text-lg">{product.price_coins}</span>
         </div>
@@ -567,7 +636,7 @@ function ProductCard({
               ? "text-white hover:opacity-90"
               : "bg-muted text-muted-foreground cursor-not-allowed"
           }`}
-          style={buyable ? { background: "#0077b6" } : undefined}
+          style={buyable ? { background: "var(--primary)" } : undefined}
         >
           {!buyable
             ? (noCoins

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as ApplyRouteImport } from './routes/apply'
@@ -87,6 +88,11 @@ import { Route as AdminAccountsRouteImport } from './routes/admin/accounts'
 import { Route as TeacherQuizSessionSessionIdRouteImport } from './routes/teacher/quiz-session.$sessionId'
 import { Route as AdminQuizSessionSessionIdRouteImport } from './routes/admin/quiz-session.$sessionId'
 
+const PreviewRoute = PreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -488,6 +494,7 @@ export interface FileRoutesByFullPath {
   '/apply': typeof ApplyRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/preview': typeof PreviewRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/coins': typeof AdminCoinsRoute
@@ -560,6 +567,7 @@ export interface FileRoutesByTo {
   '/apply': typeof ApplyRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/preview': typeof PreviewRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/coins': typeof AdminCoinsRoute
@@ -640,6 +648,7 @@ export interface FileRoutesById {
   '/apply': typeof ApplyRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/preview': typeof PreviewRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/coins': typeof AdminCoinsRoute
@@ -721,6 +730,7 @@ export interface FileRouteTypes {
     | '/apply'
     | '/join'
     | '/login'
+    | '/preview'
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/coins'
@@ -793,6 +803,7 @@ export interface FileRouteTypes {
     | '/apply'
     | '/join'
     | '/login'
+    | '/preview'
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/coins'
@@ -872,6 +883,7 @@ export interface FileRouteTypes {
     | '/apply'
     | '/join'
     | '/login'
+    | '/preview'
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/coins'
@@ -952,11 +964,19 @@ export interface RootRouteChildren {
   ApplyRoute: typeof ApplyRoute
   JoinRoute: typeof JoinRoute
   LoginRoute: typeof LoginRoute
+  PreviewRoute: typeof PreviewRoute
   PlayCodeRoute: typeof PlayCodeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/preview': {
+      id: '/preview'
+      path: '/preview'
+      fullPath: '/preview'
+      preLoaderRoute: typeof PreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -1710,6 +1730,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApplyRoute: ApplyRoute,
   JoinRoute: JoinRoute,
   LoginRoute: LoginRoute,
+  PreviewRoute: PreviewRoute,
   PlayCodeRoute: PlayCodeRoute,
 }
 export const routeTree = rootRouteImport

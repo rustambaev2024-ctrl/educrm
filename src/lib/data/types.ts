@@ -283,7 +283,7 @@ export interface HomeworkSubmission {
   status: HomeworkSubmissionStatus;
   submittedAt?: string;
   comment?: string;
-  grade?: number;     // 0..10
+  grade?: number;     // 2..5, школьная шкала (как и Grade.score)
   feedback?: string;
   attachments?: HomeworkAttachment[];
 }
@@ -303,8 +303,7 @@ export interface Grade {
   examId?: string;
   homeworkStatusId?: string;
   title: string;       // e.g. "Unit 4 Quiz", "Midterm"
-  score: number;       // 0..100 (0..10 for kind "homework", mirrors HomeworkStatus.grade)
-  maxScore: number;    // 100, except kind "homework" which is 10
+  score: number;       // 2..5, школьная шкала — единая для всех kind
   date: string;        // ISO date
   comment?: string;
 }

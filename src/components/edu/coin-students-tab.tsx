@@ -3,6 +3,9 @@ import { Coins, Plus, Minus, Flame } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton } from "@/components/ui/skeleton";
 import { apiErrorText } from "@/lib/api-error";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/edu/number-input";
@@ -17,21 +20,15 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { coinApi } from "@/lib/api";
-import { useData } from "@/lib/data/store";
+import { useData, apiErrorMessage } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
+import { initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 
 interface WalletData {
   id: string; balance: number; xp: number; level: number; streak: number;
   student_name: string; student_id: string;
 }
-
-const AVATAR_COLORS = [
-  "bg-blue-500/10 text-blue-600", "bg-emerald-500/10 text-emerald-600",
-  "bg-purple-500/10 text-purple-600", "bg-amber-500/10 text-amber-600",
-  "bg-pink-500/10 text-pink-600",
-];
-const initials = (name: string) => name.split(" ").slice(0, 2).map((p) => p[0] ?? "").join("").toUpperCase();
-const colorFor = (name: string) => AVATAR_COLORS[(name.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 /**
  * Кошельки учеников с начислением и списанием монет.
@@ -46,17 +43,31 @@ export function CoinStudentsTab() {
   const { students } = useData();
   const [wallets, setWallets] = useState<WalletData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [mode, setMode] = useState<"award" | "deduct" | null>(null);
   const [form, setForm] = useState({ studentId: "", amount: "", comment: "" });
 
-  const load = () => {
-    setLoading(true);
+  const load = (opts?: { silent?: boolean }) => {
+    // silent: true — фоновый рефреш после submit() (начисление/списание).
+    // Он не должен трогать loading — иначе `if (loading) return
+    // <ListSkeleton>` схлопывает всё дерево (кнопки, таблицу) полноэкранным
+    // скелетоном сразу после успешного действия пользователя.
+    if (!opts?.silent) setLoading(true);
     coinApi.wallet.list()
-      .then((d) => setWallets(d as WalletData[]))
-      .catch(() => toast.error(tr("Xatolik", "Ошибка")))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        setWallets(d as WalletData[]);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        // Та же логика для ошибки: тихий рефреш не должен схлопывать уже
+        // отображённый список кошельков в полноэкранную ErrorState из-за
+        // временного сбоя сети — только тост, список остаётся как есть.
+        if (!opts?.silent) setLoadFailed(true);
+        toast.error(apiErrorMessage(err));
+      })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const activeStudents = useMemo(
     () => students.filter((s) => s.status !== "archived").sort((a, b) => a.fullName.localeCompare(b.fullName)),
@@ -76,13 +87,28 @@ export function CoinStudentsTab() {
       else await coinApi.wallet.deduct(form.studentId, amt, form.comment);
       toast.success(tr("Bajarildi", "Выполнено"));
       setMode(null);
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
   };
 
-  if (loading) return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading) return <ListSkeleton rows={5} />;
+
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+        description={tr(
+          "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+          "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите.",
+        )}
+        onRetry={() => load()}
+        isRetrying={loading}
+        retryLabel={tr("Qayta urinish", "Повторить")}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -91,6 +117,14 @@ export function CoinStudentsTab() {
         <Button size="sm" variant="outline" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => open("deduct")}><Minus className="size-3.5" />{tr("Coin olish", "Списать")}</Button>
       </div>
 
+      {wallets.length === 0 ? (
+        <Card className="shadow-elegant">
+          <EmptyState
+            icon={<Coins className="size-7" />}
+            title={tr("Hamyonlar yo'q", "Кошельков нет")}
+          />
+        </Card>
+      ) : (
       <Card className="overflow-hidden shadow-elegant">
         <Table>
           <TableHeader>
@@ -103,26 +137,24 @@ export function CoinStudentsTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {wallets.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">{tr("Hamyonlar yo'q", "Кошельков нет")}</TableCell></TableRow>
-            )}
             {wallets.map((w) => (
               <TableRow key={w.id}>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
-                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${colorFor(w.student_name)}`}>{initials(w.student_name)}</div>
+                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${getAvatarColor(w.student_name)}`}>{initialsOf(w.student_name)}</div>
                     <span className="font-medium">{w.student_name}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-right font-semibold text-amber-600"><span className="inline-flex items-center gap-1"><Coins className="size-3.5" />{w.balance}</span></TableCell>
+                <TableCell className="text-right font-semibold text-warn"><span className="inline-flex items-center gap-1"><Coins className="size-3.5" />{w.balance}</span></TableCell>
                 <TableCell className="text-right tabular-nums text-muted-foreground">{w.xp}</TableCell>
                 <TableCell className="text-right font-medium">{w.level}</TableCell>
-                <TableCell className="text-right"><span className="inline-flex items-center gap-1 text-orange-500"><Flame className="size-3.5" />{w.streak}</span></TableCell>
+                <TableCell className="text-right"><span className="inline-flex items-center gap-1 text-warn"><Flame className="size-3.5" />{w.streak}</span></TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </Card>
+      )}
 
       <Dialog open={mode !== null} onOpenChange={(v) => !v && setMode(null)}>
         <DialogContent className="max-w-md">

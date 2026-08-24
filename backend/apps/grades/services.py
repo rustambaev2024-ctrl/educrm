@@ -5,6 +5,23 @@ from apps.homework.models import HomeworkStatus
 from .models import ExamResult, Grade
 
 
+def band_percent_to_scale(percent: float) -> int:
+    """
+    Процент от максимума -> оценка 2-5.
+
+    Пороги — не произвольные: это те же 85/65/50, что уже негласно стояли
+    за цветом оценок в шести задублированных местах фронтенда (scoreTone),
+    формализованные теперь в саму оценку, а не только в цвет.
+    """
+    if percent >= 85:
+        return 5
+    if percent >= 65:
+        return 4
+    if percent >= 50:
+        return 3
+    return 2
+
+
 @transaction.atomic
 def upsert_homework_grade(homework_status: HomeworkStatus, graded_by):
     if homework_status.grade is None:

@@ -31,16 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -54,22 +45,11 @@ import { useData } from "@/lib/data/store";
 import { sumIncome } from "@/lib/data/mappers";
 import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 import type { Course, Group, Student } from "@/lib/data/types";
 
 export const Route = createFileRoute("/director/courses")({ component: DirectorCoursesPage });
-
-function initialsOf(name: string) {
-  return name.split(" ").slice(0, 2).map((p) => p[0] ?? "").join("").toUpperCase();
-}
-
-const AVATAR_COLORS = [
-  "bg-blue-500/10 text-blue-600",
-  "bg-emerald-500/10 text-emerald-600",
-  "bg-purple-500/10 text-purple-600",
-  "bg-amber-500/10 text-amber-600",
-  "bg-pink-500/10 text-pink-600",
-];
 
 function DirectorCoursesPage() {
   const { lang } = useI18n();
@@ -380,9 +360,9 @@ function DirectorCoursesPage() {
                                 <span
                                   className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                                     group.status === "active"
-                                      ? "bg-emerald-500/10 text-emerald-600"
+                                      ? "bg-ok-soft text-ok"
                                       : group.status === "completed"
-                                      ? "bg-blue-500/10 text-blue-600"
+                                      ? "bg-info-soft text-info"
                                       : "bg-muted text-muted-foreground"
                                   }`}
                                 >
@@ -459,8 +439,9 @@ function DirectorCoursesPage() {
                         <Select
                           value={selectedGroup.status}
                           onValueChange={(v) => {
-                            updateGroup(selectedGroup.id, { status: v as typeof selectedGroup.status });
-                            toast.success(lang === "uz" ? "Holat yangilandi" : "Статус обновлён");
+                            updateGroup(selectedGroup.id, { status: v as typeof selectedGroup.status }, () => {
+                              toast.success(lang === "uz" ? "Holat yangilandi" : "Статус обновлён");
+                            });
                           }}
                         >
                           <SelectTrigger className="h-7 w-[150px] text-xs">
@@ -510,31 +491,30 @@ function DirectorCoursesPage() {
                     ) : (
                       <div className="space-y-1">
                         {groupStudents.map((student) => {
-                          const colorClass = AVATAR_COLORS[(student.fullName.charCodeAt(0) || 0) % AVATAR_COLORS.length];
                           return (
                             <div
                               key={student.id}
                               className="flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-muted/40"
                               onClick={() => setSelectedStudent(student)}
                             >
-                              <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${colorClass}`}>
+                              <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${getAvatarColor(student.fullName)}`}>
                                 {initialsOf(student.fullName)}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-sm font-medium text-foreground">{student.fullName}</div>
                                 <div className="text-xs text-muted-foreground">{student.phone}</div>
                               </div>
-                              <span className={`shrink-0 text-sm font-semibold tabular-nums ${student.balance >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                              <span className={`shrink-0 text-sm font-semibold tabular-nums ${student.balance >= 0 ? "text-ok" : "text-destructive"}`}>
                                 {formatMoney(student.balance, lang)}
                               </span>
                               <span
                                 className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                                   student.status === "active"
-                                    ? "bg-emerald-500/10 text-emerald-600"
+                                    ? "bg-ok-soft text-ok"
                                     : student.status === "frozen"
-                                    ? "bg-amber-500/10 text-amber-600"
+                                    ? "bg-warn-soft text-warn"
                                     : student.status === "expelled"
-                                    ? "bg-red-500/10 text-red-600"
+                                    ? "bg-bad-soft text-bad"
                                     : "bg-muted text-muted-foreground"
                                 }`}
                               >
@@ -611,26 +591,22 @@ function DirectorCoursesPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteCourseId} onOpenChange={(v) => !v && setDeleteCourseId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{lang === "uz" ? "Kurs o'chirilsinmi?" : "Удалить курс?"}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deletingCourse
-                ? lang === "uz"
-                  ? `"${deletingCourse.name}" kursi o'chiriladi. Guruhlarga bog'langan kurslarni o'chirish mumkin emas.`
-                  : `Курс "${deletingCourse.name}" будет удалён. Курсы с привязанными группами удалить нельзя.`
-                : lang === "uz" ? "Tanlangan kurs o'chiriladi." : "Выбранный курс будет удалён."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {lang === "uz" ? "O'chirish" : "Удалить"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!deleteCourseId}
+        onOpenChange={(v) => !v && setDeleteCourseId(null)}
+        title={lang === "uz" ? "Kurs o'chirilsinmi?" : "Удалить курс?"}
+        description={
+          deletingCourse
+            ? lang === "uz"
+              ? `"${deletingCourse.name}" kursi o'chiriladi. Guruhlarga bog'langan kurslarni o'chirish mumkin emas.`
+              : `Курс "${deletingCourse.name}" будет удалён. Курсы с привязанными группами удалить нельзя.`
+            : lang === "uz" ? "Tanlangan kurs o'chiriladi." : "Выбранный курс будет удалён."
+        }
+        confirmText={lang === "uz" ? "O'chirish" : "Удалить"}
+        cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+        variant="destructive"
+        onConfirm={confirmDelete}
+      />
     </>
   );
 }

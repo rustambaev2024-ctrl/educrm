@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ListSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
@@ -54,16 +56,13 @@ function SaLogs() {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [platformEvents, role, search, t]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
   return (
     <PageShell title={t("sa.logs.title")} subtitle={t("sa.logs.subtitle")}>
+      {isLoading ? (
+        <Card className="overflow-hidden shadow-elegant">
+          <ListSkeleton />
+        </Card>
+      ) : (
       <div className="space-y-4">
         <Card className="overflow-hidden shadow-elegant">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center">
@@ -84,7 +83,7 @@ function SaLogs() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="p-12 text-center text-sm text-muted-foreground">{t("audit.empty")}</div>
+            <EmptyState title={t("audit.empty")} />
           ) : (
             <div className="divide-y divide-border">
               {filtered.map((entry) => {
@@ -111,6 +110,7 @@ function SaLogs() {
           )}
         </Card>
       </div>
+      )}
     </PageShell>
   );
 }

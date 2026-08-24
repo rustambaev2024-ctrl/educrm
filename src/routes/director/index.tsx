@@ -17,7 +17,9 @@ import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { attendancePercentage } from "@/lib/data/metrics";
 import { countActiveStudents, countDebtors } from "@/lib/data/definitions";
 import { useI18n } from "@/lib/i18n";
-import { formatMoney, formatDateTime } from "@/lib/format";
+import { formatMoney, formatDateTime, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/director/")({ component: DirectorHome });
 
@@ -153,8 +155,8 @@ function DirectorHome() {
                 <p className="text-xs text-muted-foreground">{t("admin.weekRange")} · {moneyUnit}</p>
               </div>
               <div className="flex items-center gap-3 text-xs">
-                <Legend color="#22c55e" label={t("director.monthlyRevenue")} />
-                <Legend color="#ef4444" label={t("director.monthlyExpense")} />
+                <Legend color="var(--chart-1)" label={t("director.monthlyRevenue")} />
+                <Legend color="var(--chart-4)" label={t("director.monthlyExpense")} />
               </div>
             </div>
             {hasRevenueData ? (
@@ -162,20 +164,20 @@ function DirectorHome() {
                 <AreaChart data={revenueSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="dr-in" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="dr-out" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip formatter={(value: any, name: string) => [`${Number(value).toFixed(1)} ${moneyUnit}`, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <Area type="monotone" dataKey="income" name={t("finance.kpi.income")} stroke="#22c55e" fill="url(#dr-in)" strokeWidth={2} />
-                <Area type="monotone" dataKey="expense" name={t("finance.kpi.expense")} stroke="#ef4444" fill="url(#dr-out)" strokeWidth={2} />
+                <Area type="monotone" dataKey="income" name={t("finance.kpi.income")} stroke="var(--chart-1)" fill="url(#dr-in)" strokeWidth={2} />
+                <Area type="monotone" dataKey="expense" name={t("finance.kpi.expense")} stroke="var(--chart-4)" fill="url(#dr-out)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -216,14 +218,14 @@ function DirectorHome() {
               </Button>
             </div>
             {topTeachers.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">{t("common.empty")}</div>
+              <EmptyState icon={<Award className="size-6" />} title={t("common.empty")} />
             ) : (
               <div className="space-y-2">
                 {topTeachers.map((tch, i) => (
                   <div key={tch.id} className="flex items-center gap-4 rounded-lg p-3 transition-colors hover:bg-accent/40">
                     <div className="flex size-7 items-center justify-center rounded-md bg-gradient-primary text-xs font-bold text-primary-foreground">{i + 1}</div>
-                    <div className="flex size-9 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
-                      {tch.name.split(" ").slice(0, 2).map((p) => p[0]).join("")}
+                    <div className={`flex size-9 items-center justify-center rounded-full text-xs font-semibold text-white ${getAvatarColor(tch.name)}`}>
+                      {initialsOf(tch.name)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-medium">{tch.name}</div>
@@ -244,7 +246,7 @@ function DirectorHome() {
               </Button>
             </div>
             {recentAudit.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">{t("audit.empty")}</div>
+              <EmptyState icon={<Activity className="size-6" />} title={t("audit.empty")} />
             ) : (
               <div className="space-y-3">
                 {recentAudit.map((a) => (

@@ -6,6 +6,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -86,9 +87,37 @@ function SchedulePage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t("schedule.title")} subtitle={t("schedule.subtitle")}>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Skeleton className="h-4 w-56 max-w-[70%]" />
+            <Skeleton className="h-9 w-44" />
+            <Skeleton className="h-9 w-44" />
+          </div>
+          <div className="-mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
+            <div className="grid min-w-[1180px] grid-cols-7 gap-3 lg:min-w-0">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <Card
+                  key={i}
+                  className="flex h-[min(66vh,680px)] min-h-80 flex-col overflow-hidden p-0 shadow-elegant"
+                >
+                  <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-card/95 p-3">
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-3 w-14" />
+                      <Skeleton className="size-8 rounded-full" />
+                    </div>
+                    <Skeleton className="h-6 w-6 rounded-full" />
+                  </div>
+                  <div className="min-h-0 flex-1 space-y-2 p-2 pr-1.5">
+                    <Skeleton className="h-16 w-full rounded-xl" />
+                    <Skeleton className="h-16 w-full rounded-xl" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      </PageShell>
     );
   }
 
@@ -190,11 +219,11 @@ function SchedulePage() {
                       const completed = lesson.status === "completed";
                       const statusTone =
                         lesson.status === "completed"
-                          ? "bg-emerald-500"
+                          ? "bg-ok"
                           : lesson.status === "cancelled"
                             ? "bg-destructive"
                             : lesson.status === "rescheduled"
-                              ? "bg-amber-500"
+                              ? "bg-warn"
                               : "bg-primary";
                       return (
                         <button

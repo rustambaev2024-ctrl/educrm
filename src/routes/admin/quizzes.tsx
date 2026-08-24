@@ -7,6 +7,9 @@ import { PageShell } from "@/components/edu/page-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { CardGridSkeleton, ListSkeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sheet,
@@ -86,19 +89,29 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
   const [quizzes, setQuizzes] = useState<QuizRow[]>([]);
   const [sessions, setSessions] = useState<QuizSessionRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [selectedSession, setSelectedSession] = useState<QuizSessionRow | null>(null);
 
-  const loadAll = async () => {
-    setLoading(true);
+  const loadAll = async (opts?: { silent?: boolean }) => {
+    // silent: true — фоновый рефреш после forceFinishSession(). Он не должен
+    // трогать loading — иначе `loading ? <skeleton> : ...` схлопывает всё
+    // дерево (табы, таблицу сессий) полноэкранным скелетоном сразу после
+    // успешного действия пользователя.
+    if (!opts?.silent) setLoading(true);
     try {
       const [q, s] = await Promise.all([quizApi.list(), quizApi.sessions.list()]);
       setQuizzes(toResults<QuizRow>(q));
       setSessions(toResults<QuizSessionRow>(s));
+      setLoadFailed(false);
     } catch (err) {
       console.error("[quizzes] load failed", err);
-      toast.error(tr("Yuklashda xatolik", "Ошибка загрузки"));
+      // Та же логика для ошибки: тихий рефреш не должен схлопывать уже
+      // отображённые списки в полноэкранную ErrorState из-за временного
+      // сбоя сети — только тост, списки остаются как есть.
+      if (!opts?.silent) setLoadFailed(true);
+      toast.error(apiErrorText(err, lang, tr("Yuklashda xatolik", "Ошибка загрузки")));
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   };
 
@@ -111,7 +124,7 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
     try {
       await quizApi.sessions.forceFinish(sessionId);
       toast.success(tr("Sessiya tugatildi", "Сессия завершена"));
-      void loadAll();
+      void loadAll({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
@@ -129,8 +142,8 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
 
   const statusBadge = (status: QuizSessionRow["status"]) => {
     const map = {
-      waiting: { cls: "bg-amber-500/10 text-amber-600", label: tr("Kutilmoqda", "Ожидание") },
-      active: { cls: "bg-emerald-500/10 text-emerald-600", label: tr("Faol", "Активна") },
+      waiting: { cls: "bg-warn-soft text-warn", label: tr("Kutilmoqda", "Ожидание") },
+      active: { cls: "bg-ok-soft text-ok", label: tr("Faol", "Активна") },
       finished: { cls: "bg-muted text-muted-foreground", label: tr("Tugadi", "Завершена") },
     }[status];
     return <Badge variant="outline" className={map.cls}>{map.label}</Badge>;
@@ -155,21 +168,32 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
         </Tabs>
 
         {loading ? (
-          <div className="flex h-40 items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
-          </div>
+          tab === "quizzes" ? <CardGridSkeleton count={6} /> : <ListSkeleton rows={5} />
+        ) : loadFailed ? (
+          <ErrorState
+            title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+            description={tr(
+              "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+              "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите.",
+            )}
+            onRetry={() => void loadAll()}
+            isRetrying={loading}
+            retryLabel={tr("Qayta urinish", "Повторить")}
+          />
         ) : tab === "quizzes" ? (
           quizzes.length === 0 ? (
-            <Card className="p-12 text-center text-sm text-muted-foreground">{tr("Testlar yo'q", "Тестов нет")}</Card>
+            <Card className="shadow-elegant">
+              <EmptyState icon={<FileText className="size-7" />} title={tr("Testlar yo'q", "Тестов нет")} />
+            </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {quizzes.map((quiz) => (
                 <div key={quiz.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-[#e0f2fe] text-[#0077b6]">
+                    <div className="flex size-9 items-center justify-center rounded-lg bg-[var(--info-soft)] text-[var(--primary)]">
                       <FileText className="size-4" />
                     </div>
-                    <Badge variant="outline" className={quiz.quiz_type === "lead" ? "bg-violet-500/10 text-violet-600" : "bg-[#e0f2fe] text-[#0077b6]"}>
+                    <Badge variant="outline" className={quiz.quiz_type === "lead" ? "bg-chart-5/10 text-chart-5" : "bg-[var(--info-soft)] text-[var(--primary)]"}>
                       {quiz.quiz_type === "lead" ? tr("Lidlar", "Лиды") : tr("O'quvchilar", "Ученики")}
                     </Badge>
                   </div>
@@ -184,7 +208,7 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
                     <span className="flex items-center gap-1"><Play className="size-3" /> {quiz.sessions_count} {tr("sessiya", "сессий")}</span>
                   </div>
                   <div className="mt-auto flex gap-2 pt-1">
-                    <Button size="sm" className="h-8 flex-1 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => startSession(quiz.id)}>
+                    <Button size="sm" className="h-8 flex-1 gap-1.5 bg-ok text-white hover:bg-ok" onClick={() => startSession(quiz.id)}>
                       <Play className="size-3.5" /> {tr("Boshlash", "Запустить")}
                     </Button>
                     <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => navigate({ to: `${basePath}/quiz-create?edit=${quiz.id}` as string })}>
@@ -196,7 +220,9 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
             </div>
           )
         ) : sessions.length === 0 ? (
-          <Card className="p-12 text-center text-sm text-muted-foreground">{tr("Sessiyalar yo'q", "Сессий нет")}</Card>
+          <Card className="shadow-elegant">
+            <EmptyState icon={<Play className="size-7" />} title={tr("Sessiyalar yo'q", "Сессий нет")} />
+          </Card>
         ) : (
           <Card className="overflow-hidden shadow-elegant">
             <Table>
@@ -265,7 +291,9 @@ function SessionDetailSheet({ session, onClose }: { session: QuizSessionRow | nu
 
         <div className="mt-5">
           {ranked.length === 0 ? (
-            <Card className="p-8 text-center text-sm text-muted-foreground">{tr("Ishtirokchilar yo'q", "Участников нет")}</Card>
+            <Card className="shadow-elegant">
+              <EmptyState icon={<Users className="size-6" />} title={tr("Ishtirokchilar yo'q", "Участников нет")} />
+            </Card>
           ) : (
             <Card className="overflow-hidden">
               <Table>

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Building2, Save, Upload, User, KeyRound } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { authApi, branchApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -17,8 +19,8 @@ export const Route = createFileRoute("/director/settings")({
 
 function DirectorSettingsPage() {
   const { user, refreshUser } = useAuth();
-  const { t } = useI18n();
-  
+  const { t, lang } = useI18n();
+
   // Institution Settings State
   const [instName, setInstName] = useState("");
   const [instAddress, setInstAddress] = useState("");
@@ -27,6 +29,12 @@ function DirectorSettingsPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [instLoading, setInstLoading] = useState(false);
   const [logoError, setLogoError] = useState(false);
+
+  // Initial fetch state — separate from instLoading (which guards the save
+  // button). Пустых данных не бывает — бывает «не загрузилось», это отдельное
+  // состояние, форму с пустыми полями показывать нельзя.
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // Profile Settings State
   const [profileName, setProfileName] = useState(user?.fullName ?? "");
@@ -38,11 +46,9 @@ function DirectorSettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  useEffect(() => {
-    loadInstitutionSettings();
-  }, []);
-
-  const loadInstitutionSettings = async () => {
+  const loadInstitutionSettings = useCallback(async () => {
+    setLoading(true);
+    setLoadFailed(false);
     try {
       const data = await branchApi.institutionSettings();
       setInstName(data.name || "");
@@ -55,8 +61,15 @@ function DirectorSettingsPage() {
     } catch (err) {
       console.error("Failed to load institution settings", err);
       toast.error(t("settings.msg.instError"));
+      setLoadFailed(true);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    loadInstitutionSettings();
+  }, [loadInstitutionSettings]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,9 +101,15 @@ function DirectorSettingsPage() {
         setLogoError(false);
       }
       toast.success(t("settings.msg.instSaved"));
-      
-      // Reload page to reflect logo changes in UI (sidebar, header)
-      setTimeout(() => window.location.reload(), 1000);
+
+      // Логотип отображается в сайдбаре/шапке через AppShell, который не
+      // подписан на этот store — единственный способ обновить его везде
+      // без отдельного механизма инвалидации бренд-контекста. Дёргаем
+      // reload только когда реально меняли лого, а не на любое сохранение
+      // (имя/адрес/телефон в шапке/сайдбаре не показываются).
+      if (logoFile) {
+        setTimeout(() => window.location.reload(), 1000);
+      }
     } catch (err) {
       console.error(err);
       toast.error(t("settings.msg.instError"));
@@ -133,95 +152,141 @@ function DirectorSettingsPage() {
   };
 
   return (
-    <PageShell title={t("settings.page.title")} subtitle={t("settings.page.desc")}>
+    <PageShell title={t("settings.page.title")} subtitle={t("settings.page.desc")} ignoreLoadError>
       <div className="space-y-6 max-w-5xl mx-auto">
-        
+
         {/* Institution Brand Settings */}
-        <Card className="shadow-elegant border-border/60">
-          <CardHeader className="border-b border-border/40 pb-4 bg-muted/20">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                <Building2 className="size-5" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">{t("settings.inst.title")}</CardTitle>
-                <CardDescription>{t("settings.inst.desc")}</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 grid md:grid-cols-[1fr_250px] gap-8">
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label>{t("settings.inst.name")}</Label>
-                <Input 
-                  value={instName} 
-                  onChange={e => setInstName(e.target.value)} 
-                  placeholder="Kelajak Ta'lim" 
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t("settings.inst.address")}</Label>
-                <Input 
-                  value={instAddress} 
-                  onChange={e => setInstAddress(e.target.value)} 
-                  placeholder="Toshkent sh..." 
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t("settings.inst.phone")}</Label>
-                <Input 
-                  value={instPhone} 
-                  onChange={e => setInstPhone(e.target.value)} 
-                  placeholder="+998 90 123 45 67" 
-                />
-              </div>
-              <Button onClick={saveInstitutionSettings} disabled={instLoading} className="mt-4 shadow-md hover:shadow-lg transition-all">
-                <Save className="mr-2 size-4" /> {t("settings.inst.save")}
-              </Button>
-            </div>
-            
-            <div className="flex flex-col items-center justify-start space-y-4">
-              <Label className="text-muted-foreground w-full text-center">{t("settings.inst.logoLabel")}</Label>
-              <div className="relative group cursor-pointer w-40 h-40 rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-white hover:bg-muted/50 transition-colors">
-                {logoPreview && !logoError ? (
-                  <img 
-                    src={logoPreview} 
-                    alt="Logo" 
-                    className="w-full h-full object-contain" 
-                    onError={() => setLogoError(true)}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center text-muted-foreground">
-                    <Building2 className="size-10 mb-2 opacity-20" />
-                    <span className="text-xs text-center">{t("settings.inst.logoUpload")}</span>
-                  </div>
-                )}
-                
-                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Upload className="size-6 text-white mb-1" />
-                  <span className="text-white text-xs font-medium">{t("settings.inst.logoChange")}</span>
+        {loading ? (
+          <Card className="shadow-elegant border-border/60">
+            <CardHeader className="border-b border-border/40 pb-4 bg-muted/20">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-9 rounded-lg" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-3.5 w-56" />
                 </div>
-                
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  onChange={handleLogoChange}
-                />
               </div>
-              <p className="text-xs text-center text-muted-foreground max-w-[200px]">
-                {t("settings.inst.logoHint")}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="p-6 grid md:grid-cols-[1fr_250px] gap-8">
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-9 w-full" />
+                  </div>
+                ))}
+                <Skeleton className="h-9 w-40 mt-4" />
+              </div>
+              <div className="flex flex-col items-center gap-4">
+                <Skeleton className="h-3.5 w-24" />
+                <Skeleton className="w-40 h-40 rounded-2xl" />
+              </div>
+            </CardContent>
+          </Card>
+        ) : loadFailed ? (
+          <Card className="shadow-elegant border-border/60">
+            <ErrorState
+              title={
+                lang === "uz"
+                  ? "Muassasa sozlamalari yuklanmadi"
+                  : "Настройки организации не загрузились"
+              }
+              description={
+                lang === "uz"
+                  ? "Forma ko'rsatilmaydi: bo'sh maydonlarni saqlash haqiqiy sozlamalarni o'chirib yuborardi."
+                  : "Форма не показана намеренно: сохранение пустых полей затёрло бы настоящие настройки."
+              }
+              onRetry={loadInstitutionSettings}
+              retryLabel={lang === "uz" ? "Qayta urinish" : "Повторить"}
+            />
+          </Card>
+        ) : (
+          <Card className="shadow-elegant border-border/60">
+            <CardHeader className="border-b border-border/40 pb-4 bg-muted/20">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                  <Building2 className="size-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">{t("settings.inst.title")}</CardTitle>
+                  <CardDescription>{t("settings.inst.desc")}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 grid md:grid-cols-[1fr_250px] gap-8">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>{t("settings.inst.name")}</Label>
+                  <Input
+                    value={instName}
+                    onChange={e => setInstName(e.target.value)}
+                    placeholder="Kelajak Ta'lim"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("settings.inst.address")}</Label>
+                  <Input
+                    value={instAddress}
+                    onChange={e => setInstAddress(e.target.value)}
+                    placeholder="Toshkent sh..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("settings.inst.phone")}</Label>
+                  <Input
+                    value={instPhone}
+                    onChange={e => setInstPhone(e.target.value)}
+                    placeholder="+998 90 123 45 67"
+                  />
+                </div>
+                <Button onClick={saveInstitutionSettings} disabled={instLoading} className="mt-4 shadow-md hover:shadow-lg transition-all">
+                  <Save className="mr-2 size-4" /> {t("settings.inst.save")}
+                </Button>
+              </div>
+
+              <div className="flex flex-col items-center justify-start space-y-4">
+                <Label className="text-muted-foreground w-full text-center">{t("settings.inst.logoLabel")}</Label>
+                <div className="relative group cursor-pointer w-40 h-40 rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-white hover:bg-muted/50 transition-colors">
+                  {logoPreview && !logoError ? (
+                    <img
+                      src={logoPreview}
+                      alt="Logo"
+                      className="w-full h-full object-contain"
+                      onError={() => setLogoError(true)}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center text-muted-foreground">
+                      <Building2 className="size-10 mb-2 opacity-20" />
+                      <span className="text-xs text-center">{t("settings.inst.logoUpload")}</span>
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Upload className="size-6 text-white mb-1" />
+                    <span className="text-white text-xs font-medium">{t("settings.inst.logoChange")}</span>
+                  </div>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={handleLogoChange}
+                  />
+                </div>
+                <p className="text-xs text-center text-muted-foreground max-w-[200px]">
+                  {t("settings.inst.logoHint")}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Profile Settings */}
           <Card className="shadow-elegant border-border/60">
             <CardHeader className="border-b border-border/40 pb-4 bg-muted/20">
               <div className="flex items-center gap-2">
-                <div className="rounded-lg bg-[#e0f2fe] p-2 text-[#0077b6]">
+                <div className="rounded-lg bg-[var(--info-soft)] p-2 text-[var(--primary)]">
                   <User className="size-5" />
                 </div>
                 <div>
@@ -258,7 +323,7 @@ function DirectorSettingsPage() {
           <Card className="shadow-elegant border-border/60">
             <CardHeader className="border-b border-border/40 pb-4 bg-muted/20">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-orange-500/10 rounded-lg text-orange-500">
+                <div className="p-2 bg-warn-soft rounded-lg text-warn">
                   <KeyRound className="size-5" />
                 </div>
                 <div>

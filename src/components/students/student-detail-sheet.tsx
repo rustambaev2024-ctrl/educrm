@@ -76,10 +76,10 @@ export function StudentDetailSheet({
   const { groups, parents, payments, updateStudentPasswords, assignParent, addStudentToGroup, reload } = useData();
 
   const STATUS_OPTIONS = [
-    { value: "active",   uz: "Faol",        ru: "Активный",    color: "bg-emerald-500/10 text-emerald-600", textColor: "text-emerald-600" },
-    { value: "frozen",   uz: "Muzlatilgan", ru: "Заморожен",   color: "bg-amber-500/10 text-amber-600",     textColor: "text-amber-600" },
-    { value: "expelled", uz: "Chiqarilgan", ru: "Отчислен",    color: "bg-red-500/10 text-red-600",         textColor: "text-red-600" },
-    { value: "graduate", uz: "Bitiruvchi",  ru: "Выпускник",   color: "bg-blue-500/10 text-blue-600",       textColor: "text-blue-600" },
+    { value: "active",   uz: "Faol",        ru: "Активный",    color: "bg-ok-soft text-ok", textColor: "text-ok" },
+    { value: "frozen",   uz: "Muzlatilgan", ru: "Заморожен",   color: "bg-warn-soft text-warn",     textColor: "text-warn" },
+    { value: "expelled", uz: "Chiqarilgan", ru: "Отчислен",    color: "bg-bad-soft text-bad",         textColor: "text-bad" },
+    { value: "graduate", uz: "Bitiruvchi",  ru: "Выпускник",   color: "bg-info-soft text-info",       textColor: "text-info" },
     { value: "archived", uz: "Arxivlangan", ru: "Архивирован", color: "bg-muted text-muted-foreground",     textColor: "text-muted-foreground" },
   ] as const;
 
@@ -478,7 +478,7 @@ export function StudentDetailSheet({
               <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" onClick={() => setChargeOpen(true)}>
                 <ArrowUpCircle className="size-3.5 mr-1" /> {t("sd.withdraw")}
               </Button>
-              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none gap-1 border-amber-300 text-amber-600 hover:bg-amber-50" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
+              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none gap-1 border-warn/30 text-warn hover:bg-warn-soft" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
                 <Coins className="size-3.5" />
                 {lang === "uz" ? "Coin" : "Монеты"}
               </Button>
@@ -1203,7 +1203,7 @@ export function StudentDetailSheet({
                 onClick={() => setCoinAction("award")}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                   coinAction === "award"
-                    ? "bg-emerald-600 text-white"
+                    ? "bg-ok text-white"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
@@ -1214,7 +1214,7 @@ export function StudentDetailSheet({
                 onClick={() => setCoinAction("deduct")}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                   coinAction === "deduct"
-                    ? "bg-red-600 text-white"
+                    ? "bg-bad text-white"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
@@ -1252,7 +1252,7 @@ export function StudentDetailSheet({
               {lang === "uz" ? "Bekor" : "Отмена"}
             </Button>
             <Button
-              className={coinAction === "award" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}
+              className={coinAction === "award" ? "bg-ok hover:bg-ok text-white" : "bg-bad hover:bg-bad text-white"}
               onClick={async () => {
                 if (!student) return;
                 try {

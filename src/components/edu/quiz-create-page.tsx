@@ -24,10 +24,10 @@ interface QuestionDraft {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const ANSWER_COLORS = [
-  { bg: "#e74c3c", icon: "▲" },
-  { bg: "#2980b9", icon: "◆" },
-  { bg: "#f39c12", icon: "●" },
-  { bg: "#27ae60", icon: "■" },
+  { bg: "var(--quiz-a)", icon: "▲" },
+  { bg: "var(--quiz-b)", icon: "◆" },
+  { bg: "var(--quiz-c)", icon: "●" },
+  { bg: "var(--quiz-d)", icon: "■" },
 ];
 
 const TIME_OPTIONS = [5, 10, 20, 30];
@@ -273,14 +273,14 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
         gridTemplateColumns: "260px 1fr",
         height: "100vh",
         overflow: "hidden",
-        background: "#1a1a2e",
+        background: "var(--quiz-bg)",
       }}
     >
       {/* ── HEADER (full width) ────────────────────────────────────────────── */}
       <div
         style={{
           gridColumn: "1 / -1",
-          background: "#16213e",
+          background: "var(--quiz-surface)",
           borderBottom: "1px solid rgba(255,255,255,0.1)",
           padding: "0 16px",
           display: "flex",
@@ -341,7 +341,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
           onClick={handleSave}
           disabled={!canSave || isSaving}
           style={{
-            background: "#16a34a",
+            background: "var(--chart-1)",
             color: "white",
             borderRadius: 8,
             padding: "8px 20px",
@@ -361,7 +361,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
       {/* ── LEFT PANEL ─────────────────────────────────────────────────────── */}
       <div
         style={{
-          background: "#16213e",
+          background: "var(--quiz-surface)",
           borderRight: "1px solid rgba(255,255,255,0.1)",
           overflowY: "auto",
           display: "flex",
@@ -391,7 +391,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
-            background: "#0077b6",
+            background: "var(--primary)",
             color: "white",
             borderRadius: 12,
             padding: "10px 0",
@@ -410,7 +410,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
       {/* ── QUESTION EDITOR ────────────────────────────────────────────────── */}
       <div
         style={{
-          background: "#0f3460",
+          background: "var(--quiz-b)",
           overflowY: "auto",
           padding: 24,
           display: "flex",
@@ -458,7 +458,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
                     border: "none",
                     cursor: "pointer",
                     background:
-                      activeQ.timeLimit === sec ? "#0077b6" : "rgba(255,255,255,0.1)",
+                      activeQ.timeLimit === sec ? "var(--primary)" : "rgba(255,255,255,0.1)",
                     color: activeQ.timeLimit === sec ? "white" : "rgba(255,255,255,0.7)",
                   }}
                 >
@@ -491,7 +491,7 @@ export function QuizCreatePage({ basePath }: { basePath: "/admin" | "/teacher" }
                   width: "100%",
                   fontSize: 18,
                   fontWeight: 500,
-                  color: "#1a1a2e",
+                  color: "var(--quiz-bg)",
                   resize: "none",
                   background: "transparent",
                   border: "none",
@@ -577,7 +577,7 @@ function TitleInput({
         fontWeight: 600,
         border: "none",
         borderBottom: focused
-          ? "2px solid #0077b6"
+          ? "2px solid var(--primary)"
           : "2px solid rgba(255,255,255,0.3)",
         outline: "none",
         padding: "4px 0",
@@ -600,7 +600,7 @@ function TypeBtn({
     <button
       onClick={onClick}
       style={{
-        background: active ? "#0077b6" : "transparent",
+        background: active ? "var(--primary)" : "transparent",
         color: active ? "white" : "rgba(255,255,255,0.6)",
         padding: "6px 12px",
         fontSize: 12,
@@ -681,7 +681,7 @@ function QuestionCard({
           marginTop: 8,
         }}
       >
-        {["#e74c3c", "#2980b9", "#f39c12", "#27ae60"].map((color, ai) => (
+        {["var(--quiz-a)", "var(--quiz-b)", "var(--quiz-c)", "var(--quiz-d)"].map((color, ai) => (
           <div
             key={ai}
             style={{
@@ -747,7 +747,7 @@ function QuestionCard({
             justifyContent: "center",
           }}
         >
-          <Trash2 className="h-3.5 w-3.5" style={{ color: "#f87171" }} />
+          <Trash2 className="h-3.5 w-3.5" style={{ color: "var(--public-bad)" }} />
         </button>
       </div>
     </div>
@@ -819,7 +819,7 @@ function AnswerCard({
         }}
       >
         {answer?.isCorrect && (
-          <Check className="h-4 w-4" style={{ color: "#16a34a" }} />
+          <Check className="h-4 w-4" style={{ color: "var(--chart-1)" }} />
         )}
       </button>
     </div>

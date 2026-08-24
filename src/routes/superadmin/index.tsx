@@ -19,9 +19,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useData } from "@/lib/data/store";
+import { StatCardSkeleton, ListSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useData, apiErrorMessage } from "@/lib/data/store";
 import { superadminApi, ApiError } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
@@ -102,7 +105,8 @@ function SuperadminHome() {
       try {
         const r = await superadminApi.institutions.checkSlug(form.slug);
         setSlugStatus(r.available ? "available" : "taken");
-      } catch {
+      } catch (err) {
+        console.error("slug availability check failed", err);
         setSlugStatus("idle");
       }
     }, 500);
@@ -115,6 +119,8 @@ function SuperadminHome() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [forceDeleteTarget, setForceDeleteTarget] = useState<{ inst: Institution; activeCount: number } | null>(null);
+  const [branchDeleteTarget, setBranchDeleteTarget] = useState<Branch | null>(null);
+  const [deletingBranch, setDeletingBranch] = useState(false);
   const activeBranchInst = useMemo(() => {
     if (!branchInst) return null;
     return (
@@ -237,10 +243,25 @@ function SuperadminHome() {
         setDeleteTarget(null);
         setDeleteConfirmText("");
       } else {
-        toast.error(t("sa.deleteError"));
+        toast.error(apiErrorMessage(err));
       }
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const confirmDeleteBranch = async () => {
+    if (!branchDeleteTarget || !branchDeleteTarget.institutionId) return;
+    setDeletingBranch(true);
+    try {
+      await superadminApi.branches.delete(branchDeleteTarget.institutionId, branchDeleteTarget.id);
+      deleteBranch(branchDeleteTarget.id, { alreadyDeleted: true });
+      toast.success(t("sa.branches.deleted"));
+      setBranchDeleteTarget(null);
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
+    } finally {
+      setDeletingBranch(false);
     }
   };
 
@@ -265,14 +286,6 @@ function SuperadminHome() {
 
   const branchesOf = (id: string) => branches.filter((b) => b.institutionId === id);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
   return (
     <PageShell
       title={t("sa.institutions.title")}
@@ -283,6 +296,19 @@ function SuperadminHome() {
         </Button>
       }
     >
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <Card className="overflow-hidden p-0 shadow-elegant">
+            <ListSkeleton />
+          </Card>
+        </div>
+      ) : (
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard label={t("sa.kpi.totalOrg")} value={institutions.length} icon={Building2} iconColor="blue" />
@@ -310,7 +336,7 @@ function SuperadminHome() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="p-12 text-center text-sm text-muted-foreground">{t("sa.empty")}</div>
+            <EmptyState icon={<Building2 className="size-7" />} title={t("sa.empty")} />
           ) : (
             <Table>
               <TableHeader>
@@ -409,6 +435,7 @@ function SuperadminHome() {
           )}
         </Card>
       </div>
+      )}
 
       {/* Institution create/edit dialog */}
       <Dialog open={openInst} onOpenChange={(o) => { if (creationStep >= 0) return; setOpenInst(o); }}>
@@ -524,7 +551,7 @@ function SuperadminHome() {
 
               <div className="rounded-xl border border-border/60">
                 {branchesOf(activeBranchInst.id).length === 0 ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">{t("sa.branches.empty")}</div>
+                  <EmptyState icon={<DoorOpen className="size-7" />} title={t("sa.branches.empty")} />
                 ) : (
                   <div className="divide-y divide-border/60">
                     {branchesOf(activeBranchInst.id).map((b: Branch) => (
@@ -538,28 +565,14 @@ function SuperadminHome() {
                             <div className="text-xs text-muted-foreground">{b.address}</div>
                           </div>
                         </div>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="ghost" className="text-destructive">
-                              <Trash2 className="size-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>{t("common.delete")}</AlertDialogTitle>
-                              <AlertDialogDescription>{t("common.confirmDelete")} — {b.name}</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => { deleteBranch(b.id); toast.success(t("sa.branches.deleted")); }}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                {t("common.delete")}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => setBranchDeleteTarget(b)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -574,31 +587,33 @@ function SuperadminHome() {
       </Dialog>
 
       {/* Force-delete confirmation when active students exist */}
-      <AlertDialog open={!!forceDeleteTarget} onOpenChange={(o) => !o && setForceDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("sa.activeStudentsTitle")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {tf("sa.activeStudentsBody", {
-                name: forceDeleteTarget?.inst.name ?? "",
-                count: forceDeleteTarget?.activeCount ?? 0,
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setForceDeleteTarget(null)}>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => forceDeleteTarget && handleDelete(forceDeleteTarget.inst, true)}
-              disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleting ? "..." : t("sa.forceDelete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!forceDeleteTarget}
+        onOpenChange={(o) => !o && setForceDeleteTarget(null)}
+        title={t("sa.activeStudentsTitle")}
+        description={tf("sa.activeStudentsBody", {
+          name: forceDeleteTarget?.inst.name ?? "",
+          count: forceDeleteTarget?.activeCount ?? 0,
+        })}
+        confirmText={t("sa.forceDelete")}
+        cancelText={t("common.cancel")}
+        variant="destructive"
+        isLoading={deleting}
+        onConfirm={() => forceDeleteTarget && handleDelete(forceDeleteTarget.inst, true)}
+      />
+
+      {/* Branch delete confirmation */}
+      <ConfirmDialog
+        open={!!branchDeleteTarget}
+        onOpenChange={(o) => !o && setBranchDeleteTarget(null)}
+        title={t("common.delete")}
+        description={branchDeleteTarget ? `${t("common.confirmDelete")} — ${branchDeleteTarget.name}` : undefined}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
+        variant="destructive"
+        isLoading={deletingBranch}
+        onConfirm={confirmDeleteBranch}
+      />
     </PageShell>
   );
 }

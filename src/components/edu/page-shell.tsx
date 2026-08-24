@@ -16,6 +16,18 @@ interface PageShellProps {
   ignoreLoadError?: boolean;
 }
 
+/**
+ * Обёртка страницы: заголовок, действия, состояние ошибки.
+ *
+ * Стоит на 45 экранах, поэтому собран на токенах и утилитах, а не на
+ * инлайн-стилях: инлайн не переключается вместе с палитрой и не знает
+ * про плотность роли.
+ *
+ * Заголовок на узком экране переносится, а не обрезается. Раньше здесь
+ * стояло nowrap + многоточие, и «Посещаемость группы B2» на телефоне
+ * превращалась в «Посещаемость гру…» — при том что места под вторую
+ * строку было сколько угодно.
+ */
 export function PageShell({
   title,
   subtitle,
@@ -34,54 +46,18 @@ export function PageShell({
   const showError = !ignoreLoadError && Boolean(loadError);
 
   return (
-    <div style={{ padding: 16, boxSizing: "border-box", width: "100%", overflowX: "hidden" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 8,
-          marginBottom: 14,
-          minWidth: 0,
-        }}
-      >
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <h1
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: "var(--text-primary)",
-              margin: 0,
-              lineHeight: 1.3,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {title}
-          </h1>
-          {subtitle && (
-            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2, marginBottom: 0 }}>
-              {subtitle}
-            </p>
-          )}
+    <div className="w-full min-w-0 p-4">
+      <div className="mb-3.5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold leading-tight text-foreground">{title}</h1>
+          {subtitle && <p className="mt-0.5 text-[13px] text-muted-foreground">{subtitle}</p>}
         </div>
         {actions && !showError && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexWrap: "wrap",
-              flexShrink: 0,
-              maxWidth: "55%",
-            }}
-          >
-            {actions}
-          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
         )}
       </div>
-      <div style={{ height: 1, background: "var(--border-light)", marginBottom: 14 }} />
+
+      <div className="mb-3.5 h-px bg-border" />
 
       {showError ? (
         <ErrorState

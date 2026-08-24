@@ -146,7 +146,8 @@ interface DataStoreActions {
     parentPassword?: string;
   }) => Promise<void>;
   addGroup: (input: Omit<Group, "id" | "studentIds" | "status"> & { status?: Group["status"] }) => Group;
-  updateGroup: (id: string, patch: Partial<Group>) => void;
+  /** onSuccess — вызывается только после реального подтверждения сервером (не оптимистично) */
+  updateGroup: (id: string, patch: Partial<Group>, onSuccess?: () => void) => void;
   /** alreadyDeleted — страница уже удалила объект на сервере, повторный запрос не нужен */
   deleteGroup: (id: string, options?: { alreadyDeleted?: boolean }) => void;
   addStudentToGroup: (groupId: string, studentId: string) => Promise<boolean>;
@@ -164,7 +165,12 @@ interface DataStoreActions {
    * Откат оптимистичной записи и сообщение об ошибке делает стор.
    */
   addPayment: (input: Omit<Payment, "id">) => Promise<Payment | null>;
-  reversePayment: (id: string) => Promise<void>;
+  /**
+   * Отменяет платёж. Резолвится записью возврата при успехе и null при
+   * ошибке — по аналогии с addPayment экран не должен говорить «отменено»,
+   * пока сервер не ответил. Сообщение об ошибке показывает сам стор.
+   */
+  reversePayment: (id: string) => Promise<Payment | null>;
   addPenalty: (input: Omit<StaffPenalty, "id" | "createdAt" | "updatedAt">) => StaffPenalty;
   updatePenalty: (id: string, patch: Partial<StaffPenalty>) => void;
   deletePenalty: (id: string) => void;
@@ -711,7 +717,6 @@ function gradeFromRaw(raw: GradeRaw): Grade {
     homeworkStatusId: mapped.homeworkStatusId,
     title: mapped.title,
     score: mapped.score,
-    maxScore: mapped.maxScore,
     date: mapped.date,
     comment: mapped.comment,
   };
@@ -1205,7 +1210,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     return created;
   }, [refreshLessons]);
 
-  const updateGroup: DataStoreActions["updateGroup"] = useCallback((id, patch) => {
+  const updateGroup: DataStoreActions["updateGroup"] = useCallback((id, patch, onSuccess) => {
     const snapshot = groups;
     setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
     fireAndForget(
@@ -1225,6 +1230,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       } as never).then(() => {
         // Смена расписания перегенерирует будущие уроки на сервере.
         if (patch.schedule || patch.startDate || patch.endDate) void refreshLessons();
+        onSuccess?.();
       }),
       () => setGroups(snapshot),
     );
@@ -1418,7 +1424,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       const raw = await paymentApi.reverse(id);
       const refund = paymentFromRaw(raw as PaymentRaw);
       setPayments((prev) => [refund, ...prev]);
-      
+
       if (refund.studentId) {
         setStudents((prev) => prev.map((s) => {
           if (s.id === refund.studentId) {
@@ -1430,9 +1436,12 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
           return s;
         }));
       }
-      toast.success("Transaction reversed");
+      // Успех сообщает вызывающий экран (после проверки результата) — сам
+      // стор здесь ничего не подтверждает, только сообщает об ошибке.
+      return refund;
     } catch (err) {
       toast.error(apiErrorMessage(err));
+      return null;
     }
   }, []);
 
@@ -1836,7 +1845,6 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
             kind: "homework",
             title: hw.title,
             score: grade,
-            maxScore: 10,
             date: getLocalDateString(),
             comment: feedback,
           };

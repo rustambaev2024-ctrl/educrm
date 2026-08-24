@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/data/store";
 import { formatTime, initialsOf } from "@/lib/format";
@@ -226,7 +227,12 @@ export function MessengerPanel({
       <ScrollArea className="min-h-0 flex-1">
         {tab === "chats" ? (
           <div className="space-y-1 p-2">
-            {visibleThreads.length === 0 && <EmptyList text={lang === "uz" ? "Hozircha faol chatlar yo'q" : "Пока нет активных чатов"} />}
+            {visibleThreads.length === 0 && (
+              <EmptyState
+                icon={<MessageCircle className="size-6" />}
+                title={lang === "uz" ? "Hozircha faol chatlar yo'q" : "Пока нет активных чатов"}
+              />
+            )}
             {visibleThreads.map((thread) => {
               const active = selectedId === thread.id;
               const lastMessage =
@@ -260,7 +266,12 @@ export function MessengerPanel({
           </div>
         ) : (
           <div className="space-y-1 p-2">
-            {contacts.length === 0 && <EmptyList text={lang === "uz" ? "Kontaktlar topilmadi" : "Контакты не найдены"} />}
+            {contacts.length === 0 && (
+              <EmptyState
+                icon={<Users className="size-6" />}
+                title={lang === "uz" ? "Kontaktlar topilmadi" : "Контакты не найдены"}
+              />
+            )}
             {contacts.map((contact) => (
               <button
                 key={contact.userId}
@@ -377,9 +388,3 @@ export function MessengerPanel({
     </div>
   );
 }
-
-function EmptyList({ text }: { text: string }) {
-  return <div className="px-4 py-12 text-center text-sm text-muted-foreground">{text}</div>;
-}
-
-

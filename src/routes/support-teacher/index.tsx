@@ -3,7 +3,9 @@ import { useMemo } from "react";
 import { Clock, MapPin, Users, ChevronRight, ClipboardCheck, Calendar, BookOpen, AlertCircle } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
+import { StatCardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { LessonStatusBadge } from "@/components/edu/status-badge";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
@@ -56,9 +58,13 @@ function SupportTeacherHome() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
-      </div>
+      <PageShell title={tr("Bugun", "Сегодня")} subtitle={formatDate(today.toISOString(), lang)}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+      </PageShell>
     );
   }
 
@@ -66,8 +72,8 @@ function SupportTeacherHome() {
     return (
       <PageShell title={tr("Bugun", "Сегодня")} subtitle={formatDate(today.toISOString(), lang)}>
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-          <div className="flex size-14 items-center justify-center rounded-full bg-amber-500/10">
-            <AlertCircle className="size-7 text-amber-500" />
+          <div className="flex size-14 items-center justify-center rounded-full bg-warn-soft">
+            <AlertCircle className="size-7 text-warn" />
           </div>
           <div>
             <div className="text-base font-semibold text-foreground">
@@ -107,23 +113,23 @@ function SupportTeacherHome() {
       {next && nextGroup && (
         <Link
           to="/support-teacher/attendance"
-          className="mt-4 flex items-center gap-4 rounded-md border border-border bg-card p-4 transition-colors hover:bg-muted/40"
+          className="mt-4 flex items-center gap-4 rounded-xl bg-sidebar p-4 text-sidebar-foreground transition-opacity hover:opacity-95"
         >
-          <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-md bg-[#0077b6] py-1.5 text-white">
+          <div className="flex w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg bg-white/10 py-2">
             <Clock className="size-3.5" />
             <div className="text-base font-bold tabular-nums">{formatTime(next.datetime)}</div>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-sidebar-foreground/60">
               {tr("Keyingi dars", "Следующий урок")}
             </div>
             <div className="truncate text-[15px] font-semibold">{nextGroup.name}</div>
-            <div className="mt-0.5 flex flex-wrap items-center gap-3 text-[12px] text-muted-foreground">
+            <div className="mt-0.5 flex flex-wrap items-center gap-3 text-[12px] text-sidebar-foreground/70">
               <span className="flex items-center gap-1"><MapPin className="size-3" /> {roomById[next.roomId]?.name ?? "—"}</span>
               <span className="flex items-center gap-1"><Users className="size-3" /> {nextGroup.studentIds.length}</span>
             </div>
           </div>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          <ChevronRight className="size-4 shrink-0 text-sidebar-foreground/60" />
         </Link>
       )}
 
@@ -134,9 +140,10 @@ function SupportTeacherHome() {
           <span className="text-[12px] text-muted-foreground">{todayLessons.length}</span>
         </div>
         {todayLessons.length === 0 ? (
-          <div className="py-10 text-center text-[13px] text-muted-foreground">
-            {tr("Bugun darslar yo'q", "Сегодня занятий нет")}
-          </div>
+          <EmptyState
+            icon={<Calendar className="size-6" />}
+            title={tr("Bugun darslar yo'q", "Сегодня занятий нет")}
+          />
         ) : (
           <div className="divide-y divide-border">
             {todayLessons.map((lesson) => {
@@ -148,7 +155,7 @@ function SupportTeacherHome() {
                 <Link
                   key={lesson.id}
                   to="/support-teacher/attendance"
-                  className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40"
+                  className="edu-row flex min-h-11 items-center gap-3 px-4 py-2.5"
                 >
                   <div className="flex w-12 shrink-0 items-center gap-1 text-[13px] font-medium tabular-nums">
                     <Clock className="size-3 text-muted-foreground" />
@@ -189,14 +196,14 @@ function SupportTeacherHome() {
                   to="/support-teacher/homework"
                   className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40"
                 >
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-amber-500/10 text-amber-600">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-warn-soft text-warn">
                     <BookOpen className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-medium">{hw.title}</div>
                     <div className="text-[11px] text-muted-foreground">{group?.name ?? "—"}</div>
                   </div>
-                  <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600">
+                  <span className="rounded-md bg-warn-soft px-2 py-0.5 text-[11px] font-semibold text-warn">
                     {pending}
                   </span>
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
