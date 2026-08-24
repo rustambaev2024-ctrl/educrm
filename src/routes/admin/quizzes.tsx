@@ -249,7 +249,7 @@ export function QuizzesPage({ basePath }: { basePath: "/admin" | "/teacher" }) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-destructive hover:text-destructive"
+                          className="edu-tap text-destructive hover:text-destructive"
                           onClick={() => forceFinishSession(s.id)}
                         >
                           <StopCircle className="size-4" />
