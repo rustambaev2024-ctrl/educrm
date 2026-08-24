@@ -116,11 +116,14 @@ function FinancePage() {
     if (!reverseTarget) return;
     setReversingId(reverseTarget.id);
     try {
-      await reversePayment(reverseTarget.id);
+      // reversePayment резолвится в Payment на успехе и null на неудаче
+      // (store сам не бросает — он уже показал свой toast.error внутри).
+      // Без проверки возврата этот блок раньше показывал "Платёж отменён"
+      // и закрывал диалог даже когда сторно на бэкенде не прошло.
+      const reversed = await reversePayment(reverseTarget.id);
+      if (!reversed) return;
       toast.success(lang === "uz" ? "To'lov bekor qilindi" : "Платёж отменён");
       setReverseTarget(null);
-    } catch {
-      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
     } finally {
       setReversingId(null);
     }
