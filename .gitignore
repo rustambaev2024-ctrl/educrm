@@ -46,6 +46,13 @@ staticfiles/
 media/
 backend/staticfiles/
 backend/media/
+backend/private_media/
+
+# Local secrets / vault
+vault/
+
+# Superpowers local runtime files
+.superpowers/
 
 # Test / browser artifacts
 .playwright-cli/
