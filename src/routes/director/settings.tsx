@@ -101,9 +101,15 @@ function DirectorSettingsPage() {
         setLogoError(false);
       }
       toast.success(t("settings.msg.instSaved"));
-      
-      // Reload page to reflect logo changes in UI (sidebar, header)
-      setTimeout(() => window.location.reload(), 1000);
+
+      // Логотип отображается в сайдбаре/шапке через AppShell, который не
+      // подписан на этот store — единственный способ обновить его везде
+      // без отдельного механизма инвалидации бренд-контекста. Дёргаем
+      // reload только когда реально меняли лого, а не на любое сохранение
+      // (имя/адрес/телефон в шапке/сайдбаре не показываются).
+      if (logoFile) {
+        setTimeout(() => window.location.reload(), 1000);
+      }
     } catch (err) {
       console.error(err);
       toast.error(t("settings.msg.instError"));
