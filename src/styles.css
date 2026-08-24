@@ -125,16 +125,19 @@
   --popover-foreground: #141a17;
   --muted: #eeebe3;
   --muted-foreground: #4c564f;
-  --accent: #e1f0e9;
-  --accent-foreground: #0b4634;
+  /* Бледный/тёмный оттенки паприки того же тона, что --primary — пересчитать
+     вместе, если фирменный цвет снова сменится. */
+  --accent: #fbe6de;
+  --accent-foreground: #5c2410;
   --border: #e2dfd6;
   --input: #e2dfd6;
-  --ring: #0e7a57;
+  --ring: #c9481f;
 
   /* ── Действие ──
-     Изумруд взят затемнённым намеренно. Светлый #0f9e7a даёт с белым
-     текстом контраст 3.49:1 — кнопка нечитаема. Этот даёт 5.32:1. */
-  --primary: #0e7a57;
+     Паприка (Spicy Paprika, #E4572E) взята затемнённой намеренно. Оригинал
+     на белом даёт контраст 3.68:1 — кнопка нечитаема. Этот (#c9481f, тот же
+     оттенок и насыщенность, ниже светлота) даёт 4.74:1. */
+  --primary: #c9481f;
   --primary-foreground: #ffffff;
   --secondary: #eeebe3;
   --secondary-foreground: #141a17;
@@ -142,20 +145,20 @@
   --destructive-foreground: #ffffff;
 
   /* ── Оправа: боковое меню и нижняя панель ── */
-  --sidebar: #0a3527;
+  --sidebar: #2E282A;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #17a06f;
-  --sidebar-primary-foreground: #04150e;
+  --sidebar-primary: #c9481f;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: rgba(255, 255, 255, 0.08);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #2cc98d;
+  --sidebar-ring: #c9481f;
 
   /* ── Смысловые ──
      Шкала измеряемых значений: нейтральный → --warn → --bad.
      Норма НЕ окрашивается.
 
-     --ok и --primary близки по светлоте (контраст между ними ~1.1:1),
+     --ok и --primary близки по светлоте (контраст между ними ~1.2:1),
      и разведением оттенка это не лечится — проверено расчётом. Решение
      структурное, а не цветовое: --ok не участвует в шкале оценки
      показателя, он появляется только в момент подтверждения действия,
