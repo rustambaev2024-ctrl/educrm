@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card } from "@/components/ui/card";
+import { ErrorState } from "@/components/ui/error-state";
+import { CardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -173,7 +175,8 @@ function AdminLeadsPage() {
   const { lang } = useI18n();
   const { branches, courses, groups, reload } = useData();
   const [leads, setLeads] = useState<StudentLead[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<LeadForm>(emptyForm);
@@ -189,6 +192,9 @@ function AdminLeadsPage() {
     groupId: "",
   });
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
+  // Какая колонка канбана показана на телефоне. На десктопе не используется:
+  // там видны все пять сразу (см. lg:flex у колонки).
+  const [mobileStatus, setMobileStatus] = useState<StudentLeadStatus>("new");
 
   const t = labels(lang);
   const selected = useMemo(() => leads.find((lead) => lead.id === selectedId) ?? null, [leads, selectedId]);
@@ -198,16 +204,25 @@ function AdminLeadsPage() {
     setDetailForm(formFromLead(selected));
   }, [selected]);
 
-  const loadLeads = async () => {
-    setIsLoading(true);
+  const loadLeads = async (opts?: { silent?: boolean }) => {
+    // silent: true — фоновый рефреш после конвертации лида в ученика
+    // (handleConvertSubmit). Он не должен трогать isLoading — иначе
+    // `isLoading ? <KanbanBoardSkeleton> : ...` схлопывает всю доску
+    // полноэкранным скелетоном сразу после успешного действия пользователя.
+    if (!opts?.silent) setIsLoading(true);
     try {
       const data = await leadApi.list() as { results: LeadRaw[] } | LeadRaw[];
       setLeads(toResults(data).map(mapLead));
+      setLoadFailed(false);
     } catch (err) {
       console.error("[leads] load failed", err);
+      // Та же логика для ошибки: тихий рефреш не должен схлопывать уже
+      // отображённую доску в полноэкранную ErrorState из-за временного
+      // сбоя сети — только тост, доска остаётся как есть.
+      if (!opts?.silent) setLoadFailed(true);
       toast.error(t.loadError);
     } finally {
-      setIsLoading(false);
+      if (!opts?.silent) setIsLoading(false);
     }
   };
 
@@ -390,7 +405,9 @@ function AdminLeadsPage() {
       // живёт в локальном стейте (loadLeads), а ученики — в сторе (reload):
       // перечитываем оба, иначе карточка залипает на доске (BUG-015).
       // Отдельный PATCH был бы отклонён гардом "Won lead cannot be edited".
-      await Promise.all([loadLeads(), reload()]);
+      // silent: true — доска уже показывает актуальный список лидов, это
+      // фоновая ресинхронизация после мутации, а не первая загрузка.
+      await Promise.all([loadLeads({ silent: true }), reload()]);
       toast.success(t.converted);
       setConvertSheetOpen(false);
       setSelectedId(null);
@@ -434,7 +451,7 @@ function AdminLeadsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} className="pl-9" autoComplete="off" />
             </div>
-            <div className="grid gap-2 sm:grid-cols-4 xl:flex xl:items-center">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 xl:flex xl:items-center">
               <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as FilterStatus)}>
                 <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -456,7 +473,7 @@ function AdminLeadsPage() {
                 onClick={() => setShowWon(!showWon)}
                 className={`flex h-9 items-center rounded-md border px-3 text-xs transition-colors ${
                   showWon
-                    ? "border-[#0077b6] bg-[#0077b6] text-white"
+                    ? "border-[var(--primary)] bg-[var(--primary)] text-white"
                     : "border-border bg-background text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -468,25 +485,68 @@ function AdminLeadsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-5 gap-3 p-4 pb-6 h-[calc(100vh-280px)] min-h-[520px]">
+          {isLoading ? (
+            <KanbanBoardSkeleton mobileStatus={mobileStatus} />
+          ) : loadFailed ? (
+            <ErrorState
+              title={t.loadError}
+              description={t.loadErrorDescription}
+              onRetry={() => void loadLeads()}
+              isRetrying={isLoading}
+              retryLabel={t.retry}
+            />
+          ) : (
+          <>
+          {/* Переключатель колонок — только на телефоне. Пять колонок в 360px
+              давали по 60px на каждую, поэтому канбан прокручивался вбок:
+              карточку нельзя было ни рассмотреть, ни перетащить пальцем.
+              Столп 8 требует не сжатый десктоп, а другую раскладку. */}
+          <div className="mb-3 flex gap-2 overflow-x-auto px-1 pb-1 lg:hidden">
+            {STATUS_OPTIONS.map((status) => {
+              const count = filtered.filter((l) => l.status === status).length;
+              const on = status === mobileStatus;
+              return (
+                <button
+                  key={status}
+                  onClick={() => setMobileStatus(status)}
+                  aria-pressed={on}
+                  className={`flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium transition-colors ${
+                    on
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground"
+                  }`}
+                >
+                  {t.status[status]}
+                  <span className={`rounded-full px-1.5 text-[11px] font-bold tabular-nums ${on ? "bg-white/20" : "bg-muted"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="lg:mx-0 lg:overflow-visible lg:px-0">
+            {/* На телефоне пять колонок в 360px превращаются в 60px каждая —
+                канбан прокручивается вбок, как расписание. */}
+            <div className="grid grid-cols-1 gap-3 p-4 pb-6 h-[calc(100dvh-280px)] min-h-[520px] lg:grid-cols-5">
             {STATUS_OPTIONS.map(status => {
               const columnLeads = filtered.filter(l => l.status === status);
               const headerCls = {
                 new: "bg-primary/10 text-primary border-primary/20",
-                contacted: "border-border bg-muted text-muted-foreground",
-                trial: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-                won: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-                lost: "bg-destructive/10 text-red-400 border-destructive/20",
+                contacted: "border-[var(--border)] bg-white text-[var(--muted-foreground)]",
+                trial: "bg-warn-soft text-warn border-warn/30",
+                won: "bg-ok-soft text-ok border-ok/30",
+                lost: "bg-destructive/10 text-bad border-destructive/20",
               }[status] || "bg-muted text-foreground border-border";
 
               const isDialogDrop = status === "won" || status === "trial";
               const isDraggingOver = dragOverStatus === status;
 
               return (
-                <div key={status} className={`flex flex-col min-w-0 rounded-2xl bg-card border shadow-sm overflow-hidden h-full transition-colors ${
+                <div key={status} className={`${status === mobileStatus ? "flex" : "hidden lg:flex"} flex-col min-w-0 rounded-2xl bg-card border shadow-sm overflow-hidden h-full transition-colors ${
                   isDraggingOver
                     ? isDialogDrop
-                      ? "border-amber-400 bg-amber-50/30 dark:bg-amber-950/20"
+                      ? "border-warn/30 bg-warn-soft dark:bg-warn-soft"
                       : "border-primary/60 bg-primary/5"
                     : "border-border"
                 }`}
@@ -527,7 +587,7 @@ function AdminLeadsPage() {
                     <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-background/50 backdrop-blur-sm">{columnLeads.length}</Badge>
                   </div>
                   {isDialogDrop && isDraggingOver && (
-                    <div className="mx-3 mt-2 rounded-md bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                    <div className="mx-3 mt-2 rounded-md bg-warn-soft px-2.5 py-1.5 text-[11px] text-warn dark:text-warn font-medium">
                       {lang === "uz" ? "Dialog oynasi ochiladi" : "Откроется диалог"}
                     </div>
                   )}
@@ -552,7 +612,7 @@ function AdminLeadsPage() {
                         <div className="flex items-center justify-between mt-4 text-xs">
                           <span className="text-muted-foreground font-medium">{t.source[lead.source]}</span>
                           {isFollowUpDue(lead) ? (
-                            <span className="text-orange-400 font-semibold flex items-center gap-1.5 bg-orange-500/10 px-2 py-1 rounded-md">
+                            <span className="text-warn font-semibold flex items-center gap-1.5 bg-warn-soft px-2 py-1 rounded-md">
                               <Clock3 className="size-3.5" /> {lead.nextFollowUp ? formatDate(lead.nextFollowUp, lang) : "!"}
                             </span>
                           ) : (
@@ -585,7 +645,7 @@ function AdminLeadsPage() {
                               <div className="flex gap-1.5 mt-2">
                                 <Button
                                   size="sm"
-                                  className="h-6 text-[11px] flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                                  className="h-6 text-[11px] flex-1 bg-ok hover:bg-ok text-white border-none"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     void handleTrialAttendance(lead.id, true);
@@ -606,7 +666,7 @@ function AdminLeadsPage() {
                                 </Button>
                               </div>
                             ) : (
-                              <div className={`text-xs font-medium mt-1 ${lead.trialLessonAttended ? "text-emerald-600" : "text-destructive"}`}>
+                              <div className={`text-xs font-medium mt-1 ${lead.trialLessonAttended ? "text-ok" : "text-destructive"}`}>
                                 {lead.trialLessonAttended
                                   ? (lang === "uz" ? "Keldi" : "Пришёл")
                                   : (lang === "uz" ? "Kelmadi" : "Не пришёл")}
@@ -624,6 +684,9 @@ function AdminLeadsPage() {
               );
             })}
           </div>
+          </div>
+          </>
+          )}
         </Card>
       </div>
 
@@ -748,6 +811,34 @@ function AdminLeadsPage() {
   );
 }
 
+/**
+ * Скелет канбан-доски на первую загрузку — та же сетка из 5 колонок,
+ * что и у настоящей доски (шапка + карточки-заглушки), а не голый спиннер.
+ * До этого фикса на первой загрузке каждая колонка просто рисовала свой
+ * пустой текст, визуально неотличимый от "заявок правда нет".
+ */
+function KanbanBoardSkeleton({ mobileStatus }: { mobileStatus: StudentLeadStatus }) {
+  return (
+    <div className="grid grid-cols-1 gap-3 p-4 pb-6 h-[calc(100dvh-280px)] min-h-[520px] lg:grid-cols-5">
+      {STATUS_OPTIONS.map((status) => (
+        <div
+          key={status}
+          className={`${status === mobileStatus ? "flex" : "hidden lg:flex"} flex-col min-w-0 rounded-2xl bg-card border border-border shadow-sm overflow-hidden h-full`}
+        >
+          <div className="p-4 border-b border-border flex items-center justify-between">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-5 w-6 rounded-full" />
+          </div>
+          <div className="flex flex-col gap-3 p-3 flex-1 bg-muted/20">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function LeadDialog({
   open,
   onOpenChange,
@@ -799,7 +890,7 @@ function LeadFormFields({
 }) {
   return (
     <div className="grid gap-4">
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>{labels.fullName}</Label>
           <Input value={form.fullName} onChange={(event) => onChange({ ...form, fullName: event.target.value })} placeholder={labels.fullNamePlaceholder} autoComplete="off" />
@@ -810,7 +901,7 @@ function LeadFormFields({
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>{labels.branch}</Label>
           <Select value={form.branchId || NONE} onValueChange={(value) => onChange({ ...form, branchId: value === NONE ? "" : value })}>
@@ -833,7 +924,7 @@ function LeadFormFields({
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="space-y-1.5">
           <Label>{labels.sourceLabel}</Label>
           <Select value={form.source} onValueChange={(value) => onChange({ ...form, source: value as StudentLeadSource })}>
@@ -865,7 +956,7 @@ function LeadFormFields({
 function LeadStatusBadge({ status, labels }: { status: StudentLeadStatus; labels: Record<StudentLeadStatus, string> }) {
   const cls = {
     new: "border-primary/30 bg-primary/10 text-primary",
-    contacted: "border-border bg-muted text-muted-foreground",
+    contacted: "border-[var(--border)] bg-white text-[var(--muted-foreground)]",
     trial: "border-warning/30 bg-warning/10 text-warning-foreground",
     won: "border-success/30 bg-success/10 text-success",
     lost: "border-destructive/30 bg-destructive/10 text-destructive",
@@ -929,6 +1020,8 @@ function labels(lang: "uz" | "ru") {
       deleted: "Заявка удалена",
       converted: "Ученик создан, заявка закрыта",
       loadError: "Не удалось загрузить заявки",
+      loadErrorDescription: "Доска может выглядеть пустой, но это не значит, что заявок нет. Проверьте связь и повторите.",
+      retry: "Повторить",
       saveError: "Не удалось сохранить заявку",
       convertError: "Не удалось создать ученика",
       branchRequired: "Для создания ученика укажите филиал",
@@ -997,6 +1090,8 @@ function labels(lang: "uz" | "ru") {
     deleted: "Murojaat o'chirildi",
     converted: "O'quvchi yaratildi, murojaat yopildi",
     loadError: "Murojaatlarni yuklab bo'lmadi",
+    loadErrorDescription: "Doska bo'sh ko'rinishi mumkin, lekin bu murojaatlar yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+    retry: "Qayta urinish",
     saveError: "Murojaatni saqlab bo'lmadi",
     convertError: "O'quvchini yaratib bo'lmadi",
     branchRequired: "O'quvchi yaratish uchun filialni tanlang",

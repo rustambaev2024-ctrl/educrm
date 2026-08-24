@@ -93,7 +93,7 @@ def test_homework_grade_exam_cycle(api_client):
         {
             "status_id": str(status_id),
             "status": "checked",
-            "grade": 9,
+            "grade": 5,
             "teacher_comment": "Good",
         },
         format="json",
@@ -119,7 +119,7 @@ def test_homework_grade_exam_cycle(api_client):
         {
             "exam": str(exam_id),
             "student": str(student.id),
-            "score": 9,
+            "score": 5,
             "pass_status": "passed",
             "comment": "Great",
         },
@@ -174,8 +174,9 @@ def test_overdue_homework_task_marks_status(api_client):
         status="not_submitted",
     )
 
-    # Задача теперь итерирует схемы тенантов (T-016 / R-25); под SQLite
-    # тенантов нет, поэтому проверяем работу в текущей схеме напрямую.
+    # Зовём работу по одной организации: сама задача обходит все организации
+    # платформы, а в тестовой базе их нет. Раньше здесь стоял вызов задачи —
+    # и тест проходил ровно потому, что задача НЕ обходила организации.
     mark_overdue_in_current_schema()
     status.refresh_from_db()
     assert status.status == "overdue"

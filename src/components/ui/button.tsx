@@ -21,7 +21,10 @@ const buttonVariants = cva(
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        // edu-tap доводит область нажатия до 44px на тач-устройствах,
+        // не меняя размер на десктопе. См. @media (pointer: coarse)
+        // в src/styles.css.
+        icon: "h-9 w-9 edu-tap",
       },
     },
     defaultVariants: {

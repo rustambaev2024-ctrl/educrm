@@ -5,7 +5,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin, IsSupportTeacher, IsTeacher
+from apps.core.definitions import ATTENDANCE_COUNTED_STATUSES
 from apps.courses.models import GroupMembership
+from apps.finance.services import refund_lesson_charges
 from apps.notifications.services import NotificationService
 
 from .models import Attendance, Lesson, TeacherAttendance
@@ -35,6 +37,14 @@ class LessonViewSet(
                 permission_classes = [permissions.IsAuthenticated]
             else:
                 permission_classes = [IsTeacher | IsSupportTeacher]
+        elif self.action == "teacher_checkin":
+            # Отметку о приходе учителя мог поставить кто угодно из тех, кому
+            # виден урок, — в том числе сам ученик. Она влияет на зарплату
+            # и дисциплинарные отчёты, поэтому пишет только учитель или админ.
+            if self.request.method == "GET":
+                permission_classes = [permissions.IsAuthenticated]
+            else:
+                permission_classes = [IsTeacher | IsBranchAdmin]
         elif self.action in ("update", "partial_update"):
             permission_classes = [IsBranchAdmin]
         else:
@@ -121,8 +131,15 @@ class LessonViewSet(
         lesson.status = "cancelled"
         lesson.cancel_reason = str(request.data.get("reason") or "")[:500]
         lesson.save(update_fields=["status", "cancel_reason"])
+        # Занятия не было — деньги за него надо вернуть. Раньше отмена уже
+        # списанные деньги оставляла: ночное списание проходит в 23:00, а
+        # отменяют урок часто на следующий день.
+        refunded = refund_lesson_charges(lesson, created_by=request.user)
+        Attendance.objects.filter(lesson=lesson).update(is_charged=False)
+        data = LessonSerializer(lesson).data
+        data["refunded_charges"] = refunded
         NotificationService.on_lesson_cancelled(lesson)
-        return Response(LessonSerializer(lesson).data, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"], url_path="reschedule")
     def reschedule(self, request, pk=None):
@@ -130,7 +147,13 @@ class LessonViewSet(
         from rest_framework.fields import DateTimeField
 
         lesson = self.get_object()
-        if lesson.status == "cancelled" or lesson.rescheduled_to_id is not None:
+        # Проведённый урок переносить нельзя: у него уже есть посещаемость и
+        # история. Раньше проверялись только отменённый и уже перенесённый —
+        # проведённый уезжал на другую дату вместе со своими отметками.
+        if (
+            lesson.status in ("cancelled", "conducted")
+            or lesson.rescheduled_to_id is not None
+        ):
             return Response(
                 {
                     "detail": {
@@ -148,6 +171,36 @@ class LessonViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Перенос в прошлое не проверялся вообще. Урок, поставленный задним
+        # числом, пропускает ночное списание (оно идёт по сегодняшнему дню) и
+        # уже не может получить посещаемость — занятие просто исчезает.
+        if new_datetime <= timezone.now():
+            return Response(
+                {
+                    "detail": {
+                        "uz": "Darsni o'tgan vaqtga ko'chirib bo'lmaydi",
+                        "ru": "Нельзя перенести урок на прошедшее время",
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Два занятия одной группы в одну минуту — почти наверняка двойное
+        # нажатие. Календарь группы такого не выдерживает: списание берёт
+        # первое занятие дня, второе висит мусором.
+        if Lesson.objects.filter(
+            group=lesson.group, datetime=new_datetime
+        ).exclude(id=lesson.id).exists():
+            return Response(
+                {
+                    "detail": {
+                        "uz": "Bu guruhda shu vaqtda dars allaqachon bor",
+                        "ru": "У этой группы уже есть занятие на это время",
+                    }
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
         with transaction.atomic():
             new_lesson = Lesson.objects.create(
                 group=lesson.group,
@@ -161,7 +214,14 @@ class LessonViewSet(
             lesson.status = "rescheduled"
             lesson.rescheduled_to = new_lesson
             lesson.save(update_fields=["status", "rescheduled_to"])
-        return Response(LessonSerializer(lesson).data, status=status.HTTP_200_OK)
+        # Занятие уехало на другую дату — деньги за старую возвращаем, иначе
+        # ученик платит дважды: за дату, которой не было, и за новую.
+        refunded = refund_lesson_charges(lesson, created_by=request.user)
+        Attendance.objects.filter(lesson=lesson).update(is_charged=False)
+        data = LessonSerializer(lesson).data
+        data["refunded_charges"] = refunded
+        NotificationService.on_lesson_rescheduled(lesson, new_lesson)
+        return Response(data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get", "post"], url_path="attendance")
     def attendance(self, request, pk=None):
@@ -171,13 +231,16 @@ class LessonViewSet(
             serializer = AttendanceSerializer(attendance_qs, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        # Нельзя отмечать посещаемость для отменённого урока.
-        if lesson.status == "cancelled":
+        # Нельзя отмечать посещаемость для отменённого или перенесённого урока.
+        # Перенесённый раньше не проверялся: отметки за занятие, которого на
+        # этой дате не было, попадали в знаменатель посещаемости и портили
+        # показатель учителя и центра.
+        if lesson.status in ("cancelled", "rescheduled"):
             return Response(
                 {
                     "detail": {
-                        "uz": "Bekor qilingan dars uchun davomat belgilab bo'lmaydi",
-                        "ru": "Нельзя отметить посещаемость для отменённого урока",
+                        "uz": "Bekor qilingan yoki ko'chirilgan dars uchun davomat belgilab bo'lmaydi",
+                        "ru": "Нельзя отметить посещаемость для отменённого или перенесённого урока",
                     }
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -240,7 +303,7 @@ class LessonViewSet(
                 saved.append(attendance)
 
             if lesson.status not in ("cancelled", "rescheduled"):
-                if any(r.status in ("present", "late", "absent") for r in saved):
+                if any(r.status in ATTENDANCE_COUNTED_STATUSES for r in saved):
                     if lesson.status != "conducted":
                         lesson.status = "conducted"
                         lesson.save(update_fields=["status"])

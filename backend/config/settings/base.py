@@ -221,14 +221,12 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-AWS_STORAGE_BUCKET_NAME = os.getenv("MINIO_BUCKET", "educrm")
-AWS_S3_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
-AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")
-AWS_S3_SIGNATURE_VERSION = "s3v4"
-AWS_DEFAULT_ACL = None
-AWS_S3_FILE_OVERWRITE = False
+# Настройки S3/MinIO убраны: STORAGES ниже использует локальный диск, и ни
+# одна строчка кода к S3 не обращалась. Константы лежали мёртвым грузом с
+# паролем minioadmin/minioadmin по умолчанию — при случайном включении S3
+# бакет оказался бы с дефолтными ключами. Файлы хранятся на постоянном томе
+# Railway (MEDIA_ROOT=/app/media). Если понадобится S3, заводить настройки
+# заново вместе с реальными ключами.
 
 STORAGES = {
     "default": {
@@ -271,6 +269,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.finance.tasks.update_debtor_statuses",
         "schedule": crontab(hour=0, minute=30),
     },
+    # РАСПИСАНИЕ — без этого горизонт уроков (90 дней от создания группы,
+    # генерируется один раз) молча заканчивается и учителя перестают видеть
+    # свои занятия. Найдено на проде 2026-08-08 — 9 из 36 активных групп в
+    # одном филиале уже остались без будущих уроков.
+    "extend-lesson-horizons": {
+        "task": "apps.lessons.tasks.extend_lesson_horizons",
+        "schedule": crontab(hour=1, minute=0),
+    },
     # УВЕДОМЛЕНИЯ
     "lead-follow-up-reminder": {
         "task": "apps.notifications.tasks.lead_follow_up_reminder",
@@ -307,4 +313,20 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=9, minute=0),
     },
 }
+
+# Sentry — inert unless SENTRY_DSN is set. No account is wired up yet; this
+# just makes turning it on a one-variable change instead of a deploy.
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.celery import CeleryIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration(), CeleryIntegration()],
+        environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        send_default_pii=False,
+    )
 

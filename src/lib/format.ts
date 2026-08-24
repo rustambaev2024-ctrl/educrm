@@ -91,17 +91,29 @@ export function getLocalDateString(date?: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Момент «сейчас» в локальном времени, без Z на конце.
+ *
+ * Оптимистичные записи раньше клали сюда `new Date().toISOString()` — время в
+ * UTC. Данные от этого не портятся (сервер ставит своё created_at), но с 00:00
+ * до 05:00 по Ташкенту свежий платёж показывался предыдущим днём, пока
+ * страницу не обновят. Строка без Z читается `new Date()` как локальная, и
+ * день совпадает с тем, что покажет сервер.
+ */
+export function getLocalDateTimeString(date?: Date): string {
+  const d = date || new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return (
+    `${getLocalDateString(d)}T` +
+    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
+}
+
 export function initialsOf(name: string): string {
   if (!name) return "?";
   const parts = name.trim().split(" ").filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
-}
-
-export function scoreTone(pct: number): string {
-  if (pct >= 85) return "text-green-600";
-  if (pct >= 65) return "text-yellow-600";
-  return "text-red-600";
 }
 
 export function getPaymentLabel(type: string, lang: string): string {

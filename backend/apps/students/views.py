@@ -1,16 +1,17 @@
 import logging
 from django.db import transaction
 from django.db.models import Q
-from django.http import FileResponse, HttpResponseRedirect
+from django_tenants.utils import schema_context
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, SimpleRateThrottle
 
 from apps.accounts.permissions import IsBranchAdmin, IsTeacher
+from apps.core.definitions import attendance_rate_parts
 from apps.finance.serializers import PaymentSerializer
 from apps.lessons.serializers import AttendanceSerializer
 
@@ -96,6 +97,76 @@ def public_submit_lead(request):
     )
 
 
+class LidPixelLeadThrottle(SimpleRateThrottle):
+    """Ограничение по самому API-ключу, а не по IP — это серверный вебхук,
+    IP один и тот же для всех запросов; ключевание по IP не спасло бы от
+    подбора/злоупотребления утёкшим ключом."""
+
+    scope = "lidpixel_lead"
+    rate = "60/hour"
+
+    def get_cache_key(self, request, view):
+        key = request.headers.get("X-Api-Key") or request.query_params.get("key") or ""
+        return f"throttle_lidpixel_{key}" if key else None
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([LidPixelLeadThrottle])
+def public_submit_lead_lidpixel(request):
+    """
+    Входящий вебхук для интеграции с LidPixel. В отличие от public_submit_lead,
+    тенант определяется не заголовком X-Tenant-Schema (ему тут не доверяем),
+    а самим API-ключом — ключ однозначно принадлежит одной организации.
+    """
+    key = request.headers.get("X-Api-Key") or request.query_params.get("key") or ""
+    if not key:
+        return Response({"detail": "Invalid API key"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    from apps.tenants.models import Institution
+
+    try:
+        institution = Institution.objects.get(lead_api_key=key)
+    except Institution.DoesNotExist:
+        return Response({"detail": "Invalid API key"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    data = request.data
+    logger.info("lidpixel lead payload for %s: %s", institution.schema_name, dict(data))
+
+    full_name = (data.get("name") or data.get("full_name") or "").strip()
+    phone = (data.get("phone") or data.get("telephone") or data.get("phone_number") or "").strip()
+    email = (data.get("email") or "").strip()
+    notes = (data.get("notes") or "").strip()
+    if email:
+        notes = f"email: {email}" + (f"\n{notes}" if notes else "")
+
+    if not full_name or not phone:
+        return Response(
+            {"detail": "name and phone are required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    with schema_context(institution.schema_name):
+        from apps.institutions.models import Branch
+
+        lead_data = {
+            "full_name": full_name,
+            "phone": phone,
+            "source": "lidpixel",
+            "notes": notes,
+            "status": "new",
+        }
+        first_branch = Branch.objects.first()
+        if first_branch:
+            lead_data["branch"] = first_branch
+        lead = StudentLead.objects.create(**lead_data)
+
+    return Response(
+        {"id": str(lead.id), "status": "ok"},
+        status=status.HTTP_201_CREATED,
+    )
+
+
 class StudentPagination(PageNumberPagination):
     page_size = 50
     page_size_query_param = "page_size"
@@ -168,6 +239,27 @@ class StudentViewSet(viewsets.ModelViewSet):
                 Q(user__full_name__icontains=value)
                 | Q(user__phone__icontains=value)
             )
+
+        # Сортировка по белому списку, а не через OrderingFilter: тот пускает
+        # обход по связям (`?ordering=user__branch__institution__...`), а здесь
+        # нужны ровно те колонки, по которым можно щёлкнуть в интерфейсе.
+        # Список серверно пагинирован, поэтому сортировать на клиенте нельзя —
+        # отсортировалась бы только текущая страница из пятидесяти строк,
+        # и пользователь получил бы неверный ответ на вопрос
+        # «у кого самый большой долг».
+        sortable = {
+            "name": "user__full_name",
+            "balance": "balance",
+            "status": "status",
+            "registered": "registered_at",
+        }
+        requested = params.get("sort") or ""
+        descending = requested.startswith("-")
+        field = sortable.get(requested.lstrip("-"))
+        if field:
+            order = f"-{field}" if descending else field
+            return scoped.distinct().order_by(order, "-registered_at")
+
         return scoped.distinct().order_by("-registered_at")
 
     @transaction.atomic
@@ -233,36 +325,6 @@ class StudentViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["get"],
-        url_path=r"documents/(?P<document_id>[^/.]+)/download",
-    )
-    def download_document(self, request, pk=None, document_id=None):
-        """R-17: единственный путь к документу ученика — через проверку прав.
-
-        `get_object()` уже скоупит ученика по роли и филиалу, а тенант задан
-        схемой запроса. Ссылка короткоживущая (presigned) там, где включён
-        MinIO; на локальном хранилище файл отдаётся потоком тем же ответом.
-        """
-        student = self.get_object()
-        document = student.documents.filter(id=document_id).first()
-        if document is None or not document.file:
-            return Response(
-                {
-                    "detail": {
-                        "uz": "Hujjat topilmadi",
-                        "ru": "Документ не найден",
-                    }
-                },
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        try:
-            return HttpResponseRedirect(document.file.url)
-        except NotImplementedError:
-            return FileResponse(document.file.open("rb"), as_attachment=True)
-
-    @action(
-        detail=True,
         methods=["post"],
         url_path="certificate",
         parser_classes=[MultiPartParser, FormParser, JSONParser],
@@ -287,8 +349,7 @@ class StudentViewSet(viewsets.ModelViewSet):
         if params.get("date_to"):
             attendance_qs = attendance_qs.filter(lesson__datetime__date__lte=params["date_to"])
 
-        total = attendance_qs.count()
-        present_count = attendance_qs.filter(status__in=["present", "late", "online"]).count()
+        present_count, total = attendance_rate_parts(attendance_qs)
         percent = round((present_count * 100 / total), 2) if total > 0 else 0
 
         serializer = AttendanceSerializer(attendance_qs.order_by("-lesson__datetime"), many=True)
@@ -354,6 +415,56 @@ class StudentViewSet(viewsets.ModelViewSet):
         ]
         return Response({"groups": groups, "closed_at": last_closed.left_at})
 
+    @action(detail=False, methods=["post"], url_path="bulk-status")
+    @transaction.atomic
+    def bulk_status(self, request):
+        """Сменить статус нескольким ученикам за раз.
+
+        Массовые действия были доступны в 2 экранах из 16, потому что ручки
+        для них не существовало. Здесь она появляется в самом безопасном
+        виде: только смена статуса, только на «заморожен» и «активен» —
+        то есть обратимые операции, для которых в интерфейсе есть отмена.
+        Удаления и денежных операций пачкой тут нет намеренно.
+
+        Скоуп берётся из get_queryset(), поэтому массовое действие не может
+        задеть учеников чужого филиала: id, которых нет в скоупе, просто
+        не найдутся. Их количество возвращается отдельно, чтобы интерфейс
+        не рапортовал об успехе там, где ничего не произошло.
+        """
+        ids = request.data.get("ids")
+        new_status = request.data.get("status")
+
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {"detail": "ids must be a non-empty list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(ids) > 200:
+            return Response(
+                {"detail": "At most 200 students per request."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Только обратимые переходы. Расширять список — отдельное решение:
+        # «архивировать» и «отчислить» пачкой без подтверждения на каждого
+        # слишком легко сделать по ошибке.
+        if new_status not in ("frozen", "active"):
+            return Response(
+                {"detail": "status must be 'frozen' or 'active'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        scoped = self.get_queryset().filter(id__in=ids)
+        found_ids = list(scoped.values_list("id", flat=True))
+        updated = Student.objects.filter(id__in=found_ids).update(status=new_status)
+
+        return Response(
+            {
+                "updated": updated,
+                "skipped": len(set(map(str, ids))) - len(found_ids),
+                "status": new_status,
+            }
+        )
+
     @action(detail=True, methods=["post"], url_path="assign-parent")
     @transaction.atomic
     def assign_parent(self, request, pk=None):
@@ -378,7 +489,7 @@ class StudentViewSet(viewsets.ModelViewSet):
         elif parent_phone:
             from apps.accounts.managers import UserManager
             normalized_phone = UserManager.normalize_phone(parent_phone)
-            
+
             # Check if user already exists
             user = User.objects.filter(phone=normalized_phone).first()
             if user:
@@ -391,7 +502,7 @@ class StudentViewSet(viewsets.ModelViewSet):
             else:
                 if not parent_name:
                     return Response({"detail": "parent_name is required to create a new parent."}, status=status.HTTP_400_BAD_REQUEST)
-                
+
                 pwd = parent_password or secrets.token_urlsafe(8)
                 user = User.objects.create_user(
                     phone=normalized_phone,
@@ -404,7 +515,7 @@ class StudentViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Either parent_id or parent_phone is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         link, created = ParentStudentLink.objects.get_or_create(parent=parent, student=student)
-        
+
         return Response({
             "status": "success",
             "parent": {

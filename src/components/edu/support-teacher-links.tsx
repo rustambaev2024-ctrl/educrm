@@ -11,8 +11,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ErrorState } from "@/components/ui/error-state";
 import { supportTeacherApi } from "@/lib/api";
-import { useData } from "@/lib/data/store";
+import { useData, apiErrorMessage } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 
 interface LinkRaw {
@@ -34,19 +35,26 @@ export function SupportTeacherLinks() {
 
   const [links, setLinks] = useState<LinkRaw[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   // Выбранный учитель для добавления, по support_teacher userId
   const [picker, setPicker] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const raw = (await supportTeacherApi.links.list()) as LinkRaw[];
       setLinks(Array.isArray(raw) ? raw : []);
+      setLoadFailed(false);
     } catch (err) {
       console.error("[support-teacher-links] load failed:", err);
+      // Фоновый рефреш после attach() (silent) не должен схлопывать рабочий
+      // список в полноэкранную ErrorState из-за временного сбоя сети — на
+      // экране всё ещё валидный (пусть и стейл) список, только тост.
+      if (!opts?.silent) setLoadFailed(true);
+      toast.error(apiErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
@@ -69,7 +77,7 @@ export function SupportTeacherLinks() {
     try {
       await supportTeacherApi.links.create({ support_teacher: supportUserId, teacher: teacherId });
       setPicker((prev) => ({ ...prev, [supportUserId]: "" }));
-      await load();
+      await load({ silent: true });
       toast.success(lang === "uz" ? "O'qituvchi biriktirildi" : "Учитель привязан");
     } catch (err) {
       console.error("[support-teacher-links] attach failed:", err);
@@ -93,7 +101,7 @@ export function SupportTeacherLinks() {
   return (
     <Card className="overflow-hidden shadow-elegant">
       <div className="flex items-center gap-2 border-b border-border/60 p-4">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-warn-soft text-warn">
           <Users className="size-4" />
         </div>
         <div>
@@ -108,18 +116,32 @@ export function SupportTeacherLinks() {
         </div>
       </div>
 
-      {supportTeachers.length === 0 ? (
-        <div className="flex items-center gap-3 p-4 m-4 rounded-xl bg-amber-500/10">
-          <AlertCircle className="size-4 shrink-0 text-amber-500" />
-          <p className="text-sm text-muted-foreground">
-            {lang === "uz"
-              ? "Hozircha yordamchi o'qituvchilar yo'q. Direktor yangi yordamchi yaratishi kerak."
-              : "Помощников учителей пока нет. Директор должен создать сотрудника с ролью «Помощник учителя»."}
-          </p>
-        </div>
-      ) : null}
+      {loadFailed ? (
+        <ErrorState
+          title={lang === "uz" ? "Ma'lumotlar yuklanmadi" : "Данные не загрузились"}
+          description={
+            lang === "uz"
+              ? "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring."
+              : "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите."
+          }
+          onRetry={() => void load()}
+          isRetrying={loading}
+          retryLabel={lang === "uz" ? "Qayta urinish" : "Повторить"}
+        />
+      ) : (
+        <>
+          {supportTeachers.length === 0 ? (
+            <div className="flex items-center gap-3 p-4 m-4 rounded-xl bg-warn-soft">
+              <AlertCircle className="size-4 shrink-0 text-warn" />
+              <p className="text-sm text-muted-foreground">
+                {lang === "uz"
+                  ? "Hozircha yordamchi o'qituvchilar yo'q. Direktor yangi yordamchi yaratishi kerak."
+                  : "Помощников учителей пока нет. Директор должен создать сотрудника с ролью «Помощник учителя»."}
+              </p>
+            </div>
+          ) : null}
 
-      <div className="divide-y divide-border/60">
+          <div className="divide-y divide-border/60">
         {supportTeachers.map((st) => {
           const supportUserId = st.userId ?? st.id;
           const stLinks = linksBySupport[supportUserId] ?? [];
@@ -139,7 +161,7 @@ export function SupportTeacherLinks() {
                     <div className="text-xs text-muted-foreground">{st.phone}</div>
                   </div>
                 </div>
-                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/15 text-amber-600">
+                <Badge variant="outline" className="border-warn/30 bg-warn-soft text-warn">
                   {stLinks.length} {lang === "uz" ? "o'qituvchi" : "учителей"}
                 </Badge>
               </div>
@@ -226,13 +248,15 @@ export function SupportTeacherLinks() {
             </div>
           );
         })}
-      </div>
+          </div>
 
-      {loading && (
-        <div className="border-t border-border/60 p-3 text-center text-xs text-muted-foreground">
-          <Plus className="mr-1 inline size-3 animate-spin" />
-          {lang === "uz" ? "Yuklanmoqda..." : "Загрузка..."}
-        </div>
+          {loading && (
+            <div className="border-t border-border/60 p-3 text-center text-xs text-muted-foreground">
+              <Plus className="mr-1 inline size-3 animate-spin" />
+              {lang === "uz" ? "Yuklanmoqda..." : "Загрузка..."}
+            </div>
+          )}
+        </>
       )}
     </Card>
   );

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Save, Settings as SettingsIcon, ShieldCheck, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
@@ -8,17 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { superadminApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/superadmin/settings")({ component: SaSettings });
 
 function SaSettings() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const [platformName, setPlatformName] = useState("EduCRM");
   const [supportEmail, setSupportEmail] = useState("");
@@ -29,9 +33,17 @@ function SaSettings() {
   const [strongPwd, setStrongPwd] = useState(true);
   const [sessionTimeout, setSessionTimeout] = useState(30);
 
-  const [primaryColor, setPrimaryColor] = useState("#6366f1");
+  // Значение по умолчанию — фирменный цвет платформы (--primary).
+  // Раньше стоял фиолетовый, не встречающийся в продукте нигде.
+  const [primaryColor, setPrimaryColor] = useState("#0e7a57");
 
-  useEffect(() => {
+  // Если настройки не загрузились, форму показывать нельзя: поля останутся
+  // с захардкоженными значениями по умолчанию, и «Сохранить» запишет их
+  // поверх настоящих настроек платформы. Пустых данных не бывает — бывает
+  // «не загрузилось», и это отдельное состояние.
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     superadminApi.settings.get()
       .then((data: any) => {
         if (data) {
@@ -39,15 +51,22 @@ function SaSettings() {
           setSupportEmail(data.support_email ?? "");
           setSupportPhone(data.support_phone ?? "");
           setDefaultLang(data.default_language ?? "uz");
-          setPrimaryColor(data.primary_color ?? "#6366f1");
+          setPrimaryColor(data.primary_color ?? "#0e7a57");
           setSessionTimeout(data.session_timeout ?? 30);
           setTwoFactor(data.require_2fa ?? false);
           setStrongPwd(data.strong_password ?? true);
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error("Failed to load platform settings", err);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const save = async () => {
     setSaving(true);
@@ -65,7 +84,7 @@ function SaSettings() {
       toast.success(t("sa.settings.saved"));
     } catch (err) {
       console.error(err);
-      toast.error(t("sa.settings.saveError"));
+      toast.error(apiErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -73,9 +92,42 @@ function SaSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t("sa.settings.title")} subtitle={t("sa.settings.subtitle")} ignoreLoadError>
+        <div className="space-y-6">
+          <Skeleton className="h-9 w-72 max-w-full rounded-md" />
+          <div className="space-y-5 rounded-lg border border-border p-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-3.5 w-24" />
+                  <Skeleton className="h-9 w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <PageShell title={t("sa.settings.title")} subtitle={t("sa.settings.subtitle")} ignoreLoadError>
+        <ErrorState
+          title={
+            lang === "uz"
+              ? "Platforma sozlamalari yuklanmadi"
+              : "Настройки платформы не загрузились"
+          }
+          description={
+            lang === "uz"
+              ? "Forma ko'rsatilmaydi: bo'sh maydonlarni saqlash haqiqiy sozlamalarni o'chirib yuborardi."
+              : "Форма не показана намеренно: сохранение пустых полей затёрло бы настоящие настройки."
+          }
+          onRetry={load}
+          retryLabel={lang === "uz" ? "Qayta urinish" : "Повторить"}
+        />
+      </PageShell>
     );
   }
 
@@ -99,7 +151,7 @@ function SaSettings() {
 
           <TabsContent value="general">
             <Card className="space-y-5 p-6 shadow-elegant">
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Field label={t("sa.settings.platformName")}>
                   <Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
                 </Field>

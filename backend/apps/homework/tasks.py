@@ -10,16 +10,15 @@ logger = logging.getLogger(__name__)
 
 
 def _iter_tenant_schemas():
-    """Yield each non-public tenant schema name."""
     tenant_model = get_tenant_model()
     public = get_public_schema_name()
     for tenant in tenant_model.objects.exclude(schema_name=public).iterator():
         yield tenant.schema_name
 
 
-def mark_overdue_in_current_schema() -> int:
-    """Перевести просроченные ДЗ в `overdue` в текущей схеме. Идемпотентно."""
-    now = timezone.now()
+def mark_overdue_in_current_schema(now=None) -> int:
+    """Пометить просроченные работы в ТЕКУЩЕЙ организации."""
+    now = now or timezone.now()
     return HomeworkStatus.objects.filter(
         status="not_submitted",
         homework__deadline__isnull=False,
@@ -27,23 +26,21 @@ def mark_overdue_in_current_schema() -> int:
     ).update(status="overdue")
 
 
-@shared_task(
-    soft_time_limit=300,
-    time_limit=360,
-    autoretry_for=(Exception,),
-    retry_backoff=True,
-    max_retries=3,
-)
+@shared_task
 def mark_overdue_homework():
-    """R-25: задача не наследует схему из HTTP-запроса — ставим её явно по каждому тенанту.
+    """Проставить «просрочено» несданным работам с истёкшим сроком.
 
-    До этого запрос выполнялся в схеме `public`, где таблицы ДЗ нет: задача падала
-    молча каждый день, статусы `overdue` не проставлялись ни в одном учебном центре.
+    Задача НЕ обходила организации: данные домашних заданий лежат отдельно у
+    каждого учебного центра, а задача работала в общей служебной области, где
+    их нет вовсе. То есть запускалась каждую ночь и не помечала ничего и ни у
+    кого — статус «просрочено» не появлялся никогда.
     """
+    now = timezone.now()
+    total = 0
     for schema in _iter_tenant_schemas():
-        logger.info(f"mark_overdue_homework started for schema '{schema}'")
         with schema_context(schema):
-            updated = mark_overdue_in_current_schema()
-        logger.info(
-            f"mark_overdue_homework completed for schema '{schema}': {updated} statuses"
-        )
+            updated = mark_overdue_in_current_schema(now)
+            total += updated
+            if updated:
+                logger.info("mark_overdue_homework: %s работ в '%s'", updated, schema)
+    return total

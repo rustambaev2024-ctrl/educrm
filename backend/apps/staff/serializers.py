@@ -1,23 +1,9 @@
 from django.db import transaction
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.models import User
-from apps.core.passwords import generate_temp_password, validate_password_strength
 
 from .models import Staff, StaffPenalty, StaffBonus, SupportTeacherLink
-
-# R-18: кто чей пароль вправе сбросить через PATCH /staff/<id>/.
-# Таблицей, а не цепочкой сравнений: правило видно целиком и ревьюится за раз.
-# Совпадает по смыслу с гардом /auth/reset-password/.
-PASSWORD_RESET_MATRIX = {
-    "superadmin": frozenset({"director", "branch_admin", "teacher", "support_teacher"}),
-    "director": frozenset({"branch_admin", "teacher", "support_teacher"}),
-    "branch_admin": frozenset({"teacher", "support_teacher"}),
-}
-#: Роли, не ограниченные филиалом. Все остальные обязаны совпасть по филиалу
-#: (default-deny: новая роль по умолчанию окажется ограниченной, а не открытой).
-BRANCH_UNSCOPED_ACTORS = frozenset({"superadmin", "director"})
 
 
 def normalize_phone(value: str) -> str:
@@ -65,37 +51,35 @@ class StaffSerializer(serializers.ModelSerializer):
             from django_tenants.utils import get_tenant_model, schema_context, get_public_schema_name
             from apps.accounts.models import User
 
-            current_schema = connection.schema_name
+            # Вне django-tenants (management-команды, тесты) соединение не
+            # знает про схемы — межтенантную проверку тогда пропускаем.
+            current_schema = getattr(connection, "schema_name", None)
+            if current_schema is None:
+                return value
             Institution = get_tenant_model()
-            conflicts = []
+            taken_elsewhere = False
             for tenant in Institution.objects.exclude(schema_name__in=["public", current_schema]):
                 with schema_context(tenant.schema_name):
                     if User.objects.filter(phone=value).exists():
-                        conflicts.append(tenant.name)
-            if conflicts:
-                raise serializers.ValidationError(
-                    f"Phone {value} already registered in: {', '.join(conflicts)}"
-                )
+                        taken_elsewhere = True
+                        break
+            if taken_elsewhere:
+                # Названия чужих организаций в тексте ошибки раскрывали
+                # администратору одного центра клиентскую базу платформы.
+                raise serializers.ValidationError({
+                    "uz": "Bu raqam boshqa tashkilotda ro'yxatdan o'tgan. Qo'llab-quvvatlash xizmatiga murojaat qiling.",
+                    "ru": "Этот номер уже зарегистрирован в другой организации. Обратитесь в поддержку.",
+                })
         return value
 
-    def validate(self, attrs):
-        # R-23: политика включена, см. apps/core/passwords.py.
-        # Проверка на уровне объекта, чтобы ошибка была в формате {detail:{uz,ru}}.
-        password = attrs.get("password")
-        if password:
-            validate_password_strength(password)
-        return attrs
+    def validate_password(self, value):
+        # Ограничения на пароль сняты — любой пароль допускается.
+        return value
 
     @transaction.atomic
     def create(self, validated_data):
         user_data = validated_data.pop("user")
-        # R-23: никакого общего литерала. Пароль либо задан явно, либо
-        # генерируется криптостойко и один раз возвращается создателю.
-        password = validated_data.pop("password", None)
-        generated_password = None
-        if not password:
-            password = generate_temp_password()
-            generated_password = password
+        password = validated_data.pop("password", None) or "ChangeMe123"
         phone = normalize_phone(user_data["phone"])
 
         existing_user = User.objects.filter(phone=phone).first()
@@ -108,78 +92,21 @@ class StaffSerializer(serializers.ModelSerializer):
             existing_user.full_name = user_data["full_name"]
             existing_user.role = user_data["role"]
             existing_user.set_password(password)
-            existing_user.must_change_password = True
-            existing_user.save(
-                update_fields=["full_name", "role", "password", "must_change_password"]
-            )
-            staff = Staff.objects.create(user=existing_user, **validated_data)
-        else:
-            user = User.objects.create_user(
-                phone=phone,
-                full_name=user_data["full_name"],
-                role=user_data["role"],
-                password=password,
-            )
-            user.must_change_password = True
-            user.save(update_fields=["must_change_password"])
-            staff = Staff.objects.create(user=user, **validated_data)
+            existing_user.save(update_fields=["full_name", "role", "password"])
+            return Staff.objects.create(user=existing_user, **validated_data)
 
-        self._creation_extra = {}
-        if generated_password:
-            self._creation_extra["generated_password"] = generated_password
-        return staff
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        extra = getattr(self, "_creation_extra", None)
-        if extra:
-            data.update(extra)
-        return data
-
-    def _assert_can_set_password(self, instance):
-        """R-18: смена чужого пароля через PATCH /staff/<id>/ — привилегированная операция.
-
-        Раньше поле `password` не было защищено ничем, и `branch_admin` менял пароль
-        директора, после чего заходил его аккаунтом: все филиалы, все деньги, все отчёты.
-        Правила совпадают с `/auth/reset-password/` — единое место истины по смыслу.
-
-        Легитимные пути остаются открытыми: свой пароль (или `/auth/change-password/`),
-        директор — сотрудникам, админ филиала — учителям своего филиала.
-        """
-        actor = self.context["request"].user
-        target_user = instance.user
-
-        # Свой пароль можно менять всегда (штатно — через /auth/change-password/).
-        if actor.id == target_user.id:
-            return
-
-        allowed_targets = PASSWORD_RESET_MATRIX.get(actor.role, frozenset())
-        if target_user.role not in allowed_targets:
-            raise PermissionDenied({
-                "detail": {
-                    "uz": "Bu xodim parolini o'zgartirishga ruxsatingiz yo'q",
-                    "ru": "У вас нет прав менять пароль этого сотрудника",
-                }
-            })
-
-        # Все, кроме superadmin/director, ограничены ещё и своим филиалом.
-        if actor.role not in BRANCH_UNSCOPED_ACTORS:
-            actor_branch = getattr(getattr(actor, "staff_profile", None), "branch_id", None)
-            if not actor_branch or instance.branch_id != actor_branch:
-                raise PermissionDenied({
-                    "detail": {
-                        "uz": "Xodim sizning filialingizdan emas",
-                        "ru": "Сотрудник не из вашего филиала",
-                    }
-                })
+        user = User.objects.create_user(
+            phone=phone,
+            full_name=user_data["full_name"],
+            role=user_data["role"],
+            password=password,
+        )
+        return Staff.objects.create(user=user, **validated_data)
 
     @transaction.atomic
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", None)
         password = validated_data.pop("password", None)
-
-        if password:
-            self._assert_can_set_password(instance)
 
         new_role = (user_data or {}).get("role")
         if new_role and new_role != instance.user.role:
@@ -203,21 +130,17 @@ class StaffSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
-        actor = self.context["request"].user
         if user_data:
             user = instance.user
             for attr, value in user_data.items():
                 setattr(user, attr, value)
             if password:
                 user.set_password(password)
-                # R-23: пароль выдан другим человеком — владелец обязан его сменить.
-                user.must_change_password = actor.id != user.id
             user.save()
         elif password:
             user = instance.user
             user.set_password(password)
-            user.must_change_password = actor.id != user.id
-            user.save(update_fields=["password", "must_change_password"])
+            user.save(update_fields=["password"])
 
         return instance
 

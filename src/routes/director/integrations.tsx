@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { PageShell } from "@/components/edu/page-shell";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { branchApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/data/store";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
-import { Settings, Check, Loader2, Link2, Info, ArrowUpRight, MessageSquare } from "lucide-react";
+import { Settings, Check, Loader2, Link2, Info, ArrowUpRight, MessageSquare, Copy, KeyRound } from "lucide-react";
 
 export const Route = createFileRoute("/director/integrations")({
   component: DirectorIntegrationsPage,
@@ -31,6 +33,13 @@ function DirectorIntegrationsPage() {
   const [smsLoading, setSmsLoading] = useState(false);
   const [testPhone, setTestPhone] = useState("");
   const [testLoading, setTestLoading] = useState(false);
+
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [maskedKey, setMaskedKey] = useState("");
+  const [hasKey, setHasKey] = useState(false);
+  const [revealedKey, setRevealedKey] = useState("");
+  const [leadKeyLoading, setLeadKeyLoading] = useState(false);
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
 
   const t = labels(lang);
 
@@ -55,8 +64,59 @@ function DirectorIntegrationsPage() {
     branchApi
       .smsSettings()
       .then((data: any) => setSmsSettings(data))
-      .catch(console.error);
+      .catch((err) => {
+        console.error("Failed to load SMS settings", err);
+        toast.error(apiErrorMessage(err));
+      });
   }, []);
+
+  useEffect(() => {
+    branchApi
+      .leadApiKey()
+      .then((data) => {
+        setWebhookUrl(data.webhook_url);
+        setMaskedKey(data.api_key_masked);
+        setHasKey(data.has_key);
+      })
+      .catch((err) => {
+        console.error("Failed to load lead API key", err);
+        toast.error(apiErrorMessage(err));
+      });
+  }, []);
+
+  const copyToClipboard = (value: string) => {
+    if (!value) return;
+    navigator.clipboard.writeText(value);
+    toast.success(lang === "uz" ? "Nusxalandi" : "Скопировано");
+  };
+
+  // Перевыпуск ключа необратим и ломает приём заявок до тех пор, пока новый
+  // ключ не пропишут на стороне LidPixel. Поэтому подтверждение обязательно,
+  // и оно называет последствие, а не спрашивает «вы уверены?».
+  const handleGenerateLeadApiKey = () => {
+    if (hasKey) {
+      setRegenerateOpen(true);
+      return;
+    }
+    void generateLeadApiKey();
+  };
+
+  const generateLeadApiKey = async () => {
+    setLeadKeyLoading(true);
+    try {
+      const data = await branchApi.regenerateLeadApiKey();
+      setWebhookUrl(data.webhook_url);
+      setRevealedKey(data.api_key);
+      setMaskedKey(`****${data.api_key.slice(-4)}`);
+      setHasKey(true);
+      setRegenerateOpen(false);
+      toast.success(lang === "uz" ? "Kalit yaratildi" : "Ключ создан");
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
+    } finally {
+      setLeadKeyLoading(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +142,7 @@ function DirectorIntegrationsPage() {
   return (
     <PageShell title={t.title} subtitle={t.subtitle}>
       <div className="max-w-4xl space-y-6">
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* Main settings form */}
           <div className="md:col-span-2 space-y-6">
             <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">
@@ -163,8 +223,8 @@ function DirectorIntegrationsPage() {
             <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                    <MessageSquare className="h-5 w-5 text-emerald-500" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ok-soft">
+                    <MessageSquare className="h-5 w-5 text-ok" />
                   </div>
                   <div>
                     <h3 className="font-medium">{lang === "uz" ? "SMS xabarnomalar" : "SMS уведомления"}</h3>
@@ -222,8 +282,8 @@ function DirectorIntegrationsPage() {
                     try {
                       await branchApi.updateSmsSettings(smsSettings);
                       toast.success(lang === "uz" ? "Saqlandi" : "Сохранено");
-                    } catch {
-                      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+                    } catch (err) {
+                      toast.error(apiErrorMessage(err));
                     } finally {
                       setSmsLoading(false);
                     }
@@ -257,8 +317,8 @@ function DirectorIntegrationsPage() {
                         try {
                           await branchApi.testSms(testPhone);
                           toast.success(lang === "uz" ? "Test SMS yuborildi!" : "Тестовое SMS отправлено!");
-                        } catch {
-                          toast.error(lang === "uz" ? "SMS yuborishda xatolik" : "Ошибка отправки SMS");
+                        } catch (err) {
+                          toast.error(apiErrorMessage(err));
                         } finally {
                           setTestLoading(false);
                         }
@@ -269,6 +329,68 @@ function DirectorIntegrationsPage() {
                     </Button>
                   </div>
                 </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warn-soft">
+                  <KeyRound className="h-5 w-5 text-warn" />
+                </div>
+                <div>
+                  <h3 className="font-medium">LidPixel</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {lang === "uz" ? "Murojaatlarni CRM'ga uzatish uchun API kalit" : "API-ключ для передачи заявок в CRM"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    {lang === "uz" ? "Webhook manzili" : "Адрес вебхука"}
+                  </Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input readOnly value={webhookUrl} className="flex-1 text-xs font-mono" />
+                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(webhookUrl)}>
+                      <Copy className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">API-{lang === "uz" ? "kalit" : "ключ"}</Label>
+                  {revealedKey ? (
+                    <>
+                      <div className="flex gap-2 mt-1">
+                        <Input readOnly value={revealedKey} className="flex-1 text-xs font-mono" />
+                        <Button variant="outline" size="icon" onClick={() => copyToClipboard(revealedKey)}>
+                          <Copy className="size-4" />
+                        </Button>
+                      </div>
+                      <p className="text-[11px] text-warn mt-1">
+                        {lang === "uz"
+                          ? "Kalit faqat bir marta to'liq ko'rsatiladi — uni hozir saqlab qo'ying."
+                          : "Ключ показывается полностью только один раз — сохраните его сейчас."}
+                      </p>
+                    </>
+                  ) : (
+                    <Input readOnly value={maskedKey || "—"} className="mt-1 text-xs font-mono" />
+                  )}
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={handleGenerateLeadApiKey}
+                  disabled={leadKeyLoading}
+                >
+                  {leadKeyLoading
+                    ? "..."
+                    : hasKey
+                      ? lang === "uz" ? "Kalitni qayta yaratish" : "Перевыпустить ключ"
+                      : lang === "uz" ? "Kalit yaratish" : "Создать ключ"}
+                </Button>
               </div>
             </Card>
           </div>
@@ -309,6 +431,22 @@ function DirectorIntegrationsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={regenerateOpen}
+        onOpenChange={setRegenerateOpen}
+        variant="destructive"
+        isLoading={leadKeyLoading}
+        title={lang === "uz" ? "Kalitni qayta yaratilsinmi?" : "Перевыпустить ключ?"}
+        description={
+          lang === "uz"
+            ? "Eski kalit shu zahoti ishlamay qoladi. Yangi kalitni LidPixel tomonida ko'rsatmaguningizcha saytdagi shakl murojaat yubormaydi."
+            : "Старый ключ перестанет работать сразу. Форма на сайте прекратит присылать заявки, пока вы не пропишете новый ключ на стороне LidPixel."
+        }
+        confirmText={lang === "uz" ? "Qayta yaratish" : "Перевыпустить"}
+        cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+        onConfirm={() => void generateLeadApiKey()}
+      />
     </PageShell>
   );
 }

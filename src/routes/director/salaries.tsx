@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BadgeDollarSign, Briefcase, CreditCard, Loader2, Percent, ReceiptText, UserRound, WalletCards } from "lucide-react";
+import { BadgeDollarSign, Briefcase, CreditCard, Loader2, Percent, ReceiptText, TriangleAlert, UserRound, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
@@ -12,11 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ListSkeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { analyticsApi } from "@/lib/api";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, getLocalDateTimeString } from "@/lib/format";
 import type { Group, Payment, PaymentMethod, Staff, StaffPenalty } from "@/lib/data/types";
 
 export const Route = createFileRoute("/director/salaries")({ component: DirectorSalaries });
@@ -94,6 +96,11 @@ function DirectorSalaries() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
   const [salaryApiData, setSalaryApiData] = useState<Record<string, any>>({});
+  // Кто из учителей не смог получить авторитетный серверный расчёт в этом
+  // цикле загрузки — по ним строка тихо подменяется клиентской оценкой
+  // (calcLocalRow), директор должен это видеть, а не считать оба числа
+  // одинаково достоверными.
+  const [salaryFetchFailed, setSalaryFetchFailed] = useState<Record<string, boolean>>({});
   const [isFetchingSalary, setIsFetchingSalary] = useState(false);
   const [payRow, setPayRow] = useState<SalaryRow | null>(null);
   const [payAmount, setPayAmount] = useState("");
@@ -134,13 +141,18 @@ function DirectorSalaries() {
     Promise.all(
       teachers.map((teacher) =>
         (analyticsApi.staffSalary(teacher.id, { date_from: dateFrom, date_to: dateTo }) as Promise<any>)
-          .then((data: any) => ({ id: teacher.id, data }))
-          .catch(() => ({ id: teacher.id, data: null })),
+          .then((data: any) => ({ id: teacher.id, data, failed: false }))
+          .catch((err) => {
+            console.error(`Не удалось загрузить расчёт зарплаты учителя ${teacher.id}`, err);
+            return { id: teacher.id, data: null, failed: true };
+          }),
       ),
     ).then((results) => {
       const map: Record<string, any> = {};
-      results.forEach((r) => { map[r.id] = r.data; });
+      const failedMap: Record<string, boolean> = {};
+      results.forEach((r) => { map[r.id] = r.data; failedMap[r.id] = r.failed; });
       setSalaryApiData(map);
+      setSalaryFetchFailed(failedMap);
       setIsFetchingSalary(false);
     });
   }, []);
@@ -184,6 +196,14 @@ function DirectorSalaries() {
     [activeStaff, groups, periodPayments, periodPenalties, salaryApiData],
   );
 
+  // Строки, где авторитетный серверный расчёт не загрузился и цифры на
+  // экране — клиентская оценка (calcLocalRow), а не подтверждённые сервером.
+  const fallbackTeacherIds = useMemo(
+    () => new Set(Object.entries(salaryFetchFailed).filter(([, failed]) => failed).map(([id]) => id)),
+    [salaryFetchFailed],
+  );
+  const hasFallbackRows = salaryRows.some((row) => row.isTeacher && !row.fromApi && fallbackTeacherIds.has(row.staff.id));
+
   const totals = useMemo(
     () => salaryRows.reduce(
       (sum, row) => ({
@@ -206,52 +226,78 @@ function DirectorSalaries() {
     setPayMethod("cash");
   };
 
-  const handlePay = () => {
-    if (!payRow) return;
-    const payout = Number(payAmount);
-    if (!payout || payout <= 0) return;
-    addPayment({
-      staffId: payRow.staff.id,
-      branchId: payRow.staff.branchId ?? branches[0]?.id ?? "",
-      amount: payout,
-      direction: "out",
-      type: "expense",
-      method: payMethod,
-      date: new Date().toISOString(),
-      category: "salary",
-      comment: `${period} salary payout for ${payRow.staff.fullName}`,
-    });
-    toast.success(lang === "uz" ? "Ish haqi to'lovi saqlandi" : "Выплата зарплаты сохранена");
-    setPayRow(null);
-    setPayAmount("");
-    fetchSalaryData(period, activeStaff);
-  };
+  const [paying, setPaying] = useState(false);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
+  const handlePay = async () => {
+    // Второй клик — вторая выплата тому же человеку. Блокируем до ответа.
+    if (!payRow || paying) return;
+    const payout = Number(payAmount);
+    if (!Number.isFinite(payout) || payout <= 0) return;
+    setPaying(true);
+    try {
+      const saved = await addPayment({
+        staffId: payRow.staff.id,
+        branchId: payRow.staff.branchId ?? branches[0]?.id ?? "",
+        amount: payout,
+        direction: "out",
+        type: "expense",
+        method: payMethod,
+        date: getLocalDateTimeString(),
+        category: "salary",
+        comment: `${period} salary payout for ${payRow.staff.fullName}`,
+      });
+      // «Выплата сохранена» — только после подтверждения сервера. Причину
+      // ошибки уже показал стор, он же откатил оптимистичную запись.
+      if (!saved) return;
+      toast.success(lang === "uz" ? "Ish haqi to'lovi saqlandi" : "Выплата зарплаты сохранена");
+      setPayRow(null);
+      setPayAmount("");
+      fetchSalaryData(period, activeStaff);
+    } finally {
+      setPaying(false);
+    }
+  };
 
   return (
     <PageShell
       title={lang === "uz" ? "Ish haqi hisob-kitobi" : "Расчёт зарплат"}
       subtitle={lang === "uz" ? "Foizli o'qituvchilar va oylik xodimlar uchun to'lovlar" : "Выплаты учителям по проценту и сотрудникам по фиксированной ставке"}
       actions={
-        <div className="flex items-center gap-3">
-          {isFetchingSalary && (
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              {lang === "uz" ? "Hisoblanmoqda..." : "Расчёт..."}
-            </div>
-          )}
-          <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} autoComplete="off" className="h-8 w-40" />
-        </div>
+        !isLoading && (
+          <div className="flex items-center gap-3">
+            {isFetchingSalary && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                {lang === "uz" ? "Hisoblanmoqda..." : "Расчёт..."}
+              </div>
+            )}
+            <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} autoComplete="off" className="h-8 w-40" />
+          </div>
+        )
       }
     >
+      {isLoading ? (
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <ListSkeleton rows={6} />
+          <ListSkeleton rows={4} />
+        </div>
+      ) : (
       <div className="space-y-5">
+        {hasFallbackRows && (
+          <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm text-warning-foreground">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+            <div>
+              {lang === "uz"
+                ? "Ba'zi o'qituvchilar uchun serverdan hisob-kitob yuklanmadi. Ular uchun ko'rsatilgan raqamlar taxminiy (mahalliy hisoblangan) — jadvaldagi belgini qarang."
+                : "Для части учителей не удалось загрузить серверный расчёт. Цифры по ним на этой странице — приблизительные (посчитаны локально), см. отметку в таблице."}
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <KpiCard icon={BadgeDollarSign} label={lang === "uz" ? "Jami hisoblangan" : "Всего начислено"} value={formatMoney(totals.grossDue, lang)} iconColor="blue" />
           <KpiCard icon={CreditCard} label={lang === "uz" ? "Jami to'langan" : "Всего выплачено"} value={formatMoney(totals.paid, lang)} iconColor="green" />
@@ -280,7 +326,25 @@ function DirectorSalaries() {
                     <div className="flex items-center gap-1.5">
                       <span className="font-medium">{row.staff.fullName}</span>
                       {row.fromApi && (
-                        <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600">API</span>
+                        <span className="rounded bg-ok-soft px-1.5 py-0.5 text-[10px] text-ok">API</span>
+                      )}
+                      {row.isTeacher && !row.fromApi && fallbackTeacherIds.has(row.staff.id) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span
+                              className="flex items-center gap-0.5 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning-foreground"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <TriangleAlert className="size-3" />
+                              {lang === "uz" ? "Taxminiy" : "Оценка"}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {lang === "uz"
+                              ? "Serverdan hisob-kitob yuklanmadi. Bu raqam mahalliy taxminiy hisoblash, tasdiqlangan emas."
+                              : "Серверный расчёт не загрузился. Это число — локальная оценка, не подтверждённая сервером."}
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -350,6 +414,7 @@ function DirectorSalaries() {
           </Table>
         </Card>
       </div>
+      )}
 
       <Dialog open={!!payRow} onOpenChange={(open) => !open && setPayRow(null)}>
         <DialogContent className="max-w-sm">
@@ -382,7 +447,7 @@ function DirectorSalaries() {
             <Button variant="outline" onClick={() => setPayRow(null)}>
               {lang === "uz" ? "Bekor qilish" : "Отмена"}
             </Button>
-            <Button onClick={handlePay} disabled={Number(payAmount) <= 0}>
+            <Button onClick={handlePay} disabled={paying || !(Number(payAmount) > 0)}>
               {lang === "uz" ? "Tasdiqlash" : "Подтвердить"}
             </Button>
           </DialogFooter>
@@ -410,7 +475,7 @@ function DirectorSalaries() {
                 </Badge>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Info
                   label={lang === "uz" ? "Hisoblash turi" : "Тип расчёта"}
                   value={detailRow.isTeacher ? (lang === "uz" ? "Foiz" : "Процент") : (lang === "uz" ? "Oylik" : "Оклад")}
@@ -433,7 +498,7 @@ function DirectorSalaries() {
                   {lang === "uz" ? "Hisob-kitob tafsiloti" : "Детализация расчёта"}
                 </div>
                 {detailRow.isTeacher ? (
-                  <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
                     <BreakdownItem label={lang === "uz" ? "Guruhlar" : "Группы"} value={`${detailRow.groupCount}`} />
                     <BreakdownItem label={lang === "uz" ? "O'quvchilar" : "Ученики"} value={`${detailRow.studentCount}`} />
                     <BreakdownItem
@@ -448,7 +513,7 @@ function DirectorSalaries() {
                     />
                   </div>
                 ) : (
-                  <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
                     <BreakdownItem label={lang === "uz" ? "Oylik stavka" : "Месячная ставка"} value={formatMoney(detailRow.staff.fixedSalary ?? 0, lang)} />
                     <BreakdownItem label={lang === "uz" ? "Davr" : "Период"} value={period} />
                     <BreakdownItem label={lang === "uz" ? "Jarimalar" : "Штрафы"} value={`-${formatMoney(detailRow.penalties, lang)}`} />

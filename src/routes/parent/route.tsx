@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { Home, Users, User, MessageSquare } from "lucide-react";
-import { MobileLayout, type MobileNavItem } from "@/components/layouts/mobile-layout";
+import { Home, MessageSquare, User, Users } from "lucide-react";
+import { AppShell, type NavItem } from "@/components/layouts/app-shell";
 import { RoleGuard } from "@/components/edu/role-guard";
 import { useI18n } from "@/lib/i18n";
 
@@ -10,17 +10,20 @@ export const Route = createFileRoute("/parent")({
 
 function ParentLayout() {
   const { t } = useI18n();
-  const NAV: MobileNavItem[] = [
+
+  /** Четыре раздела — помещаются в нижнюю панель целиком, «Ещё» не нужно. */
+  const items: NavItem[] = [
     { to: "/parent", label: t("nav.home"), icon: Home },
     { to: "/parent/children", label: t("nav.children"), icon: Users },
-    { to: "/parent/profile", label: t("nav.profile"), icon: User },
     { to: "/parent/messages", label: t("nav.messages"), icon: MessageSquare },
+    { to: "/parent/profile", label: t("nav.profile"), icon: User },
   ];
+
   return (
     <RoleGuard allow="parent">
-      <MobileLayout items={NAV}>
+      <AppShell items={items} density="comfortable">
         <Outlet />
-      </MobileLayout>
+      </AppShell>
     </RoleGuard>
   );
 }

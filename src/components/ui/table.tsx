@@ -4,8 +4,15 @@ import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+    // edu-scroll-x рисует тени у краёв, когда прокручивать есть куда:
+    // ни одна таблица в проекте не становится карточками на узком экране,
+    // и без этого признака половина колонок оказывалась за краем молча.
+    <div className="edu-scroll-x relative w-full overflow-auto">
+      {/* edu-cards: до 768px строки становятся карточками (столп 8).
+          Класс здесь, а не в каждой таблице: `className="edu-table"` стоял
+          лишь в одном файле из пятнадцати, остальные используют этот
+          компонент напрямую. */}
+      <table ref={ref} className={cn("edu-cards w-full caption-bottom text-sm", className)} {...props} />
     </div>
   ),
 );

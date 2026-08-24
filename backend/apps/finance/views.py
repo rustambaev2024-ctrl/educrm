@@ -1,12 +1,10 @@
 import uuid
 
-from django.db import connection
 from django.db.models import Q
-from django.utils import timezone
-from django_tenants.utils import get_public_schema_name
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes as perm_classes
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBranchAdmin
@@ -91,40 +89,56 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
 
 
 @api_view(["POST"])
-@perm_classes([IsBranchAdmin])
+@perm_classes([IsAuthenticated])
 def trigger_daily_charge(request):
-    """Ручной запуск списания за уроки — только в схеме текущего тенанта.
+    """Ручной запуск списания за сегодняшние занятия — только своей организации.
 
-    R-22: раньше вызывал `daily_lesson_charge()` синхронно, а та итерирует ВСЕ схемы
-    платформы — любой branch_admin одним POST списывал деньги во всех учебных центрах.
-    Теперь ставится асинхронная задача строго по `connection.schema_name`.
+    Раньше здесь вызывалась сама задача daily_lesson_charge(), а она обходит
+    ВСЕ схемы тенантов. То есть директор одного учебного центра запускал
+    списание у всех остальных клиентов платформы разом, синхронно внутри
+    HTTP-запроса. Теперь списываем строго в текущей схеме.
     """
-    from .tasks import daily_lesson_charge_for_tenant
+    if request.user.role not in ("director", "branch_admin", "superadmin"):
+        return Response({"detail": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
 
-    schema = connection.schema_name
-    if schema == get_public_schema_name():
+    from django.core.cache import cache
+    from django.db import connection
+    from django.utils import timezone
+
+    from .tasks import charge_groups_for_day
+
+    # localdate(), а не date.today(): контейнер живёт в UTC, платформа —
+    # в Asia/Tashkent. Ночью эти даты расходятся, и кнопка списывала за вчера.
+    today = timezone.localdate()
+    schema = getattr(connection, "schema_name", "default")
+
+    # Тот же замок, что у ночной задачи, но свой на организацию: два нажатия
+    # подряд не должны идти параллельно. От повторного списания защищает
+    # привязка к уроку внутри charge_groups_for_day, замок — от гонки.
+    lock_key = f"daily_lesson_charge:{schema}:{today}"
+    if not cache.add(lock_key, "running", timeout=600):
         return Response(
             {
+                "status": "busy",
                 "detail": {
-                    "uz": "Bu amal faqat o'quv markazi ichida bajariladi",
-                    "ru": "Операция выполняется только внутри учебного центра",
-                }
+                    "uz": "Hisobdan yechish allaqachon bajarilmoqda",
+                    "ru": "Списание уже выполняется",
+                },
             },
-            status=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_409_CONFLICT,
         )
 
-    async_result = daily_lesson_charge_for_tenant.delay(schema)
-    charge_count = Payment.objects.filter(
-        payment_type="charge",
-        created_at__date=timezone.localdate(),
-    ).count()
-    return Response(
-        {
-            "status": "queued",
-            "message": "daily_lesson_charge scheduled for this tenant",
-            "schema": schema,
-            "task_id": str(async_result.id),
-            "charges_today": charge_count,
-        },
-        status=status.HTTP_202_ACCEPTED,
-    )
+    try:
+        before = Payment.objects.filter(payment_type="charge", lesson__datetime__date=today).count()
+        charge_groups_for_day(today, today.weekday())
+        after = Payment.objects.filter(payment_type="charge", lesson__datetime__date=today).count()
+        return Response({
+            "status": "ok",
+            "date": str(today),
+            "charges_created": after - before,
+            "charges_today": after,
+        })
+    except Exception as e:
+        return Response({"status": "error", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    finally:
+        cache.delete(lock_key)

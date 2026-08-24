@@ -24,7 +24,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   /** true пока идёт первичная проверка сессии */
   isHydrating: boolean;
-  login: (phone: string, password: string) => Promise<void>;
+  /** institutionSchema — выбранная организация, когда телефон заведён сразу в нескольких */
+  login: (phone: string, password: string, institutionSchema?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -142,9 +143,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── Login ───────────────────────────────────────────────────────────────────
-  const login = async (phone: string, password: string) => {
+  const login = async (phone: string, password: string, institutionSchema?: string) => {
     clearStorage();
-    const payload = await authApi.login(phone, password);
+    const payload = await authApi.login(phone, password, institutionSchema);
 
     const loginUser: AuthUser = payload.user as AuthUser;
     const schema = loginUser.schemaName ?? payload.schemaName;

@@ -116,10 +116,10 @@ class StaffBonus(models.Model):
         related_name="bonuses",
     )
     branch = models.ForeignKey(
-        "institutions.Branch", 
+        "institutions.Branch",
         on_delete=models.SET_NULL,
-        null=True, 
-        blank=True, 
+        null=True,
+        blank=True,
         related_name="staff_bonuses"
     )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
@@ -127,9 +127,9 @@ class StaffBonus(models.Model):
     bonus_date = models.DateField()
     comment = models.TextField(blank=True)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True, 
+        null=True,
         blank=True,
         related_name="created_staff_bonuses"
     )

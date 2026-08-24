@@ -24,16 +24,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -42,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
 import { groupApi } from "@/lib/api";
@@ -58,16 +49,18 @@ function GroupsPage() {
   const { groups, courses, staff, rooms, isLoading } = useData();
 
   const [search, setSearch] = useState("");
+  // Фильтр пересчитывался на каждое нажатие клавиши.
+  const searchQuery = useDebounced(search);
   const [createOpen, setCreateOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reportGroupId, setReportGroupId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     if (!q) return groups;
     return groups.filter((g) => g.name.toLowerCase().includes(q));
-  }, [groups, search]);
+  }, [groups, searchQuery]);
 
   const selected = useMemo(() => groups.find((g) => g.id === selectedId) ?? null, [groups, selectedId]);
   const editGroup = useMemo(() => groups.find((g) => g.id === editId) ?? null, [groups, editId]);
@@ -114,7 +107,7 @@ function GroupsPage() {
           <CardGridSkeleton count={6} />
         ) : filtered.length === 0 ? (
           <Card>
-            {search.trim() ? (
+            {searchQuery.trim() ? (
               <EmptyState
                 icon={<Search className="size-7" />}
                 title={lang === "uz" ? "Hech narsa topilmadi" : "Ничего не найдено"}
@@ -130,7 +123,7 @@ function GroupsPage() {
             )}
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((g) => {
               const course = courses.find((c) => c.id === g.courseId);
               const teacher = staff.find((s) => s.id === g.teacherId);
@@ -267,7 +260,7 @@ function CreateGroupSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
             <Label>{t("groups.field.name")} *</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("groups.namePlaceholder")} autoComplete="off" />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>{t("groups.field.course")} *</Label>
               <Select value={courseId} onValueChange={setCourseId}>
@@ -350,6 +343,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
   const [studentSearch, setStudentSearch] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [forceDeleteOpen, setForceDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [paymentsCount, setPaymentsCount] = useState(0);
   const [removeStudentTarget, setRemoveStudentTarget] = useState<{ id: string; name: string } | null>(null);
   const open = group !== null;
@@ -388,13 +382,15 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
   };
 
   const doDelete = async (force = false) => {
+    if (isDeleting) return;
+    setIsDeleting(true);
     try {
       if (force) {
         await groupApi.deleteForce(group.id);
       } else {
         await groupApi.delete(group.id);
       }
-      deleteGroup(group.id);
+      deleteGroup(group.id, { alreadyDeleted: true });
       toast.success(lang === "uz" ? "Guruh o'chirildi" : "Группа удалена");
       onClose();
     } catch (err: unknown) {
@@ -407,6 +403,8 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
       } else {
         toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
       }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -419,7 +417,7 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
             <SheetTitle className="text-left">{group.name}</SheetTitle>
             <div className="flex items-center gap-1">
               {group.status !== "completed" && (
-                <Button variant="ghost" size="icon" onClick={completeGroup} className="text-muted-foreground hover:text-emerald-600" title="Guruhni tugallash">
+                <Button variant="ghost" size="icon" onClick={completeGroup} className="text-muted-foreground hover:text-ok" title="Guruhni tugallash">
                   <CheckCircle2 className="size-4" />
                 </Button>
               )}
@@ -440,11 +438,16 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
             </div>
           </div>
           <Tabs defaultValue="overview">
-            <TabsList className="w-full">
-              <TabsTrigger value="overview" className="flex-1">{t("groups.tab.overview")}</TabsTrigger>
-              <TabsTrigger value="students" className="flex-1">{t("groups.tab.students")}</TabsTrigger>
-              <TabsTrigger value="lessons" className="flex-1">{t("groups.tab.lessons")}</TabsTrigger>
+            {/* flex-1 = жёсткая равная доля ширины + whitespace-nowrap на
+                TabsTrigger: "O'quvchilar" (11 символов) не влезает в ~120px
+                на телефоне. Горизонтальная прокрутка вместо сжатия текста. */}
+            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+            <TabsList className="w-max min-w-full sm:w-full">
+              <TabsTrigger value="overview" className="flex-1 px-4">{t("groups.tab.overview")}</TabsTrigger>
+              <TabsTrigger value="students" className="flex-1 px-4">{t("groups.tab.students")}</TabsTrigger>
+              <TabsTrigger value="lessons" className="flex-1 px-4">{t("groups.tab.lessons")}</TabsTrigger>
             </TabsList>
+            </div>
             <TabsContent value="overview" className="space-y-3 pt-4">
               <Card className="p-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -586,40 +589,32 @@ function GroupDetailSheet({ group, onClose, onEdit }: { group: Group | null; onC
         </div>
       </SheetContent>
     </Sheet>
-    <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{lang === "uz" ? "Guruhni o'chirish" : "Удалить группу?"}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {lang === "uz" ? "Guruhni butunlay o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi." : "Удалить группу полностью? Это действие необратимо."}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
-          <AlertDialogAction onClick={() => doDelete(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            {lang === "uz" ? "O'chirish" : "Удалить"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-    <AlertDialog open={forceDeleteOpen} onOpenChange={setForceDeleteOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{lang === "uz" ? "To'lovlar bor — baribir o'chirasizmi?" : "В группе есть платежи — продолжить?"}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {lang === "uz"
-              ? `Bu guruhda ${paymentsCount} ta to'lov mavjud. O'chirilsa, o'qituvchi daromadi hisobidan bu to'lovlar tushib qoladi.`
-              : `В этой группе ${paymentsCount} платежей. При удалении они выпадут из расчёта дохода учителя.`}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
-          <AlertDialogAction onClick={() => doDelete(true)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            {lang === "uz" ? "Baribir o'chirish" : "Всё равно удалить"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={confirmDeleteOpen}
+      onOpenChange={setConfirmDeleteOpen}
+      title={lang === "uz" ? "Guruhni o'chirish" : "Удалить группу?"}
+      description={lang === "uz" ? "Guruhni butunlay o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi." : "Удалить группу полностью? Это действие необратимо."}
+      confirmText={lang === "uz" ? "O'chirish" : "Удалить"}
+      cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+      variant="destructive"
+      isLoading={isDeleting}
+      onConfirm={() => doDelete(false)}
+    />
+    <ConfirmDialog
+      open={forceDeleteOpen}
+      onOpenChange={setForceDeleteOpen}
+      title={lang === "uz" ? "To'lovlar bor — baribir o'chirasizmi?" : "В группе есть платежи — продолжить?"}
+      description={
+        lang === "uz"
+          ? `Bu guruhda ${paymentsCount} ta to'lov mavjud. O'chirilsa, o'qituvchi daromadi hisobidan bu to'lovlar tushib qoladi.`
+          : `В этой группе ${paymentsCount} платежей. При удалении они выпадут из расчёта дохода учителя.`
+      }
+      confirmText={lang === "uz" ? "Baribir o'chirish" : "Всё равно удалить"}
+      cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+      variant="destructive"
+      isLoading={isDeleting}
+      onConfirm={() => doDelete(true)}
+    />
     <ConfirmDialog
       open={removeStudentTarget !== null}
       onOpenChange={(next) => !next && setRemoveStudentTarget(null)}
@@ -706,15 +701,15 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
     <Sheet open={true} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle>Guruhni tahrirlash</SheetTitle>
-          <SheetDescription>Guruh ma'lumotlarini o'zgartirish</SheetDescription>
+          <SheetTitle>{t("groups.edit.title")}</SheetTitle>
+          <SheetDescription>{t("groups.edit.subtitle")}</SheetDescription>
         </SheetHeader>
         <div className="space-y-4 px-4 py-6">
           <div className="space-y-2">
             <Label>{t("groups.field.name")} *</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>{t("groups.field.course")} *</Label>
               <Select value={courseId} onValueChange={setCourseId}>
@@ -743,14 +738,14 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>{t("groups.field.status")}</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as Group["status"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recruiting">Qabul ochiq</SelectItem>
-                  <SelectItem value="active">Faol</SelectItem>
-                  <SelectItem value="frozen">Muzlatilgan</SelectItem>
-                  <SelectItem value="completed">Tugallangan</SelectItem>
+                  <SelectItem value="recruiting">{t("gstatus.recruiting")}</SelectItem>
+                  <SelectItem value="active">{t("gstatus.active")}</SelectItem>
+                  <SelectItem value="frozen">{t("gstatus.frozen")}</SelectItem>
+                  <SelectItem value="completed">{t("gstatus.completed")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -793,7 +788,7 @@ function EditGroupSheet({ group, onClose }: { group: Group; onClose: () => void 
         </div>
         <SheetFooter>
           <Button variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
-          <Button onClick={submit} className="bg-gradient-primary text-primary-foreground">Saqlash</Button>
+          <Button onClick={submit} className="bg-gradient-primary text-primary-foreground">{t("common.save")}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

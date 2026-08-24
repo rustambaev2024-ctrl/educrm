@@ -27,6 +27,7 @@ class Institution(TenantMixin):
     sms_email = models.CharField(max_length=255, blank=True, default="")
     sms_password = models.CharField(max_length=255, blank=True, default="")
     sms_sender = models.CharField(max_length=20, blank=True, default="")
+    lead_api_key = models.CharField(max_length=64, blank=True, null=True, default=None, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     auto_create_schema = True

@@ -266,11 +266,14 @@ export function crudApi<T, C = Partial<T>, U = Partial<T>>(base: string) {
 // ─── Auth API ─────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: (phoneOrBody: string | LoginRequest, password?: string) => {
-    const body =
+  login: (phoneOrBody: string | LoginRequest, password?: string, institutionSchema?: string) => {
+    const base =
       typeof phoneOrBody === "string"
         ? { phone: normalizePhone(phoneOrBody), password: password?.trim() }
         : { ...phoneOrBody, phone: normalizePhone(phoneOrBody.phone), password: phoneOrBody.password.trim() };
+    // Один номер может быть заведён в нескольких организациях. Если человек
+    // уже выбрал свою, отправляем её явно — иначе бэкенд вернёт 409 со списком.
+    const body = institutionSchema ? { ...base, schema: institutionSchema } : base;
 
     // Send X-Tenant-Schema so the backend can resolve the correct tenant.
     // If no tenant is stored (first visit), send "public" to trigger superadmin
@@ -351,6 +354,10 @@ export const branchApi = {
       method: "POST",
       body: JSON.stringify({ phone }),
     }),
+  leadApiKey: () =>
+    requestJson<{ webhook_url: string; api_key_masked: string; has_key: boolean }>("/branches/lead-api-key/"),
+  regenerateLeadApiKey: () =>
+    requestJson<{ webhook_url: string; api_key: string }>("/branches/lead-api-key/", { method: "POST" }),
   institutionSettings: () => requestJson<{ name: string; address: string; phone: string; logo: string | null }>("/branches/settings/"),
   updateInstitutionSettings: (data: FormData | Record<string, any>) => {
     if (data instanceof FormData) {
@@ -410,6 +417,17 @@ export const groupApi = {
 export const studentApi = {
   ...crudApi("/students/"),
   createWithFiles: (data: FormData) => requestForm("/students/", data),
+  /**
+   * Смена статуса нескольким ученикам за раз. Только обратимые переходы
+   * ("frozen" / "active") — так задано на бэкенде намеренно.
+   * Возвращает, сколько записей изменено и сколько не нашлось в скоупе
+   * пользователя, чтобы интерфейс не рапортовал об успехе впустую.
+   */
+  bulkStatus: (ids: string[], status: "frozen" | "active") =>
+    requestJson<{ updated: number; skipped: number; status: string }>(
+      "/students/bulk-status/",
+      { method: "POST", body: JSON.stringify({ ids, status }) },
+    ),
   assignParent: (studentId: string, parentData: {
     parentId?: string;
     parentName?: string;

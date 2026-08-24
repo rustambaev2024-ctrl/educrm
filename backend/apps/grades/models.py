@@ -1,7 +1,7 @@
 import uuid
 
 from django.conf import settings
-from django.core.validators import MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -50,7 +50,10 @@ class Grade(models.Model):
         related_name="grades",
     )
     grade_type = models.CharField(max_length=20, choices=GRADE_TYPE_CHOICES)
-    score = models.PositiveSmallIntegerField(validators=[MaxValueValidator(100)])
+    score = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(2), MaxValueValidator(5)],
+        help_text="Оценка по школьной шкале 2–5.",
+    )
     comment = models.CharField(max_length=500, blank=True)
     graded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -75,7 +78,12 @@ class Exam(models.Model):
     )
     name = models.CharField(max_length=255)
     date = models.DateField()
-    max_score = models.PositiveSmallIntegerField(default=100)
+    # Историческое поле. Новые экзамены всегда на шкале 2–5 — дефолт 5,
+    # фронт больше не спрашивает это значение у пользователя. Поле не
+    # удаляется прямо сейчас: команда recalculate_grades_scale (Task 4)
+    # читает его для старых записей, чтобы посчитать процент от ИХ
+    # исторического максимума, а не от 100 по умолчанию.
+    max_score = models.PositiveSmallIntegerField(default=5)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -95,7 +103,7 @@ class ExamResult(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="results")
     student = models.ForeignKey("students.Student", on_delete=models.CASCADE)
-    score = models.PositiveSmallIntegerField()
+    score = models.PositiveSmallIntegerField(validators=[MinValueValidator(2), MaxValueValidator(5)])
     pass_status = models.CharField(max_length=10, choices=PASS_STATUS_CHOICES)
     comment = models.CharField(max_length=500, blank=True)
     recorded_by = models.ForeignKey(

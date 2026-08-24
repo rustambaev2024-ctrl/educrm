@@ -21,19 +21,12 @@ import { useI18n } from "@/lib/i18n";
 import { useCurrentTeacherId } from "@/lib/data/identity";
 import { formatDate, getLocalDateString, initialsOf } from "@/lib/format";
 import { getAvatarColor } from "@/lib/avatar-color";
+import { gradeAverage, gradeTone } from "@/lib/data/metrics";
 import type { GradeKind } from "@/lib/data/types";
 
 export const Route = createFileRoute("/teacher/grades")({ component: TeacherGrades });
 
 const KIND_OPTIONS: GradeKind[] = ["lesson", "homework", "exam", "activity"];
-
-function scoreTone(score: number, max: number): string {
-  const pct = (score / max) * 100;
-  if (pct >= 85) return "bg-success/15 text-success";
-  if (pct >= 65) return "bg-info/15 text-info";
-  if (pct >= 50) return "bg-warning/15 text-warning";
-  return "bg-destructive/15 text-destructive";
-}
 
 function TeacherGrades() {
   const { t, lang } = useI18n();
@@ -64,22 +57,22 @@ function TeacherGrades() {
   );
 
   const avgByStudent = useMemo(() => {
-    const map: Record<string, { sum: number; cnt: number }> = {};
+    const byStudent: Record<string, typeof groupGrades> = {};
     for (const g of groupGrades) {
-      if (!map[g.studentId]) map[g.studentId] = { sum: 0, cnt: 0 };
-      map[g.studentId].sum += (g.score / g.maxScore) * 100;
-      map[g.studentId].cnt += 1;
+      (byStudent[g.studentId] ??= []).push(g);
     }
-    return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, Math.round((v.sum / v.cnt) * 10) / 10]));
+    return Object.fromEntries(
+      Object.entries(byStudent).map(([studentId, studentGrades]) => [studentId, gradeAverage(studentGrades)]),
+    );
   }, [groupGrades]);
 
-  const overallAvg = useMemo(() => {
-    if (groupGrades.length === 0) return 0;
-    return Math.round((groupGrades.reduce((s, g) => s + (g.score / g.maxScore) * 100, 0) / groupGrades.length) * 10) / 10;
-  }, [groupGrades]);
+  const overallAvg = useMemo(() => gradeAverage(groupGrades), [groupGrades]);
 
+  // Раньше здесь было .cnt/.sum на объекте, которого в avgByStudent уже не
+  // было (avgByStudent — просто числа) — счётчик всегда возвращал 0,
+  // независимо от реальных данных.
   const topStudentsCount = useMemo(() => {
-    return Object.values(avgByStudent).filter((v) => v.cnt > 0 && (v.sum / v.cnt) >= 80).length;
+    return Object.values(avgByStudent).filter((avg) => avg >= 4.5).length;
   }, [avgByStudent]);
 
   const [open, setOpen] = useState(false);
@@ -94,8 +87,8 @@ function TeacherGrades() {
     }
     // Диапазон проверяется отдельно — общий тост «заполните поля» вводит
     // в заблуждение, когда поле заполнено, но значение вне шкалы (BUG-031).
-    if (score < 0 || score > 100) {
-      toast.error(t("grades.scoreRange"));
+    if (score < 2 || score > 5 || !Number.isInteger(score)) {
+      toast.error(t("grades.scoreRange5"));
       return;
     }
     addGrade({
@@ -105,7 +98,6 @@ function TeacherGrades() {
       kind: form.kind,
       title: t(`gkind.${form.kind}`),
       score,
-      maxScore: 100,
       date: getLocalDateString(),
       comment: form.comment.trim() || undefined,
     });
@@ -148,7 +140,7 @@ function TeacherGrades() {
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-2 min-[360px]:gap-3">
           <KpiCard label={t("grades.title")} value={groupGrades.length} icon={BookOpen} iconColor="blue" />
-          <KpiCard label={t("grades.average")} value={`${overallAvg} / 100`} icon={Award} iconColor="green" />
+          <KpiCard label={t("grades.average")} value={`${overallAvg} / 5`} icon={Award} iconColor="green" />
           <KpiCard label={lang === "uz" ? "A'lochi o'quvchilar" : "Отличники"} value={topStudentsCount} icon={Users} iconColor="violet" />
         </div>
         <Card className="overflow-hidden p-0 shadow-elegant">
@@ -176,7 +168,7 @@ function TeacherGrades() {
                   </Avatar>
                   <div className="flex-1 truncate text-sm">{stu?.fullName ?? sid}</div>
                   {avg !== undefined ? (
-                    <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${scoreTone(avg, 10)}`}>{avg}/10</span>
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${gradeTone(avg)}`}>{avg}/5</span>
                   ) : (
                     <span className="text-xs text-muted-foreground">{t("grades.add")}</span>
                   )}
@@ -211,8 +203,8 @@ function TeacherGrades() {
                     <TableCell className="font-medium">{studentById[g.studentId]?.fullName ?? g.studentId}</TableCell>
                     <TableCell><Badge variant="outline" className="text-[10px]">{t(`gkind.${g.kind}`)}</Badge></TableCell>
                     <TableCell>
-                      <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-bold ${scoreTone(g.score, g.maxScore)}`}>
-                        {g.score}<span className="text-muted-foreground">/{g.maxScore}</span>
+                      <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-bold ${gradeTone(g.score)}`}>
+                        {g.score}<span className="text-muted-foreground">/5</span>
                       </span>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{formatDate(g.date, lang)}</TableCell>
@@ -256,8 +248,8 @@ function TeacherGrades() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>{t("grades.field.score")}* (0-100)</Label>
-              <Input type="number" min={0} max={100} step={1} value={form.score} onChange={(e) => setForm({ ...form, score: e.target.value })} />
+              <Label>{t("grades.field.score")}* (2-5)</Label>
+              <Input type="number" min={2} max={5} step={1} value={form.score} onChange={(e) => setForm({ ...form, score: e.target.value })} />
             </div>
             <div className="space-y-1.5">
               <Label>{t("grades.field.comment")}</Label>

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as ApplyRouteImport } from './routes/apply'
@@ -34,6 +35,7 @@ import { Route as TeacherHomeworkRouteImport } from './routes/teacher/homework'
 import { Route as TeacherGroupsRouteImport } from './routes/teacher/groups'
 import { Route as TeacherGradesRouteImport } from './routes/teacher/grades'
 import { Route as TeacherFinanceRouteImport } from './routes/teacher/finance'
+import { Route as TeacherCoinsRouteImport } from './routes/teacher/coins'
 import { Route as TeacherAttendanceRouteImport } from './routes/teacher/attendance'
 import { Route as SupportTeacherMessagesRouteImport } from './routes/support-teacher/messages'
 import { Route as SupportTeacherHomeworkRouteImport } from './routes/support-teacher/homework'
@@ -86,6 +88,11 @@ import { Route as AdminAccountsRouteImport } from './routes/admin/accounts'
 import { Route as TeacherQuizSessionSessionIdRouteImport } from './routes/teacher/quiz-session.$sessionId'
 import { Route as AdminQuizSessionSessionIdRouteImport } from './routes/admin/quiz-session.$sessionId'
 
+const PreviewRoute = PreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -209,6 +216,11 @@ const TeacherGradesRoute = TeacherGradesRouteImport.update({
 const TeacherFinanceRoute = TeacherFinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
+  getParentRoute: () => TeacherRouteRoute,
+} as any)
+const TeacherCoinsRoute = TeacherCoinsRouteImport.update({
+  id: '/coins',
+  path: '/coins',
   getParentRoute: () => TeacherRouteRoute,
 } as any)
 const TeacherAttendanceRoute = TeacherAttendanceRouteImport.update({
@@ -482,6 +494,7 @@ export interface FileRoutesByFullPath {
   '/apply': typeof ApplyRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/preview': typeof PreviewRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/coins': typeof AdminCoinsRoute
@@ -531,6 +544,7 @@ export interface FileRoutesByFullPath {
   '/support-teacher/homework': typeof SupportTeacherHomeworkRoute
   '/support-teacher/messages': typeof SupportTeacherMessagesRoute
   '/teacher/attendance': typeof TeacherAttendanceRoute
+  '/teacher/coins': typeof TeacherCoinsRoute
   '/teacher/finance': typeof TeacherFinanceRoute
   '/teacher/grades': typeof TeacherGradesRoute
   '/teacher/groups': typeof TeacherGroupsRoute
@@ -553,6 +567,7 @@ export interface FileRoutesByTo {
   '/apply': typeof ApplyRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/preview': typeof PreviewRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/coins': typeof AdminCoinsRoute
@@ -602,6 +617,7 @@ export interface FileRoutesByTo {
   '/support-teacher/homework': typeof SupportTeacherHomeworkRoute
   '/support-teacher/messages': typeof SupportTeacherMessagesRoute
   '/teacher/attendance': typeof TeacherAttendanceRoute
+  '/teacher/coins': typeof TeacherCoinsRoute
   '/teacher/finance': typeof TeacherFinanceRoute
   '/teacher/grades': typeof TeacherGradesRoute
   '/teacher/groups': typeof TeacherGroupsRoute
@@ -632,6 +648,7 @@ export interface FileRoutesById {
   '/apply': typeof ApplyRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/preview': typeof PreviewRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/coins': typeof AdminCoinsRoute
@@ -681,6 +698,7 @@ export interface FileRoutesById {
   '/support-teacher/homework': typeof SupportTeacherHomeworkRoute
   '/support-teacher/messages': typeof SupportTeacherMessagesRoute
   '/teacher/attendance': typeof TeacherAttendanceRoute
+  '/teacher/coins': typeof TeacherCoinsRoute
   '/teacher/finance': typeof TeacherFinanceRoute
   '/teacher/grades': typeof TeacherGradesRoute
   '/teacher/groups': typeof TeacherGroupsRoute
@@ -712,6 +730,7 @@ export interface FileRouteTypes {
     | '/apply'
     | '/join'
     | '/login'
+    | '/preview'
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/coins'
@@ -761,6 +780,7 @@ export interface FileRouteTypes {
     | '/support-teacher/homework'
     | '/support-teacher/messages'
     | '/teacher/attendance'
+    | '/teacher/coins'
     | '/teacher/finance'
     | '/teacher/grades'
     | '/teacher/groups'
@@ -783,6 +803,7 @@ export interface FileRouteTypes {
     | '/apply'
     | '/join'
     | '/login'
+    | '/preview'
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/coins'
@@ -832,6 +853,7 @@ export interface FileRouteTypes {
     | '/support-teacher/homework'
     | '/support-teacher/messages'
     | '/teacher/attendance'
+    | '/teacher/coins'
     | '/teacher/finance'
     | '/teacher/grades'
     | '/teacher/groups'
@@ -861,6 +883,7 @@ export interface FileRouteTypes {
     | '/apply'
     | '/join'
     | '/login'
+    | '/preview'
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/coins'
@@ -910,6 +933,7 @@ export interface FileRouteTypes {
     | '/support-teacher/homework'
     | '/support-teacher/messages'
     | '/teacher/attendance'
+    | '/teacher/coins'
     | '/teacher/finance'
     | '/teacher/grades'
     | '/teacher/groups'
@@ -940,11 +964,19 @@ export interface RootRouteChildren {
   ApplyRoute: typeof ApplyRoute
   JoinRoute: typeof JoinRoute
   LoginRoute: typeof LoginRoute
+  PreviewRoute: typeof PreviewRoute
   PlayCodeRoute: typeof PlayCodeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/preview': {
+      id: '/preview'
+      path: '/preview'
+      fullPath: '/preview'
+      preLoaderRoute: typeof PreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -1118,6 +1150,13 @@ declare module '@tanstack/react-router' {
       path: '/finance'
       fullPath: '/teacher/finance'
       preLoaderRoute: typeof TeacherFinanceRouteImport
+      parentRoute: typeof TeacherRouteRoute
+    }
+    '/teacher/coins': {
+      id: '/teacher/coins'
+      path: '/coins'
+      fullPath: '/teacher/coins'
+      preLoaderRoute: typeof TeacherCoinsRouteImport
       parentRoute: typeof TeacherRouteRoute
     }
     '/teacher/attendance': {
@@ -1649,6 +1688,7 @@ const SupportTeacherRouteRouteWithChildren =
 
 interface TeacherRouteRouteChildren {
   TeacherAttendanceRoute: typeof TeacherAttendanceRoute
+  TeacherCoinsRoute: typeof TeacherCoinsRoute
   TeacherFinanceRoute: typeof TeacherFinanceRoute
   TeacherGradesRoute: typeof TeacherGradesRoute
   TeacherGroupsRoute: typeof TeacherGroupsRoute
@@ -1662,6 +1702,7 @@ interface TeacherRouteRouteChildren {
 
 const TeacherRouteRouteChildren: TeacherRouteRouteChildren = {
   TeacherAttendanceRoute: TeacherAttendanceRoute,
+  TeacherCoinsRoute: TeacherCoinsRoute,
   TeacherFinanceRoute: TeacherFinanceRoute,
   TeacherGradesRoute: TeacherGradesRoute,
   TeacherGroupsRoute: TeacherGroupsRoute,
@@ -1689,6 +1730,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApplyRoute: ApplyRoute,
   JoinRoute: JoinRoute,
   LoginRoute: LoginRoute,
+  PreviewRoute: PreviewRoute,
   PlayCodeRoute: PlayCodeRoute,
 }
 export const routeTree = rootRouteImport

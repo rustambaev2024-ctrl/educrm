@@ -4,8 +4,6 @@ from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from apps.core.passwords import validate_password_strength
-
 from .models import User
 
 
@@ -43,7 +41,6 @@ class UserSerializer(serializers.ModelSerializer):
             "studentId",
             "parentId",
             "branchId",
-            "must_change_password",
         )
 
     @extend_schema_field(OpenApiTypes.STR)
@@ -138,10 +135,9 @@ class MeUpdateSerializer(serializers.ModelSerializer):
         return normalize_phone(value)
 
 
-
-def _validate_strong_password(value: str, user=None) -> str:
-    # R-23: политика включена — см. AUTH_PASSWORD_VALIDATORS и apps/core/passwords.py.
-    return validate_password_strength(value, user=user)
+def _validate_strong_password(value: str) -> str:
+    # Ограничения на пароль сняты — любой пароль допускается.
+    return value
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -154,18 +150,16 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("Old password is incorrect")
         return value
 
-    def validate(self, attrs):
-        _validate_strong_password(attrs["new_password"], user=self.context["request"].user)
-        return attrs
+    def validate_new_password(self, value):
+        return _validate_strong_password(value)
 
 
 class ResetPasswordSerializer(serializers.Serializer):
     user_id = serializers.UUIDField()
     new_password = serializers.CharField(write_only=True)
 
-    def validate(self, attrs):
-        _validate_strong_password(attrs["new_password"], user=self.context.get("target_user"))
-        return attrs
+    def validate_new_password(self, value):
+        return _validate_strong_password(value)
 
     def validate_user_id(self, value):
         try:

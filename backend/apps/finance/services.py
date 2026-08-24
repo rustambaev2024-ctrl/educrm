@@ -6,6 +6,8 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
 
+from apps.core.definitions import wallet_delta
+from apps.lessons.services import slot_weekday
 from apps.notifications.services import NotificationService
 from apps.students.models import Student
 
@@ -14,6 +16,11 @@ from .models import Payment, Wallet
 logger = logging.getLogger(__name__)
 
 
+# Отметки, за которые ученик платит за урок. Сегодня набор совпадает с
+# apps.core.definitions.ATTENDANCE_PRESENT_STATUSES, но остаётся отдельным
+# именем сознательно: «считается присутствием в отчёте» и «платит за занятие» —
+# разные вопросы, и правило биллинга не должно меняться заодно с правилом
+# метрики. Если наборы начнут расходиться — так и должно быть.
 CHARGEABLE_ATTENDANCE_STATUSES = {"present", "late"}
 
 
@@ -45,10 +52,10 @@ def calculate_lesson_price(group, lesson_date: date) -> Decimal:
     _, days_in_month = monthrange(year, month)
 
     lesson_days = {
-        slot.get("day")
+        slot_weekday(slot)
         for slot in (group.schedule or [])
-        if isinstance(slot, dict) and slot.get("day") is not None
-    }
+        if isinstance(slot, dict)
+    } - {None}
     lessons_count = sum(
         1
         for day in range(1, days_in_month + 1)
@@ -121,9 +128,7 @@ def apply_payment(
         defaults={"balance": student.wallet_balance},
     )
 
-    delta = amount
-    if payment_type in ("charge", "manual_charge"):
-        delta = -amount
+    delta = wallet_delta(payment_type, amount)
 
     balance_before = wallet.balance
     balance_after = (wallet.balance + delta).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -157,8 +162,40 @@ def apply_payment(
         _notify_student_became_debtor(student)
 
     return PaymentResult(payment=payment, status_changed=status_changed)
-    
-    
+
+
+def refund_lesson_charges(lesson, *, student=None, created_by=None) -> int:
+    """Вернуть деньги, списанные за занятие. Возвращает число возвратов.
+
+    Одно правило для трёх поводов: урок отменили, урок перенесли, ученику
+    поставили уважительную причину. Во всех трёх случаях занятия не было —
+    значит и денег за него быть не должно. Раньше возврат существовал только
+    для уважительной причины, а отмена и перенос уже списанные деньги
+    оставляли: за перенесённый урок платили дважды — за старую дату и за новую.
+
+    Идемпотентна: уже возвращённые списания пропускаются.
+    """
+    charges = Payment.objects.filter(lesson=lesson, payment_type="charge")
+    if student is not None:
+        charges = charges.filter(student=student)
+
+    refunded = 0
+    for charge in charges:
+        if Payment.objects.filter(comment=f"Reversal of payment {charge.id}").exists():
+            continue
+        try:
+            with transaction.atomic():
+                reverse_payment(charge, created_by=created_by)
+            refunded += 1
+        except Exception:
+            # Возврат не должен ронять отмену/перенос урока: администратор не
+            # поймёт, почему действие не сохранилось.
+            logger.exception(
+                "Не удалось вернуть списание %s за урок %s", charge.id, lesson.id
+            )
+    return refunded
+
+
 @transaction.atomic
 def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
     """
@@ -168,9 +205,17 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
     """
     if payment.payment_type == "refund":
         raise ValueError("Cannot reverse a refund payment")
-    
+
+    # Блокируем строку платежа и проверяем повтор ЗДЕСЬ, а не только во вьюхе.
+    # Отмену запускают три независимых источника: кнопка в интерфейсе, сигнал
+    # «уважительная причина» и команда возврата ошибочных списаний. Проверка
+    # «уже отменён» снаружи не атомарна — два одновременных вызова проходят её
+    # оба и возвращают деньги дважды.
+    payment = Payment.objects.select_for_update().get(id=payment.id)
     comment = f"Reversal of payment {payment.id}"
-    
+    if Payment.objects.filter(comment=comment).exists():
+        raise ValueError("Payment is already reversed")
+
     if payment.payment_type == "charge":
         # Charge was -amount. Refund is +amount.
         result = apply_payment(
@@ -186,10 +231,10 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
         if payment.lesson:
             from apps.lessons.models import Attendance
             Attendance.objects.filter(
-                lesson=payment.lesson, 
+                lesson=payment.lesson,
                 student=payment.student
             ).update(is_charged=False)
-            
+
     elif payment.payment_type == "top_up":
         # top_up was +amount. Reverse with manual_charge (NOT "charge" — that's lesson billing).
         result = apply_payment(
@@ -225,5 +270,5 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
         )
     else:
         raise ValueError(f"Reversal for {payment.payment_type} not implemented")
-        
+
     return result

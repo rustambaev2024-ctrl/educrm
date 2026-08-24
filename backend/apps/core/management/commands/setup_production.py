@@ -4,6 +4,7 @@ from django_tenants.utils import schema_context
 from apps.accounts.models import User
 from apps.tenants.models import Domain, Institution
 
+
 class Command(BaseCommand):
     help = "Ensure production tenant and superadmin exist without deleting existing data"
 
@@ -18,7 +19,7 @@ class Command(BaseCommand):
                 "slug": "crm",
             },
         )
-        
+
         # Register domains for this tenant
         domains = ["educrm-production.up.railway.app", "localhost", "127.0.0.1"]
         for i, domain in enumerate(domains):
@@ -53,5 +54,5 @@ class Command(BaseCommand):
                 update_fields.append("password")
             if update_fields:
                 user.save(update_fields=update_fields)
-            
+
         self.stdout.write(self.style.SUCCESS("Superadmin setup complete! Your account +998912755141 is ready."))

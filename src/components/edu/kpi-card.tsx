@@ -1,6 +1,5 @@
 import type { ElementType } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface KpiCardProps {
   label: string;
@@ -11,62 +10,62 @@ interface KpiCardProps {
   color?: "blue" | "green" | "cyan" | "red" | "amber" | "violet";
   /** Legacy alias */
   iconColor?: "indigo" | "green" | "red" | "amber" | "blue" | "violet" | "cyan";
-  /**
-   * Explicit opt-in only — default stays the plain card for all existing
-   * call sites. "glass" gives a translucent brand-tinted surface (visible
-   * mainly in dark theme) per the Director Dashboard visual refresh.
-   */
-  variant?: "default" | "glass";
 }
 
-const colorMap = {
-  blue:   { box: "bg-sky-500/10 text-sky-600", val: "text-foreground" },
-  green:  { box: "bg-emerald-500/10 text-emerald-600", val: "text-emerald-600" },
-  cyan:   { box: "bg-cyan-500/10 text-cyan-600", val: "text-foreground" },
-  red:    { box: "bg-destructive/10 text-destructive", val: "text-destructive" },
-  amber:  { box: "bg-amber-500/10 text-amber-600", val: "text-foreground" },
-  violet: { box: "bg-violet-500/10 text-violet-600", val: "text-foreground" },
+/**
+ * Цвет иконки — категориальная метка, а не оценка.
+ *
+ * Ряды берутся из палитры графиков: она для того и существует, чтобы
+ * соседние категории различались между собой и оставались читаемыми.
+ * Раньше здесь стояли прямые цвета палитры Tailwind — они не меняются
+ * вместе с палитрой продукта и ничего не значат.
+ *
+ * Имена вариантов остались прежними («blue», «violet»), хотя и описывают
+ * цвет, а не смысл: их передают десятки экранов. Переименование — отдельная
+ * работа, здесь важнее было убрать хардкод.
+ */
+const TONE: Record<string, string> = {
+  blue: "var(--chart-2)",
+  green: "var(--chart-1)",
+  amber: "var(--chart-3)",
+  red: "var(--chart-4)",
+  violet: "var(--chart-5)",
+  cyan: "var(--chart-6)",
 };
 
-const legacyMap: Record<string, keyof typeof colorMap> = {
+const legacyMap: Record<string, keyof typeof TONE> = {
   indigo: "blue",
-  blue:   "blue",
-  green:  "green",
-  red:    "red",
-  amber:  "amber",
+  blue: "blue",
+  green: "green",
+  red: "red",
+  amber: "amber",
   violet: "violet",
-  cyan:   "cyan",
+  cyan: "cyan",
 };
 
-export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, iconColor, variant = "default" }: KpiCardProps) {
+export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, iconColor }: KpiCardProps) {
   const key = color ?? (iconColor ? legacyMap[iconColor] : undefined) ?? "blue";
-  const c = colorMap[key as keyof typeof colorMap] ?? colorMap.blue;
-  const isGlass = variant === "glass";
+  const tone = TONE[key] ?? TONE.blue;
 
   return (
-    <div
-      className={cn(
-        "min-w-0 overflow-hidden",
-        isGlass ? "glass-surface kpi-glass rounded-2xl p-5" : "rounded-[10px] border border-border bg-card p-3 shadow-sm",
-      )}
-    >
-      {/* Row 1: icon + delta */}
-      <div className={cn("flex items-center justify-between", isGlass ? "mb-3.5" : "mb-2")}>
+    <div className="min-w-0 overflow-hidden rounded-[10px] border border-border bg-card p-3 shadow-sm">
+      <div className="mb-2 flex items-center justify-between">
         <div
-          className={cn(
-            `kpi-ic tone-${key} flex items-center justify-center`,
-            isGlass ? "size-[38px] rounded-xl glow-icon" : "size-9 rounded-lg",
-            c.box,
-          )}
+          className="flex size-9 items-center justify-center rounded-lg"
+          style={{
+            background: `color-mix(in srgb, ${tone} 12%, transparent)`,
+            color: tone,
+          }}
         >
           <Icon className="size-[18px]" />
         </div>
         {delta && (
+          // Изменение — единственное место, где цвет здесь оценивает.
+          // Рост не красим в зелёный: зелёный в продукте занят действием,
+          // и рядом со ссылкой он читался бы как «нажми меня».
           <div
             className={`flex items-center gap-[3px] rounded-full px-[7px] py-0.5 text-[11px] font-semibold ${
-              delta.positive
-                ? "bg-emerald-500/10 text-emerald-700"
-                : "bg-destructive/10 text-destructive"
+              delta.positive ? "bg-muted text-foreground" : "bg-bad-soft text-bad"
             }`}
           >
             {delta.positive ? (
@@ -79,28 +78,20 @@ export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, icon
         )}
       </div>
 
-      {/* Row 2: value */}
+      {/* Значение не окрашивается: норма цвета не требует. Исключение —
+          «красный» вариант, которым помечают то, что требует внимания. */}
       <div
-        className={cn(
-          "truncate leading-none tabular-nums",
-          isGlass ? "mb-1.5 text-2xl font-medium tracking-tight" : "mb-1 text-xl font-extrabold",
-          c.val,
-        )}
+        className={`mb-1 truncate text-xl font-extrabold leading-none tabular-nums ${
+          key === "red" ? "text-bad" : "text-foreground"
+        }`}
       >
         {value}
       </div>
 
-      {/* Row 3: label */}
-      <div
-        className={cn(
-          "truncate text-muted-foreground",
-          isGlass ? "text-[10.5px] font-bold uppercase tracking-wide leading-snug" : "text-[11px] font-semibold leading-snug",
-        )}
-      >
+      <div className="truncate text-[11px] font-semibold leading-snug text-muted-foreground">
         {label}
       </div>
 
-      {/* Row 4: subtitle */}
       {subtitle && <div className="mt-0.5 text-[11px] text-muted-foreground">{subtitle}</div>}
     </div>
   );

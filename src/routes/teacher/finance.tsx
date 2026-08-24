@@ -5,6 +5,7 @@ import { Calendar, DollarSign, Users, Wallet, MinusCircle } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsApi } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney as _formatMoney } from "@/lib/format";
@@ -106,26 +107,36 @@ function TeacherFinancePage() {
         </Card>
 
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          // Скелет вместо крутящегося кольца: видно форму того, что грузится.
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5" aria-busy="true">
+            {Array.from({ length: 5 }, (_, i) => (
+              <Skeleton key={i} className="h-28 w-full rounded-xl" />
+            ))}
           </div>
         ) : !data ? (
-          <div className="text-center py-10 text-muted-foreground">{tr("Ma'lumot topilmadi", "Данные не найдены")}</div>
+          <EmptyState
+            icon={<Wallet className="size-6" />}
+            title={tr("Ma'lumot topilmadi", "Данные не найдены")}
+            description={tr(
+              "Tanlangan davr uchun hisob-kitob yo'q.",
+              "За выбранный период расчёта нет.",
+            )}
+          />
         ) : (
           <>
-            {/* Penalty Debt Card */}
+            {/* Остаток штрафов — требует внимания, но это не ошибка: --warn. */}
             {Number(data.penalty_debt) > 0 && (
-              <Card className="border-orange-500 bg-orange-500/10">
+              <Card className="border-warn/40 bg-warn-soft">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-orange-500 text-sm">
+                  <CardTitle className="text-warn text-sm">
                     {tr("Jarima qoldig'i (keyingi oyga o'tadi)", "Остаток штрафов (переходит на следующий месяц)")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-orange-500">
+                  <p className="text-2xl font-bold text-warn">
                     {formatMoney(data.penalty_debt)}
                   </p>
-                  <p className="text-xs text-orange-500 mt-1">
+                  <p className="text-xs text-warn mt-1">
                     {tr(
                       "Jarimalar daromaddan ko'p bo'lgani uchun qolgan qism keyingi hisob-kitobga o'tkaziladi",
                       "Штрафы превысили доход — остаток перенесён на следующий расчёт"
@@ -135,36 +146,42 @@ function TeacherFinancePage() {
               </Card>
             )}
 
-            {/* Overview Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-green-500/10 to-transparent">
+            {/* ══ Сводка ══
+                Цвет здесь несёт смысл, а не украшает. «Начислено» и
+                «Выплачено» — это норма, и норма не окрашивается: раньше они
+                были зелёными, из-за чего важное («чистый доход») терялось
+                среди одинаково ярких плашек. Красный остался только на
+                штрафах, жёлтый — только на том, что ещё не выплачено. */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <Card className="border-border/60">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">{tr("Hisoblangan", "Начислено")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
-                    <DollarSign className="size-5 text-green-500" />
+                    <DollarSign className="size-5 text-muted-foreground" />
                     <span className="text-xl font-bold">{formatMoney(data.calculated_salary)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{tr("O'quvchilar to'lovidan", "От оплат учеников")} {data.salary_percent}%</p>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-red-500/10 to-transparent">
+              <Card className="border-border/60">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">{tr("Jarimalar", "Штрафы")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
-                    <MinusCircle className="size-5 text-red-500" />
-                    <span className="text-xl font-bold">{formatMoney(data.penalties_total)}</span>
+                    <MinusCircle className="size-5 text-bad" />
+                    <span className="text-xl font-bold text-bad">{formatMoney(data.penalties_total)}</span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-primary/10 to-transparent">
+              {/* Главное число экрана — единственное, что окрашено брендом. */}
+              <Card className="border-primary/30 bg-accent">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-primary">{tr("Sof daromad", "Чистый доход")}</CardTitle>
+                  <CardTitle className="text-sm font-medium text-accent-foreground">{tr("Sof daromad", "Чистый доход")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
@@ -174,27 +191,27 @@ function TeacherFinancePage() {
                 </CardContent>
               </Card>
 
-              <Card className="shadow-elegant border-border/60 bg-gradient-to-br from-emerald-500/10 to-transparent">
+              <Card className="border-border/60">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-emerald-500">{tr("To'langan", "Выплачено")}</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{tr("To'langan", "Выплачено")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
-                    <DollarSign className="size-5 text-emerald-500" />
-                    <span className="text-xl font-bold text-emerald-500">{formatMoney(data.total_paid)}</span>
+                    <DollarSign className="size-5 text-muted-foreground" />
+                    <span className="text-xl font-bold">{formatMoney(data.total_paid)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{tr("Kassadan berilgan", "Выдано из кассы")}</p>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-elegant border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-transparent">
+              <Card className="border-warn/30 bg-warn-soft">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-orange-500">{tr("Qoldiq", "Остаток")}</CardTitle>
+                  <CardTitle className="text-sm font-medium text-warn">{tr("Qoldiq", "Остаток")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
-                    <Wallet className="size-5 text-orange-500" />
-                    <span className="text-xl font-bold text-orange-500">{formatMoney(data.remaining_balance)}</span>
+                    <Wallet className="size-5 text-warn" />
+                    <span className="text-xl font-bold text-warn">{formatMoney(data.remaining_balance)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{tr("To'lanishi kerak", "К выплате")}</p>
                 </CardContent>
@@ -249,10 +266,10 @@ function TeacherFinancePage() {
             {/* Penalties List */}
             {data.penalties?.length > 0 && (
               <>
-                <h3 className="text-lg font-semibold mt-8 mb-4 flex items-center gap-2 text-red-500">
+                <h3 className="text-lg font-semibold mt-8 mb-4 flex items-center gap-2 text-bad">
                   <MinusCircle className="size-5" /> {tr("Jarimalar tafsiloti", "Детализация штрафов")}
                 </h3>
-                <Card className="shadow-sm border-red-500/20">
+                <Card className="shadow-sm border-bad/20">
                   <div className="divide-y divide-border/50">
                     {data.penalties.map((penalty) => (
                       <div key={penalty.id} className="p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
@@ -261,7 +278,7 @@ function TeacherFinancePage() {
                           {penalty.comment && <div className="text-sm text-muted-foreground">{penalty.comment}</div>}
                           <div className="text-xs text-muted-foreground mt-1">{penalty.penalty_date}</div>
                         </div>
-                        <div className="text-red-500 font-bold whitespace-nowrap">
+                        <div className="text-bad font-bold whitespace-nowrap">
                           - {formatMoney(penalty.amount)}
                         </div>
                       </div>

@@ -5,6 +5,7 @@ from django.db.models import Sum
 
 from django_tenants.utils import schema_context
 
+from apps.core.definitions import WALLET_CREDIT_TYPES, WALLET_DEBIT_TYPES
 from apps.tenants.models import Institution
 
 
@@ -22,26 +23,31 @@ class Command(BaseCommand):
                 from apps.finance.models import Payment, Wallet
                 from apps.students.models import Student
 
-                students = Student.objects.filter(
-                    status__in=["active", "frozen", "debtor"]
-                ).select_related("user")
+                # ВСЕ ученики, а не только числящиеся. Раньше отбирались
+                # только active/frozen/debtor — у отчисленного или выпускника
+                # расхождение баланса с историей платежей не чинилось никогда,
+                # хотя именно к ним возвращаются при разборе старых долгов.
+                students = Student.objects.all().select_related("user")
 
                 fixed = 0
                 created = 0
                 skipped = 0
 
                 for student in students:
+                    # Наборы типов берём из общего места, а не переписываем
+                    # здесь: разойдись они с правилом проведения платежа, и
+                    # эта команда «починила» бы верные балансы на неверные.
                     income = (
                         Payment.objects.filter(
                             student=student,
-                            payment_type__in=["top_up", "manual_top_up", "discount", "refund"],
+                            payment_type__in=WALLET_CREDIT_TYPES,
                         ).aggregate(t=Sum("amount"))["t"]
                         or Decimal("0")
                     )
                     expense = (
                         Payment.objects.filter(
                             student=student,
-                            payment_type__in=["charge", "manual_charge"],
+                            payment_type__in=WALLET_DEBIT_TYPES,
                         ).aggregate(t=Sum("amount"))["t"]
                         or Decimal("0")
                     )

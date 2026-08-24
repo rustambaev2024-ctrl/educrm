@@ -26,9 +26,10 @@ import { penaltyApi, bonusApi, staffApi, branchApi, analyticsApi, lessonApi } fr
 import { useAuth } from "@/lib/auth";
 import type { StaffPenalty, StaffPenaltyStatus } from "@/lib/data/types";
 import { formatDate, formatMoney } from "@/lib/format";
+import type { Lang } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
 
-function pageLabels(lang: string) {
+function pageLabels(lang: Lang) {
   const isUz = lang === "uz";
   return {
     pageTitle: isUz ? "Nazorat" : "Контроль",
@@ -142,7 +143,7 @@ export function NazoratPage() {
   );
 }
 
-function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
+function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: Lang }) {
   const { user } = useAuth();
     const [date, setDate] = useState(() => getLocalDateString());
   const [branchId, setBranchId] = useState("all");
@@ -291,7 +292,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         )}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {teachersData.length === 0 ? (
             <div className="col-span-full py-16 text-center text-muted-foreground flex flex-col items-center justify-center space-y-3">
               <CircleMinus className="h-10 w-10 text-muted-foreground/30" />
@@ -316,13 +317,13 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
               badgeVariant = "default";
               const timeDisplay = teacher.checkin_time?.slice(0, 5) || "";
               badgeText = `${labels.teacher_arrived}${timeDisplay ? ` ${timeDisplay}` : ""}`;
-              badgeClass = "bg-emerald-500 hover:bg-emerald-600";
+              badgeClass = "bg-ok hover:bg-ok";
             } else if (checkinStatus === "late") {
               badgeVariant = "outline";
               const lateMinutes = teacher.checkin_time ? 
                 Math.round((new Date(`2000-01-01 ${checkinForm.time}`).getTime() - new Date(`2000-01-01 ${teacher.checkin_time}`).getTime()) / 60000) : 0;
               badgeText = `${labels.teacher_late} — ${Math.abs(lateMinutes)} ${labels.minutes}`;
-              badgeClass = "border-amber-500 text-amber-500 bg-amber-500/10";
+              badgeClass = "border-warn/30 text-warn bg-warn-soft";
             } else if (checkinStatus === "absent") {
               badgeVariant = "destructive";
               badgeText = labels.teacher_absent;
@@ -398,10 +399,10 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
                <div className="space-y-4">
                  {lessonsHistory.map((lesson) => {
                   const noAttendanceAlert = lesson.status === "conducted" && lesson.present_count === 0 && lesson.total_students > 0;
-                  let statusBg = "bg-[#0077b6]";
-                  if (lesson.status === "conducted") statusBg = "bg-emerald-500";
+                  let statusBg = "bg-[var(--primary)]";
+                  if (lesson.status === "conducted") statusBg = "bg-ok";
                   else if (lesson.status === "cancelled") statusBg = "bg-destructive";
-                  else if (lesson.status === "rescheduled") statusBg = "bg-amber-500";
+                  else if (lesson.status === "rescheduled") statusBg = "bg-warn";
 
                   // Форматирование времени и даты
                   const lessonTime = lesson.datetime ? new Date(lesson.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (lesson.start_time?.slice(0,5) || "");
@@ -425,7 +426,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
                         👥 {lesson.present_count}/{lesson.total_students} {(lesson.total_students > 0 ? (lesson.present_count / lesson.total_students * 100).toFixed(0) : 0)}%
                       </div>
                       {noAttendanceAlert && (
-                        <div className="mt-3 bg-amber-500/15 text-amber-600 px-3 py-2 rounded-md text-sm font-medium flex items-center">
+                        <div className="mt-3 bg-warn-soft text-warn px-3 py-2 rounded-md text-sm font-medium flex items-center">
                           {labels.lesson_no_attendance_alert}
                         </div>
                       )}
@@ -441,7 +442,7 @@ function BugunTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lan
   );
 }
 
-function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
+function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: Lang }) {
   const [month, setMonth] = useState(() => getLocalDateString().slice(0, 7));
   const [branchId, setBranchId] = useState("all");
   const [search, setSearch] = useState("");
@@ -544,8 +545,8 @@ function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; 
               const score = calculateScore(teacher);
               let scoreColor = "bg-primary";
               if (score < 60) scoreColor = "bg-destructive";
-              else if (score < 80) scoreColor = "bg-amber-500";
-              else scoreColor = "bg-emerald-500";
+              else if (score < 80) scoreColor = "bg-warn";
+              else scoreColor = "bg-ok";
 
               return (
               <TableRow key={teacher.teacher_id} className="hover:bg-accent/40">
@@ -566,7 +567,7 @@ function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; 
                       <span className="text-muted-foreground">{teacher.conducted_lessons} / {teacher.total_lessons}</span>
                       <span className="font-medium flex items-center">{teacher.conduct_rate}%</span>
                     </div>
-                    <Progress value={teacher.conduct_rate} className="h-1.5" indicatorColor={teacher.conduct_rate < 80 ? "bg-amber-500" : "bg-emerald-500"} />
+                    <Progress value={teacher.conduct_rate} className="h-1.5" indicatorColor={teacher.conduct_rate < 80 ? "bg-warn" : "bg-ok"} />
                   </div>
                 </TableCell>
                 <TableCell>
@@ -610,7 +611,7 @@ function TeachersTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; 
   );
 }
 
-function PenaltyBonusTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
+function PenaltyBonusTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: Lang }) {
     return (
         <Tabs defaultValue="penalties" className="w-full">
             <TabsList className="mb-4">
@@ -628,15 +629,15 @@ function PenaltyBonusTab({ labels, lang }: { labels: ReturnType<typeof pageLabel
 }
 
 // Re-using the same sub-tab logic but parameterizing it for bonus vs penalty
-function PenaltiesSubTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
+function PenaltiesSubTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: Lang }) {
     return <TransactionTab type="penalty" labels={labels} lang={lang} />
 }
 
-function BonusesSubTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: string }) {
+function BonusesSubTab({ labels, lang }: { labels: ReturnType<typeof pageLabels>; lang: Lang }) {
     return <TransactionTab type="bonus" labels={labels} lang={lang} />
 }
 
-function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", labels: ReturnType<typeof pageLabels>; lang: string }) {
+function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", labels: ReturnType<typeof pageLabels>; lang: Lang }) {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -761,13 +762,13 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">{type === "bonus" ? labels.bonuses : labels.penalties}</h3>
         {isWriteAllowed && (
-          <Button onClick={openCreate} className={type === "bonus" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-gradient-primary"}>
+          <Button onClick={openCreate} className={type === "bonus" ? "bg-ok hover:bg-ok" : "bg-gradient-primary"}>
             <Plus className="mr-1 size-4" /> {type === "bonus" ? labels.addBonus : labels.addPenalty}
           </Button>
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 mb-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 mb-5">
         <Kpi icon={type === "bonus" ? Gift : Ban} label={labels.kpiAmount} value={formatMoney(totals.amount, lang)} tone={type === "bonus" ? "success" : "danger"} />
         <Kpi icon={CalendarDays} label={labels.kpiMonth} value={month || labels.allMonths} />
         <Kpi icon={UserRound} label={labels.kpiRecords} value={String(totals.all)} />
@@ -838,7 +839,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
                             </Badge>
                         </TableCell>
                     )}
-                    <TableCell className={`text-right font-semibold ${type === "bonus" ? "text-emerald-600" : "text-destructive"}`}>
+                    <TableCell className={`text-right font-semibold ${type === "bonus" ? "text-ok" : "text-destructive"}`}>
                       {type === "bonus" ? "+" : "-"}{formatMoney(record.amount, lang)}
                     </TableCell>
                   </TableRow>
@@ -855,7 +856,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
           <DialogTitle>{type === "bonus" ? labels.addTitleBonus : labels.addTitlePenalty}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label>{labels.staff}</Label>
                     <Select value={form.staffId} onValueChange={(val) => setForm({...form, staffId: val})}>
@@ -883,7 +884,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
                 <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={labels.reasonPlaceholder} />
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label>{labels.date}</Label>
                     <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
@@ -908,7 +909,7 @@ function TransactionTab({ type, labels, lang }: { type: "penalty"|"bonus", label
 function Kpi({ icon: Icon, label, value, tone = "default" }: { icon: any; label: string; value: string; tone?: "default" | "danger" | "success" }) {
   let bg = "bg-primary/15 text-primary";
   if (tone === "danger") bg = "bg-destructive/15 text-destructive";
-  if (tone === "success") bg = "bg-emerald-500/15 text-emerald-600";
+  if (tone === "success") bg = "bg-ok-soft text-ok";
   return (
     <Card className="p-4 shadow-elegant">
       <div className={`flex size-9 items-center justify-center rounded-lg ${bg}`}>

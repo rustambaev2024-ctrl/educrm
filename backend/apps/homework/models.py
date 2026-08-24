@@ -1,7 +1,7 @@
 import uuid
 
 from django.conf import settings
-from django.core.validators import MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -81,7 +81,7 @@ class HomeworkStatus(models.Model):
     grade = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
-        validators=[MaxValueValidator(10)],
+        validators=[MinValueValidator(2), MaxValueValidator(5)],
     )
     teacher_comment = models.TextField(blank=True)
     checked_by = models.ForeignKey(

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ListSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -17,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useData } from "@/lib/data/store";
+import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
 
@@ -39,11 +41,13 @@ function DirectorFinancePage() {
     if (!reverseTarget) return;
     setReversingId(reverseTarget.id);
     try {
-      await reversePayment(reverseTarget.id);
+      // reversePayment резолвится записью возврата при успехе и null при
+      // ошибке (стор уже показал свой toast с причиной) — «Платёж отменён»
+      // и закрытие диалога должны звучать только когда сервер подтвердил.
+      const reversed = await reversePayment(reverseTarget.id);
+      if (!reversed) return;
       toast.success(lang === "uz" ? "To'lov bekor qilindi" : "Платёж отменён");
       setReverseTarget(null);
-    } catch {
-      toast.error(lang === "uz" ? "Xatolik yuz berdi" : "Произошла ошибка");
     } finally {
       setReversingId(null);
     }
@@ -62,8 +66,8 @@ function DirectorFinancePage() {
     const pt = new Date(p.date).getTime();
     return pt >= fromTime && pt < toTime;
   });
-  const income = monthPayments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
-  const expense = monthPayments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
+  const income = sumIncome(monthPayments);
+  const expense = sumExpense(monthPayments);
   const debt = students
     .filter((s) => s.balance < 0)
     .reduce((s, st) => s + Math.abs(st.balance), 0);
@@ -73,8 +77,8 @@ function DirectorFinancePage() {
     () =>
       branches.map((b) => {
         const bp = monthPayments.filter((p) => p.branchId === b.id);
-        const bIncome = bp.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
-        const bExpense = bp.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
+        const bIncome = sumIncome(bp);
+        const bExpense = sumExpense(bp);
         return { branch: b, income: bIncome, expense: bExpense, profit: bIncome - bExpense };
       }),
     [branches, monthPayments],
@@ -109,26 +113,36 @@ function DirectorFinancePage() {
 
   const visibleWallets = wallets.slice(0, walletsLimit);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
   return (
     <PageShell
       title={t("finance.title")}
       subtitle={t("finance.directorSubtitle")}
       actions={
-        <div className="flex items-center gap-2">
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
-          <span>-</span>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
-        </div>
+        !isLoading && (
+          <div className="flex items-center gap-2">
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+            <span>-</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+          </div>
+        )
       }
     >
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Skeleton className="h-64 rounded-xl" />
+            <Skeleton className="h-64 rounded-xl" />
+          </div>
+          <ListSkeleton rows={6} />
+          <ListSkeleton rows={6} />
+        </div>
+      ) : (
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard iconColor="green" icon={TrendingUp} label={t("finance.kpi.income")} value={formatMoney(income, lang)} />
@@ -137,7 +151,7 @@ function DirectorFinancePage() {
           <KpiCard iconColor="amber" icon={AlertTriangle} label={t("finance.kpi.debt")} value={formatMoney(debt, lang)} />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card className="p-6 shadow-elegant">
             <div className="mb-4 text-sm font-semibold">{t("nav.branches")}</div>
             <div className="space-y-3">
@@ -226,7 +240,7 @@ function DirectorFinancePage() {
           {wallets.length > walletsLimit && (
             <button
               onClick={() => setWalletsLimit((l) => l + 50)}
-              className="w-full border-t py-2 text-sm text-[#0077b6] hover:bg-[#f0f9ff]"
+              className="w-full border-t py-2 text-sm text-[var(--primary)] hover:bg-[var(--info-soft)]"
             >
               {lang === "uz"
                 ? `Yana ${wallets.length - walletsLimit} ta ko'rsatish`
@@ -277,6 +291,7 @@ function DirectorFinancePage() {
           </Table>
         </Card>
       </div>
+      )}
       <ConfirmDialog
         open={reverseTarget !== null}
         onOpenChange={(open) => !open && setReverseTarget(null)}
@@ -305,7 +320,7 @@ function PaymentTypeBadge({ type, lang }: { type: string; lang: "uz" | "ru" }) {
     manual_charge: { uz: "Yechish", ru: "Списание", className: "bg-destructive/15 text-destructive border-destructive/30" },
     manual_top_up: { uz: "Qo'shish", ru: "Зачисление", className: "bg-success/15 text-success border-success/30" },
     refund: { uz: "Qaytarish", ru: "Возврат", className: "bg-warning/15 text-warning border-warning/30" },
-    discount: { uz: "Chegirma", ru: "Скидка", className: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
+    discount: { uz: "Chegirma", ru: "Скидка", className: "bg-chart-5/10 text-chart-5 border-chart-5/30" },
     expense: { uz: "Xarajat", ru: "Расход", className: "bg-destructive/15 text-destructive border-destructive/30" },
   };
   const info = map[type];

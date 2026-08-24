@@ -4,10 +4,13 @@ from django.urls import include, path
 import django.urls.converters
 
 original_register = django.urls.converters.register_converter
+
+
 def safe_register_converter(converter, type_name):
     if type_name in django.urls.converters.get_converters():
         return
     original_register(converter, type_name)
+
 
 django.urls.converters.register_converter = safe_register_converter
 django.urls.register_converter = safe_register_converter

@@ -144,11 +144,22 @@ export interface Lesson {
   datetime: string; // ISO
   durationMinutes: number;
   roomId: string;
+  /**
+   * Кто фактически вёл урок. Может отличаться от teacherId группы: при замене
+   * бэкенд переписывает Lesson.teacher, а прежнего сохраняет в
+   * originalTeacherId. Экраны обязаны брать учителя отсюда, а не из группы.
+   */
+  teacherId?: string;
   topic?: string;
   status: LessonStatus;
   cancelReason?: string;
+  /** Урок вёл не тот, кто в расписании. teacherId — кто вёл фактически. */
   isSubstitution?: boolean;
-  substituteTeacherId?: string;
+  /** Кто стоял в расписании до замены. */
+  originalTeacherId?: string;
+  notes?: string;
+  /** Урок перенесён — id урока, на который перенесли. */
+  rescheduledToId?: string;
 }
 
 export interface AttendanceRecord {
@@ -157,6 +168,12 @@ export interface AttendanceRecord {
   studentId: string;
   status: AttendanceStatus;
   comment?: string;
+  lateMinutes?: number | null;
+  /** id пользователя (не сотрудника), который поставил отметку. */
+  recordedByUserId?: string;
+  recordedAt?: string;
+  /** Списаны ли деньги за этот пропуск. */
+  isCharged?: boolean;
 }
 
 export type PaymentMethod = "cash" | "card" | "transfer" | "click" | "payme";
@@ -168,8 +185,17 @@ export interface Payment {
   staffId?: string;         // for salary outgoing
   groupId?: string;
   branchId: string;
+  /** За какой урок списание — есть у списаний за занятие. */
+  lessonId?: string;
   type: string;
   amount: number;           // positive value
+  /**
+   * Баланс кошелька до и после операции — денежный след, по которому можно
+   * ответить «почему у ученика такой баланс». Не приходит у оптимистичных
+   * записей, поэтому необязательные.
+   */
+  balanceBefore?: number;
+  balanceAfter?: number;
   direction: PaymentDirection; // internal = wallet operation, not organisation income/expense
   method: PaymentMethod;
   date: string;             // ISO
@@ -257,7 +283,7 @@ export interface HomeworkSubmission {
   status: HomeworkSubmissionStatus;
   submittedAt?: string;
   comment?: string;
-  grade?: number;     // 0..10
+  grade?: number;     // 2..5, школьная шкала (как и Grade.score)
   feedback?: string;
   attachments?: HomeworkAttachment[];
 }
@@ -271,9 +297,13 @@ export interface Grade {
   studentId: string;
   teacherId: string;
   kind: GradeKind;
+  /** За какое занятие поставлена оценка. */
+  lessonId?: string;
+  /** За какой экзамен поставлена оценка. */
+  examId?: string;
+  homeworkStatusId?: string;
   title: string;       // e.g. "Unit 4 Quiz", "Midterm"
-  score: number;       // 0..100 (0..10 for kind "homework", mirrors HomeworkStatus.grade)
-  maxScore: number;    // 100, except kind "homework" which is 10
+  score: number;       // 2..5, школьная шкала — единая для всех kind
   date: string;        // ISO date
   comment?: string;
 }

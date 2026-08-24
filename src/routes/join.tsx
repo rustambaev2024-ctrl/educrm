@@ -121,7 +121,11 @@ function JoinPage() {
   const isLead = meta?.quiz_type === "lead";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4 text-white">
+    // Тёмная игровая подложка, как на /play: этот экран — вход в викторину,
+    // а не часть рабочего интерфейса. Весь текст здесь белый, поэтому фон
+    // обязан оставаться тёмным. min-h-dvh, а не vh: в iOS Safari адресная
+    // строка сворачивается и экран прыгает.
+    <div className="flex min-h-dvh items-center justify-center bg-[var(--quiz-bg)] p-4 text-white">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           {/* Была заглушка-буква «E» от EduCRM — после ребренда просто врала. */}
@@ -138,7 +142,7 @@ function JoinPage() {
         </div>
 
         {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-bad/30 bg-bad-soft px-4 py-3 text-sm text-bad">
             <AlertCircle className="size-4 shrink-0" />
             {error}
           </div>
@@ -183,7 +187,7 @@ function JoinPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 font-semibold transition-colors hover:bg-emerald-700 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-ok py-3.5 font-semibold transition-colors hover:bg-ok disabled:opacity-60"
             >
               {loading ? <Loader2 className="size-5 animate-spin" /> : (t ? "Qo'shilish" : "Присоединиться")}
             </button>

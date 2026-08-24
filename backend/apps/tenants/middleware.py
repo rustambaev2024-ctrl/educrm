@@ -33,6 +33,7 @@ class HeaderOrDomainTenantMiddleware:
     #: разница статусов здесь снова стала бы оракулом имён схем (BUG-037).
     TENANT_OPTIONAL_PATH_PREFIXES = (
         "/api/v1/quiz-sessions/by-code/",
+        "/api/v1/public/leads/lidpixel/",
     )
     #: (prefix, suffix) — голый суффикс слишком широк: `/join/` не должен
     #: ослаблять любой будущий эндпоинт с таким хвостом.

@@ -1,5 +1,7 @@
 // snake_case backend -> camelCase frontend domain types
 
+import { INCOME_PAYMENT_TYPES, INCOME_REVERSAL_TYPES } from "@/lib/data/definitions";
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function extractId(value: string | { id: string } | null | undefined): string {
@@ -295,6 +297,14 @@ export interface LessonRaw {
   room: string | { id: string } | null;
   teacher?: string | { id: string } | null;
   actual_teacher?: string | { id: string } | null;
+  // Замена: `teacher` — кто реально вёл, `original_teacher` — кто был в
+  // расписании (lessons/views.py:102-106). Без этих полей урок, проведённый
+  // заменяющим, в интерфейсе неотличим от обычного, и в отчёте по учителям
+  // засчитывается тому, кто в расписании, а не тому, кто вёл.
+  is_substitute?: boolean | null;
+  original_teacher?: string | { id: string } | null;
+  notes?: string | null;
+  rescheduled_to?: string | { id: string } | null;
   topic: string | null;
   status: string;
   cancel_reason: string | null;
@@ -308,6 +318,10 @@ export function mapLesson(r: LessonRaw) {
     durationMinutes: 90,
     roomId: extractId(r.room ?? undefined),
     teacherId: extractId(r.actual_teacher ?? r.teacher ?? undefined),
+    isSubstitution: Boolean(r.is_substitute),
+    originalTeacherId: extractId(r.original_teacher ?? undefined) || undefined,
+    notes: r.notes ?? undefined,
+    rescheduledToId: extractId(r.rescheduled_to ?? undefined) || undefined,
     topic: r.topic ?? "",
     status: r.status === "conducted" ? "completed" : r.status,
     cancelReason: r.cancel_reason ?? undefined,
@@ -327,6 +341,12 @@ export interface AttendanceRaw {
   status: string;
   late_minutes: number | null;
   comment: string | null;
+  // Кто и когда отметил журнал, и списаны ли деньги за этот пропуск.
+  // recorded_by — id ПОЛЬЗОВАТЕЛЯ (accounts.User), не сотрудника: сопоставлять
+  // нужно со Staff.userId, а не со Staff.id.
+  recorded_by?: string | { id: string } | null;
+  recorded_at?: string | null;
+  is_charged?: boolean | null;
 }
 
 export function mapAttendance(r: AttendanceRaw) {
@@ -337,6 +357,9 @@ export function mapAttendance(r: AttendanceRaw) {
     status: r.status,
     lateMinutes: r.late_minutes,
     comment: r.comment ?? undefined,
+    recordedByUserId: extractId(r.recorded_by ?? undefined) || undefined,
+    recordedAt: r.recorded_at ?? undefined,
+    isCharged: r.is_charged ?? undefined,
   };
 }
 
@@ -348,23 +371,86 @@ export interface PaymentRaw {
   branch?: string | { id: string } | null;
   group: string | { id: string } | null;
   staff?: string | { id: string } | null;
+  lesson?: string | { id: string } | null;
   transaction_type?: string;
   payment_type?: string;
   type?: string;
   method?: string | null;
   category?: string | null;
   amount: string | number;
+  // Денежный след операции: баланс до и после. Бэкенд пишет их по каждому
+  // платежу (finance/services.apply_payment), но без этих полей на вопрос
+  // «почему у ученика такой баланс» по интерфейсу ответить нельзя.
+  balance_before?: string | number | null;
+  balance_after?: string | number | null;
   created_at?: string;
   date?: string;
   comment: string | null;
 }
 
+/** Decimal-строка бэкенда → число, но только если поле реально пришло. */
+function optionalNumber(value: string | number | null | undefined): number | undefined {
+  if (value === null || value === undefined || value === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+// Наборы типов операций живут в definitions.ts вместе со своим зеркалом на
+// бэкенде — здесь только их применение.
+const INCOME_TYPES = new Set<string>(INCOME_PAYMENT_TYPES);
+const INCOME_REVERSALS = new Set<string>(INCOME_REVERSAL_TYPES);
+
+// Реальный отток денег из кассы (выплаты, закупки).
+const CASH_OUT_TYPES = new Set(["expense"]);
+
+interface MoneyRow {
+  type: string;
+  amount: number;
+}
+
+/**
+ * Округление денежной суммы до тийина.
+ *
+ * Суммы приходят как Number из Decimal-строк. Для отдельной операции это
+ * безопасно, но при сложении сотен строк накапливается ошибка двоичной
+ * плавающей точки, и итог фронта расходится с Decimal-итогом бэкенда на доли
+ * тийина. Видно только при сверке отчётов — но именно сверка отчётов и есть
+ * тот случай, когда на числа смотрят внимательно.
+ */
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/** Доход за период: поступления минус их отмены. */
+export function sumIncome(payments: MoneyRow[]): number {
+  return roundMoney(
+    payments.reduce((total, p) => {
+      if (INCOME_TYPES.has(p.type)) return total + p.amount;
+      if (INCOME_REVERSALS.has(p.type)) return total - p.amount;
+      return total;
+    }, 0),
+  );
+}
+
+/** Расход за период: только реальный отток денег из кассы. */
+export function sumExpense(payments: MoneyRow[]): number {
+  return roundMoney(
+    payments.reduce((total, p) => (CASH_OUT_TYPES.has(p.type) ? total + p.amount : total), 0),
+  );
+}
+
 export function mapPayment(r: PaymentRaw) {
   const transactionType = r.transaction_type ?? r.payment_type ?? r.type ?? "top_up";
+  // "refund" — это отмена списания за урок (reverse_payment), деньги из кассы не
+  // уходят, поэтому он "internal", а не "out": иначе списание и его отмена
+  // суммарно занижали бы прибыль.
   const direction =
-    transactionType === "expense" || transactionType === "refund"
+    transactionType === "expense"
       ? "out"
-      : transactionType === "charge" || transactionType === "discount" || transactionType === "manual_charge"
+      : transactionType === "charge" ||
+          transactionType === "discount" ||
+          transactionType === "manual_charge" ||
+          transactionType === "refund"
         ? "internal"
         : "in";
   return {
@@ -373,10 +459,13 @@ export function mapPayment(r: PaymentRaw) {
     groupId: extractId(r.group ?? undefined),
     staffId: extractId(r.staff ?? undefined),
     branchId: extractId(r.branch ?? undefined),
+    lessonId: extractId(r.lesson ?? undefined) || undefined,
     type: transactionType,
     direction,
     method: r.method ?? "cash",
     amount: Number(r.amount),
+    balanceBefore: optionalNumber(r.balance_before),
+    balanceAfter: optionalNumber(r.balance_after),
     date: r.created_at ?? r.date ?? new Date().toISOString(),
     comment: r.comment ?? undefined,
     category: r.category ?? (direction === "out" ? "other" : "tuition"),
@@ -465,6 +554,11 @@ export interface GradeRaw {
   id: string;
   student: string | { id: string };
   group: string | { id: string };
+  // За какое занятие / за какой экзамен поставлена оценка. Без них оценку
+  // нельзя связать с уроком, на котором она получена.
+  lesson?: string | { id: string } | null;
+  exam?: string | { id: string } | null;
+  homework_status?: string | { id: string } | null;
   grade_type?: string;
   type?: string;
   score: number;
@@ -481,11 +575,13 @@ export function mapGrade(r: GradeRaw) {
     studentId: extractId(r.student),
     groupId: extractId(r.group),
     teacherId: extractId(r.graded_by ?? undefined),
+    lessonId: extractId(r.lesson ?? undefined) || undefined,
+    examId: extractId(r.exam ?? undefined) || undefined,
+    homeworkStatusId: extractId(r.homework_status ?? undefined) || undefined,
     kind: type,
     type,
     title: type,
     score: typeof r.score === "number" ? r.score : Number(r.score ?? 0),
-    maxScore: 100,
     date: r.graded_at ?? r.created_at ?? new Date().toISOString(),
     comment: r.comment ?? undefined,
     createdAt: r.graded_at ?? r.created_at ?? new Date().toISOString(),

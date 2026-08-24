@@ -1,30 +1,27 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Phone, Calendar, Building2, Wallet, Award, BookOpen, ClipboardCheck, LogOut, Star } from "lucide-react";
+import { Phone, Calendar, Building2, Wallet, Award, BookOpen, ClipboardCheck, LogOut, Star, UserX } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageShell } from "@/components/edu/page-shell";
+import { StatTile } from "@/components/edu/stat-tile";
+import { CardSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useCurrentStudentId } from "@/lib/data/identity";
-import { attendancePercentage } from "@/lib/data/metrics";
+import { attendancePercentage, gradeAverage, gradeTone } from "@/lib/data/metrics";
 import { LangToggle } from "@/components/edu/lang-toggle";
+import { ScrollableTabsList } from "@/components/edu/scrollable-tabs-list";
 import { StudentStatusBadge } from "@/components/edu/status-badge";
 import { formatDate, formatMoney, initialsOf } from "@/lib/format";
 
 export const Route = createFileRoute("/student/profile")({ component: StudentProfile });
-
-function scoreTone(pct: number) {
-  if (pct >= 85) return "bg-success/15 text-success";
-  if (pct >= 65) return "bg-info/15 text-info";
-  if (pct >= 50) return "bg-warning/15 text-warning";
-  return "bg-destructive/15 text-destructive";
-}
 
 function StudentProfile() {
   const { t, lang } = useI18n();
@@ -41,9 +38,7 @@ function StudentProfile() {
     () => grades.filter((g) => g.studentId === studentId).sort((a, b) => b.date.localeCompare(a.date)),
     [grades, studentId],
   );
-  const avg = myGrades.length
-    ? Math.round((myGrades.reduce((s, g) => s + (g.score / g.maxScore) * 10, 0) / myGrades.length) * 10) / 10
-    : 0;
+  const avg = gradeAverage(myGrades);
 
   const myAttendance = useMemo(() => attendance.filter((a) => a.studentId === studentId), [attendance, studentId]);
   const attPct = attendancePercentage(myAttendance);
@@ -74,174 +69,189 @@ function StudentProfile() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-md space-y-4 px-4 py-5">
-        <Skeleton className="h-28 w-full rounded-xl" />
-        <Skeleton className="h-10 w-full rounded-lg" />
-        <Skeleton className="h-40 w-full rounded-xl" />
-      </div>
+      <PageShell title={t("profile.title")}>
+        <div className="mx-auto max-w-md space-y-4 pb-24">
+          <div className="flex items-center gap-3 rounded-xl border border-border p-5">
+            <Skeleton className="size-16 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-40 max-w-[70%]" />
+              <Skeleton className="h-3 w-28 max-w-[50%]" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <CardSkeleton />
+        </div>
+      </PageShell>
     );
   }
 
   if (!stu) {
-    return <div className="p-8 text-center text-sm text-muted-foreground">{t("students.notFound")}</div>;
+    return (
+      <PageShell title={t("profile.title")}>
+        <EmptyState icon={<UserX className="size-6" />} title={t("students.notFound")} />
+      </PageShell>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-4 px-4 py-5">
-      {/* Header */}
-      <Card className="overflow-hidden p-0 shadow-elegant">
-        <div className="bg-gradient-primary p-5 text-primary-foreground">
-          <div className="flex items-center gap-3">
-            <Avatar className="size-16 ring-2 ring-white/20">
-              {stu.photo && <AvatarImage src={stu.photo} alt={stu.fullName} />}
-              <AvatarFallback className="bg-white/20 text-lg font-bold text-primary-foreground">
-                {initialsOf(stu.fullName)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <h2 className="truncate text-lg font-bold">{stu.fullName}</h2>
-              <div className="text-xs opacity-90">{stu.phone}</div>
-              <div className="mt-1.5"><StudentStatusBadge status={stu.status} /></div>
+    <PageShell title={t("profile.title")}>
+      <div className="mx-auto max-w-md space-y-4 pb-24">
+        {/* Header */}
+        <Card className="overflow-hidden p-0 shadow-elegant">
+          <div className="bg-gradient-primary p-5 text-primary-foreground">
+            <div className="flex items-center gap-3">
+              <Avatar className="size-16 ring-2 ring-white/20">
+                {stu.photo && <AvatarImage src={stu.photo} alt={stu.fullName} />}
+                <AvatarFallback className="bg-white/20 text-lg font-bold text-primary-foreground">
+                  {initialsOf(stu.fullName)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate text-lg font-bold">{stu.fullName}</h2>
+                <div className="text-xs opacity-90">{stu.phone}</div>
+                <div className="mt-1.5"><StudentStatusBadge status={stu.status} /></div>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="grid grid-cols-3 divide-x divide-border/40">
-          <Stat label={t("profile.attendance")} value={`${attPct}%`} icon={ClipboardCheck} />
-          <Stat label={t("profile.avgGrade")} value={String(avg)} icon={Award} />
-          <Stat label={t("profile.activeHomework")} value={String(activeHw)} icon={BookOpen} />
-        </div>
-      </Card>
+          <div className="grid grid-cols-3 divide-x divide-border/40">
+            <StatTile variant="bare" label={t("profile.attendance")} value={`${attPct}%`} icon={ClipboardCheck} />
+            <StatTile variant="bare" label={t("profile.avgGrade")} value={String(avg)} icon={Award} />
+            <StatTile variant="bare" label={t("profile.activeHomework")} value={String(activeHw)} icon={BookOpen} />
+          </div>
+        </Card>
 
-      <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">{t("profile.tab.overview")}</TabsTrigger>
-          <TabsTrigger value="grades">{t("profile.tab.grades")}</TabsTrigger>
-          <TabsTrigger value="attendance">{t("profile.tab.attendance")}</TabsTrigger>
-          <TabsTrigger value="payments">{t("profile.tab.payments")}</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="overview">
+          <ScrollableTabsList columns={4}>
+            <TabsTrigger value="overview" className="px-4">{t("profile.tab.overview")}</TabsTrigger>
+            <TabsTrigger value="grades" className="px-4">{t("profile.tab.grades")}</TabsTrigger>
+            <TabsTrigger value="attendance" className="px-4">{t("profile.tab.attendance")}</TabsTrigger>
+            <TabsTrigger value="payments" className="px-4">{t("profile.tab.payments")}</TabsTrigger>
+          </ScrollableTabsList>
 
-        <TabsContent value="overview" className="mt-3 space-y-3">
-          <Card className="p-4 shadow-elegant">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("profile.personal")}</div>
-            <div className="mt-3 space-y-2.5 text-sm">
-              <Row icon={Phone} label={t("profile.phone")} value={stu.phone} />
-              {stu.birthDate && <Row icon={Calendar} label={t("profile.birthDate")} value={formatDate(stu.birthDate, lang)} />}
-              {branch && <Row icon={Building2} label={t("profile.branch")} value={branch.name} />}
-              {parent && <Row icon={Phone} label={t("profile.parent")} value={`${parent.fullName} · ${parent.phone}`} />}
-              <Separator />
-              <Row
-                icon={Wallet}
-                label={t("profile.balance")}
-                value={formatMoney(stu.balance, lang)}
-                valueClass={stu.balance < 0 ? "text-destructive font-bold" : "text-success font-bold"}
-              />
-            </div>
-          </Card>
-
-          {upcomingLessons.length > 0 && (
+          <TabsContent value="overview" className="mt-3 space-y-3">
             <Card className="p-4 shadow-elegant">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("parent.upcomingLessons")}</div>
-              <div className="space-y-2">
-                {upcomingLessons.map((l) => (
-                  <div key={l.id} className="flex items-center gap-2 text-sm">
-                    <Calendar className="size-3.5 text-muted-foreground" />
-                    <span className="flex-1">{formatDate(l.datetime, lang)}</span>
-                    <span className="text-xs text-muted-foreground">{new Date(l.datetime).toLocaleTimeString(lang === "uz" ? "uz-Latn" : "ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
-                  </div>
-                ))}
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("profile.personal")}</div>
+              <div className="mt-3 space-y-2.5 text-sm">
+                <Row icon={Phone} label={t("profile.phone")} value={stu.phone} />
+                {stu.birthDate && <Row icon={Calendar} label={t("profile.birthDate")} value={formatDate(stu.birthDate, lang)} />}
+                {branch && <Row icon={Building2} label={t("profile.branch")} value={branch.name} />}
+                {parent && <Row icon={Phone} label={t("profile.parent")} value={`${parent.fullName} · ${parent.phone}`} />}
+                <Separator />
+                <Row
+                  icon={Wallet}
+                  label={t("profile.balance")}
+                  value={formatMoney(stu.balance, lang)}
+                  valueClass={stu.balance < 0 ? "text-destructive font-bold" : "text-success font-bold"}
+                />
               </div>
             </Card>
-          )}
-        </TabsContent>
 
-        <TabsContent value="grades" className="mt-3 space-y-2">
-          {myGrades.length === 0 ? (
-            <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{t("grades.empty")}</Card>
-          ) : (
-            myGrades.map((g) => {
-              const pct = (g.score / g.maxScore) * 100;
-              return (
-                <Card key={g.id} className="p-3 shadow-elegant">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <Badge variant="outline" className="text-[10px]">{t(`gkind.${g.kind}`)}</Badge>
-                      <div className="mt-1 truncate text-sm font-medium">{g.title}</div>
-                      <div className="text-[11px] text-muted-foreground">{formatDate(g.date, lang)}</div>
+            {upcomingLessons.length > 0 && (
+              <Card className="p-4 shadow-elegant">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("parent.upcomingLessons")}</div>
+                <div className="space-y-2">
+                  {upcomingLessons.map((l) => (
+                    <div key={l.id} className="flex items-center gap-2 text-sm">
+                      <Calendar className="size-3.5 text-muted-foreground" />
+                      <span className="flex-1">{formatDate(l.datetime, lang)}</span>
+                      <span className="text-xs text-muted-foreground">{new Date(l.datetime).toLocaleTimeString(lang === "uz" ? "uz-Latn" : "ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
-                    <div className={`flex items-center gap-1 rounded-md px-2 py-1 text-sm font-bold ${scoreTone(pct)}`}>
-                      <Star className="size-3.5" /> {g.score}<span className="text-xs opacity-60">/{g.maxScore}</span>
-                    </div>
-                  </div>
-                  {g.comment && <p className="mt-2 border-t border-border/40 pt-2 text-xs text-muted-foreground">{g.comment}</p>}
-                </Card>
-              );
-            })
-          )}
-        </TabsContent>
-
-        <TabsContent value="attendance" className="mt-3 space-y-3">
-          <Card className="p-4 shadow-elegant">
-            <div className="flex items-baseline justify-between">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("profile.attendance")}</div>
-              <div className="text-3xl font-bold">{attPct}%</div>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
-              <div className="h-full bg-gradient-primary" style={{ width: `${attPct}%` }} />
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="rounded-md bg-success/10 p-2"><div className="font-bold text-success">{myAttendance.filter((a) => a.status === "present").length}</div><div className="text-muted-foreground">{t("att.present")}</div></div>
-              <div className="rounded-md bg-warning/15 p-2"><div className="font-bold text-warning">{myAttendance.filter((a) => a.status === "late").length}</div><div className="text-muted-foreground">{t("att.late")}</div></div>
-              <div className="rounded-md bg-destructive/10 p-2"><div className="font-bold text-destructive">{myAttendance.filter((a) => a.status === "absent").length}</div><div className="text-muted-foreground">{t("att.absent")}</div></div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="payments" className="mt-3 space-y-2">
-          {myPayments.length === 0 ? (
-            <Card className="p-8 text-center text-sm text-muted-foreground shadow-elegant">{t("finance.empty")}</Card>
-          ) : (
-            myPayments.map((p) => (
-              <Card key={p.id} className="flex items-center gap-3 p-3 shadow-elegant">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-success/10 text-success"><Wallet className="size-4" /></div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium">{formatMoney(p.amount, lang)}</div>
-                  <div className="text-[11px] text-muted-foreground">{formatDate(p.date, lang)} · {t(`finance.method.${p.method}`)}</div>
+                  ))}
                 </div>
               </Card>
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+            )}
+          </TabsContent>
 
-      {/* Settings */}
-      <Card className="p-4 shadow-elegant">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("nav.settings")}</div>
-        <div className="mt-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm">{t("profile.lang")}</span>
-            <LangToggle />
+          <TabsContent value="grades" className="mt-3 space-y-2">
+            {myGrades.length === 0 ? (
+              <EmptyState icon={<Award className="size-6" />} title={t("grades.empty")} />
+            ) : (
+              myGrades.map((g) => {
+                return (
+                  <Card key={g.id} className="p-3 shadow-elegant">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <Badge variant="outline" className="text-[10px]">{t(`gkind.${g.kind}`)}</Badge>
+                        <div className="mt-1 truncate text-sm font-medium">{g.title}</div>
+                        <div className="text-[11px] text-muted-foreground">{formatDate(g.date, lang)}</div>
+                      </div>
+                      <div className={`flex items-center gap-1 rounded-md px-2 py-1 text-sm font-bold ${gradeTone(g.score)}`}>
+                        <Star className="size-3.5" /> {g.score}<span className="text-xs opacity-60">/5</span>
+                      </div>
+                    </div>
+                    {g.comment && <p className="mt-2 border-t border-border/40 pt-2 text-xs text-muted-foreground">{g.comment}</p>}
+                  </Card>
+                );
+              })
+            )}
+          </TabsContent>
+
+          <TabsContent value="attendance" className="mt-3 space-y-3">
+            <Card className="p-4 shadow-elegant">
+              <div className="flex items-baseline justify-between">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("profile.attendance")}</div>
+                <div className="text-3xl font-bold">{attPct}%</div>
+              </div>
+              <div
+                className="mt-3 h-2 overflow-hidden rounded-full bg-secondary"
+                role="progressbar"
+                aria-valuenow={Math.min(100, attPct)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div className="h-full bg-gradient-primary" style={{ width: `${Math.min(100, attPct)}%` }} />
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="rounded-md bg-success/10 p-2"><div className="font-bold text-success">{myAttendance.filter((a) => a.status === "present").length}</div><div className="text-muted-foreground">{t("att.present")}</div></div>
+                <div className="rounded-md bg-warning/15 p-2"><div className="font-bold text-warning">{myAttendance.filter((a) => a.status === "late").length}</div><div className="text-muted-foreground">{t("att.late")}</div></div>
+                <div className="rounded-md bg-destructive/10 p-2"><div className="font-bold text-destructive">{myAttendance.filter((a) => a.status === "absent").length}</div><div className="text-muted-foreground">{t("att.absent")}</div></div>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payments" className="mt-3 space-y-2">
+            {myPayments.length === 0 ? (
+              <EmptyState icon={<Wallet className="size-6" />} title={t("finance.empty")} />
+            ) : (
+              myPayments.map((p) => (
+                <Card key={p.id} className="flex items-center gap-3 p-3 shadow-elegant">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-success/10 text-success"><Wallet className="size-4" /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium">{formatMoney(p.amount, lang)}</div>
+                    <div className="text-[11px] text-muted-foreground">{formatDate(p.date, lang)} · {t(`finance.method.${p.method}`)}</div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Settings */}
+        <Card className="p-4 shadow-elegant">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("nav.settings")}</div>
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm">{t("profile.lang")}</span>
+              <LangToggle />
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => { logout(); navigate({ to: "/" }); }}
-      >
-        <LogOut className="mr-2 size-4" /> {t("profile.logout")}
-      </Button>
-    </div>
-  );
-}
-
-function Stat({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Wallet }) {
-  return (
-    <div className="flex flex-col items-center gap-1 p-3 text-center">
-      <Icon className="size-4 text-muted-foreground" />
-      <div className="text-lg font-bold leading-none">{value}</div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-    </div>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => { logout(); navigate({ to: "/" }); }}
+        >
+          <LogOut className="mr-2 size-4" /> {t("profile.logout")}
+        </Button>
+      </div>
+    </PageShell>
   );
 }
 

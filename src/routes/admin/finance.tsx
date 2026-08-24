@@ -9,6 +9,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton, Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import {
   Tabs,
   TabsContent,
@@ -40,8 +42,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useData } from "@/lib/data/store";
+import { sumIncome, sumExpense } from "@/lib/data/mappers";
+import { isDebtor, totalDebt as sumDebt } from "@/lib/data/definitions";
 import { useI18n } from "@/lib/i18n";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, getLocalDateTimeString, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 import type { Payment, PaymentMethod } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
@@ -53,42 +58,21 @@ type PaymentFilter = "all" | "in" | "out" | "manual";
 const localDateInputValue = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-const getAvatarStyle = (name: string) => {
-  const colors = [
-    { bg: "#dbeafe", text: "#1d4ed8" },
-    { bg: "#dcfce7", text: "#15803d" },
-    { bg: "#fce7f3", text: "#9d174d" },
-    { bg: "#fef3c7", text: "#d97706" },
-    { bg: "#f3e8ff", text: "#7c3aed" },
-  ];
-  return colors[(name.trim().charCodeAt(0) || 0) % colors.length];
-};
-
-
-const initials = (name: string) =>
-  name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-
 const isManualPayment = (payment: Payment) => payment.type === "manual_top_up" || payment.type === "manual_charge";
 const isOutgoingPayment = (payment: Payment) =>
   payment.direction === "out" || payment.type === "charge" || payment.type === "manual_charge" || payment.type === "expense";
 
 const paymentVisual = (payment: Payment) => {
   if (isManualPayment(payment)) {
-    return { icon: Wallet, cls: "bg-sky-500/10 text-sky-600" };
+    return { icon: Wallet, cls: "bg-info-soft text-info" };
   }
   if (isOutgoingPayment(payment)) {
     return { icon: TrendingDown, cls: "bg-destructive/10 text-destructive" };
   }
   if (payment.type === "refund" || payment.type === "discount") {
-    return { icon: Receipt, cls: "bg-amber-500/10 text-amber-600" };
+    return { icon: Receipt, cls: "bg-warn-soft text-warn" };
   }
-  return { icon: TrendingUp, cls: "bg-emerald-500/10 text-emerald-600" };
+  return { icon: TrendingUp, cls: "bg-ok-soft text-ok" };
 };
 
 const methodBadgeClass = (method: PaymentMethod) => {
@@ -132,11 +116,14 @@ function FinancePage() {
     if (!reverseTarget) return;
     setReversingId(reverseTarget.id);
     try {
-      await reversePayment(reverseTarget.id);
+      // reversePayment резолвится в Payment на успехе и null на неудаче
+      // (store сам не бросает — он уже показал свой toast.error внутри).
+      // Без проверки возврата этот блок раньше показывал "Платёж отменён"
+      // и закрывал диалог даже когда сторно на бэкенде не прошло.
+      const reversed = await reversePayment(reverseTarget.id);
+      if (!reversed) return;
       toast.success(lang === "uz" ? "To'lov bekor qilindi" : "Платёж отменён");
       setReverseTarget(null);
-    } catch {
-      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
     } finally {
       setReversingId(null);
     }
@@ -161,11 +148,9 @@ function FinancePage() {
   monthStart.setHours(0, 0, 0, 0);
 
   const monthPayments = payments.filter((p) => new Date(p.date) >= monthStart);
-  const monthIncome = monthPayments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
-  const monthExpense = monthPayments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
-  const totalDebt = students
-    .filter((s) => s.balance < 0)
-    .reduce((s, st) => s + Math.abs(st.balance), 0);
+  const monthIncome = sumIncome(monthPayments);
+  const monthExpense = sumExpense(monthPayments);
+  const totalDebt = sumDebt(students);
 
   const periodPayments = useMemo(() => {
     const fromTime = new Date(dateFrom).getTime();
@@ -192,8 +177,10 @@ function FinancePage() {
         .sort((a, b) => b.date.localeCompare(a.date)),
     [periodPayments, paymentFilter],
   );
+  // По балансу, а не по статусу: статус производный и умеет отставать, из-за
+  // чего в списке долгов пропадал ученик с отрицательным балансом.
   const debtors = students
-    .filter((s) => s.status === "debtor")
+    .filter(isDebtor)
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
     
   const wallets = useMemo(() => {
@@ -215,12 +202,21 @@ function FinancePage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t("finance.title")} subtitle={t("finance.subtitle")}>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <Skeleton className="h-10 w-full max-w-md rounded-lg" />
+          <ListSkeleton rows={6} />
+        </div>
+      </PageShell>
     );
   }
-  
+
   return (
     <PageShell
       title={t("finance.title")}
@@ -247,17 +243,19 @@ function FinancePage() {
 
         <Tabs defaultValue="wallets">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <TabsList>
-              <TabsTrigger value="wallets">{lang === "uz" ? "Hamyonlar" : "Кошельки"}</TabsTrigger>
-              <TabsTrigger value="payments">{t("finance.tab.payments")}</TabsTrigger>
-              <TabsTrigger value="debtors">
-                {t("finance.tab.debtors")}
-                {debtors.length > 0 && <Badge className="ml-2 h-4 min-w-4 px-1 text-[10px]">{debtors.length}</Badge>}
-              </TabsTrigger>
-              <TabsTrigger value="expenses">{t("finance.tab.expenses")}</TabsTrigger>
-              <TabsTrigger value="history">{lang === "uz" ? "Tarix" : "История"}</TabsTrigger>
-            </TabsList>
-            
+            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+              <TabsList>
+                <TabsTrigger value="wallets">{lang === "uz" ? "Hamyonlar" : "Кошельки"}</TabsTrigger>
+                <TabsTrigger value="payments">{t("finance.tab.payments")}</TabsTrigger>
+                <TabsTrigger value="debtors">
+                  {t("finance.tab.debtors")}
+                  {debtors.length > 0 && <Badge className="ml-2 h-4 min-w-4 px-1 text-[10px]">{debtors.length}</Badge>}
+                </TabsTrigger>
+                <TabsTrigger value="expenses">{t("finance.tab.expenses")}</TabsTrigger>
+                <TabsTrigger value="history">{lang === "uz" ? "Tarix" : "История"}</TabsTrigger>
+              </TabsList>
+            </div>
+
             <div className="flex items-center gap-2">
               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
               <span>-</span>
@@ -280,8 +278,8 @@ function FinancePage() {
                 <TableBody>
                   {wallets.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                        {t("finance.empty")}
+                      <TableCell colSpan={5} className="p-0">
+                        <EmptyState icon={<Wallet className="size-7" />} title={t("finance.empty")} />
                       </TableCell>
                     </TableRow>
                   )}
@@ -290,7 +288,7 @@ function FinancePage() {
                       <TableCell className="font-medium">{w.fullName}</TableCell>
                       <TableCell className="text-muted-foreground">{w.phone}</TableCell>
                       <TableCell><Badge variant={w.status === "debtor" ? "destructive" : "outline"}>{t(`status.${w.status}`)}</Badge></TableCell>
-                      <TableCell className={`text-right font-bold ${w.balance < 0 ? "text-destructive" : w.balance > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>{formatMoney(w.balance, lang)}</TableCell>
+                      <TableCell className={`text-right font-bold ${w.balance < 0 ? "text-destructive" : w.balance > 0 ? "text-ok" : "text-muted-foreground"}`}>{formatMoney(w.balance, lang)}</TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
                         {w.lastPaymentDate ? `${formatDate(w.lastPaymentDate, lang)} (+${formatMoney(w.lastPaymentAmount || 0, lang)})` : "—"}
                       </TableCell>
@@ -332,8 +330,8 @@ function FinancePage() {
                 <TableBody>
                   {filteredPayments.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
-                        {t("finance.empty")}
+                      <TableCell colSpan={7} className="p-0">
+                        <EmptyState icon={<Receipt className="size-7" />} title={t("finance.empty")} />
                       </TableCell>
                     </TableRow>
                   )}
@@ -350,11 +348,14 @@ function FinancePage() {
                       <TableRow key={p.id} className="transition-colors hover:bg-muted/30">
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            {(() => { const av = getAvatarStyle(name); return (
-                              <div style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: av.bg, color: av.text, flexShrink: 0 }}>
-                                {initials(name)}
-                              </div>
-                            ); })()}
+                            <div
+                              className={cn(
+                                "flex size-[34px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white",
+                                getAvatarColor(name),
+                              )}
+                            >
+                              {initialsOf(name)}
+                            </div>
                             <div className="min-w-0">
                               <div className="truncate font-semibold text-foreground">{name}</div>
                               <div className="mt-px truncate text-[11px] text-muted-foreground">
@@ -376,7 +377,7 @@ function FinancePage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className={`text-right font-bold tabular-nums ${outgoing ? "text-destructive" : "text-emerald-600"}`}>
+                        <TableCell className={`text-right font-bold tabular-nums ${outgoing ? "text-destructive" : "text-ok"}`}>
                           {sign}{formatMoney(p.amount, lang)}
                         </TableCell>
                         <TableCell>
@@ -415,13 +416,20 @@ function FinancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {periodPayments.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="p-0">
+                        <EmptyState icon={<Receipt className="size-7" />} title={t("finance.empty")} />
+                      </TableCell>
+                    </TableRow>
+                  )}
                   {[...periodPayments].sort((a,b) => b.date.localeCompare(a.date)).map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.studentId ? studentById[p.studentId]?.fullName : "—"}</TableCell>
                       <TableCell>
                         <PaymentTypeBadge type={p.type} lang={lang} />
                       </TableCell>
-                      <TableCell className={`text-right font-semibold ${p.direction === 'in' ? 'text-success' : p.direction === 'out' ? 'text-destructive' : 'text-amber-600'}`}>
+                      <TableCell className={`text-right font-semibold ${p.direction === 'in' ? 'text-success' : p.direction === 'out' ? 'text-destructive' : 'text-warn'}`}>
                         {p.direction === 'in' ? '+' : p.direction === 'out' ? '-' : '•'} {formatMoney(p.amount, lang)}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{formatDate(p.date, lang)}</TableCell>
@@ -442,14 +450,11 @@ function FinancePage() {
 
           <TabsContent value="debtors" className="mt-4">
             {debtors.length === 0 ? (
-              <div className="edu-card flex flex-col items-center gap-3 p-12 text-center">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
-                  <Wallet className="size-6" />
-                </div>
-                <div className="text-[15px] font-semibold text-foreground">{t("finance.emptyDebtors")}</div>
+              <div className="edu-card">
+                <EmptyState icon={<Wallet className="size-7" />} title={t("finance.emptyDebtors")} />
               </div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {debtors.map((student) => {
                   return (
                     <div key={student.id} className="edu-card flex items-center gap-3 p-4">
@@ -485,8 +490,8 @@ function FinancePage() {
                 <TableBody>
                   {outgoingPayments.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                        {t("finance.empty")}
+                      <TableCell colSpan={5} className="p-0">
+                        <EmptyState icon={<TrendingDown className="size-7" />} title={t("finance.empty")} />
                       </TableCell>
                     </TableRow>
                   )}
@@ -546,29 +551,40 @@ function PaymentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
     setComment("");
   };
 
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    // Защита от двойного нажатия: это приём денег, второй клик — второй платёж.
+    if (saving) return;
     const num = Number(amount);
-    if (!studentId || !num || num <= 0) {
+    if (!studentId || !Number.isFinite(num) || num <= 0) {
       toast.error(t("validation.fillAll"));
       return;
     }
     const student = students.find((s) => s.id === studentId);
-    addPayment({
-      studentId,
-      groupId: groupId || undefined,
-      branchId: student?.branchId ?? branches[0]?.id ?? "b1",
-      amount: num,
-      direction: "in",
-      type: "top_up",
-      method,
-      date: new Date().toISOString(),
-      comment: comment || undefined,
-      category: "tuition",
-    });
-    
-    toast.success(t("finance.received"));
-    reset();
-    onOpenChange(false);
+    setSaving(true);
+    try {
+      const saved = await addPayment({
+        studentId,
+        groupId: groupId || undefined,
+        branchId: student?.branchId ?? branches[0]?.id ?? "b1",
+        amount: num,
+        direction: "in",
+        type: "top_up",
+        method,
+        date: getLocalDateTimeString(),
+        comment: comment || undefined,
+        category: "tuition",
+      });
+      // «Оплата принята» — только после ответа сервера. При ошибке стор уже
+      // откатил баланс и показал причину, второй раз кричать не нужно.
+      if (!saved) return;
+      toast.success(t("finance.received"));
+      reset();
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -634,7 +650,7 @@ function PaymentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
-          <Button onClick={handleSave}>{t("common.save")}</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? "..." : t("common.save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -649,25 +665,34 @@ function ExpenseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
   const [category, setCategory] = useState<"salary" | "rent" | "utilities" | "marketing" | "other">("rent");
   const [comment, setComment] = useState("");
 
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (saving) return;
     const num = Number(amount);
-    if (!num || num <= 0) {
+    if (!Number.isFinite(num) || num <= 0) {
       toast.error(t("validation.fillAll"));
       return;
     }
-    addPayment({
-      branchId: branches[0]?.id,
-      amount: num,
-      direction: "out",
-      type: "expense",
-      method,
-      date: new Date().toISOString(),
-      comment: comment || undefined,
-      category,
-    });
-    toast.success(t("finance.expenseAdded"));
-    setAmount(""); setComment(""); setCategory("rent"); setMethod("transfer");
-    onOpenChange(false);
+    setSaving(true);
+    try {
+      const saved = await addPayment({
+        branchId: branches[0]?.id,
+        amount: num,
+        direction: "out",
+        type: "expense",
+        method,
+        date: getLocalDateTimeString(),
+        comment: comment || undefined,
+        category,
+      });
+      if (!saved) return;
+      toast.success(t("finance.expenseAdded"));
+      setAmount(""); setComment(""); setCategory("rent"); setMethod("transfer");
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -718,7 +743,7 @@ function ExpenseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
-          <Button onClick={handleSave}>{t("common.save")}</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? "..." : t("common.save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -735,7 +760,7 @@ function PaymentTypeBadge({ type, lang }: { type: string; lang: "uz" | "ru" }) {
     manual_charge: "bg-destructive/15 text-destructive border-destructive/30",
     manual_top_up: "bg-success/15 text-success border-success/30",
     refund: "bg-warning/15 text-warning border-warning/30",
-    discount: "bg-purple-500/15 text-purple-600 border-purple-500/30",
+    discount: "bg-chart-5/10 text-chart-5 border-chart-5/30",
     expense: "bg-destructive/15 text-destructive border-destructive/30",
   };
   const className = classMap[type] ?? "bg-muted text-muted-foreground";

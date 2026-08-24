@@ -16,6 +16,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
 
@@ -43,7 +45,7 @@ export function CreateStudentSheet({
     branchId?: string;
   };
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { branches } = useData();
   // Combines current timestamp (last 3 digits = milliseconds) + 3 random digits.
   // This gives ~1 in 1,000,000,000 chance of collision — practically unique.
@@ -62,6 +64,19 @@ export function CreateStudentSheet({
   const [parentName, setParentName] = useState("");
   const [parentPhone, setParentPhone] = useState("");
   const [parentPassword, setParentPassword] = useState(genPin);
+
+  // Пароли генерируются автоматически при открытии, поэтому в расчёт
+  // «тронута ли форма» не входят — иначе панель считалась бы заполненной
+  // сразу же и спрашивала при каждом закрытии.
+  const isDirty =
+    fullName !== (initialData?.fullName ?? "") ||
+    phone !== (initialData?.phone ?? "") ||
+    birthDate !== "" ||
+    hasParent ||
+    parentName !== "" ||
+    parentPhone !== "";
+
+  const { askOpen, setAskOpen, requestClose, discard } = useUnsavedGuard(open && isDirty);
 
   const reset = () => {
     setFullName(initialData?.fullName ?? "");
@@ -104,7 +119,15 @@ export function CreateStudentSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
+    <>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (v) { onOpenChange(true); return; }
+        // Случайно закрытая панель стирала всё заполненное без вопроса.
+        requestClose(() => { onOpenChange(false); reset(); });
+      }}
+    >
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{t("students.add")}</SheetTitle>
@@ -186,10 +209,26 @@ export function CreateStudentSheet({
           </section>
         </div>
         <SheetFooter className="px-1 mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
+          <Button variant="outline" onClick={() => requestClose(() => { onOpenChange(false); reset(); })}>{t("common.cancel")}</Button>
           <Button onClick={submit} className="bg-gradient-primary text-primary-foreground">{t("students.submitAdd")}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
+
+    <ConfirmDialog
+      open={askOpen}
+      onOpenChange={setAskOpen}
+      variant="destructive"
+      title={lang === "uz" ? "Yopilsinmi?" : "Закрыть без сохранения?"}
+      description={
+        lang === "uz"
+          ? "Kiritilgan ma'lumotlar saqlanmaydi."
+          : "Введённые данные не сохранятся."
+      }
+      confirmText={lang === "uz" ? "Yopish" : "Закрыть"}
+      cancelText={lang === "uz" ? "Tahrirni davom etish" : "Продолжить заполнение"}
+      onConfirm={discard}
+    />
+    </>
   );
 }

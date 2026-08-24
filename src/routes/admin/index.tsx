@@ -1,24 +1,23 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Clock, MapPin, UserPlus } from "lucide-react";
+import { AlertCircle, ArrowRight, Calendar, Clock, DollarSign, MapPin, Receipt, TrendingUp, UserPlus, Users } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
-import { Skeleton } from "@/components/ui/skeleton";
+import { StatCardSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { KpiCard } from "@/components/edu/kpi-card";
-import { LeafStudentsIcon, LeafAttendanceIcon, LeafRevenueIcon, LeafDebtorsIcon } from "@/components/edu/icons/leaf-icons";
 import { useData } from "@/lib/data/store";
+import { sumIncome } from "@/lib/data/mappers";
 import { useI18n } from "@/lib/i18n";
 import { attendancePercentage } from "@/lib/data/metrics";
-import { formatMoney, formatTime, getLocalDateString, sameDay } from "@/lib/format";
+import { countActiveStudents, isDebtor } from "@/lib/data/definitions";
+import { formatMoney, formatTime, getLocalDateString, initialsOf, sameDay } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
+
+/** Сколько уроков показываем на панели. Остаток не исчезает: под списком
+ *  появляется строка «Ещё N» с переходом в расписание. */
+const TODAY_LESSONS_VISIBLE = 7;
 
 export const Route = createFileRoute("/admin/")({ component: AdminHome });
-
-/* avatar color index 0-4 */
-const avaIdx = (name: string) => (name.trim().charCodeAt(0) || 0) % 5;
-const avaBg  = ["#dbeafe","#dcfce7","#fce7f3","#fef3c7","#f3e8ff"];
-const avaTxt = ["#1d4ed8","#15803d","#9d174d","#92400e","#7c3aed"];
-
-const initials = (name: string) =>
-  name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 
 const lessonStatusBadge: Record<string, { cls: string; uz: string; ru: string }> = {
   scheduled:  { cls: "badge-plan",   uz: "Rejalashtirilgan", ru: "Запланирован" },
@@ -38,23 +37,25 @@ const paymentTypeLabels: Record<string, { uz: string; ru: string }> = {
 };
 
 function AdminHome() {
-  const { lang } = useI18n();
+  const { lang, plural } = useI18n();
   const navigate = useNavigate();
   const { students, groups, lessons, payments, staff, rooms, courses, attendance, isLoading } = useData();
 
   const today = new Date();
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
 
-  const activeStudents = students.filter((s) => s.status === "active" || s.status === "debtor").length;
-  const debtors = students.filter((s) => s.status === "debtor" || s.balance < 0);
+  const activeStudents = countActiveStudents(students);
+  const debtors = students.filter(isDebtor);
 
   const monthRevenue = useMemo(() => {
     const yr = today.getFullYear();
     const mo = today.getMonth();
-    return payments
-      .filter((p) => p.direction === "in")
-      .filter((p) => { const d = new Date(p.date); return d.getFullYear() === yr && d.getMonth() === mo; })
-      .reduce((s, p) => s + p.amount, 0);
+    return sumIncome(
+      payments.filter((p) => {
+        const d = new Date(p.date);
+        return d.getFullYear() === yr && d.getMonth() === mo;
+      }),
+    );
   }, [payments]);
 
   const todayLessons = useMemo(
@@ -80,18 +81,10 @@ function AdminHome() {
   if (isLoading) {
     return (
       <PageShell title={tr("Boshqaruv paneli", "Панель управления")} subtitle={todayLabel}>
-        <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="glass-surface flex flex-col gap-3.5 rounded-2xl p-5">
-              <Skeleton className="size-[38px] rounded-xl" />
-              <Skeleton className="h-7 w-20" />
-              <Skeleton className="h-3 w-24" />
-            </div>
+            <StatCardSkeleton key={i} />
           ))}
-        </div>
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <Skeleton className="h-72 rounded-2xl" />
-          <Skeleton className="h-72 rounded-2xl" />
         </div>
       </PageShell>
     );
@@ -109,126 +102,140 @@ function AdminHome() {
       }
     >
       {/* KPI grid */}
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <KpiCard variant="glass" label={tr("O'quvchilar", "Ученики")}      value={activeStudents}            icon={LeafStudentsIcon}   color="blue" />
-        <KpiCard variant="glass" label={tr("Davomat", "Посещаемость")}     value={`${todayAttendancePct}%`}  icon={LeafAttendanceIcon} color="green" />
-        <KpiCard variant="glass" label={tr("Oylik tushum", "Доход/месяц")} value={formatMoney(monthRevenue, lang)} icon={LeafRevenueIcon}  color="cyan" />
-        <KpiCard variant="glass" label={tr("Qarzdorlar", "Должники")}      value={debtors.length}            icon={LeafDebtorsIcon}    color="red" />
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <KpiCard label={tr("O'quvchilar", "Ученики")}      value={activeStudents}            icon={Users}       color="blue" />
+        <KpiCard label={tr("Davomat", "Посещаемость")}     value={`${todayAttendancePct}%`}  icon={TrendingUp}  color="green" />
+        <KpiCard label={tr("Oylik tushum", "Доход/месяц")} value={formatMoney(monthRevenue, lang)} icon={DollarSign} color="cyan" />
+        <KpiCard label={tr("Qarzdorlar", "Должники")}      value={debtors.length}            icon={AlertCircle} color="red" />
       </div>
 
       {/* Two-column cards */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
         {/* Today's lessons */}
-        <div className="glass-surface rounded-2xl" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="edu-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-muted px-3.5 py-3">
             <div>
-              <div style={{ fontSize: 14, fontWeight: 650, color: "var(--text-primary)" }}>{tr("Bugungi darslar", "Сегодняшние уроки")}</div>
-              <div style={{ fontSize: 11.5, color: "var(--text-secondary)", marginTop: 2 }}>
+              <div className="text-[13px] font-bold text-foreground">{tr("Bugungi darslar", "Сегодняшние уроки")}</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
                 {todayLessons.length} {tr("ta dars", "урок(ов)")}
               </div>
             </div>
             <button
               onClick={() => navigate({ to: "/admin/schedule" })}
-              className="transition-colors hover:bg-accent"
-              style={{ padding: "5px 11px", borderRadius: 8, border: "none", background: "var(--muted)", color: "var(--text-secondary)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+              className="rounded-md bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70"
             >
               {tr("Barchasi", "Все")}
             </button>
           </div>
 
           {todayLessons.length === 0 ? (
-            <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 13 }}>
-              {tr("Bugun darslar yo'q", "Сегодня уроков нет")}
-            </div>
+            <EmptyState
+              icon={<Calendar className="size-6" />}
+              title={tr("Bugun darslar yo'q", "Сегодня уроков нет")}
+            />
           ) : (
             <div>
-              {todayLessons.slice(0, 7).map((lesson) => {
-                const group = groupById[lesson.groupId];
-                if (!group) return null;
-                const teacher  = teacherById[group.teacherId];
-                const room     = roomById[lesson.roomId];
-                const course   = courseById[group.courseId];
-                const meta     = lessonStatusBadge[lesson.status] ?? lessonStatusBadge.scheduled;
-                return (
-                  <div
-                    key={lesson.id}
-                    className="transition-colors hover:bg-accent/50"
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 20px", borderBottom: "1px solid var(--border-light)" }}
-                  >
-                    <div style={{ minWidth: 44, fontWeight: 700, color: "var(--brand)", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
-                      <Clock style={{ width: 11, height: 11 }} />
-                      {formatTime(lesson.datetime)}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {course?.name ?? group.name}
-                        {" "}<span style={{ fontWeight: 400, color: "var(--text-secondary)" }}>{group.name}</span>
+              <div className="divide-y divide-border">
+                {todayLessons.slice(0, TODAY_LESSONS_VISIBLE).map((lesson) => {
+                  const group = groupById[lesson.groupId];
+                  if (!group) return null;
+                  const teacher  = teacherById[group.teacherId];
+                  const room     = roomById[lesson.roomId];
+                  const course   = courseById[group.courseId];
+                  const meta     = lessonStatusBadge[lesson.status] ?? lessonStatusBadge.scheduled;
+                  return (
+                    <div
+                      key={lesson.id}
+                      className="edu-row flex min-h-11 items-center gap-3 px-4 py-2.5"
+                    >
+                      <div className="flex min-w-11 items-center gap-1 text-[12px] font-bold text-primary">
+                        <Clock className="size-3" />
+                        {formatTime(lesson.datetime)}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1, display: "flex", gap: 8 }}>
-                        {teacher?.fullName && <span>{teacher.fullName.split(" ")[0]}</span>}
-                        {room?.name && (
-                          <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                            <MapPin style={{ width: 10, height: 10 }} />
-                            {room.name}
-                          </span>
-                        )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13px] font-semibold text-foreground">
+                          {course?.name ?? group.name}
+                          {" "}<span className="font-normal text-muted-foreground">{group.name}</span>
+                        </div>
+                        <div className="mt-px flex gap-2 text-[11px] text-muted-foreground">
+                          {teacher?.fullName && <span>{teacher.fullName.split(" ")[0]}</span>}
+                          {room?.name && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="size-2.5" />
+                              {room.name}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      <span className={meta.cls}>{tr(meta.uz, meta.ru)}</span>
                     </div>
-                    <span className={meta.cls}>{tr(meta.uz, meta.ru)}</span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {todayLessons.length > TODAY_LESSONS_VISIBLE && (
+                <button
+                  onClick={() => navigate({ to: "/admin/schedule" })}
+                  className="flex min-h-11 w-full items-center justify-center gap-1.5 border-t border-border bg-transparent px-3.5 py-2.5 text-[12px] font-semibold text-primary transition-colors hover:bg-muted/50"
+                >
+                  {tr(
+                    `Yana ${todayLessons.length - TODAY_LESSONS_VISIBLE} ta dars`,
+                    `Ещё ${todayLessons.length - TODAY_LESSONS_VISIBLE} ${plural(todayLessons.length - TODAY_LESSONS_VISIBLE, "урок", "урока", "уроков")}`,
+                  )}
+                  <ArrowRight className="size-[13px]" />
+                </button>
+              )}
             </div>
           )}
         </div>
 
         {/* Recent payments */}
-        <div className="glass-surface rounded-2xl" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="edu-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-muted px-3.5 py-3">
             <div>
-              <div style={{ fontSize: 14, fontWeight: 650, color: "var(--text-primary)" }}>{tr("So'nggi to'lovlar", "Последние платежи")}</div>
-              <div style={{ fontSize: 11.5, color: "var(--text-secondary)", marginTop: 2 }}>{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
+              <div className="text-[13px] font-bold text-foreground">{tr("So'nggi to'lovlar", "Последние платежи")}</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">{tr("Kirim va balans amallari", "Пополнения и списания")}</div>
             </div>
             <button
               onClick={() => navigate({ to: "/admin/finance" })}
-              className="transition-colors hover:bg-accent"
-              style={{ padding: "5px 11px", borderRadius: 8, border: "none", background: "var(--muted)", color: "var(--text-secondary)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+              className="rounded-md bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70"
             >
               {tr("Barchasi", "Все")}
             </button>
           </div>
 
           {recentPayments.length === 0 ? (
-            <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 13 }}>
-              {tr("To'lovlar yo'q", "Платежей нет")}
-            </div>
+            <EmptyState
+              icon={<Receipt className="size-6" />}
+              title={tr("To'lovlar yo'q", "Платежей нет")}
+            />
           ) : (
-            <div>
+            <div className="divide-y divide-border">
               {recentPayments.map((payment) => {
                 const student  = payment.studentId ? studentById[payment.studentId] : undefined;
                 const name     = student?.fullName ?? paymentTypeLabels[payment.type]?.uz ?? tr("To'lov", "Платеж");
                 const isCharge = payment.type === "charge" || payment.type === "manual_charge" || payment.direction === "out";
                 const typeLabel = paymentTypeLabels[payment.type] ?? { uz: payment.type, ru: payment.type };
-                const idx = avaIdx(name);
                 return (
                   <div
                     key={payment.id}
-                    className="transition-colors hover:bg-accent/50"
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 20px", borderBottom: "1px solid var(--border-light)" }}
+                    className="edu-row flex min-h-11 items-center gap-3 px-4 py-2.5"
                   >
-                    <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: avaBg[idx], color: avaTxt[idx] }}>
-                      {initials(name)}
+                    <div
+                      className={`flex size-[30px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${getAvatarColor(name)}`}
+                    >
+                      {initialsOf(name)}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px] font-semibold text-foreground">
                         {name}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1 }}>
+                      <div className="mt-px text-[11px] text-muted-foreground">
                         {formatTime(payment.date)} · {payment.method ?? tr(typeLabel.uz, typeLabel.ru)}
                       </div>
                     </div>
-                    <div className={`flex-shrink-0 text-[13px] font-bold ${isCharge ? "text-destructive" : "text-emerald-600"}`}>
+                    <div className={`flex-shrink-0 text-[13px] font-bold ${isCharge ? "text-destructive" : "text-ok"}`}>
                       {isCharge ? "−" : "+"}{formatMoney(payment.amount, lang)}
                     </div>
                   </div>

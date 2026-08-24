@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Bell, CheckCheck } from "lucide-react";
 import { PageShell } from "@/components/edu/page-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton } from "@/components/ui/skeleton";
 import { notificationApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -14,12 +19,12 @@ import { Users, BookOpen, AlertTriangle, Calendar, DollarSign } from "lucide-rea
 export const Route = createFileRoute("/director/notifications")({ component: NotificationsPage });
 
 const typeConfig: Record<string, { icon: any; color: string; bg: string; label: string }> = {
-  lead_follow_up: { icon: Users, color: "text-amber-500", bg: "bg-amber-500/10", label: "Murojaat" },
+  lead_follow_up: { icon: Users, color: "text-warn", bg: "bg-warn-soft", label: "Murojaat" },
   debtor_alert: { icon: DollarSign, color: "text-destructive", bg: "bg-destructive/10", label: "Qarzdor" },
-  lesson_reminder: { icon: Calendar, color: "text-[#0077b6]", bg: "bg-[#e0f2fe]", label: "Dars" },
-  homework_deadline: { icon: BookOpen, color: "text-violet-500", bg: "bg-violet-500/10", label: "Vazifa" },
+  lesson_reminder: { icon: Calendar, color: "text-[var(--primary)]", bg: "bg-[var(--info-soft)]", label: "Dars" },
+  homework_deadline: { icon: BookOpen, color: "text-chart-5", bg: "bg-chart-5/10", label: "Vazifa" },
   lesson_cancelled: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", label: "Bekor" },
-  payment_due: { icon: DollarSign, color: "text-amber-500", bg: "bg-amber-500/10", label: "To'lov" },
+  payment_due: { icon: DollarSign, color: "text-warn", bg: "bg-warn-soft", label: "To'lov" },
   default: { icon: Bell, color: "text-muted-foreground", bg: "bg-muted", label: "" },
 };
 
@@ -27,29 +32,41 @@ function NotificationsPage() {
   const { lang } = useI18n();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [typeFilter, setTypeFilter] = useState("all");
 
-  useEffect(() => {
+  const loadData = () => {
     setLoading(true);
     notificationApi.list()
-      .then((res: any) => setNotifications(Array.isArray(res) ? res : res.results ?? []))
-      .catch(console.error)
+      .then((res: any) => {
+        setNotifications(Array.isArray(res) ? res : res.results ?? []);
+        setLoadFailed(false);
+      })
+      .catch(() => setLoadFailed(true))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const markAllRead = async () => {
     try {
       await notificationApi.markAllRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(apiErrorMessage(err));
+    }
   };
 
   const markRead = async (id: string) => {
     try {
       await notificationApi.markRead(id);
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(apiErrorMessage(err));
+    }
   };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -59,11 +76,36 @@ function NotificationsPage() {
     return true;
   });
 
+  const pageTitle = lang === "uz" ? "Bildirishnomalar" : "Уведомления";
+  const pageSubtitle = lang === "uz" ? "Barcha xabar va ogohlantirishlar" : "Все уведомления и напоминания";
+
+  if (loading) {
+    return (
+      <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
+        <ListSkeleton rows={5} />
+      </PageShell>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
+        <ErrorState
+          title={lang === "uz" ? "Ma'lumotlar yuklanmadi" : "Данные не загрузились"}
+          description={
+            lang === "uz"
+              ? "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring."
+              : "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите."
+          }
+          onRetry={loadData}
+          retryLabel={lang === "uz" ? "Qayta urinish" : "Повторить"}
+        />
+      </PageShell>
+    );
+  }
+
   return (
-    <PageShell
-      title={lang === "uz" ? "Bildirishnomalar" : "Уведомления"}
-      subtitle={lang === "uz" ? "Barcha xabar va ogohlantirishlar" : "Все уведомления и напоминания"}
-    >
+    <PageShell title={pageTitle} subtitle={pageSubtitle} ignoreLoadError>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
@@ -95,22 +137,12 @@ function NotificationsPage() {
           )}
         </div>
 
-        {loading && (
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {!loading && filtered.length === 0 && (
-          <div className="text-center py-16 text-muted-foreground">
-            <Bell className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p>{lang === "uz" ? "Bildirishnomalar yo'q" : "Уведомлений нет"}</p>
-          </div>
-        )}
-
-        {!loading && (
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon={<Bell className="size-6" />}
+            title={lang === "uz" ? "Bildirishnomalar yo'q" : "Уведомлений нет"}
+          />
+        ) : (
           <div className="space-y-2">
             {filtered.map((n) => {
               const cfg = typeConfig[n.notification_type] ?? typeConfig.default;

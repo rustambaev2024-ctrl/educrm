@@ -111,7 +111,7 @@ def test_payments_endpoints_and_debtors_list(api_client):
     admin_user = User.objects.create_user(
         phone="+998908000004",
         full_name="Admin",
-        role="admin",
+        role="branch_admin",
         password="secret123",
     )
     Staff.objects.create(user=admin_user, branch=branch)

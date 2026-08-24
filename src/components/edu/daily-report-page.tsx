@@ -37,10 +37,13 @@ interface DailyReportData {
     cancelled_list: Array<{ group_name: string; teacher_name: string; time: string; reason: string }>;
   };
   students: {
+    /** Знаменатель посещаемости: отметки без уважительных. */
     total: number;
     present: number;
     absent: number;
     late: number;
+    /** Уважительные пропуски — в знаменатель не входят, показываются отдельно. */
+    excused?: number;
     attendance_rate: number;
     attendance_rate_yesterday: number;
     absent_list: Array<{ student_name: string; group_name: string; teacher_name: string }>;
@@ -105,6 +108,8 @@ const pageLabels = (lang: Lang) => ({
     present: lang === "uz" ? "Kelgan" : "Присутствуют",
     absent: lang === "uz" ? "Kelmagan" : "Отсутствуют",
     late: lang === "uz" ? "Kechikkan" : "Опоздали",
+    excused: lang === "uz" ? "Sababli" : "По уважительной",
+    counted: lang === "uz" ? "Hisobga olingan belgilar" : "Учтено отметок",
     rate: lang === "uz" ? "Davomat" : "Посещаемость",
     studentName: lang === "uz" ? "O'quvchi" : "Ученик",
     group: lang === "uz" ? "Guruh" : "Группа",
@@ -201,10 +206,14 @@ export function DailyReportPage() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lessonsData), "Darslar");
 
     const attendanceData = [
-      [lang === "uz" ? "Jami o'quvchilar" : "Всего учеников", data.students.total],
+      // «Всего учеников» здесь было неверной подписью: это количество отметок
+      // (ученик с двумя уроками в день даёт две), и уважительные в него не
+      // входят — они не в знаменателе посещаемости.
+      [labels.students.counted, data.students.total],
       [lang === "uz" ? "Kelgan" : "Присутствуют", data.students.present],
       [lang === "uz" ? "Kelmagan" : "Отсутствуют", data.students.absent],
       [lang === "uz" ? "Kechikkan" : "Опоздали", data.students.late],
+      [labels.students.excused, data.students.excused ?? 0],
       [lang === "uz" ? "Davomat foizi" : "Процент посещаемости", `${data.students.attendance_rate}%`],
       [],
       [lang === "uz" ? "Kelmagan o'quvchilar" : "Отсутствующие ученики"],
@@ -242,16 +251,16 @@ export function DailyReportPage() {
 
   const getDeltaIcon = (deltaStr: string) => {
     const delta = parseFloat(deltaStr);
-    if (delta > 0) return <ArrowUp className="h-4 w-4 text-emerald-500" />;
+    if (delta > 0) return <ArrowUp className="h-4 w-4 text-ok" />;
     if (delta < 0) return <ArrowDown className="h-4 w-4 text-destructive" />;
     return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
   const getStatusColor = (status: string) => {
-    if (status === "present") return "bg-emerald-500";
-    if (status === "late") return "bg-amber-500";
+    if (status === "present") return "bg-ok";
+    if (status === "late") return "bg-warn";
     if (status === "absent") return "bg-destructive";
-    return "bg-gray-400";
+    return "bg-muted";
   };
 
   const getStatusLabel = (status: string) =>
@@ -328,7 +337,7 @@ export function DailyReportPage() {
             <div className="text-2xl font-bold">{formatMoney(parseFloat(data.finance.income_today), lang as Lang)}</div>
             <div className="flex items-center gap-1 text-sm">
               {getDeltaIcon(data.finance.income_delta)}
-              <span className={parseFloat(data.finance.income_delta) >= 0 ? "text-emerald-500" : "text-destructive"}>
+              <span className={parseFloat(data.finance.income_delta) >= 0 ? "text-ok" : "text-destructive"}>
                 {formatMoney(Math.abs(parseFloat(data.finance.income_delta)), lang as Lang)}
               </span>
             </div>
@@ -369,13 +378,13 @@ export function DailyReportPage() {
             <div className="text-2xl font-bold">{data.leads.today}</div>
             <div className="flex items-center gap-1 text-sm">
               {data.leads.delta > 0 ? (
-                <ArrowUp className="h-4 w-4 text-emerald-500" />
+                <ArrowUp className="h-4 w-4 text-ok" />
               ) : data.leads.delta < 0 ? (
                 <ArrowDown className="h-4 w-4 text-destructive" />
               ) : (
                 <Minus className="h-4 w-4 text-muted-foreground" />
               )}
-              <span className={data.leads.delta >= 0 ? "text-emerald-500" : "text-destructive"}>
+              <span className={data.leads.delta >= 0 ? "text-ok" : "text-destructive"}>
                 {Math.abs(data.leads.delta)}
               </span>
             </div>
@@ -397,15 +406,15 @@ export function DailyReportPage() {
 
       {/* Warning Alert */}
       {data.lessons.no_attendance_count > 0 && (
-        <Card className="border-amber-500/50 bg-amber-500/10">
+        <Card className="border-warn/30 bg-warn-soft">
           <CardContent className="p-4">
             <button
               className="flex items-center justify-between w-full cursor-pointer"
               onClick={() => setShowNoAttendance(!showNoAttendance)}
             >
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
-                <span className="font-medium text-amber-700">
+                <AlertTriangle className="h-5 w-5 text-warn" />
+                <span className="font-medium text-warn">
                   {labels.lessons.noAttendanceWarning(data.lessons.no_attendance_count)}
                 </span>
               </div>
@@ -414,7 +423,7 @@ export function DailyReportPage() {
             {showNoAttendance && (
               <div className="mt-4 ml-7 space-y-2">
                 {data.lessons.no_attendance_list.map((lesson, idx) => (
-                  <div key={idx} className="text-sm text-amber-700">
+                  <div key={idx} className="text-sm text-warn">
                     <strong>{lesson.group_name}</strong> — {lesson.teacher_name} ({lesson.time})
                   </div>
                 ))}
@@ -429,8 +438,8 @@ export function DailyReportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15">
-                <DollarSign className="h-4 w-4 text-emerald-500" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ok-soft">
+                <DollarSign className="h-4 w-4 text-ok" />
               </div>
               {labels.finance.title}
             </CardTitle>
@@ -448,7 +457,7 @@ export function DailyReportPage() {
                           {payment.method} · {payment.time}
                         </div>
                       </div>
-                      <div className="font-semibold text-emerald-600">
+                      <div className="font-semibold text-ok">
                         {formatMoney(parseFloat(payment.amount), lang as Lang)}
                       </div>
                     </div>
@@ -457,9 +466,9 @@ export function DailyReportPage() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-4 pt-4">
-              <div className="p-3 bg-emerald-500/10 rounded">
+              <div className="p-3 bg-ok-soft rounded">
                 <div className="text-sm text-muted-foreground">{labels.finance.income}</div>
-                <div className="text-lg font-bold text-emerald-600">
+                <div className="text-lg font-bold text-ok">
                   {formatMoney(parseFloat(data.finance.income_today), lang as Lang)}
                 </div>
               </div>
@@ -476,8 +485,8 @@ export function DailyReportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#e0f2fe]">
-                <BookOpen className="h-4 w-4 text-[#0077b6]" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--info-soft)]">
+                <BookOpen className="h-4 w-4 text-[var(--primary)]" />
               </div>
               {labels.lessons.title}
             </CardTitle>
@@ -485,7 +494,7 @@ export function DailyReportPage() {
           <CardContent className="space-y-4">
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <div className="w-3 h-3 rounded-full bg-ok" />
                 <span className="text-sm">{labels.lessons.conducted}: {data.lessons.conducted}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -524,8 +533,8 @@ export function DailyReportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/15">
-                <Users className="h-4 w-4 text-violet-500" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-chart-5/10">
+                <Users className="h-4 w-4 text-chart-5" />
               </div>
               {labels.students.title}
             </CardTitle>
@@ -540,18 +549,27 @@ export function DailyReportPage() {
               </div>
               <Progress value={data.students.attendance_rate} className="h-3" />
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-emerald-500/10 rounded">
-                <div className="text-2xl font-bold text-emerald-600">{data.students.present}</div>
+            {/* Уважительные показаны отдельной плиткой, а не спрятаны: они не
+                входят в знаменатель посещаемости, и без этой цифры «присутствуют
+                + отсутствуют» не сходится с числом отмеченных учеников. */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="text-center p-3 bg-ok-soft rounded">
+                <div className="text-2xl font-bold text-ok">{data.students.present}</div>
                 <div className="text-xs text-muted-foreground">{labels.students.present}</div>
               </div>
               <div className="text-center p-3 bg-destructive/10 rounded">
                 <div className="text-2xl font-bold text-destructive">{data.students.absent}</div>
                 <div className="text-xs text-muted-foreground">{labels.students.absent}</div>
               </div>
-              <div className="text-center p-3 bg-amber-500/10 rounded">
-                <div className="text-2xl font-bold text-amber-600">{data.students.late}</div>
+              <div className="text-center p-3 bg-warn-soft rounded">
+                <div className="text-2xl font-bold text-warn">{data.students.late}</div>
                 <div className="text-xs text-muted-foreground">{labels.students.late}</div>
+              </div>
+              <div className="text-center p-3 bg-muted rounded">
+                <div className="text-2xl font-bold text-muted-foreground">
+                  {data.students.excused ?? 0}
+                </div>
+                <div className="text-xs text-muted-foreground">{labels.students.excused}</div>
               </div>
             </div>
             {data.students.absent_list.length > 0 && (
@@ -575,20 +593,20 @@ export function DailyReportPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/15">
-                <UserCheck className="h-4 w-4 text-orange-500" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-warn-soft">
+                <UserCheck className="h-4 w-4 text-warn" />
               </div>
               {labels.teachers.title}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-4 gap-2">
-              <div className="text-center p-2 bg-emerald-500/10 rounded">
-                <div className="font-bold text-emerald-600">{data.teachers.present}</div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="text-center p-2 bg-ok-soft rounded">
+                <div className="font-bold text-ok">{data.teachers.present}</div>
                 <div className="text-xs text-muted-foreground">{labels.teachers.present}</div>
               </div>
-              <div className="text-center p-2 bg-amber-500/10 rounded">
-                <div className="font-bold text-amber-600">{data.teachers.late}</div>
+              <div className="text-center p-2 bg-warn-soft rounded">
+                <div className="font-bold text-warn">{data.teachers.late}</div>
                 <div className="text-xs text-muted-foreground">{labels.teachers.late}</div>
               </div>
               <div className="text-center p-2 bg-destructive/10 rounded">
@@ -627,8 +645,8 @@ export function DailyReportPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15">
-              <Target className="h-4 w-4 text-rose-500" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-bad-soft">
+              <Target className="h-4 w-4 text-bad" />
             </div>
             {labels.leads.title}
           </CardTitle>

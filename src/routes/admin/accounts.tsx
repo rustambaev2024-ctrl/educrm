@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton, StatCardSkeleton, CardGridSkeleton } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
 import type { Parent, Staff, Student } from "@/lib/data/types";
@@ -116,9 +118,22 @@ function AccountsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t("title")} subtitle={t("description")}>
+        <div className="space-y-4">
+          <Skeleton className="h-44 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Skeleton className="h-10 w-full rounded-lg md:max-w-sm" />
+            <Skeleton className="h-10 w-full rounded-lg md:w-80" />
+          </div>
+          <CardGridSkeleton count={6} />
+        </div>
+      </PageShell>
     );
   }
 
@@ -128,7 +143,7 @@ function AccountsPage() {
         <SupportTeacherLinks />
         <Card className="border-border bg-card p-4">
           <div className="flex gap-3">
-            <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#0077b6]" />
+            <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--primary)]" />
             <p className="text-sm text-muted-foreground">{t("note")}</p>
           </div>
         </Card>
@@ -144,19 +159,23 @@ function AccountsPage() {
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} className="pl-9" />
           </div>
           <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-            <TabsList className="grid grid-cols-4">
-              <TabsTrigger value="all">{t("all")} ({rows.length})</TabsTrigger>
-              <TabsTrigger value="teacher">{t("teachers")} ({rows.filter((r) => r.type === "teacher").length})</TabsTrigger>
-              <TabsTrigger value="student">{t("students")} ({rows.filter((r) => r.type === "student").length})</TabsTrigger>
-              <TabsTrigger value="parent">{t("parents")} ({rows.filter((r) => r.type === "parent").length})</TabsTrigger>
+            {/* whitespace-nowrap на TabsTrigger + grid-cols-4 = счётчики вида
+                "Учителя (23)" вылезают за ячейку на узких экранах. */}
+              <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+              <TabsList className="grid w-max min-w-full grid-cols-4 sm:w-full">
+              <TabsTrigger value="all" className="px-3">{t("all")} ({rows.length})</TabsTrigger>
+              <TabsTrigger value="teacher" className="px-3">{t("teachers")} ({rows.filter((r) => r.type === "teacher").length})</TabsTrigger>
+              <TabsTrigger value="student" className="px-3">{t("students")} ({rows.filter((r) => r.type === "student").length})</TabsTrigger>
+              <TabsTrigger value="parent" className="px-3">{t("parents")} ({rows.filter((r) => r.type === "parent").length})</TabsTrigger>
             </TabsList>
+            </div>
           </Tabs>
         </div>
 
         {filtered.length === 0 ? (
-          <Card className="p-12 text-center text-sm text-muted-foreground">{t("empty")}</Card>
+          <EmptyState icon={<Search className="size-6" />} title={t("empty")} />
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((row) => {
               const key = `${row.type}-${row.id}`;
               return (

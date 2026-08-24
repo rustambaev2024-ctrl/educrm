@@ -15,6 +15,9 @@ def _make_charge_payment(student, group, amount):
         student=student,
         wallet=wallet,
         group=group,
+        # apply_payment проставляет teacher из группы, а зарплата считается
+        # именно по этому полю — без него тест меряет не то, что прод.
+        teacher=group.teacher,
         branch=student.branch,
         payment_type="charge",
         amount=amount,

@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Users, UserCheck, AlertCircle, UserPlus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Users, UserCheck, AlertCircle, UserPlus, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { StudentStatusBadge } from "@/components/edu/status-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -25,12 +26,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
-import { useData } from "@/lib/data/store";
-import { formatMoney } from "@/lib/format";
+import { useData, apiErrorMessage } from "@/lib/data/store";
+import { formatMoney, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 import type { Student, StudentStatus } from "@/lib/data/types";
 import { studentApi } from "@/lib/api";
 import { mapStudents } from "@/lib/data/mappers";
+import { isActiveStudent, isDebtor } from "@/lib/data/definitions";
 import { cn } from "@/lib/utils";
 import { CreateStudentSheet, StudentDetailSheet } from "@/components/students";
 
@@ -49,22 +53,6 @@ const STATUS_OPTIONS: StatusFilter[] = [
   "expelled",
   "archived",
 ];
-
-const _avaBg  = ["#dbeafe","#dcfce7","#fce7f3","#fef3c7","#f3e8ff"];
-const _avaTxt = ["#1d4ed8","#15803d","#9d174d","#92400e","#7c3aed"];
-const getAvatarStyle = (name: string) => {
-  const i = (name.trim().charCodeAt(0) || 0) % 5;
-  return { bg: _avaBg[i], text: _avaTxt[i] };
-};
-
-const studentInitials = (name: string) =>
-  name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 
 const studentStatusClass = (status: StudentStatus) => {
   const map: Record<StudentStatus, string> = {
@@ -87,19 +75,26 @@ export function StudentsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // Сортировка серверная: список пагинирован по 50, поэтому сортировка
+  // на клиенте отсортировала бы только текущую страницу и дала бы неверный
+  // ответ на «у кого самый большой долг». Белый список полей — на бэкенде.
+  const [sort, setSort] = useState<string>("");
+  // Массовый выбор. Хранится по id, а не по индексу: список серверный,
+  // и при смене страницы индексы указывали бы на других людей.
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [pageStudents, setPageStudents] = useState<Student[]>([]);
   const [pageLoading, setPageLoading] = useState(false);
   const PAGE_SIZE = 50;
 
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(timer);
-  }, [search]);
+  const debouncedSearch = useDebounced(search);
 
-  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter, sort]);
+  // Выбор сбрасывается при любой смене выборки: иначе «выбрано 3» осталось
+  // бы от людей, которых на экране уже нет.
+  useEffect(() => { setPicked(new Set()); }, [debouncedSearch, statusFilter, sort, page]);
 
   const loadStudents = useCallback(async () => {
     setPageLoading(true);
@@ -110,6 +105,7 @@ export function StudentsPage() {
       };
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (statusFilter !== "all") params.status = statusFilter;
+      if (sort) params.sort = sort;
       const res = await studentApi.list(params) as any;
       const list = Array.isArray(res) ? res : (res.results ?? []);
       const count = res.count ?? list.length;
@@ -117,14 +113,76 @@ export function StudentsPage() {
       setTotalCount(count);
     } catch (err) {
       console.warn("[students] load failed:", err);
+      toast.error(apiErrorMessage(err));
     } finally {
       setPageLoading(false);
     }
-  }, [page, debouncedSearch, statusFilter]);
+  }, [page, debouncedSearch, statusFilter, sort]);
 
   useEffect(() => {
     loadStudents();
   }, [loadStudents]);
+
+  const togglePick = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const applyBulkStatus = async (next: "frozen" | "active") => {
+    const ids = [...picked];
+    if (ids.length === 0) return;
+    // Снимок прежних статусов — для отмены. Действие обратимое, поэтому
+    // выполняем сразу и даём отменить, а не спрашиваем заранее.
+    const before = pageStudents
+      .filter((st) => picked.has(st.id))
+      .map((st) => ({ id: st.id, status: st.status }));
+
+    setBulkBusy(true);
+    try {
+      const res = await studentApi.bulkStatus(ids, next);
+      setPicked(new Set());
+      await loadStudents();
+
+      const label =
+        next === "frozen"
+          ? (lang === "uz" ? "muzlatildi" : "заморожено")
+          : (lang === "uz" ? "faollashtirildi" : "активировано");
+
+      toast.success(`${res.updated} ${lang === "uz" ? "ta o'quvchi" : "учеников"} ${label}`, {
+        description:
+          res.skipped > 0
+            ? (lang === "uz"
+                ? `${res.skipped} ta o'zgarmadi: sizning filialingizda emas`
+                : `${res.skipped} не изменено: не в вашем филиале`)
+            : undefined,
+        action: {
+          label: lang === "uz" ? "Bekor qilish" : "Отменить",
+          onClick: () => {
+            // Возвращаем каждому его прежний статус, а не «активен» всем.
+            const groups = new Map<string, string[]>();
+            before.forEach(({ id, status: was }) => {
+              if (was !== "frozen" && was !== "active") return;
+              const bucket = groups.get(was) ?? [];
+              bucket.push(id);
+              groups.set(was, bucket);
+            });
+            void Promise.all(
+              [...groups.entries()].map(([was, list]) =>
+                studentApi.bulkStatus(list, was as "frozen" | "active"),
+              ),
+            ).then(() => loadStudents());
+          },
+        },
+      });
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   const filtered = pageStudents;
 
@@ -135,8 +193,11 @@ export function StudentsPage() {
     let debtor = 0;
     let fresh = 0;
     for (const s of students) {
-      if (s.status === "active") active++;
-      if (s.status === "debtor") debtor++;
+      // «Активный» и «должник» — по общему правилу платформы, а не по строке
+      // статуса: ученик-должник продолжает учиться, а сам статус "debtor"
+      // производный и умеет отставать от баланса.
+      if (isActiveStudent(s)) active++;
+      if (isDebtor(s)) debtor++;
       if (s.registeredAt && new Date(s.registeredAt) >= monthStart) fresh++;
     }
     return { total: students.length, active, debtor, fresh };
@@ -165,8 +226,11 @@ export function StudentsPage() {
     >
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard label={t("students.title")} value={kpis.total} icon={Users} iconColor="blue" />
-        <KpiCard label={t("status.active")} value={kpis.active} icon={UserCheck} iconColor="green" />
-        <KpiCard label={t("status.debtor")} value={kpis.debtor} icon={AlertCircle} iconColor="red" />
+        {/* Подписи именно «Активные ученики» и «Должники», а не названия
+            статусов: считается по общему правилу платформы, и должник входит
+            в активных — он продолжает учиться. */}
+        <KpiCard label={t("director.activeStudents")} value={kpis.active} icon={UserCheck} iconColor="green" />
+        <KpiCard label={t("director.debtors")} value={kpis.debtor} icon={AlertCircle} iconColor="red" />
         <KpiCard label={lang === "uz" ? "Yangi (bu oy)" : "Новые (мес.)"} value={kpis.fresh} icon={UserPlus} iconColor="violet" />
       </div>
       <div>
@@ -200,6 +264,36 @@ export function StudentsPage() {
             </div>
           </div>
 
+          {picked.size > 0 && (
+            <div className="mx-4 mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+              <span className="text-sm font-semibold tabular-nums">
+                {lang === "uz" ? `${picked.size} ta belgilandi` : `Выбрано ${picked.size}`}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={bulkBusy}
+                onClick={() => void applyBulkStatus("frozen")}
+              >
+                {lang === "uz" ? "Muzlatish" : "Заморозить"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={bulkBusy}
+                onClick={() => void applyBulkStatus("active")}
+              >
+                {lang === "uz" ? "Faollashtirish" : "Активировать"}
+              </Button>
+              <button
+                onClick={() => setPicked(new Set())}
+                className="ml-auto min-h-11 px-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                {lang === "uz" ? "Bekor qilish" : "Снять выбор"}
+              </button>
+            </div>
+          )}
+
           {showSkeleton ? (
             <ListSkeleton rows={6} />
           ) : filtered.length === 0 ? (
@@ -221,10 +315,19 @@ export function StudentsPage() {
             <Table className="edu-table">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{lang === "uz" ? "O'quvchi" : "Ученик"}</TableHead>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      aria-label={lang === "uz" ? "Hammasini belgilash" : "Выбрать всех на странице"}
+                      checked={pageStudents.length > 0 && picked.size === pageStudents.length}
+                      onCheckedChange={(v) =>
+                        setPicked(v === true ? new Set(pageStudents.map((st) => st.id)) : new Set())
+                      }
+                    />
+                  </TableHead>
+                  <SortHead field="name" sort={sort} onSort={setSort}>{lang === "uz" ? "O'quvchi" : "Ученик"}</SortHead>
                   <TableHead>{lang === "uz" ? "Guruhlar" : "Группы"}</TableHead>
-                  <TableHead className="text-right">{lang === "uz" ? "Balans" : "Баланс"}</TableHead>
-                  <TableHead>{lang === "uz" ? "Holat" : "Статус"}</TableHead>
+                  <SortHead field="balance" sort={sort} onSort={setSort} align="right">{lang === "uz" ? "Balans" : "Баланс"}</SortHead>
+                  <SortHead field="status" sort={sort} onSort={setSort}>{lang === "uz" ? "Holat" : "Статус"}</SortHead>
                   <TableHead className="text-right">{lang === "uz" ? "Amallar" : "Действия"}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -243,22 +346,27 @@ export function StudentsPage() {
                       )}
                       onClick={() => setSelectedId(s.id)}
                     >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          aria-label={s.fullName}
+                          checked={picked.has(s.id)}
+                          onCheckedChange={() => togglePick(s.id)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          {(() => {
-                            const av = getAvatarStyle(s.fullName);
-                            return (
-                              <div
-                                style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, background: av.bg, color: av.text, flexShrink: 0, overflow: "hidden" }}
-                              >
-                                {s.photo ? (
-                                  <img src={s.photo} alt={s.fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                ) : (
-                                  studentInitials(s.fullName)
-                                )}
-                              </div>
-                            );
-                          })()}
+                          <div
+                            className={cn(
+                              "flex size-[34px] shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold text-white",
+                              getAvatarColor(s.fullName),
+                            )}
+                          >
+                            {s.photo ? (
+                              <img src={s.photo} alt={s.fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            ) : (
+                              initialsOf(s.fullName)
+                            )}
+                          </div>
                           <div className="min-w-0">
                             <div className="truncate font-semibold text-foreground">{s.fullName}</div>
                             <div className="mt-px text-[11px] text-muted-foreground">{s.phone}</div>
@@ -280,7 +388,7 @@ export function StudentsPage() {
                         )}
                       </TableCell>
                       <TableCell
-                        className={`text-right font-bold tabular-nums ${s.balance > 0 ? "text-emerald-600" : s.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}
+                        className={`text-right font-bold tabular-nums ${s.balance > 0 ? "text-ok" : s.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}
                       >
                         {s.balance > 0 ? "+" : ""}{formatMoney(s.balance, lang)}
                       </TableCell>
@@ -293,9 +401,8 @@ export function StudentsPage() {
                         <button
                           title={lang === "uz" ? "Ko'rish" : "Открыть"}
                           onClick={() => setSelectedId(s.id)}
-                          style={{ padding: "4px 8px", borderRadius: 6, color: "#0077b6", background: "transparent", border: "none", cursor: "pointer" }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#f1f5f9"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                          className="edu-ghost-btn"
+                          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, borderRadius: 6, color: "var(--brand)", background: "transparent", border: "none", cursor: "pointer" }}
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
@@ -371,5 +478,58 @@ export function StudentsPage() {
         }}
       />
     </PageShell>
+  );
+}
+
+/**
+ * Заголовок колонки с сортировкой. Три состояния по кругу:
+ * не сортировано → по возрастанию → по убыванию → снова не сортировано.
+ * Направление видно и иконкой, и через aria-sort — иначе с клавиатуры
+ * и через screen reader состояние неразличимо.
+ */
+function SortHead({
+  field,
+  sort,
+  onSort,
+  align,
+  children,
+}: {
+  field: string;
+  sort: string;
+  onSort: (next: string) => void;
+  align?: "right";
+  children: ReactNode;
+}) {
+  const active = sort === field || sort === `-${field}`;
+  const descending = sort === `-${field}`;
+
+  const cycle = () => {
+    if (sort === field) onSort(`-${field}`);
+    else if (sort === `-${field}`) onSort("");
+    else onSort(field);
+  };
+
+  return (
+    <TableHead
+      aria-sort={active ? (descending ? "descending" : "ascending") : "none"}
+      className={align === "right" ? "text-right" : undefined}
+    >
+      <button
+        type="button"
+        onClick={cycle}
+        className={cn(
+          "inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap",
+          align === "right" && "flex-row-reverse",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        {children}
+        {active ? (
+          descending ? <ArrowDown className="size-3.5" /> : <ArrowUp className="size-3.5" />
+        ) : (
+          <ArrowUpDown className="size-3.5 opacity-40" />
+        )}
+      </button>
+    </TableHead>
   );
 }

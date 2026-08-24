@@ -6,6 +6,7 @@ import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -53,8 +54,12 @@ function SchedulePage() {
     return lessons.filter((l) => {
       if (filterGroup !== "all" && l.groupId !== filterGroup) return false;
       if (filterTeacher !== "all") {
+        // Фильтр по учителю урока, а не группы: иначе «показать уроки Ивана»
+        // прятало урок, который Иван вёл на замене, и показывало урок, который
+        // за него провёл кто-то другой.
         const g = groups.find((gr) => gr.id === l.groupId);
-        if (g && g.teacherId !== filterTeacher) return false;
+        const actualTeacherId = l.teacherId ?? g?.teacherId;
+        if (actualTeacherId !== filterTeacher) return false;
       }
       return true;
     });
@@ -82,9 +87,37 @@ function SchedulePage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t("schedule.title")} subtitle={t("schedule.subtitle")}>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Skeleton className="h-4 w-56 max-w-[70%]" />
+            <Skeleton className="h-9 w-44" />
+            <Skeleton className="h-9 w-44" />
+          </div>
+          <div className="-mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
+            <div className="grid min-w-[1180px] grid-cols-7 gap-3 lg:min-w-0">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <Card
+                  key={i}
+                  className="flex h-[min(66vh,680px)] min-h-80 flex-col overflow-hidden p-0 shadow-elegant"
+                >
+                  <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-card/95 p-3">
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-3 w-14" />
+                      <Skeleton className="size-8 rounded-full" />
+                    </div>
+                    <Skeleton className="h-6 w-6 rounded-full" />
+                  </div>
+                  <div className="min-h-0 flex-1 space-y-2 p-2 pr-1.5">
+                    <Skeleton className="h-16 w-full rounded-xl" />
+                    <Skeleton className="h-16 w-full rounded-xl" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      </PageShell>
     );
   }
 
@@ -174,17 +207,23 @@ function SchedulePage() {
                     {list.map((lesson) => {
                       const group = groupById[lesson.groupId];
                       if (!group) return null;
-                      const teacher = teacherById[group.teacherId];
+                      // Учитель берётся из урока, а не из группы: при замене
+                      // бэкенд переписывает Lesson.teacher, и урок, который
+                      // вёл заменяющий, показывался под именем штатного.
+                      const teacher = teacherById[lesson.teacherId ?? group.teacherId];
+                      const originalTeacher = lesson.originalTeacherId
+                        ? teacherById[lesson.originalTeacherId]
+                        : undefined;
                       const room = roomById[lesson.roomId];
                       const cancelled = lesson.status === "cancelled";
                       const completed = lesson.status === "completed";
                       const statusTone =
                         lesson.status === "completed"
-                          ? "bg-emerald-500"
+                          ? "bg-ok"
                           : lesson.status === "cancelled"
                             ? "bg-destructive"
                             : lesson.status === "rescheduled"
-                              ? "bg-amber-500"
+                              ? "bg-warn"
                               : "bg-primary";
                       return (
                         <button
@@ -210,6 +249,20 @@ function SchedulePage() {
                           </div>
                           <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
                             {teacher?.fullName ?? "-"}
+                            {lesson.isSubstitution && (
+                              <span
+                                className="ml-1 text-warning-foreground"
+                                title={
+                                  originalTeacher
+                                    ? (lang === "uz"
+                                        ? `Jadvalda: ${originalTeacher.fullName}`
+                                        : `По расписанию: ${originalTeacher.fullName}`)
+                                    : undefined
+                                }
+                              >
+                                · {lang === "uz" ? "almashtirish" : "замена"}
+                              </span>
+                            )}
                           </div>
                           {(cancelled || completed || lesson.status === "rescheduled") && (
                             <div className="mt-2">
@@ -259,7 +312,11 @@ function LessonDetailDialog({
   const open = lesson !== null;
   const group = lesson ? helpers.groupById[lesson.groupId] : null;
   const room = lesson ? helpers.roomById[lesson.roomId] : null;
-  const teacher = group ? helpers.teacherById[group.teacherId] : null;
+  // Учитель урока, а не группы — при замене они разные.
+  const teacher = lesson ? helpers.teacherById[lesson.teacherId ?? group?.teacherId ?? ""] : null;
+  const originalTeacher = lesson?.originalTeacherId
+    ? helpers.teacherById[lesson.originalTeacherId]
+    : null;
   const course = group ? helpers.courseById[group.courseId] : null;
 
   const handleClose = () => {
@@ -285,7 +342,7 @@ function LessonDetailDialog({
             </DialogHeader>
 
             <div className="space-y-3 text-sm">
-              <div className="grid gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 sm:grid-cols-2">
                 <Field
                   icon={Clock}
                   label={lang === "uz" ? "Vaqt" : "Время"}
@@ -300,9 +357,21 @@ function LessonDetailDialog({
                 <Field
                   icon={Users}
                   label={t("groups.field.teacher")}
-                  value={teacher?.fullName ?? "-"}
+                  value={
+                    lesson.isSubstitution && originalTeacher
+                      ? `${teacher?.fullName ?? "-"} · ${lang === "uz" ? "almashtirish" : "замена"} (${lang === "uz" ? "jadvalda" : "по расписанию"}: ${originalTeacher.fullName})`
+                      : (teacher?.fullName ?? "-")
+                  }
                 />
               </div>
+              {lesson.notes && (
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+                  <div className="text-xs text-muted-foreground">
+                    {lang === "uz" ? "Dars izohi" : "Заметка к уроку"}
+                  </div>
+                  <div className="mt-0.5 whitespace-pre-wrap text-sm">{lesson.notes}</div>
+                </div>
+              )}
 
               {lesson.status === "scheduled" && (
                 <>

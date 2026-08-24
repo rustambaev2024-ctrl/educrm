@@ -9,7 +9,9 @@ import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { PageLoadingState } from "@/components/ui/skeleton";
 import { useData } from "@/lib/data/store";
+import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { attendancePercentage } from "@/lib/data/metrics";
+import { countActiveStudents, totalDebt } from "@/lib/data/definitions";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 
@@ -32,8 +34,8 @@ function AnalyticsPage() {
         const pt = new Date(p.date).getTime();
         return pt >= d.getTime() && pt < next.getTime();
       });
-      const income = inMonth.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0) / 1_000_000;
-      const expense = inMonth.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0) / 1_000_000;
+      const income = sumIncome(inMonth) / 1_000_000;
+      const expense = sumExpense(inMonth) / 1_000_000;
       months.push({
         label: d.toLocaleDateString(lang === "uz" ? "uz-Latn" : "ru-RU", { month: "short", year: "2-digit" }),
         income,
@@ -53,9 +55,7 @@ function AnalyticsPage() {
   // Revenue by branch
   const byBranch = useMemo(() => {
     return branches.map((b) => {
-      const income = payments
-        .filter((p) => p.branchId === b.id && p.direction === "in")
-        .reduce((s, p) => s + p.amount, 0);
+      const income = sumIncome(payments.filter((p) => p.branchId === b.id));
       return { name: b.name, value: Math.round(income / 1_000_000) };
     });
   }, [branches, payments]);
@@ -70,9 +70,14 @@ function AnalyticsPage() {
     });
   }, [courses, groups]);
 
-  const totalRevenue = payments.filter((p) => p.direction === "in").reduce((s, p) => s + p.amount, 0);
-  const totalExpense = payments.filter((p) => p.direction === "out").reduce((s, p) => s + p.amount, 0);
-  const overdueAmount = students.filter((s) => s.status === "debtor").reduce((s, st) => s + Math.abs(st.balance), 0);
+  const totalRevenue = sumIncome(payments);
+  const totalExpense = sumExpense(payments);
+  // Долг считается по балансу, а не по статусу "debtor": статус производный и
+  // умеет отставать от баланса, из-за этого сумма долга здесь не совпадала с
+  // числом должников на панели директора.
+  const overdueAmount = totalDebt(students);
+  const activeStudents = countActiveStudents(students);
+  const activeGroups = groups.filter((g) => g.status === "active").length;
   const attPct = attendancePercentage(attendance);
   const moneyUnit = lang === "uz" ? "mln so'm" : "млн сум";
   const lastSixMonthsLabel = lang === "uz" ? "So'nggi 6 oy" : "Последние 6 месяцев";
@@ -82,15 +87,19 @@ function AnalyticsPage() {
   const hasCourseOccupancy = courseOccupancy.some((c) => c.value > 0);
 
   if (isLoading) {
-    return <PageLoadingState />;
+    return (
+      <PageShell title={t("nav.analytics")} subtitle={t("director.subtitle")}>
+        <PageLoadingState />
+      </PageShell>
+    );
   }
 
   return (
     <PageShell title={t("nav.analytics")} subtitle={t("director.subtitle")}>
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} iconColor="blue" subtitle={lang === "uz" ? "Barcha o'quvchilar" : "Все студенты"} />
-          <KpiCard label={t("director.activeGroups")} value={`${groups.length}`} icon={Layers} iconColor="violet" subtitle={lang === "uz" ? "Faol guruhlar" : "Активные группы"} />
+          <KpiCard label={t("director.activeStudents")} value={`${activeStudents}`} icon={Users} iconColor="blue" subtitle={lang === "uz" ? `${students.length} tadan` : `из ${students.length} всего`} />
+          <KpiCard label={t("director.activeGroups")} value={`${activeGroups}`} icon={Layers} iconColor="violet" subtitle={lang === "uz" ? `${groups.length} tadan` : `из ${groups.length} всего`} />
           <KpiCard label={t("director.monthlyRevenue")} value={formatMoney(totalRevenue, lang)} icon={Wallet} iconColor="green" subtitle={lang === "uz" ? "Jami tushum" : "Общий доход"} />
           <KpiCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={TrendingUp} iconColor="amber" subtitle={lang === "uz" ? "O'rtacha davomat" : "Средняя посещаемость"} />
         </div>
@@ -108,8 +117,8 @@ function AnalyticsPage() {
                 <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip formatter={(value: any, name: string) => [`${Number(value).toFixed(1)} ${moneyUnit}`, name]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
                 <ChartLegend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="income" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyRevenue")} />
-                <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyExpense")} />
+                <Line type="monotone" dataKey="income" stroke="var(--chart-1)" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyRevenue")} />
+                <Line type="monotone" dataKey="expense" stroke="var(--chart-4)" strokeWidth={2.5} dot={{ r: 3 }} name={t("director.monthlyExpense")} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -117,7 +126,7 @@ function AnalyticsPage() {
           )}
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card className="p-6 shadow-elegant">
             <div className="mb-4">
               <h3 className="text-base font-semibold">{t("director.byBranch")}</h3>
@@ -179,7 +188,7 @@ function AnalyticsPage() {
           )}
         </Card>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <SmallStat icon={BookOpen} label={t("nav.staff")} value={`${staff.length}`} />
           <SmallStat icon={AlertCircle} label={lang === "uz" ? "Muddati o'tgan" : "Просрочено"} value={formatMoney(overdueAmount, lang)} tone="text-destructive" />
           <SmallStat icon={Wallet} label={t("director.profit")} value={formatMoney(totalRevenue - totalExpense, lang)} tone={totalRevenue - totalExpense >= 0 ? "text-success" : "text-destructive"} />

@@ -65,7 +65,7 @@ def test_logout_blacklists_refresh_token_and_disables_session(api_client):
     user = User.objects.create_user(
         phone="+998901111113",
         full_name="Admin User",
-        role="admin",
+        role="branch_admin",
         password="secret123",
     )
 
@@ -85,7 +85,7 @@ def test_branch_admin_can_reset_another_user_password(api_client):
     admin_user = User.objects.create_user(
         phone="+998901111114",
         full_name="Branch Admin",
-        role="admin",
+        role="branch_admin",
         password="secret123",
     )
     teacher_user = User.objects.create_user(

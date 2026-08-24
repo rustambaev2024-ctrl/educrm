@@ -1,3 +1,5 @@
+import secrets
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -37,7 +39,7 @@ class BranchViewSet(viewsets.ModelViewSet):
         if user.role in ("superadmin", "director"):
             return qs
 
-        if user.role in ("branch_admin", "teacher") and hasattr(user, "staff_profile"):
+        if user.role in ("branch_admin", "teacher", "support_teacher") and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
             if branch_id:
                 return qs.filter(id=branch_id)
@@ -48,7 +50,9 @@ class BranchViewSet(viewsets.ModelViewSet):
         if user.role == "parent" and hasattr(user, "parent_profile"):
             return qs.filter(students__parents=user.parent_profile).distinct()
 
-        return qs
+        # Роль без явного правила не должна видеть все филиалы: support_teacher
+        # раньше проваливался сюда и получал список филиалов всей организации.
+        return qs.none()
 
     def perform_destroy(self, instance):
         from apps.courses.models import Group
@@ -146,6 +150,25 @@ class BranchViewSet(viewsets.ModelViewSet):
             update_fields=["sms_enabled", "sms_email", "sms_password", "sms_sender"]
         )
         return Response({"success": True}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get", "post"], url_path="lead-api-key", permission_classes=[IsDirector])
+    def lead_api_key(self, request):
+        institution = request.tenant
+        webhook_url = request.build_absolute_uri("/api/v1/public/leads/lidpixel/")
+
+        if request.method == "POST":
+            institution.lead_api_key = secrets.token_urlsafe(32)
+            institution.save(update_fields=["lead_api_key"])
+            return Response(
+                {"webhook_url": webhook_url, "api_key": institution.lead_api_key},
+                status=status.HTTP_200_OK,
+            )
+
+        masked = f"****{institution.lead_api_key[-4:]}" if institution.lead_api_key else ""
+        return Response(
+            {"webhook_url": webhook_url, "api_key_masked": masked, "has_key": bool(institution.lead_api_key)},
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=False, methods=["post"], url_path="sms-test", permission_classes=[IsDirector])
     def sms_test(self, request):

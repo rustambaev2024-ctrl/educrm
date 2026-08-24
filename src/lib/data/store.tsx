@@ -146,8 +146,10 @@ interface DataStoreActions {
     parentPassword?: string;
   }) => Promise<void>;
   addGroup: (input: Omit<Group, "id" | "studentIds" | "status"> & { status?: Group["status"] }) => Group;
-  updateGroup: (id: string, patch: Partial<Group>) => void;
-  deleteGroup: (id: string) => void;
+  /** onSuccess — вызывается только после реального подтверждения сервером (не оптимистично) */
+  updateGroup: (id: string, patch: Partial<Group>, onSuccess?: () => void) => void;
+  /** alreadyDeleted — страница уже удалила объект на сервере, повторный запрос не нужен */
+  deleteGroup: (id: string, options?: { alreadyDeleted?: boolean }) => void;
   addStudentToGroup: (groupId: string, studentId: string) => Promise<boolean>;
   removeStudentFromGroup: (groupId: string, studentId: string) => void;
   setLessonStatus: (id: string, status: Lesson["status"], cancelReason?: string) => void;
@@ -157,8 +159,18 @@ interface DataStoreActions {
   deleteCourse: (id: string) => void;
   setAttendance: (lessonId: string, records: { studentId: string; status: AttendanceStatus; comment?: string }[]) => void;
   getAttendanceFor: (lessonId: string) => AttendanceRecord[];
-  addPayment: (input: Omit<Payment, "id">) => Payment;
-  reversePayment: (id: string) => Promise<void>;
+  /**
+   * Проводит платёж. Резолвится сохранённым платежом при успехе и null при
+   * ошибке — экран не должен говорить «принято», пока сервер не ответил.
+   * Откат оптимистичной записи и сообщение об ошибке делает стор.
+   */
+  addPayment: (input: Omit<Payment, "id">) => Promise<Payment | null>;
+  /**
+   * Отменяет платёж. Резолвится записью возврата при успехе и null при
+   * ошибке — по аналогии с addPayment экран не должен говорить «отменено»,
+   * пока сервер не ответил. Сообщение об ошибке показывает сам стор.
+   */
+  reversePayment: (id: string) => Promise<Payment | null>;
   addPenalty: (input: Omit<StaffPenalty, "id" | "createdAt" | "updatedAt">) => StaffPenalty;
   updatePenalty: (id: string, patch: Partial<StaffPenalty>) => void;
   deletePenalty: (id: string) => void;
@@ -197,11 +209,11 @@ interface DataStoreActions {
     monthlyRevenue?: number;
   }) => Promise<boolean>;
   updateInstitution: (id: string, patch: Partial<Institution>) => void;
-  deleteInstitution: (id: string) => void;
+  deleteInstitution: (id: string, options?: { alreadyDeleted?: boolean }) => void;
   // Branches (superadmin)
   addBranch: (input: Omit<Branch, "id">) => Branch;
   updateBranch: (id: string, patch: Partial<Branch>) => void;
-  deleteBranch: (id: string) => void;
+  deleteBranch: (id: string, options?: { alreadyDeleted?: boolean }) => void;
   // Rooms (director)
   addRoom: (input: Omit<Room, "id">) => Room;
   updateRoom: (id: string, patch: Partial<Room>) => void;
@@ -237,6 +249,12 @@ async function safe<T>(promise: Promise<T>, fallback: T, label: string): Promise
 
 // Догружает ВСЕ страницы DRF-пагинации пока есть next, чтобы серверный
 // max_page_size не обрезал глобальный список молча (баг с 230 студентов → 200).
+//
+// Предохранитель от бесконечного цикла при аномальном ответе сервера. При
+// page_size 1000 это 50 000 записей — до такого объёма ещё далеко, но если
+// предел когда-нибудь достигнут, пользователь об этом узнает (см. ниже).
+const MAX_PAGES = 50;
+
 async function fetchAllPages<T>(
   endpoint: string,
   params: Record<string, string | number> = {},
@@ -262,7 +280,20 @@ async function fetchAllPages<T>(
       hasNext = Boolean(data.next);
     }
     page += 1;
-    if (page > 50) break; // защита от бесконечного цикла при аномалии
+    if (page > MAX_PAGES) {
+      // Раньше здесь стоял молчаливый break. Это тот же класс, что баг
+      // «230 студентов → 200», из-за которого функция и появилась: список
+      // обрывается, а на экране он выглядит полным. Обрыв обязан быть виден.
+      const message =
+        `Список ${endpoint} обрезан: загружено ${results.length} записей ` +
+        `(${MAX_PAGES} страниц), на сервере есть ещё. Данные на экране неполные.`;
+      console.error(`[store] ${message}`);
+      toast.error(
+        "Ma'lumotlar to'liq yuklanmadi. Sahifani yangilang yoki filtr qo'shing. / " +
+          "Данные загружены не полностью. Обновите страницу или сузьте фильтр.",
+      );
+      break;
+    }
   }
   return { results, count: results.length };
 }
@@ -284,7 +315,29 @@ function fireAndForget(label: string, task: Promise<unknown>, rollback?: () => v
   });
 }
 
-function apiErrorMessage(err: unknown): string {
+/**
+ * Собирает откат из нескольких шагов.
+ *
+ * Правило оптимистичной мутации: сколько срезов состояния изменили — столько и
+ * вернуть. Аудит 9 августа 2026 нашёл 11 мутаций, где возвращали только
+ * первый, и на экране оставались платёж без баланса, филиал без организации,
+ * ученик без родителя. Шаг может быть undefined — тогда он просто пропускается,
+ * чтобы условные ветки не приходилось собирать через тернарники.
+ */
+function rollbackAll(...steps: Array<(() => void) | false | undefined>): () => void {
+  return () => {
+    for (const step of steps) {
+      if (step) step();
+    }
+  };
+}
+
+/**
+ * Достаёт из ошибки API человеческую причину вместо голого «Xatolik».
+ * Экспортирован, потому что столп 5 в CLAUDE.md предписывает прокидывать
+ * детали именно через него, а до сих пор он был доступен только внутри стора.
+ */
+export function apiErrorMessage(err: unknown): string {
   const body = (err as { body?: unknown })?.body;
   if (typeof body === "string" && body.trim()) {
     return friendlyApiMessage(body);
@@ -510,9 +563,14 @@ function lessonFromRaw(raw: LessonRaw): Lesson {
     datetime: mapped.datetime,
     durationMinutes: mapped.durationMinutes,
     roomId: mapped.roomId,
+    teacherId: mapped.teacherId || undefined,
     topic: mapped.topic,
     status: toLessonStatus(mapped.status),
     cancelReason: mapped.cancelReason,
+    isSubstitution: mapped.isSubstitution,
+    originalTeacherId: mapped.originalTeacherId,
+    notes: mapped.notes,
+    rescheduledToId: mapped.rescheduledToId,
   };
 }
 
@@ -525,6 +583,10 @@ function attendanceFromRaw(raw: AttendanceRaw): AttendanceRecord {
     studentId: mapped.studentId,
     status,
     comment: mapped.comment,
+    lateMinutes: mapped.lateMinutes,
+    recordedByUserId: mapped.recordedByUserId,
+    recordedAt: mapped.recordedAt,
+    isCharged: mapped.isCharged,
   };
 }
 
@@ -543,8 +605,11 @@ function paymentFromRaw(raw: PaymentRaw): Payment {
     staffId: mapped.staffId || undefined,
     groupId: mapped.groupId || undefined,
     branchId: mapped.branchId || "",
+    lessonId: mapped.lessonId,
     type: mapped.type,
     amount: mapped.amount,
+    balanceBefore: mapped.balanceBefore,
+    balanceAfter: mapped.balanceAfter,
     direction: mapped.direction as any,
     method: toPaymentMethod(mapped.method),
     date: mapped.date,
@@ -647,9 +712,11 @@ function gradeFromRaw(raw: GradeRaw): Grade {
     studentId: mapped.studentId,
     teacherId: mapped.teacherId,
     kind: toGradeKind(mapped.kind),
+    lessonId: mapped.lessonId,
+    examId: mapped.examId,
+    homeworkStatusId: mapped.homeworkStatusId,
     title: mapped.title,
     score: mapped.score,
-    maxScore: mapped.maxScore,
     date: mapped.date,
     comment: mapped.comment,
   };
@@ -1015,7 +1082,12 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         const persisted = studentFromRaw(raw as StudentRaw);
         setStudents((prev) => prev.map((s) => (s.id === id ? { ...persisted, parentId } : s)));
       }),
-      () => setStudents((prev) => prev.filter((s) => s.id !== id)),
+      rollbackAll(
+        () => setStudents((prev) => prev.filter((s) => s.id !== id)),
+        // Родитель создавался вместе с учеником — без этого шага он оставался
+        // в списке родителей с ребёнком, которого на сервере нет.
+        parentId !== undefined && (() => setParents((prev) => prev.filter((p) => p.id !== parentId))),
+      ),
     );
     return created;
   }, []);
@@ -1138,7 +1210,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     return created;
   }, [refreshLessons]);
 
-  const updateGroup: DataStoreActions["updateGroup"] = useCallback((id, patch) => {
+  const updateGroup: DataStoreActions["updateGroup"] = useCallback((id, patch, onSuccess) => {
     const snapshot = groups;
     setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
     fireAndForget(
@@ -1158,14 +1230,19 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       } as never).then(() => {
         // Смена расписания перегенерирует будущие уроки на сервере.
         if (patch.schedule || patch.startDate || patch.endDate) void refreshLessons();
+        onSuccess?.();
       }),
       () => setGroups(snapshot),
     );
   }, [groups, refreshLessons]);
 
-  const deleteGroup: DataStoreActions["deleteGroup"] = useCallback((id) => {
+  const deleteGroup: DataStoreActions["deleteGroup"] = useCallback((id, options) => {
     const snapshot = groups;
     setGroups((prev) => prev.filter((g) => g.id !== id));
+    // Страница удаления сама зовёт API (ей нужен диалог при 409). Без этого
+    // флага запрос уходил второй раз, получал 404, и откат возвращал уже
+    // удалённый объект в список вместе с ошибкой.
+    if (options?.alreadyDeleted) return;
     fireAndForget(
       "deleteGroup",
       groupApi.delete(id),
@@ -1299,29 +1376,47 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const addPayment: DataStoreActions["addPayment"] = useCallback((input) => {
     const id = uid("pay");
     const created: Payment = { id, ...input };
+    // Пополнение меняет два среза: список платежей и баланс ученика. Откат
+    // обязан вернуть оба — иначе при неудачном запросе платёж со экрана
+    // исчезает, а выросший баланс остаётся, и на нём решается «должник или
+    // нет». Возвращаем дельтой, а не снимком: если за время запроса баланс
+    // изменился по другой причине, снимок затёр бы это изменение.
+    const creditsStudent = input.direction === "in" && Boolean(input.studentId);
     setPayments((prev) => [created, ...prev]);
-    if (input.direction === "in" && input.studentId) {
+    if (creditsStudent) {
       setStudents((prev) => prev.map((s) => (s.id === input.studentId ? { ...s, balance: s.balance + input.amount } : s)));
     }
+    const task = paymentApi.create({
+      student_id: created.direction === "in" ? created.studentId : undefined,
+      staff_id: created.staffId,
+      group_id: created.groupId,
+      branch_id: created.branchId,
+      amount: created.amount,
+      payment_type: created.direction === "out" ? "expense" : "top_up",
+      method: created.method,
+      category: created.category ?? (created.direction === "out" ? "other" : "tuition"),
+      comment: created.comment,
+    } as never).then((raw) => {
+      const persisted = paymentFromRaw(raw as PaymentRaw);
+      setPayments((prev) => prev.map((payment) => (payment.id === id ? { ...persisted, branchId: created.branchId } : payment)));
+      return { ...persisted, branchId: created.branchId } as Payment;
+    });
     fireAndForget(
       "addPayment",
-      paymentApi.create({
-        student_id: created.direction === "in" ? created.studentId : undefined,
-        staff_id: created.staffId,
-        group_id: created.groupId,
-        branch_id: created.branchId,
-        amount: created.amount,
-        payment_type: created.direction === "out" ? "expense" : "top_up",
-        method: created.method,
-        category: created.category ?? (created.direction === "out" ? "other" : "tuition"),
-        comment: created.comment,
-      } as never).then((raw) => {
-        const persisted = paymentFromRaw(raw as PaymentRaw);
-        setPayments((prev) => prev.map((payment) => (payment.id === id ? { ...persisted, branchId: created.branchId } : payment)));
-      }),
-      () => setPayments((prev) => prev.filter((payment) => payment.id !== id)),
+      task,
+      rollbackAll(
+        () => setPayments((prev) => prev.filter((payment) => payment.id !== id)),
+        creditsStudent &&
+          (() =>
+            setStudents((prev) =>
+              prev.map((s) => (s.id === input.studentId ? { ...s, balance: s.balance - input.amount } : s)),
+            )),
+      ),
     );
-    return created;
+    // Возвращаем ИСХОД, а не оптимистичную запись: экраны с деньгами обязаны
+    // показывать «Оплата принята» только после ответа сервера. Ошибку и откат
+    // уже взял на себя fireAndForget выше, поэтому здесь достаточно null.
+    return task.catch(() => null);
   }, []);
 
   const reversePayment: DataStoreActions["reversePayment"] = useCallback(async (id) => {
@@ -1329,7 +1424,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       const raw = await paymentApi.reverse(id);
       const refund = paymentFromRaw(raw as PaymentRaw);
       setPayments((prev) => [refund, ...prev]);
-      
+
       if (refund.studentId) {
         setStudents((prev) => prev.map((s) => {
           if (s.id === refund.studentId) {
@@ -1341,9 +1436,12 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
           return s;
         }));
       }
-      toast.success("Transaction reversed");
+      // Успех сообщает вызывающий экран (после проверки результата) — сам
+      // стор здесь ничего не подтверждает, только сообщает об ошибке.
+      return refund;
     } catch (err) {
       toast.error(apiErrorMessage(err));
+      return null;
     }
   }, []);
 
@@ -1440,8 +1538,17 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       read: true,
     };
     setMessages((prev) => [...prev, message]);
+    // Время последнего сообщения в списке диалогов — второй изменённый срез.
+    // Запоминаем прежнее значение точечно, а не снимком всего списка: за время
+    // запроса в другом диалоге могло прийти сообщение по вебсокету, и снимок
+    // затёр бы его.
+    let previousLastMessageAt: string | undefined;
     setThreads((prev) =>
-      prev.map((t) => (t.id === threadId ? { ...t, lastMessageAt: message.createdAt } : t)),
+      prev.map((t) => {
+        if (t.id !== threadId) return t;
+        previousLastMessageAt = t.lastMessageAt;
+        return { ...t, lastMessageAt: message.createdAt };
+      }),
     );
     fireAndForget(
       "sendMessage",
@@ -1458,7 +1565,17 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         };
         setMessages((prev) => prev.map((m) => (m.id === message.id ? persisted : m)));
       }),
-      () => setMessages((prev) => prev.filter((m) => m.id !== message.id)),
+      rollbackAll(
+        () => setMessages((prev) => prev.filter((m) => m.id !== message.id)),
+        () =>
+          setThreads((prev) =>
+            prev.map((t) =>
+              t.id === threadId && t.lastMessageAt === message.createdAt
+                ? { ...t, lastMessageAt: previousLastMessageAt ?? t.lastMessageAt }
+                : t,
+            ),
+          ),
+      ),
     );
   }, []);
 
@@ -1488,9 +1605,40 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   const markThreadRead: DataStoreActions["markThreadRead"] = useCallback((threadId) => {
-    setThreads((prev) => prev.map((t) => (t.id === threadId ? { ...t, unread: 0 } : t)));
-    setMessages((prev) => prev.map((m) => (m.threadId === threadId ? { ...m, read: true } : m)));
-    fireAndForget("markThreadRead", chatApi.markRead(threadId));
+    // Меняются два среза: счётчик непрочитанного у диалога и флаг read у его
+    // сообщений. Цена ошибки низкая, но «непрочитанное выглядит прочитанным»
+    // — это всё равно неверные данные на экране, и после отката счётчик
+    // возвращается сразу, а не после перезагрузки.
+    let previousUnread: number | undefined;
+    const unreadMessageIds: string[] = [];
+    setThreads((prev) =>
+      prev.map((t) => {
+        if (t.id !== threadId) return t;
+        previousUnread = t.unread;
+        return { ...t, unread: 0 };
+      }),
+    );
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.threadId !== threadId || m.read) return m;
+        unreadMessageIds.push(m.id);
+        return { ...m, read: true };
+      }),
+    );
+    fireAndForget(
+      "markThreadRead",
+      chatApi.markRead(threadId),
+      rollbackAll(
+        () =>
+          setThreads((prev) =>
+            prev.map((t) => (t.id === threadId ? { ...t, unread: previousUnread ?? t.unread } : t)),
+          ),
+        () => {
+          const restore = new Set(unreadMessageIds);
+          setMessages((prev) => prev.map((m) => (restore.has(m.id) ? { ...m, read: false } : m)));
+        },
+      ),
+    );
   }, []);
 
 
@@ -1509,15 +1657,39 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   }, [parents]);
 
   const markNotificationRead: DataStoreActions["markNotificationRead"] = useCallback((id) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    fireAndForget("markNotificationRead", notificationApi.markRead(id));
+    let wasUnread = false;
+    setNotifications((prev) =>
+      prev.map((n) => {
+        if (n.id !== id || n.read) return n;
+        wasUnread = true;
+        return { ...n, read: true };
+      }),
+    );
+    fireAndForget(
+      "markNotificationRead",
+      notificationApi.markRead(id),
+      () => {
+        if (!wasUnread) return;
+        setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: false } : n)));
+      },
+    );
   }, []);
 
   const markAllNotificationsRead: DataStoreActions["markAllNotificationsRead"] = useCallback((audience) => {
+    // Возвращаем только те, что мы сами пометили: уведомление, прочитанное
+    // раньше, не должно всплыть непрочитанным из-за неудачного запроса.
+    const flipped: string[] = [];
     setNotifications((prev) =>
-      prev.map((n) => (n.audience.includes(audience) ? { ...n, read: true } : n)),
+      prev.map((n) => {
+        if (!n.audience.includes(audience) || n.read) return n;
+        flipped.push(n.id);
+        return { ...n, read: true };
+      }),
     );
-    fireAndForget("markAllNotificationsRead", notificationApi.markAllRead());
+    fireAndForget("markAllNotificationsRead", notificationApi.markAllRead(), () => {
+      const restore = new Set(flipped);
+      setNotifications((prev) => prev.map((n) => (restore.has(n.id) ? { ...n, read: false } : n)));
+    });
   }, []);
 
   const addHomework: DataStoreActions["addHomework"] = useCallback((input, file) => {
@@ -1541,6 +1713,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       }
       return prevGroups;
     });
+    // Сдачи создаются пачкой по всей группе. Удалять их по id нельзя — id
+    // сгенерированы внутри апдейтера выше; но все они привязаны к одной
+    // домашке, поэтому чистим по homeworkId.
+    const dropSubmissions = () =>
+      setSubmissions((prev) => prev.filter((s) => s.homeworkId !== created.id));
     const assignType = created.assignType ?? "group";
     const persist = file
       ? (() => {
@@ -1572,7 +1749,10 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         const persisted = homeworkFromRaw(raw as HomeworkRaw);
         setHomework((prev) => prev.map((h) => (h.id === created.id ? persisted : h)));
       }),
-      () => setHomework((prev) => prev.filter((h) => h.id !== created.id)),
+      rollbackAll(
+        () => setHomework((prev) => prev.filter((h) => h.id !== created.id)),
+        dropSubmissions,
+      ),
     );
     return created;
   }, []);
@@ -1636,6 +1816,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const gradeSubmission: DataStoreActions["gradeSubmission"] = useCallback(
     (homeworkId, studentId, grade, feedback) => {
       const hw = homework.find((h) => h.id === homeworkId);
+      // Снимки обоих срезов: оценка пишется и в сдачу работы, и в журнал.
+      // До аудита откатa здесь не было вовсе — при неудачном запросе оценка
+      // оставалась на экране, а на сервере её не было.
+      const submissionsSnapshot = submissions;
+      const gradesSnapshot = grades;
       setSubmissions((prev) =>
         prev.map((s) =>
           s.homeworkId === homeworkId && s.studentId === studentId
@@ -1660,25 +1845,53 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
             kind: "homework",
             title: hw.title,
             score: grade,
-            maxScore: 10,
             date: getLocalDateString(),
             comment: feedback,
           };
           return [created, ...prev];
         });
       }
+
+      const rollback = rollbackAll(
+        () => setSubmissions(submissionsSnapshot),
+        () => setGrades(gradesSnapshot),
+      );
+      const apiPatch = submissionPatchToApi({ grade, feedback, status: "graded" });
       const existing = submissions.find((s) => s.homeworkId === homeworkId && s.studentId === studentId);
+
       if (existing) {
-        fireAndForget(
-          "gradeSubmission",
-          homeworkApi.gradeSubmission(
-            existing.id,
-            submissionPatchToApi({ grade, feedback, status: "graded" }),
-          ),
-        );
+        fireAndForget("gradeSubmission", homeworkApi.gradeSubmission(existing.id, apiPatch), rollback);
+        return;
       }
+
+      // Локальной записи о сдаче нет — например, страница открыта давно, а
+      // работу сдали только что. Раньше здесь молча не отправлялось ничего:
+      // оценка появлялась на экране, запрос не уходил, ошибки не было, и
+      // оценка исчезала при следующей загрузке. Для оценки такая ветка
+      // недопустима — подтягиваем id сдачи с сервера и лишь потом сохраняем,
+      // а если сдачи нет и там — откатываемся и показываем ошибку.
+      // Тем же приёмом уже пользуется updateSubmission выше.
+      fireAndForget(
+        "gradeSubmission",
+        homeworkApi.submissions(homeworkId).then((raw) => {
+          const rows = mapHomeworkSubmissions(
+            raw as { results: HomeworkSubmissionRaw[] } | HomeworkSubmissionRaw[],
+          );
+          const match = rows.find((r) => r.studentId === studentId);
+          if (!match?.id) {
+            throw new Error("Homework status not found on server");
+          }
+          setSubmissions((prev) =>
+            prev.map((s) =>
+              s.homeworkId === homeworkId && s.studentId === studentId ? { ...s, id: match.id } : s,
+            ),
+          );
+          return homeworkApi.gradeSubmission(match.id, apiPatch);
+        }),
+        rollback,
+      );
     },
-    [homework, submissions],
+    [homework, submissions, grades],
   );
 
   const addGrade: DataStoreActions["addGrade"] = useCallback((input) => {
@@ -1791,7 +2004,18 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     fireAndForget(
       "addInstitution",
       task,
-      () => setInstitutions((prev) => prev.filter((i) => i.id !== id)),
+      rollbackAll(
+        () => setInstitutions((prev) => prev.filter((i) => i.id !== id)),
+        // Директор создавался вместе с организацией — иначе он оставался в
+        // списке сотрудников без организации.
+        !input.directorId &&
+          directorId !== undefined &&
+          (() => setStaff((prev) => prev.filter((s) => s.id !== directorId))),
+        // Филиалы, привязанные к локальному id организации: их подтягивал
+        // успешный путь, но при падении на середине (организация создана,
+        // список филиалов не пришёл) они оставались висеть.
+        () => setBranches((prev) => prev.filter((b) => b.institutionId !== id)),
+      ),
     );
     return task.then(() => true).catch(() => false);
   }, []);
@@ -1802,12 +2026,24 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     fireAndForget("updateInstitution", superadminApi.institutions.update(id, snake(patch as AnyRecord) as never), () => setInstitutions(snapshot));
   }, [institutions]);
 
-  const deleteInstitution: DataStoreActions["deleteInstitution"] = useCallback((id) => {
+  const deleteInstitution: DataStoreActions["deleteInstitution"] = useCallback((id, options) => {
     const snapshot = institutions;
+    // Удаляются два среза: организация и её филиалы. Без возврата филиалов
+    // неудачное удаление оставляло организацию на экране совсем без филиалов —
+    // выглядело как будто их удалили.
+    const removedBranches = branches.filter((b) => b.institutionId === id);
     setInstitutions((prev) => prev.filter((i) => i.id !== id));
     setBranches((prev) => prev.filter((b) => b.institutionId !== id));
-    fireAndForget("deleteInstitution", superadminApi.institutions.delete(id), () => setInstitutions(snapshot));
-  }, [institutions]);
+    if (options?.alreadyDeleted) return;
+    fireAndForget(
+      "deleteInstitution",
+      superadminApi.institutions.delete(id),
+      rollbackAll(
+        () => setInstitutions(snapshot),
+        removedBranches.length > 0 && (() => setBranches((prev) => [...prev, ...removedBranches])),
+      ),
+    );
+  }, [institutions, branches]);
 
   // ---------------- Branches ----------------
   const addBranch: DataStoreActions["addBranch"] = useCallback((input) => {
@@ -1828,7 +2064,21 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
           const persisted = branchFromRaw(raw as BranchRaw);
           setBranches((prev) => prev.map((b) => (b.id === created.id ? { ...created, ...persisted } : b)));
         }),
-        () => setBranches((prev) => prev.filter((b) => b.id !== created.id)),
+        rollbackAll(
+          () => setBranches((prev) => prev.filter((b) => b.id !== created.id)),
+          // Счётчик филиалов у организации — второй изменённый срез. Возвращаем
+          // дельтой, а не снимком: параллельное создание другого филиала не
+          // должно потеряться.
+          Boolean(input.institutionId) &&
+            (() =>
+              setInstitutions((prev) =>
+                prev.map((i) =>
+                  i.id === input.institutionId
+                    ? { ...i, branchesCount: Math.max(0, i.branchesCount - 1) }
+                    : i,
+                ),
+              )),
+        ),
       );
       return created;
     }, [user?.role]);
@@ -1846,7 +2096,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     );
   }, [branches, user?.role]);
 
-  const deleteBranch: DataStoreActions["deleteBranch"] = useCallback((id) => {
+  const deleteBranch: DataStoreActions["deleteBranch"] = useCallback((id, options) => {
     const snapshot = branches;
     const target = branches.find((b) => b.id === id);
     setBranches((prev) => {
@@ -1857,12 +2107,23 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       }
       return prev.filter((b) => b.id !== id);
     });
+    if (options?.alreadyDeleted) return;
     fireAndForget(
       "deleteBranch",
       user?.role === "superadmin" && target?.institutionId
         ? superadminApi.branches.delete(target.institutionId, id)
         : branchApi.delete(id),
-      () => setBranches(snapshot),
+      rollbackAll(
+        () => setBranches(snapshot),
+        // Счётчик у организации уменьшили выше — возвращаем его дельтой.
+        Boolean(target?.institutionId) &&
+          (() =>
+            setInstitutions((prev) =>
+              prev.map((i) =>
+                i.id === target?.institutionId ? { ...i, branchesCount: i.branchesCount + 1 } : i,
+              ),
+            )),
+      ),
     );
   }, [branches, user?.role]);
 

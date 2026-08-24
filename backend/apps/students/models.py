@@ -156,6 +156,7 @@ class StudentLead(models.Model):
         ("telegram", "Telegram"),
         ("instagram", "Instagram"),
         ("referral", "Referral"),
+        ("lidpixel", "LidPixel"),
         ("other", "Other"),
     ]
 

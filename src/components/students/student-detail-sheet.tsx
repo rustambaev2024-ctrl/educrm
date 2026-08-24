@@ -76,10 +76,10 @@ export function StudentDetailSheet({
   const { groups, parents, payments, updateStudentPasswords, assignParent, addStudentToGroup, reload } = useData();
 
   const STATUS_OPTIONS = [
-    { value: "active",   uz: "Faol",        ru: "Активный",    color: "bg-emerald-500/10 text-emerald-600", textColor: "text-emerald-600" },
-    { value: "frozen",   uz: "Muzlatilgan", ru: "Заморожен",   color: "bg-amber-500/10 text-amber-600",     textColor: "text-amber-600" },
-    { value: "expelled", uz: "Chiqarilgan", ru: "Отчислен",    color: "bg-red-500/10 text-red-600",         textColor: "text-red-600" },
-    { value: "graduate", uz: "Bitiruvchi",  ru: "Выпускник",   color: "bg-blue-500/10 text-blue-600",       textColor: "text-blue-600" },
+    { value: "active",   uz: "Faol",        ru: "Активный",    color: "bg-ok-soft text-ok", textColor: "text-ok" },
+    { value: "frozen",   uz: "Muzlatilgan", ru: "Заморожен",   color: "bg-warn-soft text-warn",     textColor: "text-warn" },
+    { value: "expelled", uz: "Chiqarilgan", ru: "Отчислен",    color: "bg-bad-soft text-bad",         textColor: "text-bad" },
+    { value: "graduate", uz: "Bitiruvchi",  ru: "Выпускник",   color: "bg-info-soft text-info",       textColor: "text-info" },
     { value: "archived", uz: "Arxivlangan", ru: "Архивирован", color: "bg-muted text-muted-foreground",     textColor: "text-muted-foreground" },
   ] as const;
 
@@ -478,7 +478,7 @@ export function StudentDetailSheet({
               <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground" onClick={() => setChargeOpen(true)}>
                 <ArrowUpCircle className="size-3.5 mr-1" /> {t("sd.withdraw")}
               </Button>
-              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none gap-1 border-amber-300 text-amber-600 hover:bg-amber-50" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
+              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none gap-1 border-warn/30 text-warn hover:bg-warn-soft" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
                 <Coins className="size-3.5" />
                 {lang === "uz" ? "Coin" : "Монеты"}
               </Button>
@@ -486,12 +486,18 @@ export function StudentDetailSheet({
           </div>
 
           <Tabs defaultValue="main" className="w-full">
-            <TabsList className="w-full">
-              <TabsTrigger value="main" className="flex-1">{t("students.tab.main")}</TabsTrigger>
-              <TabsTrigger value="groups" className="flex-1">{t("students.tab.groups")}</TabsTrigger>
-              <TabsTrigger value="finance" className="flex-1">{t("students.tab.finance")}</TabsTrigger>
-              <TabsTrigger value="transfers" className="flex-1">{t("sd.tab.transfers")}</TabsTrigger>
+            {/* flex-1 = flex: 1 1 0%, та же жёсткая равная доля ширины, что и
+                grid-cols-4 — с whitespace-nowrap на TabsTrigger "Transferlar"
+                (11 символов) не влезает в ~90px на телефоне и вылезает за
+                вкладку. Горизонтальная прокрутка вместо сжатия текста. */}
+            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+            <TabsList className="w-max min-w-full sm:w-full">
+              <TabsTrigger value="main" className="flex-1 px-4">{t("students.tab.main")}</TabsTrigger>
+              <TabsTrigger value="groups" className="flex-1 px-4">{t("students.tab.groups")}</TabsTrigger>
+              <TabsTrigger value="finance" className="flex-1 px-4">{t("students.tab.finance")}</TabsTrigger>
+              <TabsTrigger value="transfers" className="flex-1 px-4">{t("sd.tab.transfers")}</TabsTrigger>
             </TabsList>
+            </div>
 
             <TabsContent value="main" className="space-y-3 pt-4">
               <Card className="p-4">
@@ -712,6 +718,22 @@ export function StudentDetailSheet({
                         </div>
                         {p.comment && <div className="text-[11px] text-muted-foreground truncate">{p.comment}</div>}
                       </div>
+                      {/* Денежный след операции. Бэкенд пишет balance_before и
+                          balance_after по каждому платежу, но до этого они не
+                          доходили до интерфейса — и на вопрос «почему у ученика
+                          такой баланс» ответить по экрану было нельзя. */}
+                      {p.balanceAfter !== undefined && (
+                        <div className="shrink-0 text-right">
+                          <div className="text-[11px] text-muted-foreground tabular-nums">
+                            {p.balanceBefore !== undefined ? formatMoney(p.balanceBefore, lang) : "—"} →
+                          </div>
+                          <div
+                            className={`text-xs font-medium tabular-nums ${p.balanceAfter < 0 ? "text-destructive" : "text-foreground"}`}
+                          >
+                            {formatMoney(p.balanceAfter, lang)}
+                          </div>
+                        </div>
+                      )}
                     </Card>
                   );
                 });
@@ -1181,7 +1203,7 @@ export function StudentDetailSheet({
                 onClick={() => setCoinAction("award")}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                   coinAction === "award"
-                    ? "bg-emerald-600 text-white"
+                    ? "bg-ok text-white"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
@@ -1192,7 +1214,7 @@ export function StudentDetailSheet({
                 onClick={() => setCoinAction("deduct")}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                   coinAction === "deduct"
-                    ? "bg-red-600 text-white"
+                    ? "bg-bad text-white"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
@@ -1230,7 +1252,7 @@ export function StudentDetailSheet({
               {lang === "uz" ? "Bekor" : "Отмена"}
             </Button>
             <Button
-              className={coinAction === "award" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}
+              className={coinAction === "award" ? "bg-ok hover:bg-ok text-white" : "bg-bad hover:bg-bad text-white"}
               onClick={async () => {
                 if (!student) return;
                 try {

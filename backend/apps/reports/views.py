@@ -3,10 +3,12 @@ from datetime import date as date_type, datetime
 from django.http import HttpResponse
 from drf_spectacular.utils import OpenApiResponse, OpenApiTypes, extend_schema
 from rest_framework import permissions, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
+from apps.core.definitions import attendance_rate_parts
 from apps.lessons.models import Lesson, Attendance
 
 from .exporters import export_excel, export_pdf
@@ -98,9 +100,8 @@ class TeacherLessonsView(APIView):
         result = []
         for lesson in lessons:
             attendance_qs = Attendance.objects.filter(lesson=lesson)
-            present = attendance_qs.filter(status__in=["present", "late"]).count()
+            present, total = attendance_rate_parts(attendance_qs)
             absent = attendance_qs.filter(status="absent").count()
-            total = attendance_qs.count()
             result.append({
                 "id": str(lesson.id),
                 "datetime": lesson.datetime.isoformat(),
@@ -185,6 +186,15 @@ def _build_export_payload(user, payload: dict) -> tuple[str, dict]:
     if report_type == "attendance":
         return report_type, get_attendance_report(user, filters)
     if report_type == "salary":
+        from apps.staff.models import Staff
+
+        from .services import branch_ids_for_user
+
+        # Выгрузка зарплаты не проверяла филиал учителя: администратор одного
+        # филиала мог выгрузить зарплату любого учителя организации.
+        allowed_branches = branch_ids_for_user(user)
+        if not Staff.objects.filter(id=payload["teacher_id"], branch_id__in=allowed_branches).exists():
+            raise ValidationError({"teacher_id": "Teacher not found"})
         return report_type, calculate_teacher_salary(
             teacher_id=payload["teacher_id"],
             period_start=filters.date_from,
@@ -270,7 +280,17 @@ class GroupReportView(APIView):
 
     def get(self, request, group_id):
         from django.core.cache import cache
-        from .services import get_group_report
+
+        from apps.courses.models import Group
+
+        from .services import branch_ids_for_user, get_group_report
+
+        # Отчёт по группе не был ограничен филиалом: администратор одного
+        # филиала мог запросить любой group_id и получить учеников, платежи
+        # и оценки чужого филиала.
+        allowed_branches = branch_ids_for_user(request.user)
+        if not Group.objects.filter(id=group_id, branch_id__in=allowed_branches).exists():
+            return Response({"detail": "Group not found"}, status=status.HTTP_404_NOT_FOUND)
 
         date_from_str = request.query_params.get("date_from")
         date_to_str = request.query_params.get("date_to")

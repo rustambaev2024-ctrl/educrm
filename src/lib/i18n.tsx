@@ -20,6 +20,8 @@ const UZ: Dict = {
   "login.forgot": "Parolni unutdingizmi?",
   "login.forgotTitle": "Parolni tiklash",
   "login.forgotBody": "Parolni tiklash uchun o'quv markazi administratoriga yoki direktoriga murojaat qiling. Yangi parol siz uchun belgilanadi.",
+  "login.chooseInstitutionTitle": "Qaysi tashkilotga kirasiz?",
+  "login.chooseInstitutionBody": "Bu raqam bir nechta o'quv markazida ro'yxatdan o'tgan. Kerakligini tanlang.",
   "login.back": "Orqaga",
   "login.footer": "EduCRM v1.0",
   "toast.fillFields": "Telefon va parolni kiriting",
@@ -173,6 +175,8 @@ const UZ: Dict = {
   // Groups
   "groups.title": "Guruhlar",
   "groups.subtitle": "Kurslar va o'quv guruhlari",
+  "groups.edit.title": "Guruhni tahrirlash",
+  "groups.edit.subtitle": "Guruh ma'lumotlarini o'zgartirish",
   "groups.add": "Yangi guruh",
   "groups.search": "Guruh nomi bo'yicha qidirish",
   "groups.empty": "Guruhlar yo'q",
@@ -342,7 +346,7 @@ const UZ: Dict = {
   // Validation
   "validation.fillAll": "Barcha majburiy maydonlarni to'ldiring",
   "validation.fillField": "To'ldiring: {fields}",
-  "grades.scoreRange": "Baho 0 dan 100 gacha bo'lishi kerak",
+  "grades.scoreRange5": "Baho 2 dan 5 gacha bo'lishi kerak",
 
   // Homework — teacher
   "hw.title": "Uy vazifalari",
@@ -402,7 +406,6 @@ const UZ: Dict = {
   "grades.field.kind": "Tur",
   "grades.field.title": "Nomi",
   "grades.field.score": "Baho",
-  "grades.field.maxScore": "Maksimal",
   "grades.field.date": "Sana",
   "grades.field.comment": "Izoh",
   "grades.created": "Baho qo'shildi",
@@ -806,6 +809,8 @@ const RU: Dict = {
   "login.forgot": "Забыли пароль?",
   "login.forgotTitle": "Восстановление пароля",
   "login.forgotBody": "Для восстановления пароля обратитесь к администратору или директору вашего учебного центра. Новый пароль будет установлен для вас.",
+  "login.chooseInstitutionTitle": "В какую организацию войти?",
+  "login.chooseInstitutionBody": "Этот номер зарегистрирован в нескольких учебных центрах. Выберите нужный.",
   "login.back": "Назад",
   "login.footer": "EduCRM v1.0",
   "toast.fillFields": "Введите телефон и пароль",
@@ -958,6 +963,8 @@ const RU: Dict = {
   // Groups
   "groups.title": "Группы",
   "groups.subtitle": "Курсы и учебные группы",
+  "groups.edit.title": "Редактирование группы",
+  "groups.edit.subtitle": "Изменение данных группы",
   "groups.add": "Новая группа",
   "groups.search": "Поиск по названию группы",
   "groups.empty": "Групп нет",
@@ -1127,7 +1134,7 @@ const RU: Dict = {
   // Validation
   "validation.fillAll": "Заполните все обязательные поля",
   "validation.fillField": "Заполните поле: {fields}",
-  "grades.scoreRange": "Оценка должна быть от 0 до 100",
+  "grades.scoreRange5": "Оценка должна быть от 2 до 5",
 
   // Homework — teacher
   "hw.title": "Домашние задания",
@@ -1187,7 +1194,6 @@ const RU: Dict = {
   "grades.field.kind": "Тип",
   "grades.field.title": "Название",
   "grades.field.score": "Оценка",
-  "grades.field.maxScore": "Максимум",
   "grades.field.date": "Дата",
   "grades.field.comment": "Комментарий",
   "grades.created": "Оценка добавлена",

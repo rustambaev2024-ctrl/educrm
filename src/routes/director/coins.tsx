@@ -1,13 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Coins, Plus, Pencil, Trash2, Trophy, Package, ShoppingBag, Settings as SettingsIcon, Save } from "lucide-react";
+import { Coins, Plus, Pencil, Trash2, Trophy, Package, ShoppingBag, Settings as SettingsIcon, Save , Users } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton, CardGridSkeleton, ListSkeleton } from "@/components/ui/skeleton";
 import { apiErrorText } from "@/lib/api-error";
+import { apiErrorMessage } from "@/lib/data/store";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/edu/number-input";
+import { CoinStudentsTab } from "@/components/edu/coin-students-tab";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -70,14 +75,16 @@ function DirectorCoinsPage() {
 
   return (
     <PageShell title="Coins" subtitle={tr("Geymifikatsiya tizimini boshqarish", "Управление системой геймификации")}>
-      <Tabs defaultValue="settings">
+      <Tabs defaultValue="students">
         <TabsList className="mb-4">
+          <TabsTrigger value="students"><Users className="mr-1.5 size-4" />{tr("O'quvchilar", "Ученики")}</TabsTrigger>
           <TabsTrigger value="settings"><SettingsIcon className="mr-1.5 size-4" />{tr("Sozlamalar", "Настройки")}</TabsTrigger>
           <TabsTrigger value="store"><Package className="mr-1.5 size-4" />{tr("Do'kon", "Магазин")}</TabsTrigger>
           <TabsTrigger value="orders"><ShoppingBag className="mr-1.5 size-4" />{tr("Buyurtmalar", "Заказы")}</TabsTrigger>
           <TabsTrigger value="achievements"><Trophy className="mr-1.5 size-4" />{tr("Yutuqlar", "Достижения")}</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="students"><CoinStudentsTab /></TabsContent>
         <TabsContent value="settings"><SettingsTab /></TabsContent>
         <TabsContent value="store"><StoreTab /></TabsContent>
         <TabsContent value="orders"><OrdersTab /></TabsContent>
@@ -92,16 +99,58 @@ function SettingsTab() {
   const { lang } = useI18n();
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
   const [data, setData] = useState<CoinSettingData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    coinApi.settings.get().then((d) => setData(d as CoinSettingData)).catch(() => {
-      toast.error(tr("Yuklashda xatolik", "Ошибка загрузки"));
-    });
-  }, []);
+  const load = (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
+    coinApi.settings.get()
+      .then((d) => {
+        setData(d as CoinSettingData);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        if (!opts?.silent) setLoadFailed(true);
+        toast.error(apiErrorMessage(err));
+      })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
+  };
+  useEffect(() => { load(); }, []);
 
-  if (!data) {
-    return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-5">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="space-y-4 rounded-lg border border-border p-5">
+            <Skeleton className="h-4 w-40" />
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, j) => (
+                <div key={j} className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-9 w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (loadFailed || !data) {
+    return (
+      <ErrorState
+        title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+        description={tr(
+          "Sozlamalarni ko'rsatib bo'lmadi. Aloqani tekshirib, qayta urinib ko'ring.",
+          "Не удалось показать настройки. Проверьте связь и повторите.",
+        )}
+        onRetry={() => load()}
+        isRetrying={loading}
+        retryLabel={tr("Qayta urinish", "Повторить")}
+      />
+    );
   }
 
   const num = (key: keyof CoinSettingData, v: string) => setData({ ...data, [key]: Number(v) || 0 });
@@ -121,14 +170,14 @@ function SettingsTab() {
   const NumberField = ({ label, k }: { label: string; k: keyof CoinSettingData }) => (
     <div>
       <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
-      <Input type="number" min={0} value={data[k] as number} onChange={(e) => num(k, e.target.value)} autoComplete="off" />
+      <NumberInput min={0} value={data[k] as number} onValueChange={(v) => num(k, v)} autoComplete="off" />
     </div>
   );
 
   const PenaltyField = ({ label, hint, k }: { label: string; hint: string; k: keyof CoinSettingData }) => (
     <div>
       <Label className="mb-1.5 block text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
-      <Input type="number" value={data[k] as number} onChange={(e) => num(k, e.target.value)} autoComplete="off" placeholder="0" />
+      <NumberInput allowNegative value={data[k] as number} onValueChange={(v) => num(k, v)} autoComplete="off" placeholder="0" />
       <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
@@ -162,8 +211,8 @@ function SettingsTab() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <NumberField label={tr("Darsga kelganlik", "Присутствие")} k="coins_present" />
           <NumberField label={tr("Kechikish (bonus)", "Опоздание (бонус)")} k="coins_late" />
-          <NumberField label={tr("10/10 baho", "Оценка 100%")} k="coins_grade_perfect" />
-          <NumberField label={tr("8-9/10 baho", "Оценка 80%+")} k="coins_grade_good" />
+          <NumberField label={tr("Baho 5", "Оценка 5")} k="coins_grade_perfect" />
+          <NumberField label={tr("Baho 4", "Оценка 4")} k="coins_grade_good" />
           <NumberField label={tr("Uy vazifasi", "Домашка вовремя")} k="coins_homework_done" />
           <NumberField label={tr("Test (to'g'ri javob)", "Тест (верный ответ)")} k="coins_quiz_correct" />
           <PenaltyField
@@ -206,10 +255,10 @@ function SettingsTab() {
             <TableBody>
               {data.level_thresholds.map((lvl, idx) => (
                 <TableRow key={idx}>
-                  <TableCell><Input type="number" className="h-8 w-16" value={lvl.level} onChange={(e) => updateLevel(idx, "level", e.target.value)} /></TableCell>
+                  <TableCell><NumberInput className="h-8 w-16" value={lvl.level} onValueChange={(v) => updateLevel(idx, "level", v)} /></TableCell>
                   <TableCell><Input className="h-8" value={lvl.name_uz} onChange={(e) => updateLevel(idx, "name_uz", e.target.value)} autoComplete="off" /></TableCell>
                   <TableCell><Input className="h-8" value={lvl.name_ru} onChange={(e) => updateLevel(idx, "name_ru", e.target.value)} autoComplete="off" /></TableCell>
-                  <TableCell><Input type="number" className="h-8 w-24" value={lvl.xp} onChange={(e) => updateLevel(idx, "xp", e.target.value)} /></TableCell>
+                  <TableCell><NumberInput className="h-8 w-24" value={lvl.xp} onValueChange={(v) => updateLevel(idx, "xp", v)} /></TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon" title={lang === "uz" ? "O'chirish" : "Удалить"} className="size-8 text-destructive hover:text-destructive" onClick={() => removeLevel(idx)}>
                       <Trash2 className="size-4" />
@@ -272,20 +321,31 @@ function StoreTab() {
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...emptyProduct });
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const load = (opts?: { silent?: boolean }) => {
+    // silent: true — фоновый рефреш после save()/confirmRemove(). Не должен
+    // трогать loading (иначе полноэкранный скелетон вспыхивает поверх уже
+    // закрытого диалога сразу после успешного действия) и не должен схлопывать
+    // уже отображённый список в ErrorState из-за временного сбоя сети.
+    if (!opts?.silent) setLoading(true);
     coinApi.products.list()
-      .then((d) => setProducts(d as ProductData[]))
-      .catch(() => toast.error(tr("Xatolik", "Ошибка")))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        setProducts(d as ProductData[]);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        if (!opts?.silent) setLoadFailed(true);
+        toast.error(apiErrorMessage(err));
+      })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const openCreate = () => { setEditId(null); setForm({ ...emptyProduct }); setDialogOpen(true); };
   const openEdit = (p: ProductData) => {
@@ -309,7 +369,7 @@ function StoreTab() {
       else await coinApi.products.create(payload as unknown as Record<string, unknown>);
       toast.success(tr("Saqlandi", "Сохранено"));
       setDialogOpen(false);
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
@@ -322,7 +382,7 @@ function StoreTab() {
       await coinApi.products.delete(removeId);
       toast.success(tr("O'chirildi", "Удалено"));
       setRemoveId(null);
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     } finally {
@@ -330,7 +390,22 @@ function StoreTab() {
     }
   };
 
-  if (loading) return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading) return <CardGridSkeleton count={6} />;
+
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+        description={tr(
+          "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+          "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите.",
+        )}
+        onRetry={() => load()}
+        isRetrying={loading}
+        retryLabel={tr("Qayta urinish", "Повторить")}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -340,7 +415,7 @@ function StoreTab() {
       {products.length === 0 ? (
         <Card className="p-12 text-center text-sm text-muted-foreground shadow-elegant">{tr("Mahsulotlar yo'q", "Товаров нет")}</Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {products.map((p) => (
             <Card key={p.id} className="p-4 shadow-elegant">
               <div className="flex items-start justify-between gap-2">
@@ -368,7 +443,7 @@ function StoreTab() {
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                <span className="flex items-center gap-1 font-semibold text-amber-600"><Coins className="size-3.5" />{p.price_coins}</span>
+                <span className="flex items-center gap-1 font-semibold text-warn"><Coins className="size-3.5" />{p.price_coins}</span>
                 <span className="text-muted-foreground">· {tr("Daraja", "Уровень")} {p.min_level}+</span>
                 <span className="text-muted-foreground">· {p.stock < 0 ? tr("Cheksiz", "∞") : `${tr("Qoldiq", "Остаток")}: ${p.stock}`}</span>
               </div>
@@ -391,10 +466,10 @@ function StoreTab() {
               <div><Label className="mb-1 block text-xs">{tr("Tavsif (uz)", "Описание (uz)")}</Label><Textarea rows={2} value={form.description_uz} onChange={(e) => setForm({ ...form, description_uz: e.target.value })} /></div>
               <div><Label className="mb-1 block text-xs">{tr("Tavsif (ru)", "Описание (ru)")}</Label><Textarea rows={2} value={form.description_ru} onChange={(e) => setForm({ ...form, description_ru: e.target.value })} /></div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div><Label className="mb-1 block text-xs">{tr("Narx (coin)", "Цена (coin)")}</Label><Input type="number" min={0} value={form.price_coins} onChange={(e) => setForm({ ...form, price_coins: Number(e.target.value) || 0 })} /></div>
-              <div><Label className="mb-1 block text-xs">{tr("Qoldiq (-1=∞)", "Остаток (-1=∞)")}</Label><Input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} /></div>
-              <div><Label className="mb-1 block text-xs">{tr("Min daraja", "Мин. уровень")}</Label><Input type="number" min={1} value={form.min_level} onChange={(e) => setForm({ ...form, min_level: Number(e.target.value) || 1 })} /></div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div><Label className="mb-1 block text-xs">{tr("Narx (coin)", "Цена (coin)")}</Label><NumberInput min={0} value={form.price_coins} onValueChange={(v) => setForm({ ...form, price_coins: Number(v) || 0 })} /></div>
+              <div><Label className="mb-1 block text-xs">{tr("Qoldiq (-1=∞)", "Остаток (-1=∞)")}</Label><NumberInput allowNegative value={form.stock} onValueChange={(v) => setForm({ ...form, stock: v === "" || v === "-" ? 0 : Number(v) })} /></div>
+              <div><Label className="mb-1 block text-xs">{tr("Min daraja", "Мин. уровень")}</Label><NumberInput min={1} value={form.min_level} onValueChange={(v) => setForm({ ...form, min_level: Number(v) || 1 })} /></div>
             </div>
             <div><Label className="mb-1 block text-xs">{tr("Rasm URL", "URL картинки")}</Label><Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} autoComplete="off" /></div>
             <label className="flex items-center gap-2 text-sm">
@@ -425,10 +500,10 @@ function StoreTab() {
 
 /* ── Вкладка 3: Заказы ────────────────────────────────────────── */
 const ORDER_STATUS: Record<string, { uz: string; ru: string; cls: string }> = {
-  new: { uz: "Yangi", ru: "Новый", cls: "bg-blue-500/10 text-blue-600" },
-  confirmed: { uz: "Tasdiqlangan", ru: "Подтверждён", cls: "bg-amber-500/10 text-amber-600" },
-  delivered: { uz: "Yetkazildi", ru: "Доставлен", cls: "bg-emerald-500/10 text-emerald-600" },
-  cancelled: { uz: "Bekor qilingan", ru: "Отменён", cls: "bg-red-500/10 text-red-600" },
+  new: { uz: "Yangi", ru: "Новый", cls: "bg-info-soft text-info" },
+  confirmed: { uz: "Tasdiqlangan", ru: "Подтверждён", cls: "bg-warn-soft text-warn" },
+  delivered: { uz: "Yetkazildi", ru: "Доставлен", cls: "bg-ok-soft text-ok" },
+  cancelled: { uz: "Bekor qilingan", ru: "Отменён", cls: "bg-bad-soft text-bad" },
 };
 
 function OrdersTab() {
@@ -436,23 +511,38 @@ function OrdersTab() {
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const load = (opts?: { silent?: boolean }) => {
+    // silent: true — фоновый рефреш после applyStatus() (в т.ч. отмены
+    // заказа через ConfirmDialog). Он не должен трогать loading — иначе
+    // `if (loading) return <ListSkeleton>` схлопывает всё дерево, включая
+    // ещё открытый ConfirmDialog, полноэкранным скелетоном сразу после
+    // успешного действия пользователя.
+    if (!opts?.silent) setLoading(true);
     coinApi.orders.list()
-      .then((d) => setOrders(d as OrderData[]))
-      .catch(() => toast.error(tr("Xatolik", "Ошибка")))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        setOrders(d as OrderData[]);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        // Та же логика для ошибки: тихий рефреш не должен схлопывать уже
+        // отображённый список в полноэкранную ErrorState из-за временного
+        // сбоя сети — только тост, список остаётся как есть.
+        if (!opts?.silent) setLoadFailed(true);
+        toast.error(apiErrorMessage(err));
+      })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const applyStatus = async (id: string, status: string) => {
     try {
       await coinApi.orders.updateStatus(id, status);
       toast.success(tr("Yangilandi", "Обновлено"));
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
@@ -478,7 +568,22 @@ function OrdersTab() {
     }
   };
 
-  if (loading) return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading) return <ListSkeleton rows={5} />;
+
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+        description={tr(
+          "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+          "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите.",
+        )}
+        onRetry={() => load()}
+        isRetrying={loading}
+        retryLabel={tr("Qayta urinish", "Повторить")}
+      />
+    );
+  }
 
   return (
     <>
@@ -504,7 +609,7 @@ function OrdersTab() {
               <TableRow key={o.id}>
                 <TableCell className="font-medium">{o.student_name}</TableCell>
                 <TableCell>{lang === "uz" ? o.product_name.uz : o.product_name.ru}</TableCell>
-                <TableCell className="text-right font-semibold text-amber-600">{o.coins_spent}</TableCell>
+                <TableCell className="text-right font-semibold text-warn">{o.coins_spent}</TableCell>
                 <TableCell><span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${st.cls}`}>{tr(st.uz, st.ru)}</span></TableCell>
                 <TableCell className="text-xs text-muted-foreground">{formatDate(o.created_at, lang)}</TableCell>
                 <TableCell className="text-right">
@@ -546,20 +651,31 @@ function AchievementsTab() {
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
   const [achievements, setAchievements] = useState<AchievementData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...emptyAch });
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const load = (opts?: { silent?: boolean }) => {
+    // silent: true — фоновый рефреш после save()/confirmRemove(). Не должен
+    // трогать loading (иначе полноэкранный скелетон вспыхивает поверх уже
+    // закрытого диалога сразу после успешного действия) и не должен схлопывать
+    // уже отображённый список в ErrorState из-за временного сбоя сети.
+    if (!opts?.silent) setLoading(true);
     coinApi.achievements.list()
-      .then((d) => setAchievements(d as AchievementData[]))
-      .catch(() => toast.error(tr("Xatolik", "Ошибка")))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        setAchievements(d as AchievementData[]);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        if (!opts?.silent) setLoadFailed(true);
+        toast.error(apiErrorMessage(err));
+      })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const openCreate = () => { setEditId(null); setForm({ ...emptyAch }); setDialogOpen(true); };
   const openEdit = (a: AchievementData) => {
@@ -581,7 +697,7 @@ function AchievementsTab() {
       else await coinApi.achievements.create(form as unknown as Record<string, unknown>);
       toast.success(tr("Saqlandi", "Сохранено"));
       setDialogOpen(false);
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
@@ -594,7 +710,7 @@ function AchievementsTab() {
       await coinApi.achievements.delete(removeId);
       toast.success(tr("O'chirildi", "Удалено"));
       setRemoveId(null);
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     } finally {
@@ -602,7 +718,22 @@ function AchievementsTab() {
     }
   };
 
-  if (loading) return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading) return <CardGridSkeleton count={6} />;
+
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+        description={tr(
+          "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+          "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите.",
+        )}
+        onRetry={() => load()}
+        isRetrying={loading}
+        retryLabel={tr("Qayta urinish", "Повторить")}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -612,10 +743,10 @@ function AchievementsTab() {
       {achievements.length === 0 ? (
         <Card className="p-12 text-center text-sm text-muted-foreground shadow-elegant">{tr("Yutuqlar yo'q", "Достижений нет")}</Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {achievements.map((a) => (
             <Card key={a.id} className="flex items-start gap-3 p-4 shadow-elegant">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600"><Trophy className="size-5" /></div>
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warn-soft text-warn"><Trophy className="size-5" /></div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h4 className="truncate font-semibold">{lang === "uz" ? a.title_uz : a.title_ru}</h4>
@@ -649,7 +780,7 @@ function AchievementsTab() {
               <div><Label className="mb-1 block text-xs">{tr("Tavsif (uz)", "Описание (uz)")}</Label><Input value={form.description_uz} onChange={(e) => setForm({ ...form, description_uz: e.target.value })} autoComplete="off" /></div>
               <div><Label className="mb-1 block text-xs">{tr("Tavsif (ru)", "Описание (ru)")}</Label><Input value={form.description_ru} onChange={(e) => setForm({ ...form, description_ru: e.target.value })} autoComplete="off" /></div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <Label className="mb-1 block text-xs">{tr("Shart turi", "Тип условия")}</Label>
                 <Select value={form.condition_type} onValueChange={(v) => setForm({ ...form, condition_type: v })}>
@@ -659,8 +790,8 @@ function AchievementsTab() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label className="mb-1 block text-xs">{tr("Qiymat", "Значение")}</Label><Input type="number" min={0} value={form.condition_value} onChange={(e) => setForm({ ...form, condition_value: Number(e.target.value) || 0 })} /></div>
-              <div><Label className="mb-1 block text-xs">{tr("Mukofot (coin)", "Награда (coin)")}</Label><Input type="number" min={0} value={form.reward_coins} onChange={(e) => setForm({ ...form, reward_coins: Number(e.target.value) || 0 })} /></div>
+              <div><Label className="mb-1 block text-xs">{tr("Qiymat", "Значение")}</Label><NumberInput min={0} value={form.condition_value} onValueChange={(v) => setForm({ ...form, condition_value: Number(v) || 0 })} /></div>
+              <div><Label className="mb-1 block text-xs">{tr("Mukofot (coin)", "Награда (coin)")}</Label><NumberInput min={0} value={form.reward_coins} onValueChange={(v) => setForm({ ...form, reward_coins: Number(v) || 0 })} /></div>
             </div>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v === true })} />
