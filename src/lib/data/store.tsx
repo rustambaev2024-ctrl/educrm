@@ -146,7 +146,8 @@ interface DataStoreActions {
     parentPassword?: string;
   }) => Promise<void>;
   addGroup: (input: Omit<Group, "id" | "studentIds" | "status"> & { status?: Group["status"] }) => Group;
-  updateGroup: (id: string, patch: Partial<Group>) => void;
+  /** onSuccess — вызывается только после реального подтверждения сервером (не оптимистично) */
+  updateGroup: (id: string, patch: Partial<Group>, onSuccess?: () => void) => void;
   /** alreadyDeleted — страница уже удалила объект на сервере, повторный запрос не нужен */
   deleteGroup: (id: string, options?: { alreadyDeleted?: boolean }) => void;
   addStudentToGroup: (groupId: string, studentId: string) => Promise<boolean>;
@@ -1209,7 +1210,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     return created;
   }, [refreshLessons]);
 
-  const updateGroup: DataStoreActions["updateGroup"] = useCallback((id, patch) => {
+  const updateGroup: DataStoreActions["updateGroup"] = useCallback((id, patch, onSuccess) => {
     const snapshot = groups;
     setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
     fireAndForget(
@@ -1229,6 +1230,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       } as never).then(() => {
         // Смена расписания перегенерирует будущие уроки на сервере.
         if (patch.schedule || patch.startDate || patch.endDate) void refreshLessons();
+        onSuccess?.();
       }),
       () => setGroups(snapshot),
     );

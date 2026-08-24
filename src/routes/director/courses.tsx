@@ -31,16 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -54,22 +45,11 @@ import { useData } from "@/lib/data/store";
 import { sumIncome } from "@/lib/data/mappers";
 import { useDebounced } from "@/lib/use-debounced";
 import { useI18n } from "@/lib/i18n";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, initialsOf } from "@/lib/format";
+import { getAvatarColor } from "@/lib/avatar-color";
 import type { Course, Group, Student } from "@/lib/data/types";
 
 export const Route = createFileRoute("/director/courses")({ component: DirectorCoursesPage });
-
-function initialsOf(name: string) {
-  return name.split(" ").slice(0, 2).map((p) => p[0] ?? "").join("").toUpperCase();
-}
-
-const AVATAR_COLORS = [
-  "bg-info-soft text-info",
-  "bg-ok-soft text-ok",
-  "bg-chart-5/10 text-chart-5",
-  "bg-warn-soft text-warn",
-  "bg-chart-5/10 text-chart-5",
-];
 
 function DirectorCoursesPage() {
   const { lang } = useI18n();
@@ -459,8 +439,9 @@ function DirectorCoursesPage() {
                         <Select
                           value={selectedGroup.status}
                           onValueChange={(v) => {
-                            updateGroup(selectedGroup.id, { status: v as typeof selectedGroup.status });
-                            toast.success(lang === "uz" ? "Holat yangilandi" : "Статус обновлён");
+                            updateGroup(selectedGroup.id, { status: v as typeof selectedGroup.status }, () => {
+                              toast.success(lang === "uz" ? "Holat yangilandi" : "Статус обновлён");
+                            });
                           }}
                         >
                           <SelectTrigger className="h-7 w-[150px] text-xs">
@@ -510,14 +491,13 @@ function DirectorCoursesPage() {
                     ) : (
                       <div className="space-y-1">
                         {groupStudents.map((student) => {
-                          const colorClass = AVATAR_COLORS[(student.fullName.charCodeAt(0) || 0) % AVATAR_COLORS.length];
                           return (
                             <div
                               key={student.id}
                               className="flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-muted/40"
                               onClick={() => setSelectedStudent(student)}
                             >
-                              <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${colorClass}`}>
+                              <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${getAvatarColor(student.fullName)}`}>
                                 {initialsOf(student.fullName)}
                               </div>
                               <div className="min-w-0 flex-1">
@@ -611,26 +591,22 @@ function DirectorCoursesPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteCourseId} onOpenChange={(v) => !v && setDeleteCourseId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{lang === "uz" ? "Kurs o'chirilsinmi?" : "Удалить курс?"}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deletingCourse
-                ? lang === "uz"
-                  ? `"${deletingCourse.name}" kursi o'chiriladi. Guruhlarga bog'langan kurslarni o'chirish mumkin emas.`
-                  : `Курс "${deletingCourse.name}" будет удалён. Курсы с привязанными группами удалить нельзя.`
-                : lang === "uz" ? "Tanlangan kurs o'chiriladi." : "Выбранный курс будет удалён."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{lang === "uz" ? "Bekor qilish" : "Отмена"}</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {lang === "uz" ? "O'chirish" : "Удалить"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!deleteCourseId}
+        onOpenChange={(v) => !v && setDeleteCourseId(null)}
+        title={lang === "uz" ? "Kurs o'chirilsinmi?" : "Удалить курс?"}
+        description={
+          deletingCourse
+            ? lang === "uz"
+              ? `"${deletingCourse.name}" kursi o'chiriladi. Guruhlarga bog'langan kurslarni o'chirish mumkin emas.`
+              : `Курс "${deletingCourse.name}" будет удалён. Курсы с привязанными группами удалить нельзя.`
+            : lang === "uz" ? "Tanlangan kurs o'chiriladi." : "Выбранный курс будет удалён."
+        }
+        confirmText={lang === "uz" ? "O'chirish" : "Удалить"}
+        cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+        variant="destructive"
+        onConfirm={confirmDelete}
+      />
     </>
   );
 }
