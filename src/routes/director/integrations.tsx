@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { PageShell } from "@/components/edu/page-shell";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { branchApi } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/data/store";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { Settings, Check, Loader2, Link2, Info, ArrowUpRight, MessageSquare, Copy, KeyRound } from "lucide-react";
@@ -63,7 +64,10 @@ function DirectorIntegrationsPage() {
     branchApi
       .smsSettings()
       .then((data: any) => setSmsSettings(data))
-      .catch(console.error);
+      .catch((err) => {
+        console.error("Failed to load SMS settings", err);
+        toast.error(apiErrorMessage(err));
+      });
   }, []);
 
   useEffect(() => {
@@ -74,7 +78,10 @@ function DirectorIntegrationsPage() {
         setMaskedKey(data.api_key_masked);
         setHasKey(data.has_key);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error("Failed to load lead API key", err);
+        toast.error(apiErrorMessage(err));
+      });
   }, []);
 
   const copyToClipboard = (value: string) => {
@@ -104,8 +111,8 @@ function DirectorIntegrationsPage() {
       setHasKey(true);
       setRegenerateOpen(false);
       toast.success(lang === "uz" ? "Kalit yaratildi" : "Ключ создан");
-    } catch {
-      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setLeadKeyLoading(false);
     }
@@ -275,8 +282,8 @@ function DirectorIntegrationsPage() {
                     try {
                       await branchApi.updateSmsSettings(smsSettings);
                       toast.success(lang === "uz" ? "Saqlandi" : "Сохранено");
-                    } catch {
-                      toast.error(lang === "uz" ? "Xatolik" : "Ошибка");
+                    } catch (err) {
+                      toast.error(apiErrorMessage(err));
                     } finally {
                       setSmsLoading(false);
                     }
@@ -310,8 +317,8 @@ function DirectorIntegrationsPage() {
                         try {
                           await branchApi.testSms(testPhone);
                           toast.success(lang === "uz" ? "Test SMS yuborildi!" : "Тестовое SMS отправлено!");
-                        } catch {
-                          toast.error(lang === "uz" ? "SMS yuborishda xatolik" : "Ошибка отправки SMS");
+                        } catch (err) {
+                          toast.error(apiErrorMessage(err));
                         } finally {
                           setTestLoading(false);
                         }
