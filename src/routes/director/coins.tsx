@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ErrorState } from "@/components/ui/error-state";
-import { Skeleton, CardGridSkeleton } from "@/components/ui/skeleton";
+import { Skeleton, CardGridSkeleton, ListSkeleton } from "@/components/ui/skeleton";
 import { apiErrorText } from "@/lib/api-error";
 import { apiErrorMessage } from "@/lib/data/store";
 import { Input } from "@/components/ui/input";
@@ -511,23 +511,38 @@ function OrdersTab() {
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const load = (opts?: { silent?: boolean }) => {
+    // silent: true — фоновый рефреш после applyStatus() (в т.ч. отмены
+    // заказа через ConfirmDialog). Он не должен трогать loading — иначе
+    // `if (loading) return <ListSkeleton>` схлопывает всё дерево, включая
+    // ещё открытый ConfirmDialog, полноэкранным скелетоном сразу после
+    // успешного действия пользователя.
+    if (!opts?.silent) setLoading(true);
     coinApi.orders.list()
-      .then((d) => setOrders(d as OrderData[]))
-      .catch(() => toast.error(tr("Xatolik", "Ошибка")))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        setOrders(d as OrderData[]);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        // Та же логика для ошибки: тихий рефреш не должен схлопывать уже
+        // отображённый список в полноэкранную ErrorState из-за временного
+        // сбоя сети — только тост, список остаётся как есть.
+        if (!opts?.silent) setLoadFailed(true);
+        toast.error(apiErrorMessage(err));
+      })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const applyStatus = async (id: string, status: string) => {
     try {
       await coinApi.orders.updateStatus(id, status);
       toast.success(tr("Yangilandi", "Обновлено"));
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
@@ -553,7 +568,22 @@ function OrdersTab() {
     }
   };
 
-  if (loading) return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading) return <ListSkeleton rows={5} />;
+
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+        description={tr(
+          "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+          "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите.",
+        )}
+        onRetry={() => load()}
+        isRetrying={loading}
+        retryLabel={tr("Qayta urinish", "Повторить")}
+      />
+    );
+  }
 
   return (
     <>
@@ -621,20 +651,31 @@ function AchievementsTab() {
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
   const [achievements, setAchievements] = useState<AchievementData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...emptyAch });
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const load = (opts?: { silent?: boolean }) => {
+    // silent: true — фоновый рефреш после save()/confirmRemove(). Не должен
+    // трогать loading (иначе полноэкранный скелетон вспыхивает поверх уже
+    // закрытого диалога сразу после успешного действия) и не должен схлопывать
+    // уже отображённый список в ErrorState из-за временного сбоя сети.
+    if (!opts?.silent) setLoading(true);
     coinApi.achievements.list()
-      .then((d) => setAchievements(d as AchievementData[]))
-      .catch(() => toast.error(tr("Xatolik", "Ошибка")))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        setAchievements(d as AchievementData[]);
+        setLoadFailed(false);
+      })
+      .catch((err) => {
+        if (!opts?.silent) setLoadFailed(true);
+        toast.error(apiErrorMessage(err));
+      })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const openCreate = () => { setEditId(null); setForm({ ...emptyAch }); setDialogOpen(true); };
   const openEdit = (a: AchievementData) => {
@@ -656,7 +697,7 @@ function AchievementsTab() {
       else await coinApi.achievements.create(form as unknown as Record<string, unknown>);
       toast.success(tr("Saqlandi", "Сохранено"));
       setDialogOpen(false);
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     }
@@ -669,7 +710,7 @@ function AchievementsTab() {
       await coinApi.achievements.delete(removeId);
       toast.success(tr("O'chirildi", "Удалено"));
       setRemoveId(null);
-      load();
+      load({ silent: true });
     } catch (err) {
       toast.error(apiErrorText(err, lang, tr("Xatolik", "Ошибка")));
     } finally {
@@ -677,7 +718,22 @@ function AchievementsTab() {
     }
   };
 
-  if (loading) return <div className="flex h-40 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading) return <CardGridSkeleton count={6} />;
+
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title={tr("Ma'lumotlar yuklanmadi", "Данные не загрузились")}
+        description={tr(
+          "Sahifa bo'sh ko'rinishi mumkin, lekin bu ma'lumot yo'qligini bildirmaydi. Aloqani tekshirib, qayta urinib ko'ring.",
+          "Страница может выглядеть пустой, но это не значит, что данных нет. Проверьте связь и повторите.",
+        )}
+        onRetry={() => load()}
+        isRetrying={loading}
+        retryLabel={tr("Qayta urinish", "Повторить")}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
