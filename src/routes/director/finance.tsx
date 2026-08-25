@@ -205,7 +205,7 @@ function DirectorFinancePage() {
         <Card className="p-6 shadow-elegant">
           <div className="mb-4 text-sm font-semibold">{lang === "uz" ? "Hamyonlar" : "Кошельки"}</div>
           <div className="overflow-x-auto">
-            <Table className="min-w-[600px]">
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("finance.col.student")}</TableHead>
@@ -251,7 +251,7 @@ function DirectorFinancePage() {
 
         <Card className="overflow-hidden shadow-elegant">
           <div className="border-b border-border/60 px-5 py-3 text-sm font-semibold">{t("finance.tab.payments")}</div>
-          <Table className="min-w-[600px]">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>{t("finance.col.date")}</TableHead>
@@ -280,7 +280,7 @@ function DirectorFinancePage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {["manual_charge", "manual_top_up", "top_up"].includes(p.type) && (
-                      <Button variant="ghost" size="icon" title={lang === "uz" ? "To'lovni bekor qilish" : "Отменить платёж"} onClick={() => handleReversePayment(p.id, p.amount)} disabled={reversingId === p.id} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                      <Button variant="ghost" size="icon" title={lang === "uz" ? "To'lovni bekor qilish" : "Отменить платёж"} onClick={() => handleReversePayment(p.id, p.amount)} disabled={reversingId === p.id} className="edu-tap h-8 w-8 text-muted-foreground hover:text-destructive">
                         <RotateCcw className={`size-4 ${reversingId === p.id ? "animate-spin" : ""}`} />
                       </Button>
                     )}
