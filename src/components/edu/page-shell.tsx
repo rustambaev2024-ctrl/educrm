@@ -46,10 +46,10 @@ export function PageShell({
   const showError = !ignoreLoadError && Boolean(loadError);
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1280px] p-4 sm:p-5 lg:p-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="w-full min-w-0 p-4">
+      <div className="mb-3.5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-extrabold leading-tight text-foreground">{title}</h1>
+          <h1 className="text-lg font-bold leading-tight text-foreground">{title}</h1>
           {subtitle && <p className="mt-0.5 text-[13px] text-muted-foreground">{subtitle}</p>}
         </div>
         {actions && !showError && (
@@ -57,7 +57,7 @@ export function PageShell({
         )}
       </div>
 
-      <div className="mb-4 h-px bg-border/70" />
+      <div className="mb-3.5 h-px bg-border" />
 
       {showError ? (
         <ErrorState
