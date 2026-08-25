@@ -298,6 +298,51 @@ async function fetchAllPages<T>(
   return { results, count: results.length };
 }
 
+/**
+ * Показывает пароли, которые сервер сгенерировал сам.
+ *
+ * Когда администратор заводит ученика и не вписывает пароль руками, бэкенд
+ * генерирует случайный и возвращает его ОДИН раз в ответе на создание —
+ * дальше в базе лежит только хеш, восстановить пароль нельзя. Раньше фронтенд
+ * это поле игнорировал: аккаунт создавался, пароль терялся в тот же миг, и
+ * ученик не мог войти вообще никак.
+ *
+ * Поэтому тост висит до закрытия вручную (`duration: Infinity`) — это
+ * единственный момент, когда пароль можно прочитать.
+ */
+function announceGeneratedCredentials(
+  raw: AnyRecord,
+  student: { fullName: string; phone: string },
+  parent?: { fullName?: string; phone?: string },
+) {
+  const lines: string[] = [];
+  const studentPassword = raw.generated_password;
+  const parentPassword = raw.parent_generated_password;
+
+  if (typeof studentPassword === "string" && studentPassword) {
+    lines.push(`${student.fullName} — ${student.phone} / ${studentPassword}`);
+  }
+  if (typeof parentPassword === "string" && parentPassword && parent?.phone) {
+    lines.push(`${parent.fullName ?? "Ota-ona / Родитель"} — ${parent.phone} / ${parentPassword}`);
+  }
+  if (lines.length === 0) return;
+
+  const body = lines.join("\n");
+  toast.success(
+    `Parol yaratildi — yozib oling / Пароль создан — запишите его\n${body}`,
+    {
+      duration: Infinity,
+      closeButton: true,
+      action: {
+        label: "Nusxalash / Копировать",
+        onClick: () => {
+          void navigator.clipboard?.writeText(body);
+        },
+      },
+    },
+  );
+}
+
 function snake(obj: AnyRecord): AnyRecord {
   const result: AnyRecord = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -918,15 +963,15 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         canSeeStudents ? safe(fetchAllPages<StudentRaw>("/students/") as Promise<ListResponse<StudentRaw>>, [], "students") : Promise.resolve([]),
         canSeeStaff ? safe(fetchAllPages<StaffRaw>("/staff/") as Promise<ListResponse<StaffRaw>>, [], "staff") : Promise.resolve([]),
         canSeeStudents ? safe(fetchAllPages<ParentRaw>("/parents/") as Promise<ListResponse<ParentRaw>>, [], "parents") : Promise.resolve([]),
-        safe(lessonApi.list() as Promise<ListResponse<LessonRaw>>, [], "lessons"),
-        safe(attendanceApi.list() as Promise<ListResponse<AttendanceRaw>>, [], "attendance"),
+        safe(fetchAllPages<LessonRaw>("/lessons/") as Promise<ListResponse<LessonRaw>>, [], "lessons"),
+        safe(fetchAllPages<AttendanceRaw>("/attendance/") as Promise<ListResponse<AttendanceRaw>>, [], "attendance"),
         (canSeeFinance || user?.role === "student" || user?.role === "parent")
-          ? safe(paymentApi.list() as Promise<ListResponse<PaymentRaw>>, [], "payments")
+          ? safe(fetchAllPages<PaymentRaw>("/payments/") as Promise<ListResponse<PaymentRaw>>, [], "payments")
           : Promise.resolve([]),
         canSeePenalties ? safe(penaltyApi.list() as Promise<ListResponse<StaffPenaltyRaw>>, [], "penalties") : Promise.resolve([]),
         safe(homeworkApi.list() as Promise<ListResponse<HomeworkRaw>>, [], "homework"),
-        safe(homeworkApi.allSubmissions() as Promise<ListResponse<HomeworkSubmissionRaw>>, [], "homework submissions"),
-        safe(gradeApi.list() as Promise<ListResponse<GradeRaw>>, [], "grades"),
+        safe(fetchAllPages<HomeworkSubmissionRaw>("/homeworks/submissions/") as Promise<ListResponse<HomeworkSubmissionRaw>>, [], "homework submissions"),
+        safe(fetchAllPages<GradeRaw>("/grades/") as Promise<ListResponse<GradeRaw>>, [], "grades"),
         safe(notificationApi.list() as Promise<ListResponse<NotificationRaw>>, [], "notifications"),
         safe(chatApi.list(), [], "chats"),
         ["director", "superadmin"].includes(user?.role ?? "")
@@ -1081,6 +1126,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       studentApi.createWithFiles(formData).then((raw) => {
         const persisted = studentFromRaw(raw as StudentRaw);
         setStudents((prev) => prev.map((s) => (s.id === id ? { ...persisted, parentId } : s)));
+        announceGeneratedCredentials(
+          raw as AnyRecord,
+          { fullName: created.fullName, phone: created.phone },
+          { fullName: input.parentName, phone: input.parentPhone },
+        );
       }),
       rollbackAll(
         () => setStudents((prev) => prev.filter((s) => s.id !== id)),
