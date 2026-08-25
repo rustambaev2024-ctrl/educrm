@@ -175,7 +175,7 @@ function BranchesPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-7 text-primary-foreground hover:bg-white/20"
+                          className="edu-tap size-7 text-primary-foreground hover:bg-white/20"
                           title={lang === "uz" ? "Tahrirlash" : "Изменить"}
                           onClick={() => openEditBranch(branch)}
                         >
@@ -184,7 +184,7 @@ function BranchesPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-7 text-primary-foreground hover:bg-white/20"
+                          className="edu-tap size-7 text-primary-foreground hover:bg-white/20"
                           title={lang === "uz" ? "O'chirish" : "Удалить"}
                           onClick={() => setDeletingBranch(branch)}
                         >
@@ -428,7 +428,7 @@ function RoomColumn({
                   </div>
                   <div className="flex items-center gap-1 opacity-70 transition group-hover:opacity-100">
                     <GripVertical className="size-4 text-muted-foreground" />
-                    <Button variant="ghost" size="icon" title={lang === "uz" ? "O'chirish" : "Удалить"} className="size-7 text-destructive" onClick={() => onDelete(room)}>
+                    <Button variant="ghost" size="icon" title={lang === "uz" ? "O'chirish" : "Удалить"} className="edu-tap size-7 text-destructive" onClick={() => onDelete(room)}>
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>

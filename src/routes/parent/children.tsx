@@ -104,7 +104,7 @@ function ParentChildren() {
               <button
                 key={c.id}
                 onClick={() => setActiveChildId(c.id)}
-                className={`flex flex-shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                className={`flex min-h-11 flex-shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
                   c.id === child.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-accent/40"
                 }`}
               >

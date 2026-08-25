@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PasswordInput } from "@/components/edu/password-input";
 import { PhoneInput } from "@/components/edu/phone-input";
+import { DateInput, todayIso } from "@/components/edu/date-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -141,7 +142,14 @@ export function CreateStudentSheet({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="birthDate">{t("students.field.birthDate")}</Label>
-                <Input id="birthDate" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+                {/* Дата рождения не может быть в будущем; 1900 — разумный нижний предел от опечаток в годе. */}
+                <DateInput
+                  id="birthDate"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  minDate="1900-01-01"
+                  maxDate={todayIso()}
+                />
               </div>
             </div>
 

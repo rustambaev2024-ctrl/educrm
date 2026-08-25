@@ -113,8 +113,11 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "icon", type: "image/svg+xml", href: "/icon.svg" },
-      { rel: "apple-touch-icon", href: "/icon.svg" },
+      // Favicon и apple-touch — только PNG: WebP в rel="icon" поддержан не везде,
+      // а сам PNG отдаётся в целевом размере, а не масштабируется из 1254px.
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/brand/icon-192.png" },
+      { rel: "icon", type: "image/png", sizes: "512x512", href: "/brand/icon-512.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/brand/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,

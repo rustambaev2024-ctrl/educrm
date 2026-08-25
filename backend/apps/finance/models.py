@@ -34,9 +34,11 @@ class Payment(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # PROTECT, не CASCADE: Payment — append-only аудит-тропа (balance_before/balance_after).
+    # Удаление Wallet (в т.ч. каскадом от Student/User) должно падать с ProtectedError. R-21.
     wallet = models.ForeignKey(
         Wallet,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="payments",
         null=True,
         blank=True,

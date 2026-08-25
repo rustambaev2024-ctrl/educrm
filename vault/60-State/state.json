@@ -1,0 +1,807 @@
+{
+  "version": 1,
+  "project": "EduCRM",
+  "updated_at": "2026-07-31T15:13:42Z",
+  "branches": {
+    "production": "master",
+    "staging": "staging"
+  },
+  "roles": {
+    "tech-lead": {
+      "agent": "tech-lead",
+      "statuses": [
+        "backlog",
+        "design_review",
+        "code_review",
+        "release_ready"
+      ]
+    },
+    "designer": {
+      "agent": "designer",
+      "statuses": [
+        "design"
+      ]
+    },
+    "ux-writer": {
+      "agent": "ux-writer",
+      "statuses": [
+        "design"
+      ]
+    },
+    "backend": {
+      "agent": "backend-dev",
+      "statuses": [
+        "dev",
+        "fix"
+      ]
+    },
+    "frontend": {
+      "agent": "frontend-dev",
+      "statuses": [
+        "dev",
+        "fix"
+      ]
+    },
+    "db": {
+      "agent": "db-engineer",
+      "statuses": [
+        "dev",
+        "fix"
+      ]
+    },
+    "qa": {
+      "agent": "qa-engineer",
+      "statuses": [
+        "qa"
+      ]
+    },
+    "devops": {
+      "agent": "devops",
+      "statuses": [
+        "staging",
+        "prod"
+      ]
+    },
+    "security": {
+      "agent": "security-reviewer",
+      "statuses": [
+        "code_review"
+      ]
+    },
+    "auditor": {
+      "agent": "auditor",
+      "statuses": []
+    }
+  },
+  "features": [
+    {
+      "id": "F-001",
+      "title": "Разбор незакоммиченной работы: ребренд GrowBase, тёмная тема, фиксы телефона/даты",
+      "created_at": "2026-07-28T14:19:15Z",
+      "modules": [
+        "brand",
+        "auth",
+        "students",
+        "teacher",
+        "superadmin"
+      ],
+      "roles": [
+        "superadmin",
+        "director",
+        "branch_admin",
+        "teacher",
+        "support_teacher",
+        "student",
+        "parent"
+      ],
+      "spec": "vault/60-State/features/F-001.md"
+    },
+    {
+      "id": "F-002",
+      "title": "Полный аудит платформы: исправление критических дефектов",
+      "created_at": "2026-07-29T03:14:27Z",
+      "modules": [
+        "homework",
+        "grades",
+        "coins",
+        "finance",
+        "students",
+        "quizzes",
+        "chat",
+        "accounts",
+        "staff",
+        "courses",
+        "lessons",
+        "reports"
+      ],
+      "roles": [
+        "superadmin",
+        "director",
+        "branch_admin",
+        "teacher",
+        "support_teacher",
+        "student",
+        "parent"
+      ],
+      "spec": "vault/60-State/features/F-002.md"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T-001",
+      "title": "Коммит: фикс маски телефона (phone-input.tsx, phone.ts)",
+      "feature": "F-001",
+      "status": "backlog",
+      "owner": "frontend",
+      "assignee": "frontend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-28T14:20:16Z"
+    },
+    {
+      "id": "T-002",
+      "title": "Довести DateInput до готовности (min/max, id на инпут, i18n плейсхолдеров) и закоммитить с потребителями",
+      "feature": "F-001",
+      "status": "backlog",
+      "owner": "frontend",
+      "assignee": "frontend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-28T14:20:16Z"
+    },
+    {
+      "id": "T-003",
+      "title": "Починить нечитаемость тёмной темы: student/coins.tsx, admin/leads.tsx, director/leads.tsx",
+      "feature": "F-001",
+      "status": "backlog",
+      "owner": "frontend",
+      "assignee": "frontend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-28T14:20:16Z"
+    },
+    {
+      "id": "T-004",
+      "title": "Ресайз/сжатие логотипов public/brand, обновить manifest.webmanifest, убрать заглушку E в join.tsx",
+      "feature": "F-001",
+      "status": "backlog",
+      "owner": "frontend",
+      "assignee": "frontend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-28T14:20:16Z"
+    },
+    {
+      "id": "T-005",
+      "title": "Коммит ребренда: frontend (layout+i18n+тема-тоггл+brand assets) + backend (дефолты/миграция/settings)",
+      "feature": "F-001",
+      "status": "backlog",
+      "owner": "frontend",
+      "assignee": "frontend",
+      "after": [
+        "T-003",
+        "T-004"
+      ],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-28T14:20:16Z"
+    },
+    {
+      "id": "T-006",
+      "title": "QA-регресс: тёмная тема на 7 порталах, ввод даты, маска телефона, платформенные настройки",
+      "feature": "F-001",
+      "status": "backlog",
+      "owner": "qa",
+      "assignee": "qa",
+      "after": [
+        "T-001",
+        "T-002",
+        "T-003",
+        "T-005"
+      ],
+      "blocked": "также ждёт T-007 (бэкенд-часть ребренда) — добавлено вручную, инструмент не поддерживает добавление зависимости после создания задачи",
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-28T14:20:16Z"
+    },
+    {
+      "id": "T-007",
+      "title": "Коммит бэкенд-части ребренда: platform_name, SMS-текст, PDF-заголовки, OpenAPI title, миграция 0004",
+      "feature": "F-001",
+      "status": "qa",
+      "owner": "qa",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": "db93186d8e4197e21d45fdfcb484827f25f1c64b",
+      "verdict": null,
+      "created_at": "2026-07-28T14:20:36Z"
+    },
+    {
+      "id": "T-008",
+      "title": "R-20: ученик не может сам себе выставить оценку/статус ДЗ",
+      "feature": "F-002",
+      "status": "staging",
+      "owner": "devops",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:35Z"
+    },
+    {
+      "id": "T-009",
+      "title": "R-22: trigger-daily-charge только свой тенант, асинхронно",
+      "feature": "F-002",
+      "status": "staging",
+      "owner": "devops",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:35Z"
+    },
+    {
+      "id": "T-010",
+      "title": "R-19: тенантная изоляция live-квиза (WS+REST схема из JWT, WS-группа с префиксом схемы)",
+      "feature": "F-002",
+      "status": "qa",
+      "owner": "qa",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": "db93186d8e4197e21d45fdfcb484827f25f1c64b",
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:35Z"
+    },
+    {
+      "id": "T-011",
+      "title": "R-21 БД: Payment/CoinWallet on_delete CASCADE->PROTECT, проверка прод-данных",
+      "feature": "F-002",
+      "status": "qa",
+      "owner": "qa",
+      "assignee": "db",
+      "after": [],
+      "blocked": null,
+      "staging_commit": "db93186d8e4197e21d45fdfcb484827f25f1c64b",
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:35Z"
+    },
+    {
+      "id": "T-012",
+      "title": "R-21 backend: soft-delete ученика вместо физического удаления",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "backend",
+      "assignee": "backend",
+      "after": [
+        "T-011"
+      ],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:35Z"
+    },
+    {
+      "id": "T-013",
+      "title": "R-17: закрыть публичный /media/student_docs/, presigned ссылки",
+      "feature": "F-002",
+      "status": "staging",
+      "owner": "devops",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:35Z"
+    },
+    {
+      "id": "T-014",
+      "title": "R-18: branch_admin не может сменить пароль директора",
+      "feature": "F-002",
+      "status": "staging",
+      "owner": "devops",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:35Z"
+    },
+    {
+      "id": "T-015",
+      "title": "R-23: убрать дефолтный пароль ChangeMe123, включить парольную политику",
+      "feature": "F-002",
+      "status": "qa",
+      "owner": "qa",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": "db93186d8e4197e21d45fdfcb484827f25f1c64b",
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:35Z"
+    },
+    {
+      "id": "T-016",
+      "title": "R-25: mark_overdue_homework без schema_context",
+      "feature": "F-002",
+      "status": "staging",
+      "owner": "devops",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:35Z"
+    },
+    {
+      "id": "T-017",
+      "title": "R-25: X-Tenant-Schema сверяется с JWT-claim в middleware",
+      "feature": "F-002",
+      "status": "staging",
+      "owner": "devops",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:36Z"
+    },
+    {
+      "id": "T-018",
+      "title": "R-24: включить DEFAULT_PAGINATION_CLASS глобально",
+      "feature": "F-002",
+      "status": "staging",
+      "owner": "devops",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:36Z"
+    },
+    {
+      "id": "T-019",
+      "title": "Security-ревью T-008..T-018 перед staging",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "security",
+      "assignee": "security",
+      "after": [
+        "T-008",
+        "T-009",
+        "T-010",
+        "T-011",
+        "T-012",
+        "T-013",
+        "T-014",
+        "T-015",
+        "T-016",
+        "T-017",
+        "T-018"
+      ],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:39Z"
+    },
+    {
+      "id": "T-020",
+      "title": "QA-регресс красных зон: тенант/права/деньги по 7 ролям",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "qa",
+      "assignee": "qa",
+      "after": [
+        "T-019"
+      ],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T03:14:39Z"
+    },
+    {
+      "id": "T-021",
+      "title": "R-19 follow-up: мигрировать join.tsx/play.$code.tsx на ticket-based вход в квиз",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "frontend",
+      "assignee": "frontend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T04:19:28Z"
+    },
+    {
+      "id": "T-022",
+      "title": "R-19 follow-up: убрать legacy ?schema= ветку в quizzes/consumers.py",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "backend",
+      "assignee": "backend",
+      "after": [
+        "T-021"
+      ],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T04:19:28Z"
+    },
+    {
+      "id": "T-023",
+      "title": "R-17 follow-up: перенос старых PII-файлов в приватное хранилище + validate_file на document_file",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "backend",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T04:19:29Z"
+    },
+    {
+      "id": "T-024",
+      "title": "R-17 follow-up: USE_PRIVATE_S3_DOCUMENTS + MinIO-креды на Railway",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "devops",
+      "assignee": "devops",
+      "after": [
+        "T-023"
+      ],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T04:19:29Z"
+    },
+    {
+      "id": "T-025",
+      "title": "R-17 follow-up: аудит-запись на скачивание документа ученика",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "backend",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T04:19:29Z"
+    },
+    {
+      "id": "T-026",
+      "title": "R-23 follow-up: серверный гейт блокирует API при must_change_password=true",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "backend",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T04:19:29Z"
+    },
+    {
+      "id": "T-027",
+      "title": "R-23 follow-up: экран принудительной смены пароля",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "frontend",
+      "assignee": "frontend",
+      "after": [
+        "T-026"
+      ],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T04:19:29Z"
+    },
+    {
+      "id": "T-028",
+      "title": "R-24 follow-up: признак усечения в ответе при MAX_UNPAGINATED",
+      "feature": "F-002",
+      "status": "backlog",
+      "owner": "backend",
+      "assignee": "backend",
+      "after": [],
+      "blocked": null,
+      "staging_commit": null,
+      "verdict": null,
+      "created_at": "2026-07-29T04:19:29Z"
+    }
+  ],
+  "log": [
+    {
+      "at": "2026-07-28T14:20:36Z",
+      "task": "T-006",
+      "from": "backlog",
+      "to": "backlog",
+      "note": "BLOCKED: также ждёт T-007 (бэкенд-часть ребренда) — добавлено вручную, инструмент не поддерживает добавление зависимости после создания задачи"
+    },
+    {
+      "at": "2026-07-29T03:28:32Z",
+      "task": "T-008",
+      "from": "backlog",
+      "to": "dev",
+      "note": "взял в работу"
+    },
+    {
+      "at": "2026-07-29T03:28:32Z",
+      "task": "T-008",
+      "from": "dev",
+      "to": "code_review",
+      "note": "R-20 закрыт: HomeworkStatusSerializer запрещает student писать grade/teacher_comment и статусы кроме submitted (403, {detail:{uz,ru}}). 6 тестов, легитимные пути (сдача учеником, проверка учителем) покрыты. Ветка task/T-008 влита в staging, sha aff3f7a."
+    },
+    {
+      "at": "2026-07-29T03:30:29Z",
+      "task": "T-011",
+      "from": "backlog",
+      "to": "dev",
+      "note": "R-21: миграция on_delete CASCADE->PROTECT, взято в работу db-engineer"
+    },
+    {
+      "at": "2026-07-29T03:30:29Z",
+      "task": "T-011",
+      "from": "dev",
+      "to": "code_review",
+      "note": "Payment.wallet и CoinTransaction.wallet CASCADE->PROTECT (finance/0008, coins/0003). sqlmigrate обеих = (no-op), DDL нет, блокировок нет, откат мгновенный. Pre-flight SQL по всем схемам тенантов + разбор метрик в F-002 §9. Красная зона деньги -> нужен security-ревью. Логика начислений/списаний не тронута. T-012 разблокирован."
+    },
+    {
+      "at": "2026-07-29T03:30:57Z",
+      "task": "T-009",
+      "from": "backlog",
+      "to": "dev",
+      "note": "взял в работу"
+    },
+    {
+      "at": "2026-07-29T03:30:57Z",
+      "task": "T-009",
+      "from": "dev",
+      "to": "code_review",
+      "note": "R-22 закрыт: trigger-daily-charge ставит daily_lesson_charge_for_tenant.delay(schema) только для своей схемы, 202; права IsBranchAdmin; localdate вместо naive date.today() чинит гард идемпотентности на границе суток; таймауты+retry на Celery. КРАСНАЯ ЗОНА: деньги — нужен security-reviewer. sha 4a111f2."
+    },
+    {
+      "at": "2026-07-29T03:31:54Z",
+      "task": "T-016",
+      "from": "backlog",
+      "to": "dev",
+      "note": "взял в работу"
+    },
+    {
+      "at": "2026-07-29T03:31:54Z",
+      "task": "T-016",
+      "from": "dev",
+      "to": "code_review",
+      "note": "R-25 (mark_overdue_homework) закрыт: schema_context по каждому тенанту, таймауты+retry, логи со схемой, идемпотентность покрыта тестом."
+    },
+    {
+      "at": "2026-07-29T03:34:17Z",
+      "task": "T-018",
+      "from": "backlog",
+      "to": "dev",
+      "note": "взял в работу"
+    },
+    {
+      "at": "2026-07-29T03:34:18Z",
+      "task": "T-018",
+      "from": "dev",
+      "to": "code_review",
+      "note": "R-24: DEFAULT_PAGINATION_CLASS включён глобально (OptInPageNumberPagination). Пагинация по ?page/?page_size, без параметров — прежний контракт с потолком 1000. Полное принудительное включение требует миграции фронта — follow-up. sha ba791c8."
+    },
+    {
+      "at": "2026-07-29T03:36:26Z",
+      "task": "T-014",
+      "from": "backlog",
+      "to": "dev",
+      "note": "взял в работу"
+    },
+    {
+      "at": "2026-07-29T03:36:26Z",
+      "task": "T-014",
+      "from": "dev",
+      "to": "code_review",
+      "note": "R-18 закрыт: password в StaffSerializer.update защищён теми же правилами, что /auth/reset-password/. 7 тестов, легитимные пути (директор -> сотрудник, админ филиала -> свой учитель, PATCH без password) покрыты. КРАСНАЯ ЗОНА: права — нужен security-reviewer."
+    },
+    {
+      "at": "2026-07-29T03:44:01Z",
+      "task": "T-015",
+      "from": "backlog",
+      "to": "dev",
+      "note": "взял в работу"
+    },
+    {
+      "at": "2026-07-29T03:44:02Z",
+      "task": "T-015",
+      "from": "dev",
+      "to": "code_review",
+      "note": "R-23: ChangeMe123 удалён (криптостойкий temp-пароль + generated_password в ответе), AUTH_PASSWORD_VALIDATORS включены, User.must_change_password + миграция 0005. НЕ сделано намеренно: принудительная блокировка API до смены пароля — нужен экран на фронте, иначе locked out. Ломающее для клиента: пароли уровня secret123 отклоняются (400). Нужен security-reviewer + миграция на всех tenant-схемах. sha 67d8d36."
+    },
+    {
+      "at": "2026-07-29T03:46:24Z",
+      "task": "T-017",
+      "from": "backlog",
+      "to": "dev",
+      "note": "взял в работу"
+    },
+    {
+      "at": "2026-07-29T03:46:24Z",
+      "task": "T-017",
+      "from": "dev",
+      "to": "code_review",
+      "note": "R-25 (X-Tenant-Schema) закрыт: middleware сверяет заголовок с claim schema_name до set_tenant, 403 при несовпадении. Исключения: анонимные пути, токены без claim, superadmin (логируется). 8 тестов. КРАСНАЯ ЗОНА: мультитенант — нужен security-reviewer."
+    },
+    {
+      "at": "2026-07-29T03:52:34Z",
+      "task": "T-010",
+      "from": "backlog",
+      "to": "dev",
+      "note": "взял в работу"
+    },
+    {
+      "at": "2026-07-29T03:52:34Z",
+      "task": "T-010",
+      "from": "dev",
+      "to": "code_review",
+      "note": "R-19 закрыт: схема только из JWT/подписанного тикета, перебор схем удалён, WS-группа с префиксом схемы, троттлинг на анонимных эндпоинтах. 13 тестов. КРАСНАЯ ЗОНА: мультитенант + PII — нужен security-reviewer. Нужна follow-up задача фронту: join.tsx -> join_ticket, play.$code.tsx -> ?ticket=."
+    },
+    {
+      "at": "2026-07-29T04:01:54Z",
+      "task": "T-013",
+      "from": "backlog",
+      "to": "dev",
+      "note": "взял в работу"
+    },
+    {
+      "at": "2026-07-29T04:01:54Z",
+      "task": "T-013",
+      "from": "dev",
+      "to": "code_review",
+      "note": "R-17 закрыт по ADR-002: приватное хранилище с tenant в пути, /media/student_docs/ закрыт, download-эндпоинт с проверкой прав, валидация типа/размера. 16 тестов. КРАСНАЯ ЗОНА: PII несовершеннолетних — обязателен security-reviewer. ЛОМАЮЩЕЕ для фронта: documents[].file -> documents[].download_url. НЕ сделано: перенос уже загруженных файлов прода (операция с реальным PII, нужен отдельный скрипт + бэкап + security-ревью, см. ADR-002); до переноса старые документы недоступны. sha b3aeb65."
+    },
+    {
+      "at": "2026-07-29T04:04:08Z",
+      "task": "T-007",
+      "from": "backlog",
+      "to": "dev",
+      "note": "взял в работу"
+    },
+    {
+      "at": "2026-07-29T04:04:08Z",
+      "task": "T-007",
+      "from": "dev",
+      "to": "code_review",
+      "note": "Ребренд бэкенда закоммичен: platform_name default + миграция superadmin/0004 (public-схема), setup_production, SMS-текст, заголовки PDF. OpenAPI title уже был GrowBase. meta_conversions.lead_event_source и домен educrm.uz — вне объёма F-001. manage.py check зелёный, makemigrations --check без изменений."
+    },
+    {
+      "at": "2026-07-29T04:19:09Z",
+      "task": "T-010",
+      "from": "code_review",
+      "to": "dev",
+      "note": "Security REJECTED (Б-1): tenants/middleware.py PUBLIC_PATH_PREFIXES/SUFFIXES ставят request.tenant=None для quiz-путей, _get_schema() всегда None, живой квиз недоступен (404 везде). Плюс Б-2: legacy ?schema= в consumers.py остаётся дырой до миграции фронта, но это не блокер staging. См. vault/80-Reports/security-T-019.md"
+    },
+    {
+      "at": "2026-07-29T04:19:09Z",
+      "task": "T-007",
+      "from": "code_review",
+      "to": "staging",
+      "note": "Security review: APPROVED, вне периметра"
+    },
+    {
+      "at": "2026-07-29T04:19:09Z",
+      "task": "T-008",
+      "from": "code_review",
+      "to": "staging",
+      "note": "Security review: закрыто полностью (R-20)"
+    },
+    {
+      "at": "2026-07-29T04:19:09Z",
+      "task": "T-009",
+      "from": "code_review",
+      "to": "staging",
+      "note": "Security review: закрыто полностью (R-22)"
+    },
+    {
+      "at": "2026-07-29T04:19:09Z",
+      "task": "T-011",
+      "from": "code_review",
+      "to": "staging",
+      "note": "Security review: закрыто полностью (R-21), проверено отдельно от остального диффа"
+    },
+    {
+      "at": "2026-07-29T04:19:09Z",
+      "task": "T-013",
+      "from": "code_review",
+      "to": "staging",
+      "note": "Security review: закрыто частично (R-17) — публичный доступ перекрыт, presigned готовы; перенос старых файлов и валидация document_file — follow-up, не блокер"
+    },
+    {
+      "at": "2026-07-29T04:19:09Z",
+      "task": "T-014",
+      "from": "code_review",
+      "to": "staging",
+      "note": "Security review: закрыто полностью (R-18)"
+    },
+    {
+      "at": "2026-07-29T04:19:09Z",
+      "task": "T-015",
+      "from": "code_review",
+      "to": "staging",
+      "note": "Security review: закрыто частично (R-23) — ChangeMe123 убран, парольная политика включена; принудительный экран смены пароля — follow-up"
+    },
+    {
+      "at": "2026-07-29T04:19:09Z",
+      "task": "T-016",
+      "from": "code_review",
+      "to": "staging",
+      "note": "Security review: закрыто полностью (R-25)"
+    },
+    {
+      "at": "2026-07-29T04:19:10Z",
+      "task": "T-017",
+      "from": "code_review",
+      "to": "staging",
+      "note": "Security review: закрыто полностью (R-25)"
+    },
+    {
+      "at": "2026-07-29T04:19:10Z",
+      "task": "T-018",
+      "from": "code_review",
+      "to": "staging",
+      "note": "Security review: закрыто частично (R-24) — opt-in пагинация корректна, признак усечения — follow-up"
+    },
+    {
+      "at": "2026-07-29T04:27:53Z",
+      "task": "T-010",
+      "from": "dev",
+      "to": "code_review",
+      "note": "Б-1 закрыт: квиз-пути убраны из PUBLIC_PATH_PREFIXES/SUFFIXES (обе пустые) и переведены в TENANT_OPTIONAL_PATH_PREFIXES / TENANT_OPTIONAL_PATH_PREFIX_SUFFIX — тенант резолвится штатным header->domain путём, нового способа выбрать схему клиентом не появилось, ?schema= не читается. Нерезолвленный тенант -> 404 из вьюхи, не 401 middleware. Отличие от прошлой попытки: 10 новых тестов идут через РЕАЛЬНЫЙ middleware-стек (django.test.Client + override_settings(MIDDLEWARE)), а не подставляют request.tenant; проверено — со старой конфигурацией 7 из 10 падают. Остальной код T-010 (тикеты, WS-группа, троттлинг) не тронут. Б-2 (legacy ?schema= в consumers.py) остаётся за T-021/T-022. Коммит a8e6fb4, влит в staging. Полный прогон: 132 passed, 11 failed — те же 11 доволновых падений, новых нет."
+    },
+    {
+      "at": "2026-07-31T15:13:41Z",
+      "task": "T-007",
+      "from": "staging",
+      "to": "qa",
+      "note": "деплой staging ок, commit db93186d8e4197e21d45fdfcb484827f25f1c64b — QA разблокирован"
+    },
+    {
+      "at": "2026-07-31T15:13:41Z",
+      "task": "T-010",
+      "from": "code_review",
+      "to": "staging",
+      "note": "commit db93186d8e4197e21d45fdfcb484827f25f1c64b"
+    },
+    {
+      "at": "2026-07-31T15:13:41Z",
+      "task": "T-010",
+      "from": "staging",
+      "to": "qa",
+      "note": "деплой staging ок, commit db93186d8e4197e21d45fdfcb484827f25f1c64b — QA разблокирован"
+    },
+    {
+      "at": "2026-07-31T15:13:42Z",
+      "task": "T-011",
+      "from": "staging",
+      "to": "qa",
+      "note": "деплой staging ок, commit db93186d8e4197e21d45fdfcb484827f25f1c64b — QA разблокирован"
+    },
+    {
+      "at": "2026-07-31T15:13:42Z",
+      "task": "T-015",
+      "from": "staging",
+      "to": "qa",
+      "note": "деплой staging ок, commit db93186d8e4197e21d45fdfcb484827f25f1c64b — QA разблокирован"
+    }
+  ]
+}

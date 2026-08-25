@@ -8,6 +8,7 @@ import { HomeworkList, ReviewPanel } from "@/components/edu/homework-review-pane
 import { Button } from "@/components/ui/button";
 import { CardGridSkeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { DateInput, todayIso } from "@/components/edu/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -265,8 +266,14 @@ function TeacherHomework() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>{t("hw.field.due")}*</Label>
-                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+                <Label htmlFor="hw-due-date">{t("hw.field.due")}*</Label>
+                {/* Срок сдачи в прошлом бессмыслен — отсекаем на вводе, а не при сохранении. */}
+                <DateInput
+                  id="hw-due-date"
+                  value={form.dueDate}
+                  onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                  minDate={todayIso()}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>&nbsp;</Label>

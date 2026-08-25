@@ -1,11 +1,18 @@
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from apps.courses.models import GroupMembership
 from apps.students.models import Student
 
 from .models import Homework, HomeworkStatus
+
+# R-20: ученик сдаёт работу, но не проверяет её.
+# Единственное, что ему разрешено записывать в свой HomeworkStatus.
+STUDENT_WRITABLE_FIELDS = frozenset({"status", "answer_text", "answer_file"})
+# И единственный статус, который он может себе поставить.
+STUDENT_ALLOWED_STATUSES = frozenset({"submitted"})
 
 
 class HomeworkSerializer(serializers.ModelSerializer):
@@ -92,6 +99,42 @@ class HomeworkStatusSerializer(serializers.ModelSerializer):
             "checked_by",
             "checked_at",
         )
+
+    def _enforce_student_scope(self, data):
+        """R-20: ученик не может выставить себе оценку/статус проверки.
+
+        Проверяется до валидации полей, чтобы попытка накрутки давала честный 403,
+        а не 400 от валидатора значения.
+        Легитимный путь остаётся открытым: PATCH со `status="submitted"`,
+        `answer_text`, `answer_file` — сдача работы.
+        """
+        request = self.context.get("request")
+        role = getattr(getattr(request, "user", None), "role", None)
+        if role != "student" or not isinstance(data, dict):
+            return
+
+        writable = {name for name, field in self.fields.items() if not field.read_only}
+        forbidden = sorted((writable - STUDENT_WRITABLE_FIELDS) & set(data))
+        if forbidden:
+            raise PermissionDenied({
+                "detail": {
+                    "uz": "O'quvchi o'ziga baho yoki izoh qo'ya olmaydi",
+                    "ru": "Ученик не может выставлять себе оценку или комментарий",
+                }
+            })
+
+        status_value = data.get("status")
+        if status_value is not None and status_value not in STUDENT_ALLOWED_STATUSES:
+            raise PermissionDenied({
+                "detail": {
+                    "uz": "O'quvchi faqat ishni topshira oladi",
+                    "ru": "Ученик может только сдать работу",
+                }
+            })
+
+    def run_validation(self, data=serializers.empty):
+        self._enforce_student_scope(data)
+        return super().run_validation(data)
 
     def validate(self, attrs):
         status_value = attrs.get("status", getattr(self.instance, "status", None))

@@ -31,4 +31,7 @@ class DevCorsMiddleware:
         response["Access-Control-Allow-Headers"] = (
             "Authorization, Content-Type, X-Tenant-Schema, X-Requested-With"
         )
+        # T-028: без Expose-Headers браузер не отдаёт клиенту признак усечения
+        # непагинированного списка — фронт молча покажет неполные данные.
+        response["Access-Control-Expose-Headers"] = "X-Result-Truncated, X-Result-Limit"
         response["Access-Control-Max-Age"] = "86400"

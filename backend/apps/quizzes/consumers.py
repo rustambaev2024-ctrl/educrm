@@ -6,22 +6,89 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.utils import timezone
 from django_tenants.utils import schema_context
 
+from .tickets import read_join_ticket
+
+
+def quiz_group_name(schema_name: str, session_code: str) -> str:
+    """Имя WS-группы включает схему тенанта (инвариант 4 multitenancy.md).
+
+    R-19: раньше группа звалась `quiz_<code>`. Код 6-значный и уникален только
+    внутри схемы — два учебных центра с одинаковым кодом оказывались в одной
+    группе и видели вопросы и результаты друг друга.
+    """
+    return f"quiz_{schema_name}_{session_code}"
+
+
+def resolve_schema_from_scope(scope, query_params):
+    """Схема из JWT или из подписанного тикета. Без обращения к БД.
+
+    Возвращает None, если ни один доверенный источник не дал схему —
+    вызывающий может попробовать legacy-путь с проверкой по БД.
+    """
+    user = scope.get("user")
+    if user is not None and not user.is_anonymous:
+        schema = scope.get("schema_name")
+        if schema:
+            return schema
+
+    code = str(scope["url_route"]["kwargs"]["code"])
+    ticket = read_join_ticket(query_params.get("ticket", [""])[0])
+    if ticket and str(ticket.get("code")) == code:
+        return ticket.get("schema")
+    return None
+
 
 class QuizConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.session_code = self.scope["url_route"]["kwargs"]["code"]
-        self.room_group = f"quiz_{self.session_code}"
+        """R-19: схема тенанта больше не берётся из свободного `?schema=`.
 
-        scope_schema = self.scope.get("schema_name", "public")
+        Источники, по приоритету:
+        1. JWT (`?token=`) — хост сессии, схема из claim `schema_name`;
+        2. подписанный тикет (`?ticket=`), выданный `by-code`/`join`;
+        3. legacy `?schema=` — принимается, только если сессия с этим кодом
+           действительно есть в этой схеме (совместимость со старым фронтом,
+           до перехода на тикет).
+
+        Имя WS-группы включает схему: 6-значный код уникален только внутри
+        схемы, и без префикса два учебных центра с одинаковым кодом попадали
+        в одну группу — участники получали чужие вопросы и результаты.
+        """
+        self.session_code = self.scope["url_route"]["kwargs"]["code"]
+
         qs = parse_qs(self.scope.get("query_string", b"").decode())
-        query_schema = qs.get("schema", [""])[0]
-        self.schema_name = query_schema or scope_schema or "public"
+        schema = resolve_schema_from_scope(self.scope, qs)
+
+        if not schema:
+            legacy = qs.get("schema", [""])[0]
+            if legacy and await self.session_exists_in(legacy):
+                schema = legacy
+
+        if not schema:
+            await self.close(code=4403)
+            return
+
+        self.schema_name = schema
+        self.room_group = quiz_group_name(self.schema_name, self.session_code)
 
         await self.channel_layer.group_add(self.room_group, self.channel_name)
         await self.accept()
 
+    @database_sync_to_async
+    def session_exists_in(self, schema_name):
+        from .models import QuizSession
+
+        try:
+            with schema_context(schema_name):
+                return QuizSession.objects.filter(code=self.session_code).exists()
+        except Exception:
+            return False
+
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.room_group, self.channel_name)
+        room_group = getattr(self, "room_group", None)
+        if not room_group:
+            # connect() отклонил соединение до group_add — нечего снимать.
+            return
+        await self.channel_layer.group_discard(room_group, self.channel_name)
 
         # Раньше отключение хоста (сеть моргнула, случайно обновил вкладку)
         # мгновенно и необратимо завершало сессию для всех участников — на

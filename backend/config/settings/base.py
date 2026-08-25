@@ -110,8 +110,25 @@ TENANT_MODEL = "tenants.Institution"
 TENANT_DOMAIN_MODEL = "tenants.Domain"
 PUBLIC_SCHEMA_NAME = "public"
 
-# Ограничения на пароль сняты по требованию — любой пароль допускается.
-AUTH_PASSWORD_VALIDATORS = []
+# R-23: раньше здесь был пустой список — пароль вида "1111" принимался,
+# а аккаунты без явного пароля получали общеизвестный литерал `ChangeMe123`.
+# Проверка вызывается через apps.core.passwords.validate_password_strength,
+# которая переводит сообщения Django в формат {detail:{uz,ru}}.
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# T-026 / R-23: пользователь с непогашенным `must_change_password` не работает
+# через API, пока не сменит временный пароль. Аварийный выключатель для devops
+# на случай, если версия фронта без экрана смены запрёт реальных сотрудников:
+# FORCE_PASSWORD_CHANGE=0.
+FORCE_PASSWORD_CHANGE = os.getenv("FORCE_PASSWORD_CHANGE", "1") not in ("0", "false", "False")
 
 LANGUAGE_CODE = "ru"
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")
@@ -127,6 +144,14 @@ MEDIA_URL = "/media/"
 # постоянный Railway Volume и указываем на него через MEDIA_ROOT.
 # По умолчанию — прежний путь (для локальной разработки).
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", str(BASE_DIR / "media"))
+
+# R-17 / ADR-002: документы учеников (паспорта, свидетельства о рождении) —
+# отдельный приватный корень ВНЕ MEDIA_ROOT. `/media/` его не раздаёт.
+PRIVATE_MEDIA_ROOT = os.getenv("PRIVATE_MEDIA_ROOT", str(BASE_DIR / "private_media"))
+# Включается на окружении, где MinIO реально поднят и доступен воркеру.
+USE_PRIVATE_S3_DOCUMENTS = os.getenv("USE_PRIVATE_S3_DOCUMENTS", "false").lower() == "true"
+# Срок жизни presigned-ссылки на документ.
+DOCUMENT_URL_TTL_SECONDS = int(os.getenv("DOCUMENT_URL_TTL_SECONDS", "300"))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
@@ -160,15 +185,28 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    # T-026 / R-23: тот же JWTAuthentication плюс гейт принудительной смены
+    # временного пароля (`apps/accounts/authentication.py`). Слой выбран
+    # потому, что вьюхи массово затирают DEFAULT_PERMISSION_CLASSES, а
+    # пользователь здесь уже загружен — проверка бесплатна.
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.accounts.authentication.PasswordChangeGateJWTAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # R-24: до этого пагинации не было ни в одном списке, кроме /students/ и чата.
+    # Класс включается глобально; поведение — см. apps/core/pagination.py.
+    "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.OptInPageNumberPagination",
+    "PAGE_SIZE": 100,
+    # R-19: анонимные эндпоинты живого квиза были без ограничений —
+    # 6-значный код перебирался без всякой цены.
+    "DEFAULT_THROTTLE_RATES": {
+        "quiz_join": "30/min",
+    },
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "EduCRM API",
-    "DESCRIPTION": "EduCRM backend foundation",
+    "TITLE": "GrowBase API",
+    "DESCRIPTION": "GrowBase backend foundation",
     "VERSION": "0.1.0",
     "ENUM_NAME_OVERRIDES": {
         "BranchStatusEnum": "apps.institutions.models.Branch.STATUS_CHOICES",

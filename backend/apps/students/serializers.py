@@ -1,6 +1,4 @@
 import logging
-import secrets
-import string
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -9,15 +7,12 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 from apps.accounts.managers import UserManager
+from apps.core.passwords import generate_temp_password, validate_password_strength
 
 from .models import Certificate, Parent, ParentStudentLink, Student, StudentDocument, StudentLead
+from .storage import ALLOWED_DOCUMENT_EXTENSIONS, MAX_DOCUMENT_SIZE
 
 logger = logging.getLogger(__name__)
-
-
-def generate_temp_password():
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(10))
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -78,6 +73,12 @@ class StudentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     "detail": {"uz": "Bu telefon raqami band", "ru": "Этот номер телефона уже занят"}
                 })
+
+        # R-23: парольная политика, см. apps/core/passwords.py.
+        for field in ("password", "parent_password"):
+            value = attrs.get(field)
+            if value:
+                validate_password_strength(value)
         return attrs
 
     @extend_schema_field(serializers.ListField(child=serializers.UUIDField()))
@@ -97,12 +98,17 @@ class StudentSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_documents(self, obj):
+        # R-17: постоянный публичный URL файла больше не отдаётся.
+        # Клиент запрашивает короткоживущую ссылку через download-эндпоинт,
+        # который проверяет права так же, как StudentViewSet.
         return [
             {
                 "id": str(document.id),
-                "name": document.file.name.split("/")[-1],
+                "name": document.file.name.split("/")[-1] if document.file else None,
                 "doc_type": document.doc_type,
-                "file": document.file.url if document.file else None,
+                "download_url": (
+                    f"/api/v1/students/{obj.id}/documents/{document.id}/download/"
+                ),
                 "uploaded_at": document.uploaded_at.isoformat(),
             }
             for document in obj.documents.all()
@@ -122,7 +128,13 @@ class StudentSerializer(serializers.ModelSerializer):
 
             parent_full_name = validated_data.pop("parent_full_name", "")
             parent_phone = validated_data.pop("parent_phone", "")
-            parent_password = validated_data.pop("parent_password", "") or "ChangeMe123"
+            # R-23: общего литерала больше нет — пароль родителя генерируется
+            # криптостойко и возвращается создателю один раз.
+            parent_password = validated_data.pop("parent_password", "")
+            parent_generated_password = None
+            if not parent_password:
+                parent_password = generate_temp_password()
+                parent_generated_password = parent_password
             document_file = validated_data.pop("document_file", None)
             document_type = validated_data.pop("document_type", "passport")
 
@@ -132,6 +144,10 @@ class StudentSerializer(serializers.ModelSerializer):
                 role="student",
                 password=password,
             )
+            if generated_password:
+                # R-23: временный пароль выдан админом — ученик обязан сменить.
+                user.must_change_password = True
+                user.save(update_fields=["must_change_password"])
             if photo:
                 user.photo = photo
                 user.save(update_fields=["photo"])
@@ -157,7 +173,10 @@ class StudentSerializer(serializers.ModelSerializer):
                 )
                 if created:
                     parent_user.set_password(parent_password)
-                    parent_user.save(update_fields=["password"])
+                    parent_user.must_change_password = True
+                    parent_user.save(update_fields=["password", "must_change_password"])
+                    if parent_generated_password:
+                        self._parent_generated_password = parent_generated_password
                 else:
                     warnings.append({
                         "uz": f"Ota-ona {parent_phone} allaqachon mavjud — yangi parol qo'llanilmadi, eski parol ishlatiladi",
@@ -170,6 +189,10 @@ class StudentSerializer(serializers.ModelSerializer):
             self._creation_extra = {}
             if generated_password:
                 self._creation_extra["generated_password"] = generated_password
+            if getattr(self, "_parent_generated_password", None):
+                self._creation_extra["parent_generated_password"] = (
+                    self._parent_generated_password
+                )
             if warnings:
                 self._creation_extra["warnings"] = warnings
 
@@ -204,17 +227,20 @@ class StudentSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
+        actor = getattr(self.context.get("request"), "user", None)
         if user_data:
             user = instance.user
             for attr, value in user_data.items():
                 setattr(user, attr, value)
             if password:
                 user.set_password(password)
+                user.must_change_password = getattr(actor, "id", None) != user.id
             user.save()
         elif password:
             user = instance.user
             user.set_password(password)
-            user.save(update_fields=["password"])
+            user.must_change_password = getattr(actor, "id", None) != user.id
+            user.save(update_fields=["password", "must_change_password"])
 
         if document_file:
             StudentDocument.objects.create(
@@ -228,10 +254,38 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class StudentDocumentSerializer(serializers.ModelSerializer):
+    download_url = serializers.SerializerMethodField()
+
     class Meta:
         model = StudentDocument
-        fields = ("id", "student", "doc_type", "file", "uploaded_by", "uploaded_at")
-        read_only_fields = ("id", "student", "uploaded_by", "uploaded_at")
+        fields = ("id", "student", "doc_type", "file", "download_url", "uploaded_by", "uploaded_at")
+        read_only_fields = ("id", "student", "download_url", "uploaded_by", "uploaded_at")
+        extra_kwargs = {"file": {"write_only": True}}
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_download_url(self, obj):
+        return f"/api/v1/students/{obj.student_id}/documents/{obj.id}/download/"
+
+    def validate_file(self, value):
+        """R-17 / ADR-002: валидация типа и размера при загрузке."""
+        import os as _os
+
+        _, ext = _os.path.splitext(value.name or "")
+        if ext.lower() not in ALLOWED_DOCUMENT_EXTENSIONS:
+            raise serializers.ValidationError({
+                "detail": {
+                    "uz": "Fayl turi qo'llab-quvvatlanmaydi (pdf, jpg, png, heic, webp)",
+                    "ru": "Неподдерживаемый тип файла (pdf, jpg, png, heic, webp)",
+                }
+            })
+        if value.size > MAX_DOCUMENT_SIZE:
+            raise serializers.ValidationError({
+                "detail": {
+                    "uz": "Fayl juda katta (10 MB dan oshmasligi kerak)",
+                    "ru": "Файл слишком большой (не более 10 МБ)",
+                }
+            })
+        return value
 
 
 class CertificateSerializer(serializers.ModelSerializer):

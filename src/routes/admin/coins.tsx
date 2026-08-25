@@ -187,9 +187,9 @@ function OrdersTab() {
                 <TableCell className="text-xs text-muted-foreground">{formatDate(o.created_at, lang)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    {o.status === "new" && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setStatus(o.id, "confirmed")}>{tr("Tasdiqlash", "Подтвердить")}</Button>}
-                    {o.status === "confirmed" && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setStatus(o.id, "delivered")}>{tr("Yetkazildi", "Доставлен")}</Button>}
-                    {(o.status === "new" || o.status === "confirmed") && <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => setStatus(o.id, "cancelled")}>{tr("Bekor", "Отмена")}</Button>}
+                    {o.status === "new" && <Button size="sm" variant="outline" className="edu-tap h-7 text-xs" onClick={() => setStatus(o.id, "confirmed")}>{tr("Tasdiqlash", "Подтвердить")}</Button>}
+                    {o.status === "confirmed" && <Button size="sm" variant="outline" className="edu-tap h-7 text-xs" onClick={() => setStatus(o.id, "delivered")}>{tr("Yetkazildi", "Доставлен")}</Button>}
+                    {(o.status === "new" || o.status === "confirmed") && <Button size="sm" variant="outline" className="edu-tap h-7 text-xs text-destructive hover:text-destructive" onClick={() => setStatus(o.id, "cancelled")}>{tr("Bekor", "Отмена")}</Button>}
                   </div>
                 </TableCell>
               </TableRow>

@@ -111,16 +111,16 @@ function NotificationsPage() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="flex rounded-lg border p-1 gap-1">
-              <Button size="sm" variant={filter === "all" ? "default" : "ghost"} className="h-7 text-xs" onClick={() => setFilter("all")}>
+              <Button size="sm" variant={filter === "all" ? "default" : "ghost"} className="edu-tap h-7 text-xs" onClick={() => setFilter("all")}>
                 {lang === "uz" ? "Barchasi" : "Все"}
               </Button>
-              <Button size="sm" variant={filter === "unread" ? "default" : "ghost"} className="h-7 text-xs" onClick={() => setFilter("unread")}>
+              <Button size="sm" variant={filter === "unread" ? "default" : "ghost"} className="edu-tap h-7 text-xs" onClick={() => setFilter("unread")}>
                 {lang === "uz" ? "O'qilmagan" : "Непрочитанные"}
                 {unreadCount > 0 && <Badge variant="destructive" className="ml-1.5 h-4 px-1 text-[10px]">{unreadCount}</Badge>}
               </Button>
             </div>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="h-9 w-44 text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="edu-tap h-9 w-44 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{lang === "uz" ? "Barcha turlar" : "Все типы"}</SelectItem>
                 <SelectItem value="lead_follow_up">{lang === "uz" ? "Murojaatlar" : "Лиды"}</SelectItem>
@@ -131,7 +131,7 @@ function NotificationsPage() {
             </Select>
           </div>
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={markAllRead}>
+            <Button variant="outline" size="sm" className="edu-tap" onClick={markAllRead}>
               <CheckCheck className="h-4 w-4 mr-1" />
               {lang === "uz" ? "Barchasini o'qilgan" : "Прочитать все"}
             </Button>

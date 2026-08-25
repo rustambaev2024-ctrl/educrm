@@ -76,13 +76,15 @@ function DirectorCoinsPage() {
   return (
     <PageShell title="Coins" subtitle={tr("Geymifikatsiya tizimini boshqarish", "Управление системой геймификации")}>
       <Tabs defaultValue="students">
-        <TabsList className="mb-4">
-          <TabsTrigger value="students"><Users className="mr-1.5 size-4" />{tr("O'quvchilar", "Ученики")}</TabsTrigger>
-          <TabsTrigger value="settings"><SettingsIcon className="mr-1.5 size-4" />{tr("Sozlamalar", "Настройки")}</TabsTrigger>
-          <TabsTrigger value="store"><Package className="mr-1.5 size-4" />{tr("Do'kon", "Магазин")}</TabsTrigger>
-          <TabsTrigger value="orders"><ShoppingBag className="mr-1.5 size-4" />{tr("Buyurtmalar", "Заказы")}</TabsTrigger>
-          <TabsTrigger value="achievements"><Trophy className="mr-1.5 size-4" />{tr("Yutuqlar", "Достижения")}</TabsTrigger>
-        </TabsList>
+        <div className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+          <TabsList>
+            <TabsTrigger value="students"><Users className="mr-1.5 size-4" />{tr("O'quvchilar", "Ученики")}</TabsTrigger>
+            <TabsTrigger value="settings"><SettingsIcon className="mr-1.5 size-4" />{tr("Sozlamalar", "Настройки")}</TabsTrigger>
+            <TabsTrigger value="store"><Package className="mr-1.5 size-4" />{tr("Do'kon", "Магазин")}</TabsTrigger>
+            <TabsTrigger value="orders"><ShoppingBag className="mr-1.5 size-4" />{tr("Buyurtmalar", "Заказы")}</TabsTrigger>
+            <TabsTrigger value="achievements"><Trophy className="mr-1.5 size-4" />{tr("Yutuqlar", "Достижения")}</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="students"><CoinStudentsTab /></TabsContent>
         <TabsContent value="settings"><SettingsTab /></TabsContent>

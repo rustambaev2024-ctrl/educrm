@@ -15,7 +15,7 @@ class Command(BaseCommand):
         crm_inst, _ = Institution.objects.get_or_create(
             schema_name=tenant_schema,
             defaults={
-                "name": "EduCRM",
+                "name": "GrowBase",
                 "slug": "crm",
             },
         )

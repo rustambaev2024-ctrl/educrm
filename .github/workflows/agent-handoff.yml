@@ -1,0 +1,60 @@
+name: Agent handoff
+
+# Разблокирует QA автоматически при пуше в staging.
+# Задача определяется по id в сообщении коммита или в имени ветки: T-123.
+#
+# Требуется: разрешить Actions запись в репозиторий
+# Settings → Actions → General → Workflow permissions → Read and write
+
+on:
+  push:
+    branches: [staging]
+
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Найти id задач в коммитах
+        id: find
+        run: |
+          MSGS=$(git log --format=%B -n 20 ${{ github.sha }})
+          IDS=$(printf '%s\n%s' "$MSGS" "${{ github.ref_name }}" \
+                | grep -oE '\bT-[0-9]+\b' | sort -u | tr '\n' ' ')
+          echo "ids=$IDS" >> $GITHUB_OUTPUT
+          echo "Найдено: ${IDS:-нет}"
+
+      - name: Зафиксировать staging_commit и открыть QA
+        if: steps.find.outputs.ids != ''
+        run: |
+          CHANGED=0
+          for ID in ${{ steps.find.outputs.ids }}; do
+            if python3 scripts/state.py staging "$ID" --commit "${{ github.sha }}"; then
+              CHANGED=1
+            else
+              echo "::warning::$ID — переход отклонён движком состояния (см. вывод выше)"
+            fi
+          done
+          echo "changed=$CHANGED" >> $GITHUB_ENV
+
+      - name: Закоммитить состояние
+        if: env.changed == '1'
+        run: |
+          git config user.name  "educrm-agents"
+          git config user.email "actions@users.noreply.github.com"
+          git add vault/60-State/
+          git commit -m "chore(state): staging ${GITHUB_SHA::8} → QA разблокирован [skip ci]"
+          git push origin staging
+
+      - name: Валидация состояния
+        run: python3 scripts/state.py check

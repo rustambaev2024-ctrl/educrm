@@ -6,6 +6,8 @@ from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
+from .storage import private_document_storage, student_document_path
+
 
 class Student(models.Model):
     STATUS_CHOICES = [
@@ -95,7 +97,11 @@ class StudentDocument(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="documents")
     doc_type = models.CharField(max_length=20, choices=DOC_TYPE_CHOICES)
-    file = models.FileField(upload_to="student_docs/%Y/%m/")
+    # R-17 / ADR-002: тенант в пути, приватное хранилище, без публичного URL.
+    file = models.FileField(
+        upload_to=student_document_path,
+        storage=private_document_storage,
+    )
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
