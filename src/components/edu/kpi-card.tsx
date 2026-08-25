@@ -1,4 +1,4 @@
-import type { ElementType } from "react";
+import type { CSSProperties, ElementType } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
 interface KpiCardProps {
@@ -25,12 +25,12 @@ interface KpiCardProps {
  * работа, здесь важнее было убрать хардкод.
  */
 const TONE: Record<string, string> = {
-  blue: "var(--chart-2)",
-  green: "var(--chart-1)",
-  amber: "var(--chart-3)",
-  red: "var(--chart-4)",
-  violet: "var(--chart-5)",
-  cyan: "var(--chart-6)",
+  blue: "var(--palette-sky)",
+  green: "var(--palette-green)",
+  amber: "var(--palette-coral)",
+  red: "var(--palette-coral)",
+  violet: "var(--palette-grape)",
+  cyan: "var(--palette-sky)",
 };
 
 const legacyMap: Record<string, keyof typeof TONE> = {
@@ -43,17 +43,29 @@ const legacyMap: Record<string, keyof typeof TONE> = {
   cyan: "cyan",
 };
 
-export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, iconColor }: KpiCardProps) {
+export function KpiCard({
+  label,
+  value,
+  subtitle,
+  delta,
+  icon: Icon,
+  color,
+  iconColor,
+}: KpiCardProps) {
   const key = color ?? (iconColor ? legacyMap[iconColor] : undefined) ?? "blue";
   const tone = TONE[key] ?? TONE.blue;
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-[10px] border border-border bg-card p-3 shadow-sm">
-      <div className="mb-2 flex items-center justify-between">
+    <div
+      className="edu-card relative min-w-0 overflow-hidden p-4"
+      style={{ "--kpi-tone": tone } as CSSProperties}
+    >
+      <div className="absolute inset-x-0 top-0 h-1 bg-[var(--kpi-tone)] opacity-95" />
+      <div className="mb-3 flex items-center justify-between">
         <div
-          className="flex size-9 items-center justify-center rounded-lg"
+          className="flex size-9 items-center justify-center rounded-md border border-border/50"
           style={{
-            background: `color-mix(in srgb, ${tone} 12%, transparent)`,
+            background: `color-mix(in srgb, ${tone} 14%, white)`,
             color: tone,
           }}
         >
@@ -81,14 +93,14 @@ export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, icon
       {/* Значение не окрашивается: норма цвета не требует. Исключение —
           «красный» вариант, которым помечают то, что требует внимания. */}
       <div
-        className={`mb-1 truncate text-xl font-extrabold leading-none tabular-nums ${
+        className={`mb-1 truncate text-2xl font-extrabold leading-none tabular-nums ${
           key === "red" ? "text-bad" : "text-foreground"
         }`}
       >
         {value}
       </div>
 
-      <div className="truncate text-[11px] font-semibold leading-snug text-muted-foreground">
+      <div className="truncate text-[11px] font-bold uppercase leading-snug text-muted-foreground">
         {label}
       </div>
 

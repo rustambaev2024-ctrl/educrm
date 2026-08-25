@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 from apps.accounts.managers import UserManager
-from apps.core.passwords import generate_temp_password, validate_password_strength
+from apps.core.passwords import generate_temp_password
 
 from .models import Certificate, Parent, ParentStudentLink, Student, StudentDocument, StudentLead
 from .storage import ALLOWED_DOCUMENT_EXTENSIONS, MAX_DOCUMENT_SIZE
@@ -74,11 +74,9 @@ class StudentSerializer(serializers.ModelSerializer):
                     "detail": {"uz": "Bu telefon raqami band", "ru": "Этот номер телефона уже занят"}
                 })
 
-        # R-23: парольная политика, см. apps/core/passwords.py.
-        for field in ("password", "parent_password"):
-            value = attrs.get(field)
-            if value:
-                validate_password_strength(value)
+        # Парольной политики нет намеренно (см. AUTH_PASSWORD_VALIDATORS в
+        # config/settings/base.py): администратор заводит ученика и диктует
+        # пароль голосом, требования к сложности здесь только мешают.
         return attrs
 
     @extend_schema_field(serializers.ListField(child=serializers.UUIDField()))

@@ -102,7 +102,7 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
   };
 
   const brandMark = (
-    <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
+    <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/15 bg-white/12 text-sm font-bold text-white">
       {brand.logo ? (
         <img
           src={brand.logo}
@@ -123,10 +123,10 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
       // а нужна она страницам: липкие панели действий обязаны вставать НАД
       // навигацией, иначе кнопка «Сохранить» окажется под ней и до неё
       // нельзя дотянуться. На широком экране панели нет — значение 0.
-      className="min-h-dvh bg-background text-foreground [--app-bottom-nav:3.5rem] lg:[--app-bottom-nav:0rem]"
+      className="edu-app-bg min-h-dvh text-foreground [--app-bottom-nav:3.5rem] lg:[--app-bottom-nav:0rem]"
     >
       {/* ══ Боковое меню — широкий экран ══ */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-sidebar text-sidebar-foreground shadow-[8px_0_28px_rgba(72,77,109,0.14)] lg:flex">
         <div className="flex items-center gap-3 border-b border-sidebar-border px-4 py-4">
           {brandMark}
           <span className="truncate text-sm font-semibold">{brand.name}</span>
@@ -195,7 +195,7 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
       </aside>
 
       {/* ══ Шапка — узкий экран ══ */}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-card px-4 lg:hidden">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-card/92 px-4 backdrop-blur-[10px] lg:hidden">
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary text-sm font-bold text-primary-foreground">
             {brand.logo ? (
@@ -246,7 +246,7 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
       </header>
 
       {/* ══ Шапка — широкий экран ══ */}
-      <header className="sticky top-0 z-30 hidden h-14 items-center gap-2 border-b border-border bg-card px-6 lg:ml-64 lg:flex">
+      <header className="sticky top-0 z-30 hidden h-14 items-center gap-2 border-b border-border bg-card/92 px-6 backdrop-blur-[10px] lg:ml-64 lg:flex">
         <Button
           variant="ghost"
           size="sm"
@@ -268,7 +268,7 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
       <main className="pb-24 lg:ml-64 lg:pb-0">{children}</main>
 
       {/* ══ Нижние вкладки — узкий экран ══ */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/94 pb-[env(safe-area-inset-bottom)] backdrop-blur-[10px] lg:hidden">
         <div className="mx-auto flex max-w-lg items-stretch">
           {tabs.map((item) => {
             const isActive = items[active] === item;
@@ -304,7 +304,9 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
       {/* ══ «Ещё» — остальные разделы ══ */}
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="rounded-t-2xl">
-          <SheetTitle className="px-4 pt-4 text-base">{tr("Barcha bo'limlar", "Все разделы")}</SheetTitle>
+          <SheetTitle className="px-4 pt-4 text-base">
+            {tr("Barcha bo'limlar", "Все разделы")}
+          </SheetTitle>
           <div className="grid grid-cols-1 gap-1 p-4 pt-2 sm:grid-cols-2">
             {restItems.map((item) => {
               const isActive = items[active] === item;

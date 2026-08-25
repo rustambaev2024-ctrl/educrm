@@ -110,25 +110,20 @@ TENANT_MODEL = "tenants.Institution"
 TENANT_DOMAIN_MODEL = "tenants.Domain"
 PUBLIC_SCHEMA_NAME = "public"
 
-# R-23: раньше здесь был пустой список — пароль вида "1111" принимался,
-# а аккаунты без явного пароля получали общеизвестный литерал `ChangeMe123`.
-# Проверка вызывается через apps.core.passwords.validate_password_strength,
-# которая переводит сообщения Django в формат {detail:{uz,ru}}.
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 8},
-    },
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
-]
+# Парольной политики нет — это осознанное решение владельца, а не упущение.
+# Аудитория платформы — школьники и администраторы учебных центров, которые
+# заводят и диктуют пароли вручную; требование «8 символов, не только цифры,
+# не из списка распространённых» блокировало создание учеников и возвращалось
+# в поддержку жалобами. Валидаторы включались в рамках T-015/R-23 и были
+# отключены обратно по прямому указанию владельца после жалоб с прода.
+# Не включать обратно без явного решения владельца.
+AUTH_PASSWORD_VALIDATORS = []
 
-# T-026 / R-23: пользователь с непогашенным `must_change_password` не работает
-# через API, пока не сменит временный пароль. Аварийный выключатель для devops
-# на случай, если версия фронта без экрана смены запрёт реальных сотрудников:
-# FORCE_PASSWORD_CHANGE=0.
-FORCE_PASSWORD_CHANGE = os.getenv("FORCE_PASSWORD_CHANGE", "1") not in ("0", "false", "False")
+# Принудительная смена временного пароля при первом входе (T-026 / R-23)
+# выключена по той же причине: она добавляла обязательный экран между входом
+# и работой. Механизм в коде сохранён и включается переменной окружения
+# FORCE_PASSWORD_CHANGE=1, если владелец вернётся к этому решению.
+FORCE_PASSWORD_CHANGE = os.getenv("FORCE_PASSWORD_CHANGE", "0") not in ("0", "false", "False")
 
 LANGUAGE_CODE = "ru"
 TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tashkent")

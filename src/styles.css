@@ -103,7 +103,13 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem;
+
+  --palette-coral: #ee6352;
+  --palette-sky: #08b2e3;
+  --palette-mist: #efe9f4;
+  --palette-green: #57a773;
+  --palette-grape: #484d6d;
 
   /* ══════════════════════════════════════════════════════════════
      ПАЛИТРА — единственный источник цвета во всём продукте.
@@ -117,87 +123,106 @@
      ══════════════════════════════════════════════════════════════ */
 
   /* ── Поверхности: холст → карточка → всплывающее ── */
-  --background: #f4f2ed;          /* кремовый холст */
-  --foreground: #141a17;
+  --background: var(--palette-mist);
+  --foreground: #2f334d;
   --card: #ffffff;
-  --card-foreground: #141a17;
+  --card-foreground: #2f334d;
   --popover: #ffffff;
-  --popover-foreground: #141a17;
-  --muted: #eeebe3;
-  --muted-foreground: #4c564f;
-  /* Бледный/тёмный оттенки паприки того же тона, что --primary — пересчитать
-     вместе, если фирменный цвет снова сменится. */
-  --accent: #fbe6de;
-  --accent-foreground: #5c2410;
-  --border: #e2dfd6;
-  --input: #e2dfd6;
-  --ring: #c9481f;
+  --popover-foreground: #2f334d;
+  --muted: color-mix(in srgb, var(--palette-mist) 68%, white);
+  /* 88% грапита, а не 74%: на 74% вторичный текст давал 4.16:1 на белой
+     карточке и 3.49:1 на лавандовом холсте — ниже AA, а это подписи и
+     подсказки на каждом экране. Сейчас 5.95:1 и 5.00:1. */
+  --muted-foreground: color-mix(in srgb, var(--palette-grape) 88%, white);
+  /* Подложка выделения — бледное небо, текст на ней грапитовый (7.27:1).
+     Небо, а не грапит: выделение должно читаться иначе, чем сама кнопка. */
+  --accent: color-mix(in srgb, var(--palette-sky) 13%, white);
+  --accent-foreground: var(--palette-grape);
+  --border: color-mix(in srgb, var(--palette-grape) 18%, var(--palette-mist));
+  --input: color-mix(in srgb, var(--palette-grape) 20%, var(--palette-mist));
+  --ring: var(--palette-sky);
 
   /* ── Действие ──
-     Паприка (Spicy Paprika, #E4572E) взята затемнённой намеренно. Оригинал
-     на белом даёт контраст 3.68:1 — кнопка нечитаема. Этот (#c9481f, тот же
-     оттенок и насыщенность, ниже светлота) даёт 4.74:1. */
-  --primary: #c9481f;
+     Грапит: 8.21:1 с белым текстом, кнопка читается с большим запасом.
+     Небо (--palette-sky) намеренно НЕ здесь — с белым оно даёт 2.47:1
+     и кнопкой быть не может; его роль — фокус (--ring), подложка
+     выделения (--accent) и первая серия графиков. */
+  --primary: var(--palette-grape);
   --primary-foreground: #ffffff;
-  --secondary: #eeebe3;
-  --secondary-foreground: #141a17;
-  --destructive: #bc3226;
+  --secondary: color-mix(in srgb, var(--palette-mist) 78%, white);
+  --secondary-foreground: var(--palette-grape);
+  --destructive: #c84436;
   --destructive-foreground: #ffffff;
 
   /* ── Оправа: боковое меню и нижняя панель ── */
-  --sidebar: #2E282A;
+  --sidebar: var(--palette-grape);
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #c9481f;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-primary: var(--palette-coral);
+  /* Тёмный, а не белый: этим цветом набрано число в бейдже уведомлений
+     поверх кораллового кружка. Белый на коралле даёт 3.21:1 — для текста
+     в 10px это провал; тёмный грапит-ink даёт 4.90:1. Коралл при этом
+     остаётся ярким (он же — полоска активного пункта меню). */
+  --sidebar-primary-foreground: #1f2233;
+  --sidebar-accent: rgba(255, 255, 255, 0.12);
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #c9481f;
+  --sidebar-border: rgba(255, 255, 255, 0.16);
+  --sidebar-ring: var(--palette-sky);
 
   /* ── Смысловые ──
      Шкала измеряемых значений: нейтральный → --warn → --bad.
      Норма НЕ окрашивается.
 
-     --ok и --primary близки по светлоте (контраст между ними ~1.2:1),
-     и разведением оттенка это не лечится — проверено расчётом. Решение
-     структурное, а не цветовое: --ok не участвует в шкале оценки
-     показателя, он появляется только в момент подтверждения действия,
-     где --primary рядом не стоит. */
-  --ok: #47700f;
+     Жёлтого в фирменной пятёрке нет, но «предупреждение» и «опасность» —
+     это два разных сообщения, и сваливать их в один цвет нельзя: долг,
+     просрочка и заморозка обратимы, а удаление и сторно — нет. Поэтому
+     --warn остаётся янтарным (#8f5509) в обход палитры: это служебный
+     статус бейджей, в бренде и навигации его нет. Разведены и по тону
+     (34° против 6°), и по светлоте — рядом не путаются.
+
+     --ok (142°) и --primary (232°) теперь разнесены по тону почти на 90°,
+     так что прежнее structural-ограничение «--ok не участвует в шкале»
+     больше не нужно: зелёный и грапит не спутать. */
+  --ok: #36764e;
   --ok-foreground: #ffffff;
-  --ok-soft: #ebf2dc;
+  --ok-soft: color-mix(in srgb, var(--palette-green) 15%, white);
   --warn: #8f5509;
   --warn-foreground: #ffffff;
-  --warn-soft: #f7ebd7;
-  --bad: #bc3226;
+  --warn-soft: color-mix(in srgb, var(--warn) 14%, white);
+  --bad: #c84436;
   --bad-foreground: #ffffff;
-  --bad-soft: #f8e3e0;
-  --info: #1c5fbe;
+  --bad-soft: color-mix(in srgb, var(--palette-coral) 15%, white);
+  --info: #087d9f;
   --info-foreground: #ffffff;
-  --info-soft: #e0eaf9;
+  --info-soft: color-mix(in srgb, var(--palette-sky) 13%, white);
 
   /* ── Награда ──
-     Золото из эскиза не стало общим акцентом: оно спорило бы с жёлтым
-     цветом предупреждения. У него одна работа — система монет
-     (разделы coins у ученика, учителя и директора) и знак в меню.
-     --reward читается как текст (5.99:1 на белом, 5.21:1 на своей
-     подложке); --reward-bright только заливка на тёмной оправе,
-     текстом на светлом фоне его использовать нельзя — 2.42:1. */
-  --reward: #7a6008;
-  --reward-soft: #f6efd8;
-  --reward-bright: #c9a227;
+     Золота в фирменной пятёрке нет, и заводить его отдельно не стали:
+     оно спорило бы с янтарным --warn. Монеты теперь набраны грапитом —
+     тем же цветом, что и кнопки. Осознанный размен: разделы coins
+     перестали иметь собственный оттенок, зато интерфейс не расползается
+     в шестой цвет. Если монетам снова понадобится своя примета —
+     брать не цвет, а форму (иконка, огранка бейджа).
+
+     --reward как текст: 8.21:1 на белом. --reward-bright (небо) — только
+     заливка: текстом на светлом фоне нельзя, 2.47:1. */
+  --reward: var(--palette-grape);
+  --reward-soft: color-mix(in srgb, var(--palette-grape) 10%, white);
+  --reward-bright: var(--palette-sky);
 
   /* ── Графики: доход всегда 1, расход всегда 4 ── */
-  --chart-1: #0e7a57;
-  --chart-2: #1c5fbe;
-  --chart-3: #8f5509;
-  --chart-4: #bc3226;
-  --chart-5: #61479e;
-  --chart-6: #0f7683;
+  --chart-1: var(--palette-sky);
+  --chart-2: var(--palette-green);
+  --chart-3: var(--palette-coral);
+  --chart-4: var(--palette-grape);
+  /* Пятая серия — не туман: #efe9f4 на белой карточке даёт 1.19:1, то есть
+     линия просто исчезает. Приглушённый коралл, уведённый в грапит: свой
+     тон, 5.31:1, в легенде не сливается ни с кораллом, ни с грапитом. */
+  --chart-5: color-mix(in srgb, var(--palette-coral) 50%, var(--palette-grape));
+  --chart-6: color-mix(in srgb, var(--palette-sky) 45%, var(--palette-grape));
 
   /* ── Глубина ── */
-  --shadow-1: 0 1px 2px rgba(20, 26, 23, 0.06), 0 1px 3px rgba(20, 26, 23, 0.04);
-  --shadow-2: 0 2px 4px rgba(20, 26, 23, 0.05), 0 8px 20px rgba(20, 26, 23, 0.07);
+  --shadow-1: 0 1px 2px rgba(72, 77, 109, 0.08), 0 8px 24px rgba(72, 77, 109, 0.07);
+  --shadow-2: 0 8px 28px rgba(72, 77, 109, 0.1), 0 18px 52px rgba(72, 77, 109, 0.08);
 
   /* ── Викторина (/play, редактор тестов) ──
      Свой набор, намеренно: четыре цвета ответов — это категориальные
@@ -328,7 +353,27 @@
     text-rendering: optimizeLegibility;
   }
   body {
-    background: var(--background);
+    min-height: 100dvh;
+    background:
+      linear-gradient(
+        color-mix(in srgb, var(--palette-grape) 7%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--palette-grape) 7%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--palette-mist) 92%, white),
+        color-mix(in srgb, var(--palette-sky) 10%, var(--palette-mist)) 48%,
+        color-mix(in srgb, var(--palette-green) 9%, var(--palette-mist))
+      );
+    background-size:
+      48px 48px,
+      48px 48px,
+      auto;
     color: var(--foreground);
   }
 }
@@ -368,7 +413,10 @@
 .edu-brand-btn,
 .edu-nav-item,
 .edu-glass-item {
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
 }
 
 .edu-row:focus-visible,
@@ -432,10 +480,16 @@
   background:
     linear-gradient(to right, var(--card) 34%, rgba(255, 255, 255, 0)) left center,
     linear-gradient(to left, var(--card) 34%, rgba(255, 255, 255, 0)) right center,
-    radial-gradient(farthest-side at 0 50%, rgba(20, 26, 23, 0.13), rgba(255, 255, 255, 0)) left center,
-    radial-gradient(farthest-side at 100% 50%, rgba(20, 26, 23, 0.13), rgba(255, 255, 255, 0)) right center;
+    radial-gradient(farthest-side at 0 50%, rgba(20, 26, 23, 0.13), rgba(255, 255, 255, 0)) left
+      center,
+    radial-gradient(farthest-side at 100% 50%, rgba(20, 26, 23, 0.13), rgba(255, 255, 255, 0)) right
+      center;
   background-repeat: no-repeat;
-  background-size: 36px 100%, 36px 100%, 13px 100%, 13px 100%;
+  background-size:
+    36px 100%,
+    36px 100%,
+    13px 100%,
+    13px 100%;
   background-attachment: local, local, scroll, scroll;
 }
 
@@ -526,11 +580,17 @@
   box-sizing: border-box;
 }
 
+.edu-app-bg {
+  background: transparent;
+}
+
 /* ── Cards ──────────────────────────────────────── */
 .edu-card {
-  background: var(--card);
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--card) 55%, var(--border));
   box-shadow: var(--shadow-1);
 }
 
@@ -542,10 +602,10 @@
    block above (drops the blur, which is the only "motion-adjacent"
    part of this effect). */
 .edu-glass {
-  background: color-mix(in srgb, var(--card) 72%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--card) 55%, var(--border));
 }
 
 /* Legacy overrides
@@ -559,6 +619,12 @@
 .card-elevated {
   border-radius: var(--radius) !important;
   box-shadow: var(--shadow-1) !important;
+}
+.shadow-elegant-lg {
+  box-shadow: var(--shadow-2) !important;
+}
+.shadow-glow {
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--palette-sky) 24%, transparent) !important;
 }
 
 /* Opt out of glass when nesting a glass Card inside another glass surface
@@ -583,7 +649,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted-foreground);
-  background: var(--muted);
+  background: color-mix(in srgb, var(--muted) 78%, var(--card));
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
   text-align: left;
@@ -699,6 +765,31 @@
   background: color-mix(in srgb, var(--chart-6) 15%, transparent);
   color: var(--chart-6);
 }
+.avatar-palette-0 {
+  background: var(--palette-grape) !important;
+  color: #ffffff !important;
+}
+/* Инициалы набраны собственными затемнёнными тонами палитры, а НЕ
+   смысловыми токенами (--info/--ok/--bad): аватар обозначает человека,
+   а не состояние, и не должен читаться как «ошибка» или «успех». Заодно
+   это развязывает аватарки от статусов — смена --bad их не перекрасит.
+   На --info (4.07:1) и --bad (3.97:1) инициалы недотягивали до AA. */
+.avatar-palette-1 {
+  background: color-mix(in srgb, var(--palette-sky) 16%, white) !important;
+  color: color-mix(in srgb, var(--palette-sky) 62%, black) !important;
+}
+.avatar-palette-2 {
+  background: color-mix(in srgb, var(--palette-green) 18%, white) !important;
+  color: var(--ok) !important;
+}
+.avatar-palette-3 {
+  background: color-mix(in srgb, var(--palette-coral) 18%, white) !important;
+  color: color-mix(in srgb, var(--palette-coral) 62%, black) !important;
+}
+.avatar-palette-4 {
+  background: color-mix(in srgb, var(--palette-grape) 14%, white) !important;
+  color: var(--palette-grape) !important;
+}
 
 /* ── Input focus ─────────────────────────────────── */
 input:focus-visible,
@@ -736,9 +827,18 @@ select:focus-visible {
 .bg-gradient-primary {
   background: linear-gradient(
     135deg,
-    var(--primary),
-    color-mix(in srgb, var(--primary) 70%, var(--chart-6))
+    var(--palette-grape),
+    color-mix(in srgb, var(--palette-grape) 76%, var(--palette-sky))
   ) !important;
+}
+.bg-gradient-hero {
+  background:
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--palette-mist) 78%, white),
+      color-mix(in srgb, var(--palette-sky) 10%, transparent)
+    ),
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--palette-green) 8%, transparent));
 }
 .text-primary-foreground {
   color: var(--primary-foreground) !important;
@@ -759,9 +859,21 @@ select:focus-visible {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% -20%, color-mix(in srgb, var(--public-brand) 25%, transparent), transparent),
-    radial-gradient(ellipse 60% 50% at 80% 80%, color-mix(in srgb, var(--public-brand-2) 15%, transparent), transparent),
-    radial-gradient(ellipse 50% 40% at 10% 60%, color-mix(in srgb, var(--public-brand-2) 12%, transparent), transparent);
+    radial-gradient(
+      ellipse 80% 60% at 50% -20%,
+      color-mix(in srgb, var(--public-brand) 25%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 80% 80%,
+      color-mix(in srgb, var(--public-brand-2) 15%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 10% 60%,
+      color-mix(in srgb, var(--public-brand-2) 12%, transparent),
+      transparent
+    );
   animation: apply-bg-pulse 8s ease-in-out infinite alternate;
 }
 @keyframes apply-bg-pulse {
@@ -819,7 +931,12 @@ select:focus-visible {
   margin: 0;
 }
 .apply-gradient-text {
-  background: linear-gradient(135deg, var(--public-brand), var(--public-ink), var(--public-brand-2));
+  background: linear-gradient(
+    135deg,
+    var(--public-brand),
+    var(--public-ink),
+    var(--public-brand-2)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1018,4 +1135,106 @@ select:focus-visible {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.3);
   margin: 0;
+}
+
+/* Dashboard visual system: restrained background, palette-led hierarchy, controlled blur. */
+html {
+  background: var(--palette-mist);
+}
+
+body {
+  position: relative;
+  min-height: 100dvh;
+  isolation: isolate;
+  background: transparent;
+  color: var(--foreground);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(180deg, rgba(239, 233, 244, 0.55), rgba(239, 233, 244, 0.78)),
+    url("/ui/crm-dashboard-bg.svg");
+  background-position: center;
+  background-size: cover;
+  opacity: 0.85;
+}
+
+body > :not(script) {
+  position: relative;
+  z-index: 1;
+}
+
+:root {
+  --foreground: #2f334d;
+  --card-foreground: #2f334d;
+  --muted: #f6f3f8;
+  --muted-foreground: #5e637f;
+  --accent: #e9f8fc;
+  --border: #d8d2e0;
+  --input: #d0cadb;
+  --sidebar-primary: var(--palette-sky);
+  --ok: #36764e;
+  --warn: #8f322a;
+  --bad: #bc3226;
+  --info: #06708f;
+  --ok-soft: #eef7f1;
+  --warn-soft: #fdedea;
+  --bad-soft: #fdecea;
+  --info-soft: #e8f8fc;
+  --reward-soft: #f3f1f6;
+  --shadow-1: 0 1px 2px rgba(72, 77, 109, 0.06), 0 12px 34px rgba(72, 77, 109, 0.08);
+  --shadow-2: 0 10px 30px rgba(72, 77, 109, 0.1), 0 24px 64px rgba(72, 77, 109, 0.08);
+}
+
+.edu-card,
+.edu-glass {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px) saturate(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+  border: 1px solid color-mix(in srgb, var(--palette-grape) 16%, transparent);
+  box-shadow: var(--shadow-1);
+}
+
+.bg-gradient-primary {
+  background: var(--primary) !important;
+}
+
+.bg-gradient-hero {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--palette-mist) 84%, white),
+      var(--palette-mist)
+    ),
+    url("/ui/crm-dashboard-bg.svg");
+  background-position: center;
+  background-size: cover;
+}
+
+.shadow-glow {
+  box-shadow: 0 10px 28px rgba(72, 77, 109, 0.12) !important;
+}
+
+.edu-table thead th {
+  background: color-mix(in srgb, var(--palette-mist) 68%, white);
+  color: color-mix(in srgb, var(--palette-grape) 78%, white);
+}
+
+.edu-table tbody tr:hover,
+.edu-row:hover {
+  background: color-mix(in srgb, var(--palette-sky) 7%, white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edu-card,
+  .edu-glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #ffffff;
+  }
 }
