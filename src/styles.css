@@ -561,6 +561,16 @@
   box-shadow: var(--shadow-1) !important;
 }
 
+/* Opt out of glass when nesting a glass Card inside another glass surface
+   (e.g. inside SheetContent/DialogContent) would stack two translucent+blur
+   layers and mud out contrast, especially over dense tabular text. */
+.edu-glass-off {
+  background: var(--card) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--border) !important;
+}
+
 /* ── Table ──────────────────────────────────────── */
 .edu-table {
   width: 100%;

@@ -295,7 +295,7 @@ function SessionDetailSheet({ session, onClose }: { session: QuizSessionRow | nu
               <EmptyState icon={<Users className="size-6" />} title={tr("Ishtirokchilar yo'q", "Участников нет")} />
             </Card>
           ) : (
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden edu-glass-off">
               <Table>
                 <TableHeader>
                   <TableRow>
