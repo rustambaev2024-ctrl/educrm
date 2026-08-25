@@ -645,7 +645,7 @@ function AdminLeadsPage() {
                               <div className="flex gap-1.5 mt-2">
                                 <Button
                                   size="sm"
-                                  className="h-6 text-[11px] flex-1 bg-ok hover:bg-ok text-white border-none"
+                                  className="edu-tap h-6 text-[11px] flex-1 bg-ok hover:bg-ok text-white border-none"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     void handleTrialAttendance(lead.id, true);
@@ -656,7 +656,7 @@ function AdminLeadsPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-6 text-[11px] flex-1 border-destructive/50 text-destructive"
+                                  className="edu-tap h-6 text-[11px] flex-1 border-destructive/50 text-destructive"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     void handleTrialAttendance(lead.id, false);

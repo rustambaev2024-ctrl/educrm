@@ -429,9 +429,18 @@ function DirectorLeadsPage() {
 
   if (isDataLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <PageShell title={t.title} subtitle={t.subtitle}>
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full rounded-xl" />
+            ))}
+          </div>
+          <Card className="shadow-elegant">
+            <KanbanBoardSkeleton mobileStatus={mobileStatus} />
+          </Card>
+        </div>
+      </PageShell>
     );
   }
 

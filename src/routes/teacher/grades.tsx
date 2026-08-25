@@ -186,8 +186,7 @@ function TeacherGrades() {
           {groupGrades.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">{t("grades.empty")}</div>
           ) : (
-            <div className="overflow-x-auto">
-            <Table className="min-w-[600px]">
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("grades.col.student")}</TableHead>
@@ -222,7 +221,6 @@ function TeacherGrades() {
                 ))}
               </TableBody>
             </Table>
-            </div>
           )}
         </Card>
       </div>
