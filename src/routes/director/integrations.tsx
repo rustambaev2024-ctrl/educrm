@@ -12,6 +12,7 @@ import { apiErrorMessage } from "@/lib/data/store";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { Settings, Check, Loader2, Link2, Info, ArrowUpRight, MessageSquare, Copy, KeyRound } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/director/integrations")({
   component: DirectorIntegrationsPage,
@@ -157,8 +158,20 @@ function DirectorIntegrationsPage() {
               </div>
 
               {isLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="size-8 animate-spin text-primary" />
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-9 w-full" />
+                    <Skeleton className="h-3 w-64 max-w-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-9 w-full" />
+                    <Skeleton className="h-3 w-72 max-w-full" />
+                  </div>
+                  <div className="flex justify-end pt-4">
+                    <Skeleton className="h-9 w-[140px]" />
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleSave} className="space-y-5">
