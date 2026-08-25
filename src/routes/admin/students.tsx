@@ -272,6 +272,7 @@ export function StudentsPage() {
               <Button
                 size="sm"
                 variant="outline"
+                className="edu-tap"
                 disabled={bulkBusy}
                 onClick={() => void applyBulkStatus("frozen")}
               >
@@ -280,6 +281,7 @@ export function StudentsPage() {
               <Button
                 size="sm"
                 variant="outline"
+                className="edu-tap"
                 disabled={bulkBusy}
                 onClick={() => void applyBulkStatus("active")}
               >
@@ -422,6 +424,7 @@ export function StudentsPage() {
               <Button
                 variant="outline"
                 size="sm"
+                className="edu-tap"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1 || pageLoading}
               >
@@ -433,6 +436,7 @@ export function StudentsPage() {
               <Button
                 variant="outline"
                 size="sm"
+                className="edu-tap"
                 onClick={() => setPage((p) => p + 1)}
                 disabled={page >= Math.ceil(totalCount / PAGE_SIZE) || pageLoading}
               >
