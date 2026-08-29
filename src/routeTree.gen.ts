@@ -20,6 +20,7 @@ import { Route as StudentRouteRouteImport } from './routes/student/route'
 import { Route as ParentRouteRouteImport } from './routes/parent/route'
 import { Route as DirectorRouteRouteImport } from './routes/director/route'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
+import { Route as AccountantRouteRouteImport } from './routes/accountant/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeacherIndexRouteImport } from './routes/teacher/index'
 import { Route as SupportTeacherIndexRouteImport } from './routes/support-teacher/index'
@@ -141,6 +142,11 @@ const DirectorRouteRoute = DirectorRouteRouteImport.update({
 const AdminRouteRoute = AdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountantRouteRoute = AccountantRouteRouteImport.update({
+  id: '/accountant',
+  path: '/accountant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -484,6 +490,7 @@ const AdminQuizSessionSessionIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accountant': typeof AccountantRouteRoute
   '/admin': typeof AdminRouteRouteWithChildren
   '/director': typeof DirectorRouteRouteWithChildren
   '/parent': typeof ParentRouteRouteWithChildren
@@ -564,6 +571,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accountant': typeof AccountantRouteRoute
   '/apply': typeof ApplyRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
@@ -638,6 +646,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accountant': typeof AccountantRouteRoute
   '/admin': typeof AdminRouteRouteWithChildren
   '/director': typeof DirectorRouteRouteWithChildren
   '/parent': typeof ParentRouteRouteWithChildren
@@ -720,6 +729,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/accountant'
     | '/admin'
     | '/director'
     | '/parent'
@@ -800,6 +810,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/accountant'
     | '/apply'
     | '/join'
     | '/login'
@@ -873,6 +884,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/accountant'
     | '/admin'
     | '/director'
     | '/parent'
@@ -954,6 +966,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountantRouteRoute: typeof AccountantRouteRoute
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   DirectorRouteRoute: typeof DirectorRouteRouteWithChildren
   ParentRouteRoute: typeof ParentRouteRouteWithChildren
@@ -1045,6 +1058,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/accountant': {
+      id: '/accountant'
+      path: '/accountant'
+      fullPath: '/accountant'
+      preLoaderRoute: typeof AccountantRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1720,6 +1740,7 @@ const TeacherRouteRouteWithChildren = TeacherRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountantRouteRoute: AccountantRouteRoute,
   AdminRouteRoute: AdminRouteRouteWithChildren,
   DirectorRouteRoute: DirectorRouteRouteWithChildren,
   ParentRouteRoute: ParentRouteRouteWithChildren,
