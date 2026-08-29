@@ -156,3 +156,55 @@ class Payment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.student_id} {self.payment_type} {self.amount}"
+
+
+class PeriodClose(models.Model):
+    """Месяц закрыт бухгалтером — прошлые платежи в нём нельзя сторнировать,
+    даже director. Институт-вайд (без филиала): один бухгалтер закрывает
+    месяц для всего учреждения разом.
+
+    Один активный (reopened_at IS NULL) close на месяц — обеспечено частичным
+    unique-индексом, а не проверкой в коде: под конкурентными запросами
+    только constraint в БД реально не пускает дубликат.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    month = models.DateField()  # всегда 1-е число месяца
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="closed_periods",
+    )
+    closed_at = models.DateTimeField(auto_now_add=True)
+    reopened_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reopened_periods",
+    )
+    reopened_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "finance_period_close"
+        ordering = ["-month"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["month"],
+                condition=models.Q(reopened_at__isnull=True),
+                name="one_open_close_per_month",
+            ),
+            # Партиальный уникальный индекс выше защищает "один активный close
+            # на месяц" только если каждая строка реально хранит 1-е число —
+            # иначе "2026-08-01" и "2026-08-15" пройдут проверку как разные
+            # месяцы. Единственный планируемый путь записи (close()-эндпоинт)
+            # уже нормализует дату сам, но constraint в БД — не полагаться на
+            # то, что это навсегда останется единственным путём записи.
+            models.CheckConstraint(
+                condition=models.Q(month__day=1),
+                name="period_close_month_is_first_of_month",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        status = "reopened" if self.reopened_at else "closed"
+        return f"{self.month.isoformat()} ({status})"
