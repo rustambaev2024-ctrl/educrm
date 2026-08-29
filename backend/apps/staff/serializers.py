@@ -22,7 +22,7 @@ class StaffSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(source="user.phone")
     role = serializers.ChoiceField(
         source="user.role",
-        choices=["director", "branch_admin", "teacher", "support_teacher"],
+        choices=["director", "branch_admin", "accountant", "teacher", "support_teacher"],
     )
     password = serializers.CharField(write_only=True, required=False)
 

@@ -35,6 +35,7 @@ export const Route = createFileRoute("/director/staff")({ component: StaffPage }
 const ROLE_TONE: Record<string, string> = {
   director: "bg-primary/15 text-primary border-primary/30",
   admin: "bg-info/15 text-info border-info/30",
+  accountant: "bg-violet-500/15 text-violet-600 border-violet-500/30",
   teacher: "bg-success/15 text-success border-success/30",
   support_teacher: "bg-warn-soft text-warn border-warn/30",
 };
@@ -90,7 +91,7 @@ function StaffPage() {
   const filtered = useMemo(() => {
     let list = enriched;
     if (tab === "teachers") list = list.filter((s) => s.role === "teacher");
-    if (tab === "admins") list = list.filter((s) => s.role === "admin" || s.role === "branch_admin" || s.role === "director");
+    if (tab === "admins") list = list.filter((s) => s.role === "admin" || s.role === "branch_admin" || s.role === "director" || s.role === "accountant");
     const q = searchQuery.trim().toLowerCase();
     if (q) list = list.filter((s) => s.fullName.toLowerCase().includes(q) || s.phone.includes(q));
     return list;
@@ -134,7 +135,7 @@ function StaffPage() {
       phone: form.phone.trim(),
       password: form.password.trim() || undefined,
       role: form.role,
-      branchId: form.role === "director" ? undefined : form.branchId || undefined,
+      branchId: (form.role === "director" || form.role === "accountant") ? undefined : form.branchId || undefined,
       salaryPercent: form.role === "teacher" ? Number(form.salaryPercent) || 40 : undefined,
       fixedSalary: form.role !== "teacher" ? (Number(form.fixedSalary) || undefined) : undefined,
       status: form.status,
@@ -184,7 +185,7 @@ function StaffPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <KpiCard label={t("staff.title")} value={staff.length} icon={Briefcase} iconColor="blue" />
           <KpiCard label={lang === "uz" ? "O'qituvchilar" : "Учителя"} value={staff.filter((s) => s.role === "teacher").length} icon={GraduationCap} iconColor="green" />
-          <KpiCard label={lang === "uz" ? "Adminlar" : "Админы"} value={staff.filter((s) => s.role === "admin" || s.role === "branch_admin" || s.role === "director").length} icon={UserCog} iconColor="violet" />
+          <KpiCard label={lang === "uz" ? "Adminlar" : "Админы"} value={staff.filter((s) => s.role === "admin" || s.role === "branch_admin" || s.role === "director" || s.role === "accountant").length} icon={UserCog} iconColor="violet" />
         </div>
         <Card className="overflow-hidden shadow-elegant">
           <div className="flex flex-col gap-3 border-b border-border/60 p-4 md:flex-row md:items-center md:justify-between">
@@ -318,6 +319,7 @@ function StaffPage() {
                   <SelectContent>
                     <SelectItem value="director">{t("role.director")}</SelectItem>
                     <SelectItem value="branch_admin">{t("role.admin")}</SelectItem>
+                    <SelectItem value="accountant">{t("role.accountant")}</SelectItem>
                     <SelectItem value="teacher">{t("role.teacher")}</SelectItem>
                     <SelectItem value="support_teacher">{lang === "uz" ? "Yordamchi o'qituvchi" : "Помощник учителя"}</SelectItem>
                   </SelectContent>
@@ -327,7 +329,7 @@ function StaffPage() {
                 <Select
                   value={form.branchId}
                   onValueChange={(v) => setForm({ ...form, branchId: v })}
-                  disabled={form.role === "director"}
+                  disabled={form.role === "director" || form.role === "accountant"}
                 >
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
