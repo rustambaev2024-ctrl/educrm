@@ -88,6 +88,7 @@ import { Route as AdminCoinsRouteImport } from './routes/admin/coins'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminAccountsRouteImport } from './routes/admin/accounts'
 import { Route as AccountantSalariesRouteImport } from './routes/accountant/salaries'
+import { Route as AccountantReconciliationRouteImport } from './routes/accountant/reconciliation'
 import { Route as AccountantFinanceRouteImport } from './routes/accountant/finance'
 import { Route as AccountantExpensesRouteImport } from './routes/accountant/expenses'
 import { Route as TeacherQuizSessionSessionIdRouteImport } from './routes/teacher/quiz-session.$sessionId'
@@ -489,6 +490,12 @@ const AccountantSalariesRoute = AccountantSalariesRouteImport.update({
   path: '/salaries',
   getParentRoute: () => AccountantRouteRoute,
 } as any)
+const AccountantReconciliationRoute =
+  AccountantReconciliationRouteImport.update({
+    id: '/reconciliation',
+    path: '/reconciliation',
+    getParentRoute: () => AccountantRouteRoute,
+  } as any)
 const AccountantFinanceRoute = AccountantFinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
@@ -528,6 +535,7 @@ export interface FileRoutesByFullPath {
   '/preview': typeof PreviewRoute
   '/accountant/expenses': typeof AccountantExpensesRoute
   '/accountant/finance': typeof AccountantFinanceRoute
+  '/accountant/reconciliation': typeof AccountantReconciliationRoute
   '/accountant/salaries': typeof AccountantSalariesRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -605,6 +613,7 @@ export interface FileRoutesByTo {
   '/preview': typeof PreviewRoute
   '/accountant/expenses': typeof AccountantExpensesRoute
   '/accountant/finance': typeof AccountantFinanceRoute
+  '/accountant/reconciliation': typeof AccountantReconciliationRoute
   '/accountant/salaries': typeof AccountantSalariesRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -691,6 +700,7 @@ export interface FileRoutesById {
   '/preview': typeof PreviewRoute
   '/accountant/expenses': typeof AccountantExpensesRoute
   '/accountant/finance': typeof AccountantFinanceRoute
+  '/accountant/reconciliation': typeof AccountantReconciliationRoute
   '/accountant/salaries': typeof AccountantSalariesRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -778,6 +788,7 @@ export interface FileRouteTypes {
     | '/preview'
     | '/accountant/expenses'
     | '/accountant/finance'
+    | '/accountant/reconciliation'
     | '/accountant/salaries'
     | '/admin/accounts'
     | '/admin/analytics'
@@ -855,6 +866,7 @@ export interface FileRouteTypes {
     | '/preview'
     | '/accountant/expenses'
     | '/accountant/finance'
+    | '/accountant/reconciliation'
     | '/accountant/salaries'
     | '/admin/accounts'
     | '/admin/analytics'
@@ -940,6 +952,7 @@ export interface FileRouteTypes {
     | '/preview'
     | '/accountant/expenses'
     | '/accountant/finance'
+    | '/accountant/reconciliation'
     | '/accountant/salaries'
     | '/admin/accounts'
     | '/admin/analytics'
@@ -1582,6 +1595,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountantSalariesRouteImport
       parentRoute: typeof AccountantRouteRoute
     }
+    '/accountant/reconciliation': {
+      id: '/accountant/reconciliation'
+      path: '/reconciliation'
+      fullPath: '/accountant/reconciliation'
+      preLoaderRoute: typeof AccountantReconciliationRouteImport
+      parentRoute: typeof AccountantRouteRoute
+    }
     '/accountant/finance': {
       id: '/accountant/finance'
       path: '/finance'
@@ -1616,6 +1636,7 @@ declare module '@tanstack/react-router' {
 interface AccountantRouteRouteChildren {
   AccountantExpensesRoute: typeof AccountantExpensesRoute
   AccountantFinanceRoute: typeof AccountantFinanceRoute
+  AccountantReconciliationRoute: typeof AccountantReconciliationRoute
   AccountantSalariesRoute: typeof AccountantSalariesRoute
   AccountantIndexRoute: typeof AccountantIndexRoute
 }
@@ -1623,6 +1644,7 @@ interface AccountantRouteRouteChildren {
 const AccountantRouteRouteChildren: AccountantRouteRouteChildren = {
   AccountantExpensesRoute: AccountantExpensesRoute,
   AccountantFinanceRoute: AccountantFinanceRoute,
+  AccountantReconciliationRoute: AccountantReconciliationRoute,
   AccountantSalariesRoute: AccountantSalariesRoute,
   AccountantIndexRoute: AccountantIndexRoute,
 }
