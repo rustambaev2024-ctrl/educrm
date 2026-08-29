@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsBranchAdmin, IsDirector
+from apps.accounts.permissions import IsAccountantOrDirector, IsBranchAdmin
 from apps.core.definitions import attendance_rate_parts
 from apps.lessons.models import Lesson, Attendance
 
@@ -137,7 +137,7 @@ class AnalyticsDebtorsView(AnalyticsBaseView):
 
 
 class SalaryCalculateView(APIView):
-    permission_classes = [IsDirector]
+    permission_classes = [IsAccountantOrDirector]
 
     @extend_schema(parameters=[SalaryCalculateSerializer], responses=OpenApiTypes.OBJECT)
     def get(self, request):
