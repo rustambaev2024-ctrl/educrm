@@ -22,6 +22,20 @@ def accountant_user(db):
     return StaffFactory(user__role="accountant").user
 
 
+@pytest.fixture
+def director_user(db):
+    from tests.factories import StaffFactory
+
+    return StaffFactory(user__role="director").user
+
+
+@pytest.fixture
+def student(db):
+    from tests.factories import StudentFactory
+
+    return StudentFactory()
+
+
 class _FakeTenant:
     """Minimal tenant object for SQLite tests (no real multi-tenancy)."""
     schema_name = "public"

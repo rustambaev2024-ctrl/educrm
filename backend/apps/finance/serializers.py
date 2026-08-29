@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 from rest_framework import serializers
@@ -8,7 +9,7 @@ from apps.lessons.models import Lesson
 from apps.staff.models import Staff
 from apps.students.models import Student
 
-from .models import ExpenseCategory, Payment
+from .models import ExpenseCategory, Payment, PeriodClose
 from .services import apply_payment, get_or_create_wallet
 
 
@@ -17,6 +18,16 @@ class ExpenseCategorySerializer(serializers.ModelSerializer):
         model = ExpenseCategory
         fields = ("id", "code", "name_uz", "name_ru", "active", "created_at")
         read_only_fields = ("id", "created_at")
+
+
+class PeriodCloseSerializer(serializers.ModelSerializer):
+    closed_by_name = serializers.CharField(source="closed_by.full_name", read_only=True)
+    reopened_by_name = serializers.CharField(source="reopened_by.full_name", read_only=True, default=None)
+
+    class Meta:
+        model = PeriodClose
+        fields = ("id", "month", "closed_by", "closed_by_name", "closed_at", "reopened_by", "reopened_by_name", "reopened_at")
+        read_only_fields = fields
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -62,6 +73,8 @@ class PaymentCreateSerializer(serializers.Serializer):
     staff_id = serializers.UUIDField(required=False)
     method = serializers.CharField(required=False, allow_blank=True, max_length=20)
     category = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    category_id = serializers.UUIDField(required=False)
+    transaction_date = serializers.DateField(required=False)
     comment = serializers.CharField(required=False, allow_blank=True, max_length=500)
 
     def validate_student_id(self, value):
@@ -98,10 +111,35 @@ class PaymentCreateSerializer(serializers.Serializer):
         self.context["staff"] = staff
         return value
 
+    def validate_category_id(self, value):
+        try:
+            category = ExpenseCategory.objects.get(id=value, active=True)
+        except ExpenseCategory.DoesNotExist as exc:
+            raise serializers.ValidationError("Category not found or inactive") from exc
+        self.context["category"] = category
+        return value
+
+    def validate_transaction_date(self, value):
+        from .views import _month_is_closed
+        if _month_is_closed(value):
+            raise serializers.ValidationError({
+                "uz": "Bu davr yopilgan",
+                "ru": "Этот период закрыт",
+            })
+        return value
+
     def validate(self, attrs):
         payment_type = attrs.get("payment_type")
         request = self.context.get("request")
         user = getattr(request, "user", None)
+
+        if attrs.get("transaction_date") and (user is None or user.role not in ("accountant", "superadmin")):
+            raise serializers.ValidationError({
+                "transaction_date": {
+                    "uz": "Faqat buxgalter sanani orqaga o'zgartira oladi",
+                    "ru": "Только бухгалтер может указать более раннюю дату",
+                }
+            })
 
         if payment_type == "expense":
             branch = self.context.get("branch")
@@ -143,6 +181,8 @@ class PaymentCreateSerializer(serializers.Serializer):
                 balance_after=Decimal("0.00"),
                 method=validated_data.get("method", ""),
                 category=validated_data.get("category", ""),
+                category_fk=self.context.get("category"),
+                transaction_date=validated_data.get("transaction_date", date.today()),
                 comment=validated_data.get("comment", ""),
                 created_by=self.context["request"].user,
             )
