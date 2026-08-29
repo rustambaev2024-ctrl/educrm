@@ -108,6 +108,37 @@ test.describe("деление на вкладки и «Ещё»", () => {
   });
 });
 
+test.describe("роль бухгалтера — 5 разделов", () => {
+  // Зеркалит src/routes/accountant/route.tsx: пять пунктов, все primary.
+  // Это ровно граничное значение MAX_TABS_WITHOUT_MORE — та же цифра, на
+  // которой раньше ловили регрессию с семью пунктами у ученика (см. выше).
+  const accountant: NavItem[] = [
+    item("/accountant", { primary: true }),
+    item("/accountant/finance", { primary: true }),
+    item("/accountant/expenses", { primary: true }),
+    item("/accountant/salaries", { primary: true }),
+    item("/accountant/reconciliation", { primary: true }),
+  ];
+
+  test("все пять пунктов помещаются во вкладки, «Ещё» не появляется", () => {
+    const { tabs, rest } = splitTabs(accountant);
+    expect(tabs.map((t) => t.to)).toEqual(accountant.map((t) => t.to));
+    expect(rest).toHaveLength(0);
+  });
+
+  test("на корне роли активен корень, а не «Финансы»", () => {
+    // "/accountant/finance" начинается с "/accountant" — тот же наивный
+    // startsWith-баг, что уже проверен для teacher выше.
+    expect(accountant[activeIndex(accountant, "/accountant")].to).toBe("/accountant");
+  });
+
+  test("на «Акт сверки» активен именно этот пункт", () => {
+    expect(accountant[activeIndex(accountant, "/accountant/reconciliation")].to).toBe(
+      "/accountant/reconciliation",
+    );
+  });
+});
+
 test.describe("группировка бокового меню", () => {
   test("пункты без раздела идут первой группой без заголовка", () => {
     const groups = groupBySection([item("/dash"), item("/a", { section: "УЧЁБА" })]);
