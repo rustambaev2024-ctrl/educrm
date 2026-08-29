@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Lock, Plus, ReceiptText, Unlock } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
@@ -68,29 +68,43 @@ function AccountantExpenses() {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoriesError, setCategoriesError] = useState(false);
 
-  const loadCategories = (opts?: { silent?: boolean }) => {
+  // Токен последнего запущенного запроса — если параллельно летят два
+  // silent-рефетча (например create + toggle подряд), устаревший ответ,
+  // резолвнувшийся позже свежего, не должен перезаписать актуальный список.
+  const categoriesRequestIdRef = useRef(0);
+
+  const loadCategories = (opts?: { silent?: boolean; isStale?: () => boolean }) => {
     // silent: true — фоновый рефреш после create/toggle. Не должен трогать
     // loading/error — иначе успешное действие сопровождается миганием
     // скелетона или (при временном сбое сети) заменой валидного списка на
     // полноэкранную ошибку.
     if (!opts?.silent) setCategoriesLoading(true);
+    const requestId = ++categoriesRequestIdRef.current;
     expenseCategoryApi
       .list(true)
       .then((data) => {
+        if (opts?.isStale?.()) return;
+        if (categoriesRequestIdRef.current !== requestId) return;
         setCategories(data as ExpenseCategory[]);
         if (!opts?.silent) setCategoriesError(false);
       })
       .catch((err) => {
+        if (opts?.isStale?.()) return;
         console.error("[accountant/expenses] category list fetch failed:", err);
         if (!opts?.silent) setCategoriesError(true);
         toast.error(apiErrorMessage(err));
       })
       .finally(() => {
+        if (opts?.isStale?.()) return;
         if (!opts?.silent) setCategoriesLoading(false);
       });
   };
   useEffect(() => {
-    loadCategories();
+    let cancelled = false;
+    loadCategories({ isStale: () => cancelled });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const activeCategories = useMemo(() => categories.filter((c) => c.active), [categories]);
@@ -111,25 +125,38 @@ function AccountantExpenses() {
   const [periodLoading, setPeriodLoading] = useState(true);
   const [periodError, setPeriodError] = useState(false);
 
-  const loadPeriods = (opts?: { silent?: boolean }) => {
+  // Тот же токен-гард, что и у loadCategories — на случай пересекающихся
+  // silent-рефетчей после close/reopen.
+  const periodsRequestIdRef = useRef(0);
+
+  const loadPeriods = (opts?: { silent?: boolean; isStale?: () => boolean }) => {
     if (!opts?.silent) setPeriodLoading(true);
+    const requestId = ++periodsRequestIdRef.current;
     periodCloseApi
       .list()
       .then((data) => {
+        if (opts?.isStale?.()) return;
+        if (periodsRequestIdRef.current !== requestId) return;
         setPeriods(data as PeriodCloseRaw[]);
         if (!opts?.silent) setPeriodError(false);
       })
       .catch((err) => {
+        if (opts?.isStale?.()) return;
         console.error("[accountant/expenses] period-close list fetch failed:", err);
         if (!opts?.silent) setPeriodError(true);
         toast.error(apiErrorMessage(err));
       })
       .finally(() => {
+        if (opts?.isStale?.()) return;
         if (!opts?.silent) setPeriodLoading(false);
       });
   };
   useEffect(() => {
-    loadPeriods();
+    let cancelled = false;
+    loadPeriods({ isStale: () => cancelled });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Актуальная закрывающая запись текущего месяца (если её открыли заново —
@@ -149,6 +176,12 @@ function AccountantExpenses() {
   const [backdate, setBackdate] = useState("");
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
+  // Аккаунтант — институтская роль без "своего" филиала, поэтому филиал
+  // расхода нужно выбирать явно, а не молча брать branches[0]. Пустая строка
+  // означает "не выбран вручную" — тогда используется branches[0] по
+  // умолчанию (без изменения поведения для институтов с одним филиалом).
+  const [expenseBranchId, setExpenseBranchId] = useState("");
+  const currentExpenseBranchId = expenseBranchId || branches[0]?.id || "";
 
   const resetExpenseForm = () => {
     setAmount("");
@@ -156,13 +189,14 @@ function AccountantExpenses() {
     setCategoryId("");
     setBackdate("");
     setComment("");
+    setExpenseBranchId("");
   };
 
   const handleSubmitExpense = async () => {
     // Защита от двойного клика: это списание денег, второй клик — второй расход.
     if (saving) return;
     const num = Number(amount);
-    if (!categoryId || !Number.isFinite(num) || num <= 0) {
+    if (!categoryId || !currentExpenseBranchId || !Number.isFinite(num) || num <= 0) {
       toast.error(tr("Barcha majburiy maydonlarni to'ldiring", "Заполните все обязательные поля"));
       return;
     }
@@ -171,7 +205,7 @@ function AccountantExpenses() {
       // addPayment резолвится в Payment на успехе и null на неудаче — стор
       // сам уже показал toast.error с причиной, второй раз кричать не нужно.
       const saved = await addPayment({
-        branchId: branches[0]?.id ?? "",
+        branchId: currentExpenseBranchId,
         amount: num,
         direction: "out",
         type: "expense",
@@ -245,6 +279,7 @@ function AccountantExpenses() {
   const [periodActionLoading, setPeriodActionLoading] = useState(false);
 
   const handlePeriodAction = async () => {
+    if (periodActionLoading) return;
     setPeriodActionLoading(true);
     try {
       if (isClosed && activeClose) {
@@ -278,7 +313,22 @@ function AccountantExpenses() {
             {tr("Xarajat qo'shish", "Добавить расход")}
           </div>
           <div className="space-y-3 p-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">{tr("Filial", "Филиал")} *</Label>
+                <Select value={currentExpenseBranchId} onValueChange={setExpenseBranchId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">{tr("Kategoriya", "Категория")} *</Label>
                 <Select value={categoryId} onValueChange={setCategoryId}>
@@ -397,14 +447,17 @@ function AccountantExpenses() {
                     <TableCell>{c.name_ru}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Badge variant={c.active ? "outline" : "destructive"} className="text-[10px]">
+                        <Badge variant="outline" className="text-[10px]">
                           {c.active ? tr("Faol", "Активна") : tr("Nofaol", "Неактивна")}
                         </Badge>
                         <Switch
                           checked={c.active}
-                          disabled={togglingId === c.id}
+                          disabled={togglingId !== null}
                           onCheckedChange={() => handleToggleCategory(c)}
-                          aria-label={tr("Faollikni almashtirish", "Переключить активность")}
+                          aria-label={tr(
+                            `"${c.code}" faolligini almashtirish`,
+                            `Переключить активность "${c.code}"`,
+                          )}
                         />
                       </div>
                     </TableCell>
@@ -419,25 +472,45 @@ function AccountantExpenses() {
               {tr("Yangi kategoriya qo'shish", "Добавить новую категорию")}
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
-              <Input
-                value={newCode}
-                onChange={(e) => setNewCode(e.target.value)}
-                placeholder={tr("Kod", "Код")}
-                aria-label={tr("Kod", "Код")}
-              />
-              <Input
-                value={newNameUz}
-                onChange={(e) => setNewNameUz(e.target.value)}
-                placeholder={tr("Nomi (uz)", "Название (uz)")}
-                aria-label={tr("Nomi (uz)", "Название (uz)")}
-              />
-              <Input
-                value={newNameRu}
-                onChange={(e) => setNewNameRu(e.target.value)}
-                placeholder={tr("Nomi (ru)", "Название (ru)")}
-                aria-label={tr("Nomi (ru)", "Название (ru)")}
-              />
-              <Button variant="outline" onClick={handleCreateCategory} disabled={creatingCategory}>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-category-code" className="text-xs">
+                  {tr("Kod", "Код")}
+                </Label>
+                <Input
+                  id="new-category-code"
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value)}
+                  placeholder={tr("Kod", "Код")}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-category-name-uz" className="text-xs">
+                  {tr("Nomi (uz)", "Название (uz)")}
+                </Label>
+                <Input
+                  id="new-category-name-uz"
+                  value={newNameUz}
+                  onChange={(e) => setNewNameUz(e.target.value)}
+                  placeholder={tr("Nomi (uz)", "Название (uz)")}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-category-name-ru" className="text-xs">
+                  {tr("Nomi (ru)", "Название (ru)")}
+                </Label>
+                <Input
+                  id="new-category-name-ru"
+                  value={newNameRu}
+                  onChange={(e) => setNewNameRu(e.target.value)}
+                  placeholder={tr("Nomi (ru)", "Название (ru)")}
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleCreateCategory}
+                disabled={creatingCategory}
+                className="self-end"
+              >
                 <Plus className="mr-1 size-4" />
                 {creatingCategory ? "..." : tr("Qo'shish", "Добавить")}
               </Button>
