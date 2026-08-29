@@ -22,6 +22,28 @@ class Wallet(models.Model):
         return f"{self.student_id}: {self.balance}"
 
 
+class ExpenseCategory(models.Model):
+    """План счетов для расходов. Управляется director/accountant.
+
+    active, а не удаление: у выключенной категории могут быть исторические
+    Payment — они должны остаться читаемыми, просто категория больше не
+    предлагается при вводе новой записи.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    code = models.CharField(max_length=32, unique=True)
+    name_uz = models.CharField(max_length=100)
+    name_ru = models.CharField(max_length=100)
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "finance_expense_category"
+        ordering = ["name_ru"]
+
+    def __str__(self) -> str:
+        return self.name_ru
+
+
 class Payment(models.Model):
     PAYMENT_TYPE_CHOICES = [
         ("top_up", "Top Up"),
