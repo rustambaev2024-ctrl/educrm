@@ -138,9 +138,16 @@ async function doRefresh(): Promise<string | null> {
   return data.access ?? null;
 }
 
-export async function requestJson<T>(path: string, init: RequestInit = {}): Promise<T> {
+/**
+ * Общий слой поверх fetch для всех авторизованных запросов: заголовки
+ * (X-Tenant-Schema + Bearer), 30-секундный AbortController-таймаут и полный
+ * 401→refresh→retry цикл (isRefreshing/refreshQueue — общее состояние модуля,
+ * чтобы параллельные запросы не устраивали гонку рефрешей). requestJson и
+ * requestBlob отличаются только тем, что делают с успешным Response —
+ * вся авторизационная логика живёт здесь одна, без дублирования.
+ */
+async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     "X-Tenant-Schema": getTenantSchema(),
     ...((init.headers as Record<string, string>) ?? {}),
   };
@@ -191,6 +198,17 @@ export async function requestJson<T>(path: string, init: RequestInit = {}): Prom
       res = await makeRequest(newToken);
     }
   }
+
+  return res;
+}
+
+export async function requestJson<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((init.headers as Record<string, string>) ?? {}),
+  };
+
+  const res = await authorizedFetch(path, { ...init, headers });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -229,70 +247,20 @@ export async function requestForm<T>(path: string, formData: FormData, init: Req
 
 /**
  * Скачивание бинарного файла (PDF/Excel) с бэкенда — первый такой кейс в
- * проекте. Заголовки и 401→refresh→retry продублированы из requestJson
- * (как requestForm уже дублирует заголовки ниже него) — JWT истекает
- * посреди сессии одинаково вероятно что на JSON-запросе, что на скачивании
- * файла, поэтому логику ретрая урезать нельзя. Отличие от requestJson —
- * в хвосте: вместо res.json() отдаём { blob, filename }, распарсив имя
- * файла из Content-Disposition (бэкенд ставит его на всех бинарных
- * эндпоинтах, но формат префикса/суффикса у каждого свой, поэтому regex
- * без жёстко зашитого шаблона).
+ * проекте. Заголовки и 401→refresh→retry идут через общий authorizedFetch
+ * (см. выше) — JWT истекает посреди сессии одинаково вероятно что на
+ * JSON-запросе, что на скачивании файла, поэтому логика ретрая тут ровно
+ * та же, без отдельной копии. Отличие от requestJson — в хвосте: вместо
+ * res.json() отдаём { blob, filename }, распарсив имя файла из
+ * Content-Disposition (бэкенд ставит его на всех бинарных эндпоинтах, но
+ * формат префикса/суффикса у каждого свой, поэтому regex без жёстко
+ * зашитого шаблона).
  */
 export async function requestBlob(
   path: string,
   init: RequestInit = {},
 ): Promise<{ blob: Blob; filename: string }> {
-  const headers: Record<string, string> = {
-    "X-Tenant-Schema": getTenantSchema(),
-    ...((init.headers as Record<string, string>) ?? {}),
-  };
-
-  const access = readAccessToken();
-  if (access) headers.Authorization = `Bearer ${access}`;
-
-  const makeRequest = (token: string | null) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-    return fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      signal: controller.signal,
-      headers: token ? { ...headers, Authorization: `Bearer ${token}` } : headers,
-    }).then(
-      (res) => { clearTimeout(timeoutId); return res; },
-      (e) => {
-        clearTimeout(timeoutId);
-        if (e instanceof Error && e.name === "AbortError") {
-          throw new Error("Request timed out — server took too long to respond");
-        }
-        throw e;
-      },
-    );
-  };
-
-  let res = await makeRequest(access);
-
-  if (res.status === 401) {
-    if (!isRefreshing) {
-      isRefreshing = true;
-      const newToken = await doRefresh();
-      isRefreshing = false;
-      refreshQueue.forEach((cb) => cb(newToken ?? ""));
-      refreshQueue = [];
-
-      if (!newToken) {
-        if (typeof window !== "undefined") {
-          localStorage.removeItem(AUTH_KEY);
-          window.location.href = "/";
-        }
-        throw new Error("Session expired");
-      }
-
-      res = await makeRequest(newToken);
-    } else {
-      const newToken = await new Promise<string>((resolve) => refreshQueue.push(resolve));
-      res = await makeRequest(newToken);
-    }
-  }
+  const res = await authorizedFetch(path, init);
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

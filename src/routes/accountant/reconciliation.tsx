@@ -44,7 +44,7 @@ function saveBlob(blob: Blob, filename: string) {
 function AccountantReconciliation() {
   const { lang } = useI18n();
   const tr = (uz: string, ru: string) => (lang === "uz" ? uz : ru);
-  const { students } = useData();
+  const { students, isLoading } = useData();
 
   // ---------------------------------------------------------------------
   // Выбор ученика — комбобокс поверх Popover + Command, первый в проекте:
@@ -112,39 +112,50 @@ function AccountantReconciliation() {
                   variant="outline"
                   role="combobox"
                   aria-expanded={studentPickerOpen}
+                  disabled={isLoading}
                   className="w-full justify-between font-normal sm:w-80"
                 >
                   <span className={cn("truncate", !selectedStudent && "text-muted-foreground")}>
-                    {selectedStudent ? selectedStudent.fullName : tr("O'quvchini tanlang", "Выберите ученика")}
+                    {isLoading
+                      ? tr("Yuklanmoqda...", "Загрузка...")
+                      : selectedStudent
+                        ? selectedStudent.fullName
+                        : tr("O'quvchini tanlang", "Выберите ученика")}
                   </span>
                   <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0">
                 <Command>
-                  <CommandInput
-                    placeholder={tr("Ism bo'yicha qidirish...", "Поиск по имени...")}
-                  />
+                  <CommandInput placeholder={tr("Ism bo'yicha qidirish...", "Поиск по имени...")} />
                   <CommandList>
-                    <CommandEmpty>{tr("O'quvchi topilmadi", "Ученик не найден")}</CommandEmpty>
-                    {students.map((s) => (
-                      <CommandItem
-                        key={s.id}
-                        value={s.fullName}
-                        onSelect={() => {
-                          setStudentId(s.id);
-                          setStudentPickerOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "size-4",
-                            s.id === studentId ? "opacity-100" : "opacity-0",
-                          )}
-                        />
-                        {s.fullName}
-                      </CommandItem>
-                    ))}
+                    {isLoading ? (
+                      <div className="py-6 text-center text-sm text-muted-foreground">
+                        {tr("Yuklanmoqda...", "Загрузка...")}
+                      </div>
+                    ) : (
+                      <>
+                        <CommandEmpty>{tr("O'quvchi topilmadi", "Ученик не найден")}</CommandEmpty>
+                        {students.map((s) => (
+                          <CommandItem
+                            key={s.id}
+                            value={s.fullName}
+                            onSelect={() => {
+                              setStudentId(s.id);
+                              setStudentPickerOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "size-4",
+                                s.id === studentId ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            {s.fullName}
+                          </CommandItem>
+                        ))}
+                      </>
+                    )}
                   </CommandList>
                 </Command>
               </PopoverContent>
@@ -178,10 +189,7 @@ function AccountantReconciliation() {
           </div>
 
           <div className="flex flex-wrap gap-2 pt-1">
-            <Button
-              onClick={() => download("pdf")}
-              disabled={!canDownload || pdfLoading}
-            >
+            <Button onClick={() => download("pdf")} disabled={!canDownload || pdfLoading}>
               <FileText className="size-4" />
               {pdfLoading ? "..." : tr("PDF yuklab olish", "Скачать PDF")}
             </Button>
