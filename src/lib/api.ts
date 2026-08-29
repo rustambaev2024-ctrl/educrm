@@ -9,7 +9,7 @@ export const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 export const TENANT_SCHEMA_KEY = "educrm.tenant_schema";
 export const AUTH_KEY = "educrm.auth";
 
-export type UserRole = "superadmin" | "director" | "admin" | "branch_admin" | "teacher" | "support_teacher" | "student" | "parent";
+export type UserRole = "superadmin" | "director" | "admin" | "branch_admin" | "accountant" | "teacher" | "support_teacher" | "student" | "parent";
 
 export interface AuthUser {
   id: string;
@@ -538,6 +538,22 @@ export const paymentApi = {
     requestJson(`/payments/${id}/reverse/`, {
       method: "POST",
     }),
+};
+
+export const expenseCategoryApi = {
+  list: (includeInactive = false) =>
+    requestJson(`/payments/expense-categories/${includeInactive ? "?include_inactive=1" : ""}`),
+  create: (data: { code: string; name_uz: string; name_ru: string }) =>
+    requestJson("/payments/expense-categories/", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<{ code: string; name_uz: string; name_ru: string; active: boolean }>) =>
+    requestJson(`/payments/expense-categories/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+  deactivate: (id: string) => requestJson<void>(`/payments/expense-categories/${id}/`, { method: "DELETE" }),
+};
+
+export const periodCloseApi = {
+  list: () => requestJson("/payments/period-closes/"),
+  close: (month: string) => requestJson("/payments/period-closes/close/", { method: "POST", body: JSON.stringify({ month }) }),
+  reopen: (id: string) => requestJson(`/payments/period-closes/${id}/reopen/`, { method: "POST" }),
 };
 
 export const homeworkApi = {
