@@ -75,7 +75,7 @@ function AccountantExpenses() {
     // полноэкранную ошибку.
     if (!opts?.silent) setCategoriesLoading(true);
     expenseCategoryApi
-      .list()
+      .list(true)
       .then((data) => {
         setCategories(data as ExpenseCategory[]);
         if (!opts?.silent) setCategoriesError(false);
