@@ -1445,6 +1445,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       payment_type: created.direction === "out" ? "expense" : "top_up",
       method: created.method,
       category: created.category ?? (created.direction === "out" ? "other" : "tuition"),
+      category_id: created.categoryId,
+      transaction_date: created.transactionDate,
       comment: created.comment,
     } as never).then((raw) => {
       const persisted = paymentFromRaw(raw as PaymentRaw);
