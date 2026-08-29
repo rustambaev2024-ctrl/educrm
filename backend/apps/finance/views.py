@@ -7,10 +7,10 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsBranchAdmin
+from apps.accounts.permissions import IsAccountantOrDirector, IsBranchAdmin, IsFinanceWriter
 
-from .models import Payment
-from .serializers import PaymentCreateSerializer, PaymentSerializer
+from .models import ExpenseCategory, Payment
+from .serializers import ExpenseCategorySerializer, PaymentCreateSerializer, PaymentSerializer
 from .services import reverse_payment
 
 
@@ -86,6 +86,30 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
                 return qs.none()
             scoped = scoped.filter(student_id=student_id)
         return scoped
+
+
+class ExpenseCategoryViewSet(viewsets.ModelViewSet):
+    queryset = ExpenseCategory.objects.all()
+    serializer_class = ExpenseCategorySerializer
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            return [IsFinanceWriter()]
+        return [IsAccountantOrDirector()]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.action == "list" and self.request.query_params.get("include_inactive") != "1":
+            qs = qs.filter(active=True)
+        return qs
+
+    def destroy(self, request, *args, **kwargs):
+        # Никогда не удаляем физически — только выключаем. Историю Payment
+        # с этой категорией нельзя оставить с оборванной ссылкой.
+        instance = self.get_object()
+        instance.active = False
+        instance.save(update_fields=["active"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(["POST"])

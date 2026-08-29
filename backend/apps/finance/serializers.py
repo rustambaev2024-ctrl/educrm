@@ -8,8 +8,15 @@ from apps.lessons.models import Lesson
 from apps.staff.models import Staff
 from apps.students.models import Student
 
-from .models import Payment
+from .models import ExpenseCategory, Payment
 from .services import apply_payment, get_or_create_wallet
+
+
+class ExpenseCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExpenseCategory
+        fields = ("id", "code", "name_uz", "name_ru", "active", "created_at")
+        read_only_fields = ("id", "created_at")
 
 
 class PaymentSerializer(serializers.ModelSerializer):
