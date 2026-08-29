@@ -200,7 +200,9 @@ export interface Payment {
   method: PaymentMethod;
   date: string;             // ISO
   comment?: string;
-  category?: "tuition" | "salary" | "rent" | "utilities" | "marketing" | "other";
+  category?: string;
+  categoryId?: string;
+  transactionDate?: string;   // ISO date, only meaningfully different from `date` for backdated expenses (see Payment.transaction_date on the backend — set only by accountant-entered expenses, always null/mirrors `date` for every other payment type)
 }
 
 
