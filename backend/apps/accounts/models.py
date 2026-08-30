@@ -11,7 +11,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         ("superadmin", "Superadmin"),
         ("director", "Director"),
         ("branch_admin", "Branch Admin"),
-        ("accountant", "Accountant"),
         ("teacher", "Teacher"),
         ("support_teacher", "Support Teacher"),
         ("student", "Student"),

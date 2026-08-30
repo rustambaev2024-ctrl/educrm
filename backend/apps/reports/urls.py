@@ -13,7 +13,6 @@ from .views import (
     TeacherLessonsView,
     ExportExcelView,
     ExportPdfView,
-    ReconciliationView,
     SalaryCalculateView,
     TeacherSalaryView,
 )
@@ -33,6 +32,5 @@ urlpatterns = [
     path("export/pdf/", ExportPdfView.as_view(), name="export-pdf"),
     path("analytics/daily-report/", DailyReportView.as_view(), name="daily-report"),
     path("analytics/group-report/<uuid:group_id>/", GroupReportView.as_view(), name="group-report"),
-    path("reports/reconciliation/<uuid:student_id>/", ReconciliationView.as_view(), name="reconciliation"),
 ]
 

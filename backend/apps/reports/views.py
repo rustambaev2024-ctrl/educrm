@@ -1,5 +1,4 @@
 from datetime import date as date_type, datetime
-from decimal import Decimal
 
 from django.http import HttpResponse
 from drf_spectacular.utils import OpenApiResponse, OpenApiTypes, extend_schema
@@ -8,13 +7,11 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsAccountantOrDirector, IsBranchAdmin
+from apps.accounts.permissions import IsBranchAdmin, IsDirector
 from apps.core.definitions import attendance_rate_parts
-from apps.finance.models import Payment
 from apps.lessons.models import Lesson, Attendance
-from apps.students.models import Student
 
-from .exporters import export_excel, export_pdf, export_reconciliation_pdf
+from .exporters import export_excel, export_pdf
 from .serializers import (
     AnalyticsFilterSerializer,
     ExportRequestSerializer,
@@ -140,7 +137,7 @@ class AnalyticsDebtorsView(AnalyticsBaseView):
 
 
 class SalaryCalculateView(APIView):
-    permission_classes = [IsAccountantOrDirector]
+    permission_classes = [IsDirector]
 
     @extend_schema(parameters=[SalaryCalculateSerializer], responses=OpenApiTypes.OBJECT)
     def get(self, request):
@@ -313,67 +310,3 @@ class GroupReportView(APIView):
 
         cache.set(cache_key, data, 300)
         return Response(data)
-
-
-class ReconciliationView(APIView):
-    permission_classes = [IsAccountantOrDirector]
-
-    def get(self, request, student_id):
-        try:
-            student = Student.objects.select_related("user").get(id=student_id)
-        except Student.DoesNotExist:
-            return Response({"detail": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        date_from = request.query_params.get("date_from")
-        date_to = request.query_params.get("date_to")
-        if not date_from or not date_to:
-            return Response({"detail": "date_from and date_to are required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        opening_balance = (
-            Payment.objects.filter(student=student, created_at__date__lt=date_from)
-            .order_by("-created_at")
-            .values_list("balance_after", flat=True)
-            .first()
-        ) or Decimal("0.00")
-
-        period_payments = Payment.objects.filter(
-            student=student,
-            created_at__date__gte=date_from,
-            created_at__date__lte=date_to,
-        ).order_by("created_at")
-
-        rows = []
-        running_balance = opening_balance
-        for payment in period_payments:
-            running_balance += payment.balance_after - payment.balance_before
-            rows.append({
-                "date": payment.created_at.date().isoformat(),
-                "label": payment.get_payment_type_display(),
-                "amount": str(payment.amount),
-                "balance": str(running_balance),
-            })
-
-        data = {
-            "student_name": student.user.full_name,
-            "date_from": date_from,
-            "date_to": date_to,
-            "opening_balance": str(opening_balance),
-            "closing_balance": str(running_balance),
-            "accountant_name": request.user.full_name,
-            "rows": rows,
-        }
-
-        export_format = request.query_params.get("format", "pdf")
-        if export_format == "excel":
-            file_bytes = export_excel("reconciliation", data)
-            response = HttpResponse(
-                file_bytes,
-                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-            response["Content-Disposition"] = f'attachment; filename="reconciliation_{student_id}.xlsx"'
-            return response
-
-        file_bytes = export_reconciliation_pdf(data)
-        response = HttpResponse(file_bytes, content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="reconciliation_{student_id}.pdf"'
-        return response

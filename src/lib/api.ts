@@ -9,7 +9,7 @@ export const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 export const TENANT_SCHEMA_KEY = "educrm.tenant_schema";
 export const AUTH_KEY = "educrm.auth";
 
-export type UserRole = "superadmin" | "director" | "admin" | "branch_admin" | "accountant" | "teacher" | "support_teacher" | "student" | "parent";
+export type UserRole = "superadmin" | "director" | "admin" | "branch_admin" | "teacher" | "support_teacher" | "student" | "parent";
 
 export interface AuthUser {
   id: string;
@@ -138,16 +138,9 @@ async function doRefresh(): Promise<string | null> {
   return data.access ?? null;
 }
 
-/**
- * Общий слой поверх fetch для всех авторизованных запросов: заголовки
- * (X-Tenant-Schema + Bearer), 30-секундный AbortController-таймаут и полный
- * 401→refresh→retry цикл (isRefreshing/refreshQueue — общее состояние модуля,
- * чтобы параллельные запросы не устраивали гонку рефрешей). requestJson и
- * requestBlob отличаются только тем, что делают с успешным Response —
- * вся авторизационная логика живёт здесь одна, без дублирования.
- */
-async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+export async function requestJson<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
+    "Content-Type": "application/json",
     "X-Tenant-Schema": getTenantSchema(),
     ...((init.headers as Record<string, string>) ?? {}),
   };
@@ -199,17 +192,6 @@ async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Re
     }
   }
 
-  return res;
-}
-
-export async function requestJson<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...((init.headers as Record<string, string>) ?? {}),
-  };
-
-  const res = await authorizedFetch(path, { ...init, headers });
-
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new ApiError(res.status, body as Record<string, unknown>);
@@ -243,36 +225,6 @@ export async function requestForm<T>(path: string, formData: FormData, init: Req
 
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
-}
-
-/**
- * Скачивание бинарного файла (PDF/Excel) с бэкенда — первый такой кейс в
- * проекте. Заголовки и 401→refresh→retry идут через общий authorizedFetch
- * (см. выше) — JWT истекает посреди сессии одинаково вероятно что на
- * JSON-запросе, что на скачивании файла, поэтому логика ретрая тут ровно
- * та же, без отдельной копии. Отличие от requestJson — в хвосте: вместо
- * res.json() отдаём { blob, filename }, распарсив имя файла из
- * Content-Disposition (бэкенд ставит его на всех бинарных эндпоинтах, но
- * формат префикса/суффикса у каждого свой, поэтому regex без жёстко
- * зашитого шаблона).
- */
-export async function requestBlob(
-  path: string,
-  init: RequestInit = {},
-): Promise<{ blob: Blob; filename: string }> {
-  const res = await authorizedFetch(path, init);
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body as Record<string, unknown>);
-  }
-
-  const blob = await res.blob();
-  const disposition = res.headers.get("Content-Disposition") ?? "";
-  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
-  const filename = match ? decodeURIComponent(match[1]) : "export";
-
-  return { blob, filename };
 }
 
 export class ApiError extends Error {
@@ -588,22 +540,6 @@ export const paymentApi = {
     }),
 };
 
-export const expenseCategoryApi = {
-  list: (includeInactive = false) =>
-    requestJson(`/payments/expense-categories/${includeInactive ? "?include_inactive=1" : ""}`),
-  create: (data: { code: string; name_uz: string; name_ru: string }) =>
-    requestJson("/payments/expense-categories/", { method: "POST", body: JSON.stringify(data) }),
-  update: (id: string, data: Partial<{ code: string; name_uz: string; name_ru: string; active: boolean }>) =>
-    requestJson(`/payments/expense-categories/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
-  deactivate: (id: string) => requestJson<void>(`/payments/expense-categories/${id}/`, { method: "DELETE" }),
-};
-
-export const periodCloseApi = {
-  list: () => requestJson("/payments/period-closes/"),
-  close: (month: string) => requestJson("/payments/period-closes/close/", { method: "POST", body: JSON.stringify({ month }) }),
-  reopen: (id: string) => requestJson(`/payments/period-closes/${id}/reopen/`, { method: "POST" }),
-};
-
 export const homeworkApi = {
   ...crudApi("/homeworks/"),
   createWithFile: (data: FormData) => requestForm("/homeworks/", data),
@@ -659,10 +595,6 @@ export const analyticsApi = {
     requestJson(`/analytics/daily-report/?${new URLSearchParams(params)}`),
   groupReport: (groupId: string, params?: Record<string, string>) =>
     requestJson(`/analytics/group-report/${groupId}/${params ? `?${new URLSearchParams(params)}` : ""}`),
-  reconciliation: (
-    studentId: string,
-    params: { date_from: string; date_to: string; format: "pdf" | "excel" },
-  ) => requestBlob(`/reports/reconciliation/${studentId}/?${new URLSearchParams(params)}`),
 };
 
 export const auditApi = {

@@ -1,7 +1,5 @@
 import json
-from html import escape
 from io import BytesIO
-from pathlib import Path
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -108,50 +106,4 @@ def export_pdf(report_type: str, data: dict) -> bytes:
         except Exception:
             pass
     return _simple_pdf_bytes(f"GrowBase report {report_type}. Data length: {len(body)}")
-
-
-_TEMPLATES_DIR = Path(__file__).parent / "templates"
-
-
-def export_reconciliation_pdf(data: dict) -> bytes:
-    """Акт сверки — свой шаблон, не generic JSON-дамп export_pdf() выше.
-
-    Родитель/ученик подписывает этот документ — таблица начислений/платежей
-    с бегущим балансом и место под подпись, а не <pre>{json}</pre>.
-
-    Все подставляемые значения экранируются через html.escape() — это ручная
-    HTML-сборка (str.replace, не шаблонизатор с автоэкранированием), а
-    student_name приходит из User.full_name (свободный текст, заводит
-    администратор/директор при создании ученика) и date_from/date_to —
-    напрямую из query-параметров запроса без валидации формата. WeasyPrint
-    рендерит полноценный HTML/CSS и умеет подгружать внешние ресурсы
-    (<img src>, @import) — без экранирования это открытая инъекция с риском
-    SSRF через сгенерированный PDF, а не только косметическая порча вёрстки.
-    """
-    template_path = _TEMPLATES_DIR / "reconciliation_act.html"
-    template_source = template_path.read_text(encoding="utf-8")
-
-    rows_html = "".join(
-        f"<tr><td>{escape(str(row['date']))}</td><td>{escape(str(row['label']))}</td>"
-        f"<td class=\"amount\">{escape(str(row['amount']))}</td>"
-        f"<td class=\"amount\">{escape(str(row['balance']))}</td></tr>"
-        for row in data["rows"]
-    )
-    html = (
-        template_source
-        .replace("__STUDENT_NAME__", escape(str(data["student_name"])))
-        .replace("__DATE_FROM__", escape(str(data["date_from"])))
-        .replace("__DATE_TO__", escape(str(data["date_to"])))
-        .replace("__OPENING_BALANCE__", escape(str(data["opening_balance"])))
-        .replace("__CLOSING_BALANCE__", escape(str(data["closing_balance"])))
-        .replace("__ACCOUNTANT_NAME__", escape(str(data.get("accountant_name", ""))))
-        .replace("__ROWS_TABLE_BODY__", rows_html)
-    )
-
-    if HTML is not None:
-        try:
-            return HTML(string=html).write_pdf()
-        except Exception:
-            pass
-    return _simple_pdf_bytes(f"Reconciliation act for {data['student_name']}, {len(data['rows'])} rows")
 

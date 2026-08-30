@@ -377,8 +377,6 @@ export interface PaymentRaw {
   type?: string;
   method?: string | null;
   category?: string | null;
-  category_fk?: string | { id: string } | null;
-  transaction_date?: string | null;
   amount: string | number;
   // Денежный след операции: баланс до и после. Бэкенд пишет их по каждому
   // платежу (finance/services.apply_payment), но без этих полей на вопрос
@@ -471,8 +469,6 @@ export function mapPayment(r: PaymentRaw) {
     date: r.created_at ?? r.date ?? new Date().toISOString(),
     comment: r.comment ?? undefined,
     category: r.category ?? (direction === "out" ? "other" : "tuition"),
-    categoryId: extractId(r.category_fk ?? undefined) || undefined,
-    transactionDate: r.transaction_date ?? undefined,
   };
 }
 

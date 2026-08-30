@@ -1,29 +1,17 @@
 import uuid
-from datetime import date
 
 from django.db.models import Q
-from django.utils import timezone
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes as perm_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsAccountant, IsAccountantOrDirector, IsFinanceWriter
+from apps.accounts.permissions import IsBranchAdmin
 
-from .models import ExpenseCategory, Payment, PeriodClose
-from .serializers import (
-    ExpenseCategorySerializer,
-    PaymentCreateSerializer,
-    PaymentSerializer,
-    PeriodCloseSerializer,
-)
+from .models import Payment
+from .serializers import PaymentCreateSerializer, PaymentSerializer
 from .services import reverse_payment
-
-
-def _month_is_closed(check_date):
-    month_start = check_date.replace(day=1)
-    return PeriodClose.objects.filter(month=month_start, reopened_at__isnull=True).exists()
 
 
 class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -31,7 +19,7 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
 
     def get_permissions(self):
         if self.action == "create":
-            permission_classes = [IsFinanceWriter]
+            permission_classes = [IsBranchAdmin]
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
@@ -48,20 +36,9 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
         output = PaymentSerializer(payment)
         return Response(output.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["post"], permission_classes=[IsFinanceWriter])
+    @action(detail=True, methods=["post"], permission_classes=[IsBranchAdmin])
     def reverse(self, request, pk=None):
         payment = self.get_object()
-        check_date = payment.transaction_date or payment.created_at.date()
-        if _month_is_closed(check_date):
-            return Response(
-                {
-                    "detail": {
-                        "uz": "Bu davr yopilgan, to'lovni bekor qilib bo'lmaydi",
-                        "ru": "Этот период закрыт бухгалтером, платёж нельзя отменить",
-                    }
-                },
-                status=status.HTTP_409_CONFLICT,
-            )
         already_reversed = Payment.objects.filter(
             comment=f"Reversal of payment {payment.id}"
         ).exists()
@@ -84,7 +61,7 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
     def get_queryset(self):
         user = self.request.user
         qs = super().get_queryset()
-        if user.role in ("superadmin", "director", "accountant"):
+        if user.role in ("superadmin", "director"):
             scoped = qs
         elif user.role == "branch_admin" and hasattr(user, "staff_profile"):
             branch_id = user.staff_profile.branch_id
@@ -109,77 +86,6 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
                 return qs.none()
             scoped = scoped.filter(student_id=student_id)
         return scoped
-
-
-class PeriodCloseViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    queryset = PeriodClose.objects.select_related("closed_by", "reopened_by").all()
-    serializer_class = PeriodCloseSerializer
-    permission_classes = [IsFinanceWriter]
-
-    @action(detail=False, methods=["post"], permission_classes=[IsAccountant])
-    def close(self, request):
-        from django.db import IntegrityError
-
-        month_str = request.data.get("month")
-        if not month_str:
-            return Response({"detail": "month is required (YYYY-MM-01)"}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            month = date.fromisoformat(month_str).replace(day=1)
-        except ValueError:
-            return Response(
-                {"detail": {"uz": "Sana formati noto'g'ri", "ru": "Неверный формат даты"}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if PeriodClose.objects.filter(month=month, reopened_at__isnull=True).exists():
-            return Response(
-                {"detail": {"uz": "Bu davr allaqachon yopilgan", "ru": "Этот период уже закрыт"}},
-                status=status.HTTP_409_CONFLICT,
-            )
-        try:
-            period = PeriodClose.objects.create(month=month, closed_by=request.user)
-        except IntegrityError:
-            return Response(
-                {"detail": {"uz": "Bu davr allaqachon yopilgan", "ru": "Этот период уже закрыт"}},
-                status=status.HTTP_409_CONFLICT,
-            )
-        return Response(PeriodCloseSerializer(period).data, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=["post"], permission_classes=[IsAccountant])
-    def reopen(self, request, pk=None):
-        period = self.get_object()
-        if period.reopened_at is not None:
-            return Response(
-                {"detail": {"uz": "Bu davr allaqachon ochilgan", "ru": "Этот период уже открыт"}},
-                status=status.HTTP_409_CONFLICT,
-            )
-        period.reopened_by = request.user
-        period.reopened_at = timezone.now()
-        period.save(update_fields=["reopened_by", "reopened_at"])
-        return Response(PeriodCloseSerializer(period).data)
-
-
-class ExpenseCategoryViewSet(viewsets.ModelViewSet):
-    queryset = ExpenseCategory.objects.all()
-    serializer_class = ExpenseCategorySerializer
-
-    def get_permissions(self):
-        if self.action in ("list", "retrieve"):
-            return [IsFinanceWriter()]
-        return [IsAccountantOrDirector()]
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        if self.action == "list" and self.request.query_params.get("include_inactive") != "1":
-            qs = qs.filter(active=True)
-        return qs
-
-    def destroy(self, request, *args, **kwargs):
-        # Никогда не удаляем физически — только выключаем. Историю Payment
-        # с этой категорией нельзя оставить с оборванной ссылкой.
-        instance = self.get_object()
-        instance.active = False
-        instance.save(update_fields=["active"])
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(["POST"])

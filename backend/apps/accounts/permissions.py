@@ -28,54 +28,6 @@ class IsBranchAdmin(BasePermission):
         )
 
 
-class IsFinanceWriter(BasePermission):
-    """superadmin/director/branch_admin/accountant — write access to payments/expenses.
-
-    Deliberately NOT the same as IsBranchAdmin: that class is also imported by
-    courses/institutions/lessons/staff/students views, where accountant must
-    have zero access. This class exists only for money-handling endpoints.
-    """
-
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in ("superadmin", "director", "branch_admin", "accountant")
-        )
-
-
-class IsAccountantOrDirector(BasePermission):
-    """Chart-of-accounts management, salary calculation, reconciliation statements.
-
-    Deliberately narrower than IsFinanceWriter: branch_admin should not
-    configure expense categories or see a salary calculation for staff
-    outside their own branch — those stay director/accountant only.
-    """
-
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in ("superadmin", "director", "accountant")
-        )
-
-
-class IsAccountant(BasePermission):
-    """Period close/reopen — the one action even director does not get.
-
-    superadmin is included as the platform-owner override that every other
-    permission class in this file also grants; director is deliberately
-    excluded — that exclusion is the entire point of this permission class.
-    """
-
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in ("superadmin", "accountant")
-        )
-
-
 class IsTeacher(BasePermission):
     def has_permission(self, request, view):
         return bool(

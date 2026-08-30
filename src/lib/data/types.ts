@@ -50,7 +50,7 @@ export interface Staff {
   fullName: string;
   phone: string;
   password?: string;
-  role: "director" | "admin" | "branch_admin" | "accountant" | "teacher" | "support_teacher" | "superadmin";
+  role: "director" | "admin" | "branch_admin" | "teacher" | "support_teacher" | "superadmin";
   branchId?: string;
   salaryPercent?: number | null;
   fixedSalary?: number;
@@ -200,9 +200,7 @@ export interface Payment {
   method: PaymentMethod;
   date: string;             // ISO
   comment?: string;
-  category?: string;
-  categoryId?: string;
-  transactionDate?: string;   // ISO date, only meaningfully different from `date` for backdated expenses (see Payment.transaction_date on the backend — set only by accountant-entered expenses, always null/mirrors `date` for every other payment type)
+  category?: "tuition" | "salary" | "rent" | "utilities" | "marketing" | "other";
 }
 
 

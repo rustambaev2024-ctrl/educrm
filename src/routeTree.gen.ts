@@ -20,7 +20,6 @@ import { Route as StudentRouteRouteImport } from './routes/student/route'
 import { Route as ParentRouteRouteImport } from './routes/parent/route'
 import { Route as DirectorRouteRouteImport } from './routes/director/route'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
-import { Route as AccountantRouteRouteImport } from './routes/accountant/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeacherIndexRouteImport } from './routes/teacher/index'
 import { Route as SupportTeacherIndexRouteImport } from './routes/support-teacher/index'
@@ -29,7 +28,6 @@ import { Route as StudentIndexRouteImport } from './routes/student/index'
 import { Route as ParentIndexRouteImport } from './routes/parent/index'
 import { Route as DirectorIndexRouteImport } from './routes/director/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as AccountantIndexRouteImport } from './routes/accountant/index'
 import { Route as TeacherQuizzesRouteImport } from './routes/teacher/quizzes'
 import { Route as TeacherQuizCreateRouteImport } from './routes/teacher/quiz-create'
 import { Route as TeacherMessagesRouteImport } from './routes/teacher/messages'
@@ -87,10 +85,6 @@ import { Route as AdminControlRouteImport } from './routes/admin/control'
 import { Route as AdminCoinsRouteImport } from './routes/admin/coins'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminAccountsRouteImport } from './routes/admin/accounts'
-import { Route as AccountantSalariesRouteImport } from './routes/accountant/salaries'
-import { Route as AccountantReconciliationRouteImport } from './routes/accountant/reconciliation'
-import { Route as AccountantFinanceRouteImport } from './routes/accountant/finance'
-import { Route as AccountantExpensesRouteImport } from './routes/accountant/expenses'
 import { Route as TeacherQuizSessionSessionIdRouteImport } from './routes/teacher/quiz-session.$sessionId'
 import { Route as AdminQuizSessionSessionIdRouteImport } from './routes/admin/quiz-session.$sessionId'
 
@@ -149,11 +143,6 @@ const AdminRouteRoute = AdminRouteRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AccountantRouteRoute = AccountantRouteRouteImport.update({
-  id: '/accountant',
-  path: '/accountant',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -193,11 +182,6 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRouteRoute,
-} as any)
-const AccountantIndexRoute = AccountantIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AccountantRouteRoute,
 } as any)
 const TeacherQuizzesRoute = TeacherQuizzesRouteImport.update({
   id: '/quizzes',
@@ -485,27 +469,6 @@ const AdminAccountsRoute = AdminAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => AdminRouteRoute,
 } as any)
-const AccountantSalariesRoute = AccountantSalariesRouteImport.update({
-  id: '/salaries',
-  path: '/salaries',
-  getParentRoute: () => AccountantRouteRoute,
-} as any)
-const AccountantReconciliationRoute =
-  AccountantReconciliationRouteImport.update({
-    id: '/reconciliation',
-    path: '/reconciliation',
-    getParentRoute: () => AccountantRouteRoute,
-  } as any)
-const AccountantFinanceRoute = AccountantFinanceRouteImport.update({
-  id: '/finance',
-  path: '/finance',
-  getParentRoute: () => AccountantRouteRoute,
-} as any)
-const AccountantExpensesRoute = AccountantExpensesRouteImport.update({
-  id: '/expenses',
-  path: '/expenses',
-  getParentRoute: () => AccountantRouteRoute,
-} as any)
 const TeacherQuizSessionSessionIdRoute =
   TeacherQuizSessionSessionIdRouteImport.update({
     id: '/quiz-session/$sessionId',
@@ -521,7 +484,6 @@ const AdminQuizSessionSessionIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/accountant': typeof AccountantRouteRouteWithChildren
   '/admin': typeof AdminRouteRouteWithChildren
   '/director': typeof DirectorRouteRouteWithChildren
   '/parent': typeof ParentRouteRouteWithChildren
@@ -533,10 +495,6 @@ export interface FileRoutesByFullPath {
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/preview': typeof PreviewRoute
-  '/accountant/expenses': typeof AccountantExpensesRoute
-  '/accountant/finance': typeof AccountantFinanceRoute
-  '/accountant/reconciliation': typeof AccountantReconciliationRoute
-  '/accountant/salaries': typeof AccountantSalariesRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/coins': typeof AdminCoinsRoute
@@ -594,7 +552,6 @@ export interface FileRoutesByFullPath {
   '/teacher/messages': typeof TeacherMessagesRoute
   '/teacher/quiz-create': typeof TeacherQuizCreateRoute
   '/teacher/quizzes': typeof TeacherQuizzesRoute
-  '/accountant/': typeof AccountantIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/director/': typeof DirectorIndexRoute
   '/parent/': typeof ParentIndexRoute
@@ -611,10 +568,6 @@ export interface FileRoutesByTo {
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/preview': typeof PreviewRoute
-  '/accountant/expenses': typeof AccountantExpensesRoute
-  '/accountant/finance': typeof AccountantFinanceRoute
-  '/accountant/reconciliation': typeof AccountantReconciliationRoute
-  '/accountant/salaries': typeof AccountantSalariesRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/coins': typeof AdminCoinsRoute
@@ -672,7 +625,6 @@ export interface FileRoutesByTo {
   '/teacher/messages': typeof TeacherMessagesRoute
   '/teacher/quiz-create': typeof TeacherQuizCreateRoute
   '/teacher/quizzes': typeof TeacherQuizzesRoute
-  '/accountant': typeof AccountantIndexRoute
   '/admin': typeof AdminIndexRoute
   '/director': typeof DirectorIndexRoute
   '/parent': typeof ParentIndexRoute
@@ -686,7 +638,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/accountant': typeof AccountantRouteRouteWithChildren
   '/admin': typeof AdminRouteRouteWithChildren
   '/director': typeof DirectorRouteRouteWithChildren
   '/parent': typeof ParentRouteRouteWithChildren
@@ -698,10 +649,6 @@ export interface FileRoutesById {
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/preview': typeof PreviewRoute
-  '/accountant/expenses': typeof AccountantExpensesRoute
-  '/accountant/finance': typeof AccountantFinanceRoute
-  '/accountant/reconciliation': typeof AccountantReconciliationRoute
-  '/accountant/salaries': typeof AccountantSalariesRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/coins': typeof AdminCoinsRoute
@@ -759,7 +706,6 @@ export interface FileRoutesById {
   '/teacher/messages': typeof TeacherMessagesRoute
   '/teacher/quiz-create': typeof TeacherQuizCreateRoute
   '/teacher/quizzes': typeof TeacherQuizzesRoute
-  '/accountant/': typeof AccountantIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/director/': typeof DirectorIndexRoute
   '/parent/': typeof ParentIndexRoute
@@ -774,7 +720,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/accountant'
     | '/admin'
     | '/director'
     | '/parent'
@@ -786,10 +731,6 @@ export interface FileRouteTypes {
     | '/join'
     | '/login'
     | '/preview'
-    | '/accountant/expenses'
-    | '/accountant/finance'
-    | '/accountant/reconciliation'
-    | '/accountant/salaries'
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/coins'
@@ -847,7 +788,6 @@ export interface FileRouteTypes {
     | '/teacher/messages'
     | '/teacher/quiz-create'
     | '/teacher/quizzes'
-    | '/accountant/'
     | '/admin/'
     | '/director/'
     | '/parent/'
@@ -864,10 +804,6 @@ export interface FileRouteTypes {
     | '/join'
     | '/login'
     | '/preview'
-    | '/accountant/expenses'
-    | '/accountant/finance'
-    | '/accountant/reconciliation'
-    | '/accountant/salaries'
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/coins'
@@ -925,7 +861,6 @@ export interface FileRouteTypes {
     | '/teacher/messages'
     | '/teacher/quiz-create'
     | '/teacher/quizzes'
-    | '/accountant'
     | '/admin'
     | '/director'
     | '/parent'
@@ -938,7 +873,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/accountant'
     | '/admin'
     | '/director'
     | '/parent'
@@ -950,10 +884,6 @@ export interface FileRouteTypes {
     | '/join'
     | '/login'
     | '/preview'
-    | '/accountant/expenses'
-    | '/accountant/finance'
-    | '/accountant/reconciliation'
-    | '/accountant/salaries'
     | '/admin/accounts'
     | '/admin/analytics'
     | '/admin/coins'
@@ -1011,7 +941,6 @@ export interface FileRouteTypes {
     | '/teacher/messages'
     | '/teacher/quiz-create'
     | '/teacher/quizzes'
-    | '/accountant/'
     | '/admin/'
     | '/director/'
     | '/parent/'
@@ -1025,7 +954,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AccountantRouteRoute: typeof AccountantRouteRouteWithChildren
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   DirectorRouteRoute: typeof DirectorRouteRouteWithChildren
   ParentRouteRoute: typeof ParentRouteRouteWithChildren
@@ -1119,13 +1047,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/accountant': {
-      id: '/accountant'
-      path: '/accountant'
-      fullPath: '/accountant'
-      preLoaderRoute: typeof AccountantRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -1181,13 +1102,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
-    }
-    '/accountant/': {
-      id: '/accountant/'
-      path: '/'
-      fullPath: '/accountant/'
-      preLoaderRoute: typeof AccountantIndexRouteImport
-      parentRoute: typeof AccountantRouteRoute
     }
     '/teacher/quizzes': {
       id: '/teacher/quizzes'
@@ -1588,34 +1502,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAccountsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/accountant/salaries': {
-      id: '/accountant/salaries'
-      path: '/salaries'
-      fullPath: '/accountant/salaries'
-      preLoaderRoute: typeof AccountantSalariesRouteImport
-      parentRoute: typeof AccountantRouteRoute
-    }
-    '/accountant/reconciliation': {
-      id: '/accountant/reconciliation'
-      path: '/reconciliation'
-      fullPath: '/accountant/reconciliation'
-      preLoaderRoute: typeof AccountantReconciliationRouteImport
-      parentRoute: typeof AccountantRouteRoute
-    }
-    '/accountant/finance': {
-      id: '/accountant/finance'
-      path: '/finance'
-      fullPath: '/accountant/finance'
-      preLoaderRoute: typeof AccountantFinanceRouteImport
-      parentRoute: typeof AccountantRouteRoute
-    }
-    '/accountant/expenses': {
-      id: '/accountant/expenses'
-      path: '/expenses'
-      fullPath: '/accountant/expenses'
-      preLoaderRoute: typeof AccountantExpensesRouteImport
-      parentRoute: typeof AccountantRouteRoute
-    }
     '/teacher/quiz-session/$sessionId': {
       id: '/teacher/quiz-session/$sessionId'
       path: '/quiz-session/$sessionId'
@@ -1632,26 +1518,6 @@ declare module '@tanstack/react-router' {
     }
   }
 }
-
-interface AccountantRouteRouteChildren {
-  AccountantExpensesRoute: typeof AccountantExpensesRoute
-  AccountantFinanceRoute: typeof AccountantFinanceRoute
-  AccountantReconciliationRoute: typeof AccountantReconciliationRoute
-  AccountantSalariesRoute: typeof AccountantSalariesRoute
-  AccountantIndexRoute: typeof AccountantIndexRoute
-}
-
-const AccountantRouteRouteChildren: AccountantRouteRouteChildren = {
-  AccountantExpensesRoute: AccountantExpensesRoute,
-  AccountantFinanceRoute: AccountantFinanceRoute,
-  AccountantReconciliationRoute: AccountantReconciliationRoute,
-  AccountantSalariesRoute: AccountantSalariesRoute,
-  AccountantIndexRoute: AccountantIndexRoute,
-}
-
-const AccountantRouteRouteWithChildren = AccountantRouteRoute._addFileChildren(
-  AccountantRouteRouteChildren,
-)
 
 interface AdminRouteRouteChildren {
   AdminAccountsRoute: typeof AdminAccountsRoute
@@ -1854,7 +1720,6 @@ const TeacherRouteRouteWithChildren = TeacherRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AccountantRouteRoute: AccountantRouteRouteWithChildren,
   AdminRouteRoute: AdminRouteRouteWithChildren,
   DirectorRouteRoute: DirectorRouteRouteWithChildren,
   ParentRouteRoute: ParentRouteRouteWithChildren,
