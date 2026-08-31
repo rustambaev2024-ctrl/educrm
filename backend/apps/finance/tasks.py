@@ -7,6 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 from django_tenants.utils import get_public_schema_name, get_tenant_model, schema_context
 
+from apps.core.definitions import with_combined_balance
 from apps.courses.models import Group
 from apps.lessons.models import Attendance
 from apps.lessons.services import slot_weekday
@@ -248,21 +249,19 @@ def update_debtor_statuses():
     Статусы вне цикла активный/должник (frozen, archived, graduate, expelled)
     не трогаем — тем же правилом, что и finance.services._status_changed_for_combined_balance.
 
-    TODO(bonus-balance): фильтр ниже пока смотрит только на wallet_balance,
-    без учёта bonus_balance — эта функция ещё не переведена на комбинированный
-    баланс (следующая задача в этой же ветке). До той правки должник с
-    отрицательным основным балансом, но покрытым бонусом, будет ошибочно
-    помечен здесь как "debtor", даже если apply_payment() уже верно снял
-    с него этот статус в реальном времени.
+    Считает по сумме main+bonus (with_combined_balance), не по одному
+    wallet_balance — ученик, чей минус на основном балансе полностью
+    покрыт бонусом, не должник, и эта задача не должна переводить его
+    туда каждую ночь.
     """
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
-            cleared = Student.objects.filter(
-                status="debtor", wallet_balance__gte=0
-            ).update(status="active")
-            marked = Student.objects.filter(
-                status="active", wallet_balance__lt=0
-            ).update(status="debtor")
+            cleared = with_combined_balance(
+                Student.objects.filter(status="debtor")
+            ).filter(combined_balance__gte=0).update(status="active")
+            marked = with_combined_balance(
+                Student.objects.filter(status="active")
+            ).filter(combined_balance__lt=0).update(status="debtor")
             if cleared or marked:
                 logger.info(
                     "update_debtor_statuses в '%s': погашено %s, помечено должниками %s",
