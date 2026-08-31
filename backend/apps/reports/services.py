@@ -18,6 +18,7 @@ from apps.core.definitions import (
     INCOME_PAYMENT_TYPES,
     INCOME_REVERSAL_TYPES,
     attendance_rate_parts,
+    with_combined_balance,
 )
 from apps.courses.models import GroupMembership
 from apps.finance.models import Payment
@@ -117,7 +118,9 @@ def get_overview(user, filters: ReportFilters) -> dict:
     students_qs = _with_date_range(students_qs, "registered_at", filters.date_from, filters.date_to)
     total_students = students_qs.count()
     active_students = students_qs.filter(status__in=ACTIVE_STUDENT_STATUSES).count()
-    debtors_count = Student.objects.filter(branch_id__in=branch_ids, wallet_balance__lt=0).count()
+    debtors_count = with_combined_balance(
+        Student.objects.filter(branch_id__in=branch_ids)
+    ).filter(combined_balance__lt=0).count()
 
     payments_qs = Payment.objects.filter(branch_id__in=branch_ids)
     payments_qs = _with_date_range(payments_qs, "created_at", filters.date_from, filters.date_to)
@@ -421,10 +424,9 @@ def get_conversion_report(user, filters: ReportFilters) -> dict:
 
 def get_debtors_report(user, filters: ReportFilters) -> dict:
     branch_ids = branch_ids_for_user(user, filters.branch_id)
-    debtors_qs = Student.objects.select_related("user", "branch").filter(
-        branch_id__in=branch_ids,
-        wallet_balance__lt=0,
-    )
+    debtors_qs = with_combined_balance(
+        Student.objects.select_related("user", "branch").filter(branch_id__in=branch_ids)
+    ).filter(combined_balance__lt=0)
     results = [
         {
             "student_id": str(student.id),
@@ -432,7 +434,7 @@ def get_debtors_report(user, filters: ReportFilters) -> dict:
             "phone": student.user.phone,
             "branch_id": str(student.branch_id) if student.branch_id else None,
             "branch_name": student.branch.name if student.branch else None,
-            "wallet_balance": str(_quantize(student.wallet_balance)),
+            "wallet_balance": str(_quantize(student.combined_balance)),
             "status": student.status,
         }
         for student in debtors_qs.order_by("user__full_name")
@@ -630,10 +632,11 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
 
     # Student model has no updated_at field, so we cannot calculate "new" debtors for today
     new_debtors_today = 0
-    total_debt = Student.objects.filter(
-        branch_id__in=branch_ids,
-        wallet_balance__lt=0,
-    ).aggregate(total=Coalesce(Sum("wallet_balance"), Decimal("0")))["total"]
+    total_debt = with_combined_balance(
+        Student.objects.filter(branch_id__in=branch_ids)
+    ).filter(combined_balance__lt=0).aggregate(
+        total=Coalesce(Sum("combined_balance"), Decimal("0"))
+    )["total"]
 
     # 2. УРОКИ
     lessons_today = Lesson.objects.filter(
@@ -867,9 +870,11 @@ def get_group_report(group_id, date_from=None, date_to=None):
     )["t"])
 
     # Debtors
-    debtors = Student.objects.filter(id__in=student_ids, wallet_balance__lt=0).select_related("user")
+    debtors = with_combined_balance(
+        Student.objects.filter(id__in=student_ids)
+    ).filter(combined_balance__lt=0).select_related("user")
     debtors_list = [
-        {"student_id": str(d.id), "student_name": d.user.full_name, "balance": float(d.wallet_balance)}
+        {"student_id": str(d.id), "student_name": d.user.full_name, "balance": float(d.combined_balance)}
         for d in debtors
     ]
 
