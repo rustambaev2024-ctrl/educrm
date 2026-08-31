@@ -9,6 +9,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.db import connection
 
 from apps.accounts.permissions import IsBranchAdmin, IsDirector
+from apps.core.definitions import with_combined_balance
 from apps.staff.models import Staff
 from apps.students.models import Student
 from apps.tenants.models import Institution
@@ -81,8 +82,10 @@ class BranchViewSet(viewsets.ModelViewSet):
     def debtors(self, request, pk=None):
         branch = self.get_object()
         debtors = (
-            Student.objects.select_related("user")
-            .filter(branch=branch, wallet_balance__lt=0)
+            with_combined_balance(
+                Student.objects.select_related("user").filter(branch=branch)
+            )
+            .filter(combined_balance__lt=0)
             .order_by("user__full_name")
         )
         payload = [
@@ -91,7 +94,7 @@ class BranchViewSet(viewsets.ModelViewSet):
                 "full_name": student.user.full_name,
                 "phone": student.user.phone,
                 "status": student.status,
-                "wallet_balance": str(student.wallet_balance),
+                "wallet_balance": str(student.combined_balance),
             }
             for student in debtors
         ]
