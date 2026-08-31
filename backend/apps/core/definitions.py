@@ -66,7 +66,7 @@ def is_debtor_balance(balance) -> bool:
     Должник определяется ТОЛЬКО по балансу.
 
     Статус "debtor" — производная величина: его выставляет
-    finance.services._status_changed_for_balance при каждой операции. Он умеет
+    finance.services._status_changed_for_combined_balance при каждой операции. Он умеет
     расходиться с балансом (для починки существуют tasks.py:repair-задача и
     разовый скрипт fix_debtor_statuses.py — они написаны именно потому, что
     дрейф случается). Пока статус участвует в вычислениях, он остаётся вторым

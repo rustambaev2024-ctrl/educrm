@@ -6,7 +6,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
 
-from apps.core.definitions import wallet_delta
+from apps.core.definitions import is_debtor_balance, wallet_delta
 from apps.lessons.services import slot_weekday
 from apps.notifications.services import NotificationService
 from apps.students.models import Student
@@ -33,7 +33,7 @@ class PaymentResult:
 def get_or_create_wallet(student: Student) -> Wallet:
     wallet, created = Wallet.objects.get_or_create(
         student=student,
-        defaults={"balance": student.wallet_balance},
+        defaults={"balance": student.wallet_balance, "bonus_balance": student.bonus_balance},
     )
     if not created and abs(float(wallet.balance) - float(student.wallet_balance)) > 0.01:
         logger.warning(
@@ -73,14 +73,19 @@ def calculate_lesson_price(group, lesson_date: date) -> Decimal:
 _PROTECTED_STATUSES = {"frozen", "expelled", "graduate", "archived"}
 
 
-def _status_changed_for_balance(student: Student, balance: Decimal) -> bool:
-    # Never touch statuses that are not part of the active/debtor cycle
+def _status_changed_for_combined_balance(student: Student) -> bool:
+    """Единая точка, откуда меняется student.status — по правилу
+    is_debtor_balance(main + bonus), а не по одному основному балансу.
+    Вызывается после ЛЮБОЙ операции apply_payment, вне зависимости от
+    того, main или bonus она затронула: чистое начисление бонуса без
+    единого списания урока тоже может вывести ученика из долга."""
     if student.status in _PROTECTED_STATUSES:
         return False
+    combined = student.wallet_balance + student.bonus_balance
     previous = student.status
-    if balance < 0 and student.status != "debtor":
+    if is_debtor_balance(combined) and student.status != "debtor":
         student.status = "debtor"
-    elif balance >= 0 and student.status == "debtor":
+    elif not is_debtor_balance(combined) and student.status == "debtor":
         student.status = "active"
     if previous != student.status:
         student.save(update_fields=["status"])
@@ -115,7 +120,10 @@ def apply_payment(
     category: str = "tuition",
     comment: str = "",
     suppress_notifications: bool = False,
+    funding_source: str = "main",
 ) -> PaymentResult:
+    if funding_source not in ("main", "bonus"):
+        raise ValueError("Unsupported funding_source")
     amount = Decimal(amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     if amount <= 0:
         raise ValueError("Amount must be greater than zero")
@@ -125,18 +133,25 @@ def apply_payment(
     student = Student.objects.select_for_update().select_related("user").get(id=student.id)
     wallet, _ = Wallet.objects.select_for_update().get_or_create(
         student=student,
-        defaults={"balance": student.wallet_balance},
+        defaults={"balance": student.wallet_balance, "bonus_balance": student.bonus_balance},
     )
 
     delta = wallet_delta(payment_type, amount)
 
-    balance_before = wallet.balance
-    balance_after = (wallet.balance + delta).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-    wallet.balance = balance_after
-    wallet.save(update_fields=["balance", "updated_at"])
-    student.wallet_balance = balance_after
-    student.save(update_fields=["wallet_balance"])
+    if funding_source == "bonus":
+        balance_before = wallet.bonus_balance
+        balance_after = (wallet.bonus_balance + delta).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        wallet.bonus_balance = balance_after
+        wallet.save(update_fields=["bonus_balance", "updated_at"])
+        student.bonus_balance = balance_after
+        student.save(update_fields=["bonus_balance"])
+    else:
+        balance_before = wallet.balance
+        balance_after = (wallet.balance + delta).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        wallet.balance = balance_after
+        wallet.save(update_fields=["balance", "updated_at"])
+        student.wallet_balance = balance_after
+        student.save(update_fields=["wallet_balance"])
 
     teacher_id = group.teacher_id if group and group.teacher_id else None
 
@@ -155,9 +170,14 @@ def apply_payment(
         category=category,
         comment=comment,
         created_by=created_by,
+        funding_source=funding_source,
     )
 
-    status_changed = _status_changed_for_balance(student, balance_after)
+    # Пересчёт статуса — по сумме main+bonus, всегда, вне зависимости от
+    # того, какой счёт затронула эта конкретная операция: чистое
+    # начисление бонуса без единого списания урока тоже может вывести
+    # ученика из статуса "должник".
+    status_changed = _status_changed_for_combined_balance(student)
     if status_changed and student.status == "debtor" and not suppress_notifications:
         _notify_student_became_debtor(student)
 

@@ -246,7 +246,7 @@ def update_debtor_statuses():
     расходились. Оба направления теперь здесь.
 
     Статусы вне цикла активный/должник (frozen, archived, graduate, expelled)
-    не трогаем — тем же правилом, что и finance.services._status_changed_for_balance.
+    не трогаем — тем же правилом, что и finance.services._status_changed_for_combined_balance.
     """
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
