@@ -122,3 +122,16 @@ def wallet_delta(payment_type: str, amount):
     if payment_type in WALLET_CREDIT_TYPES:
         return amount
     return type(amount)(0)
+
+
+from django.db.models import F, QuerySet
+
+
+def with_combined_balance(queryset: QuerySet) -> QuerySet:
+    """Аннотирует queryset учеников полем combined_balance =
+    wallet_balance + bonus_balance. Использовать вместо прямой
+    фильтрации по wallet_balance везде, где решается вопрос "должник или
+    нет" — единая точка того, что складывается; при следующем изменении
+    (например, появится третий вид баланса) правится один раз, а не в
+    девяти местах по всему бэкенду."""
+    return queryset.annotate(combined_balance=F("wallet_balance") + F("bonus_balance"))
