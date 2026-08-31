@@ -13,6 +13,7 @@ class Wallet(models.Model):
         related_name="wallet",
     )
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    bonus_balance = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -91,6 +92,11 @@ class Payment(models.Model):
     balance_after = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     method = models.CharField(max_length=20, blank=True)
     category = models.CharField(max_length=50, blank=True)
+    FUNDING_SOURCE_CHOICES = [("main", "Main balance"), ("bonus", "Bonus balance")]
+    # default="main": every historical row correctly stays "from the main
+    # balance" with no separate backfill migration needed — that's already
+    # the one correct value for everything created before this migration.
+    funding_source = models.CharField(max_length=10, choices=FUNDING_SOURCE_CHOICES, default="main")
     comment = models.CharField(max_length=500, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
