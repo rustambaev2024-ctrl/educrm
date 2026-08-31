@@ -4,7 +4,7 @@ from celery import shared_task
 from django.utils import timezone
 from django_tenants.utils import get_public_schema_name, get_tenant_model, schema_context
 
-from apps.core.definitions import ENROLLED_STUDENT_STATUSES
+from apps.core.definitions import ENROLLED_STUDENT_STATUSES, with_combined_balance
 from apps.notifications.sms import EskizSmsService
 
 logger = logging.getLogger(__name__)
@@ -76,14 +76,13 @@ def debtor_reminder():
             # Только те, кто числится в центре: отчисленный с давним долгом
             # раздувал счётчик в уведомлении директора, и число не сходилось
             # ни с одним экраном.
-            debtors = Student.objects.filter(
-                wallet_balance__lt=0,
-                status__in=ENROLLED_STUDENT_STATUSES,
-            )
+            debtors = with_combined_balance(
+                Student.objects.filter(status__in=ENROLLED_STUDENT_STATUSES)
+            ).filter(combined_balance__lt=0)
             if not debtors.exists():
                 continue
             count = debtors.count()
-            total_debt = sum(abs(d.wallet_balance) for d in debtors)
+            total_debt = sum(abs(d.combined_balance) for d in debtors)
             directors = list(User.objects.filter(role="director"))
             if directors:
                 NotificationService.notify(
@@ -235,14 +234,13 @@ def send_debtor_sms():
             # прежний фильтр (минус на балансе И статус active) отбирал только
             # тех, у кого статус ещё не успел обновиться. SMS о задолженности
             # не уходили практически никому.
-            debtors = Student.objects.filter(
-                wallet_balance__lt=0,
-                status__in=ENROLLED_STUDENT_STATUSES,
-            ).select_related("user")
+            debtors = with_combined_balance(
+                Student.objects.filter(status__in=ENROLLED_STUDENT_STATUSES)
+            ).filter(combined_balance__lt=0).select_related("user")
             for student in debtors:
                 if not student.user.phone:
                     continue
-                balance = abs(student.wallet_balance)
+                balance = abs(student.combined_balance)
                 msg_uz = (
                     f"Hurmatli {student.user.full_name}, "
                     f"hisobingizda {balance:,.0f} so'm qarz mavjud. "
