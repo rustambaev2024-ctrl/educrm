@@ -16,6 +16,8 @@
 другую нельзя, тест упадёт.
 """
 
+from django.db.models import F, QuerySet
+
 # ─────────────────────────── Посещаемость ───────────────────────────
 
 # Отметки, которые считаются присутствием.
@@ -122,9 +124,6 @@ def wallet_delta(payment_type: str, amount):
     if payment_type in WALLET_CREDIT_TYPES:
         return amount
     return type(amount)(0)
-
-
-from django.db.models import F, QuerySet
 
 
 def with_combined_balance(queryset: QuerySet) -> QuerySet:
