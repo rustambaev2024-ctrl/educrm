@@ -74,18 +74,21 @@ _PROTECTED_STATUSES = {"frozen", "expelled", "graduate", "archived"}
 
 
 def _status_changed_for_combined_balance(student: Student) -> bool:
-    """Единая точка, откуда меняется student.status — по правилу
+    """
+    Единая точка, откуда меняется student.status — по правилу
     is_debtor_balance(main + bonus), а не по одному основному балансу.
     Вызывается после ЛЮБОЙ операции apply_payment, вне зависимости от
     того, main или bonus она затронула: чистое начисление бонуса без
-    единого списания урока тоже может вывести ученика из долга."""
+    единого списания урока тоже может вывести ученика из долга.
+    """
     if student.status in _PROTECTED_STATUSES:
         return False
     combined = student.wallet_balance + student.bonus_balance
     previous = student.status
-    if is_debtor_balance(combined) and student.status != "debtor":
+    is_debtor = is_debtor_balance(combined)
+    if is_debtor and student.status != "debtor":
         student.status = "debtor"
-    elif not is_debtor_balance(combined) and student.status == "debtor":
+    elif not is_debtor and student.status == "debtor":
         student.status = "active"
     if previous != student.status:
         student.save(update_fields=["status"])

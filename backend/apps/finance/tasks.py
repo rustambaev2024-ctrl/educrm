@@ -247,6 +247,13 @@ def update_debtor_statuses():
 
     Статусы вне цикла активный/должник (frozen, archived, graduate, expelled)
     не трогаем — тем же правилом, что и finance.services._status_changed_for_combined_balance.
+
+    TODO(bonus-balance): фильтр ниже пока смотрит только на wallet_balance,
+    без учёта bonus_balance — эта функция ещё не переведена на комбинированный
+    баланс (следующая задача в этой же ветке). До той правки должник с
+    отрицательным основным балансом, но покрытым бонусом, будет ошибочно
+    помечен здесь как "debtor", даже если apply_payment() уже верно снял
+    с него этот статус в реальном времени.
     """
     for schema in _iter_tenant_schemas():
         with schema_context(schema):
