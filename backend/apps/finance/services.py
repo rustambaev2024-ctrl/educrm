@@ -35,7 +35,11 @@ def get_or_create_wallet(student: Student) -> Wallet:
         student=student,
         defaults={"balance": student.wallet_balance, "bonus_balance": student.bonus_balance},
     )
-    if not created and abs(float(wallet.balance) - float(student.wallet_balance)) > 0.01:
+    if created:
+        return wallet
+
+    update_fields = []
+    if abs(float(wallet.balance) - float(student.wallet_balance)) > 0.01:
         logger.warning(
             "Wallet balance mismatch for student %s: wallet=%s, student=%s. Syncing from student.",
             student.id,
@@ -43,7 +47,24 @@ def get_or_create_wallet(student: Student) -> Wallet:
             student.wallet_balance,
         )
         wallet.balance = student.wallet_balance
-        wallet.save(update_fields=["balance", "updated_at"])
+        update_fields.append("balance")
+    # Тот же класс расхождения, что и с основным балансом выше — раньше
+    # синхронизировался только он. bonus_balance пишется исключительно через
+    # apply_payment() (обновляет Wallet и Student в одной транзакции), так что
+    # в норме разойтись им неоткуда — но раз для main этот сторож существует
+    # именно на случай "неоткуда, а всё равно разошлось", тот же принцип
+    # применяем и к bonus, а не оставляем его без защиты.
+    if abs(float(wallet.bonus_balance) - float(student.bonus_balance)) > 0.01:
+        logger.warning(
+            "Wallet bonus_balance mismatch for student %s: wallet=%s, student=%s. Syncing from student.",
+            student.id,
+            wallet.bonus_balance,
+            student.bonus_balance,
+        )
+        wallet.bonus_balance = student.bonus_balance
+        update_fields.append("bonus_balance")
+    if update_fields:
+        wallet.save(update_fields=[*update_fields, "updated_at"])
     return wallet
 
 
