@@ -217,13 +217,14 @@ function DirectorFinancePage() {
                   <TableHead>{t("finance.col.phone")}</TableHead>
                   <TableHead>{t("finance.col.status")}</TableHead>
                   <TableHead className="text-right">{t("finance.col.balance")}</TableHead>
+                  <TableHead className="text-right">{lang === "uz" ? "Bonus" : "Бонус"}</TableHead>
                   <TableHead className="text-right">{lang === "uz" ? "Oxirgi to'lov" : "Последний платёж"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {wallets.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                       {t("finance.empty")}
                     </TableCell>
                   </TableRow>
@@ -234,6 +235,9 @@ function DirectorFinancePage() {
                     <TableCell className="text-muted-foreground">{w.phone}</TableCell>
                     <TableCell><Badge variant={w.status === "debtor" ? "destructive" : "outline"}>{t(`status.${w.status}`)}</Badge></TableCell>
                     <TableCell className={`text-right font-semibold ${w.balance < 0 ? 'text-destructive' : 'text-success'}`}>{formatMoney(w.balance, lang)}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {w.bonusBalance ? formatMoney(w.bonusBalance, lang) : "—"}
+                    </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground">
                       {w.lastPaymentDate ? `${formatDate(w.lastPaymentDate, lang)} (+${formatMoney(w.lastPaymentAmount || 0, lang)})` : "—"}
                     </TableCell>
