@@ -59,6 +59,7 @@ class StudentMeView(APIView):
                 "date_of_birth": str(student.date_of_birth) if student.date_of_birth else None,
                 "status": student.status,
                 "wallet_balance": str(student.wallet_balance),
+                "bonus_balance": str(student.bonus_balance),
                 "registered_at": student.registered_at.isoformat(),
                 "groups": [
                     {
@@ -288,10 +289,12 @@ class StudentMeWalletView(APIView):
             {
                 "student_id": str(student.id),
                 "wallet_balance": str(student.wallet_balance),
+                "bonus_balance": str(student.bonus_balance),
                 "transactions": [
                     {
                         "payment_id": str(payment.id),
                         "payment_type": payment.payment_type,
+                        "funding_source": payment.funding_source,
                         "amount": str(payment.amount),
                         "balance_before": str(payment.balance_before),
                         "balance_after": str(payment.balance_after),
@@ -393,6 +396,7 @@ class ParentMeChildrenView(APIView):
                     "phone": child.user.phone,
                     "status": child.status,
                     "wallet_balance": str(child.wallet_balance),
+                    "bonus_balance": str(child.bonus_balance),
                     "attendance_percent": attendance_percent,
                     "average_grade": round(float(avg_grade), 2) if avg_grade is not None else None,
                     "active_homeworks": active_homeworks,
