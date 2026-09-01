@@ -118,6 +118,8 @@ def get_overview(user, filters: ReportFilters) -> dict:
     students_qs = _with_date_range(students_qs, "registered_at", filters.date_from, filters.date_to)
     total_students = students_qs.count()
     active_students = students_qs.filter(status__in=ACTIVE_STUDENT_STATUSES).count()
+    # combined_balance = wallet_balance + bonus_balance: должник считается по
+    # сумме, бонус может покрывать минус на основном балансе.
     debtors_count = with_combined_balance(
         Student.objects.filter(branch_id__in=branch_ids)
     ).filter(combined_balance__lt=0).count()
@@ -424,6 +426,8 @@ def get_conversion_report(user, filters: ReportFilters) -> dict:
 
 def get_debtors_report(user, filters: ReportFilters) -> dict:
     branch_ids = branch_ids_for_user(user, filters.branch_id)
+    # combined_balance = wallet_balance + bonus_balance — ключ "wallet_balance"
+    # в ответе сохранён ради фронтенда, значение уже учитывает бонус.
     debtors_qs = with_combined_balance(
         Student.objects.select_related("user", "branch").filter(branch_id__in=branch_ids)
     ).filter(combined_balance__lt=0)
@@ -632,6 +636,8 @@ def get_daily_report(user, report_date: date, branch_id: str | None = None) -> d
 
     # Student model has no updated_at field, so we cannot calculate "new" debtors for today
     new_debtors_today = 0
+    # combined_balance = wallet_balance + bonus_balance, тем же правилом,
+    # что и должники в остальных отчётах.
     total_debt = with_combined_balance(
         Student.objects.filter(branch_id__in=branch_ids)
     ).filter(combined_balance__lt=0).aggregate(
@@ -869,10 +875,11 @@ def get_group_report(group_id, date_from=None, date_to=None):
         t=Coalesce(Sum("amount"), Decimal("0"))
     )["t"])
 
-    # Debtors
+    # Debtors — combined_balance = wallet_balance + bonus_balance, тем же
+    # правилом, что и в остальных отчётах.
     debtors = with_combined_balance(
-        Student.objects.filter(id__in=student_ids)
-    ).filter(combined_balance__lt=0).select_related("user")
+        Student.objects.select_related("user").filter(id__in=student_ids)
+    ).filter(combined_balance__lt=0)
     debtors_list = [
         {"student_id": str(d.id), "student_name": d.user.full_name, "balance": float(d.combined_balance)}
         for d in debtors
@@ -906,6 +913,10 @@ def get_group_report(group_id, date_from=None, date_to=None):
             "student_id": str(student.id),
             "student_name": student.user.full_name,
             "phone": student.user.phone or "",
+            # Намеренно НЕ combined_balance, в отличие от debtors_list выше:
+            # это полный ростер группы (не вопрос "должник или нет"), просто
+            # состояние основного счёта. У одного ученика здесь и в
+            # debtors_list могут быть разные числа — это ожидаемо, не баг.
             "balance": float(student.wallet_balance),
             "attendance_rate": s_rate,
             "last_grade": float(last_grade.score) if last_grade else None,
