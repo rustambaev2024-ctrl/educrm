@@ -1499,7 +1499,14 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
             // 'refund' increases balance (reverses 'charge')
             // 'charge' (reversal of 'top_up') decreases balance
             const delta = refund.type === "refund" ? refund.amount : -refund.amount;
-            return { ...s, balance: s.balance + delta };
+            // reverse_payment() на бэкенде всегда возвращает деньги в тот же
+            // счёт, откуда они ушли (funding_source отменяемого платежа) — тот
+            // же принцип, что уже реализован в addPayment для начисления.
+            // Без этой ветки сторно бонусного платежа правило меняло бы
+            // основной баланс на экране, пока не сработает следующий reload.
+            return refund.fundingSource === "bonus"
+              ? { ...s, bonusBalance: (s.bonusBalance ?? 0) + delta }
+              : { ...s, balance: s.balance + delta };
           }
           return s;
         }));
