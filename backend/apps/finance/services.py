@@ -330,7 +330,14 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
             # This top_up granted bonus money; some of it may already have
             # been spent on lessons. Reversing it can never take the bonus
             # balance below zero — cap at whatever bonus is left.
+            #
+            # get_or_create_wallet() само по себе не блокирует строку — та же
+            # гонка, что уже была найдена и закрыта в charge_for_lesson():
+            # перечитываем под select_for_update() ДО того, как считать cap,
+            # иначе два параллельных сторно одного и того же бонуса могут
+            # оба прочитать одинаковый bonus_balance и оба пройти проверку.
             wallet = get_or_create_wallet(payment.student)
+            wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
             amount_to_reverse = min(payment.amount, wallet.bonus_balance)
             if amount_to_reverse <= 0:
                 raise ValueError(
