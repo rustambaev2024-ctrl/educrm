@@ -187,6 +187,7 @@ def apply_payment(
     return PaymentResult(payment=payment, status_changed=status_changed)
 
 
+@transaction.atomic
 def charge_for_lesson(
     student: Student,
     group,
@@ -208,10 +209,18 @@ def charge_for_lesson(
     всего один, две — если списание разбилось между main и bonus.
     """
     wallet = get_or_create_wallet(student)
+    # Снимок из get_or_create_wallet не заблокирован — перечитываем ту же
+    # строку под select_for_update() ДО того, как считать разбивку, иначе
+    # решение о том, сколько взять с bonus/main, может быть принято по
+    # устаревшим цифрам, если параллельная транзакция (например, пополнение
+    # через API) успеет изменить тот же кошелёк между чтением и записью.
+    wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
     main_available = max(wallet.balance, Decimal("0.00"))
     from_main = min(lesson_price, main_available)
     remainder = lesson_price - from_main
     from_bonus = min(remainder, wallet.bonus_balance) if remainder > 0 else Decimal("0.00")
+    # from_main_final != from_main, если бонуса не хватило на remainder: недостача
+    # возвращается на main вторым слагаемым, даже если это уводит баланс в минус.
     from_main_final = lesson_price - from_bonus
 
     results = []
