@@ -312,7 +312,8 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
             group=payment.group,
             lesson=payment.lesson,
             created_by=created_by,
-            comment=comment
+            comment=comment,
+            funding_source=payment.funding_source,
         )
         # Update attendance if exists
         if payment.lesson:
@@ -324,14 +325,26 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
 
     elif payment.payment_type == "top_up":
         # top_up was +amount. Reverse with manual_charge (NOT "charge" — that's lesson billing).
+        amount_to_reverse = payment.amount
+        if payment.funding_source == "bonus":
+            # This top_up granted bonus money; some of it may already have
+            # been spent on lessons. Reversing it can never take the bonus
+            # balance below zero — cap at whatever bonus is left.
+            wallet = get_or_create_wallet(payment.student)
+            amount_to_reverse = min(payment.amount, wallet.bonus_balance)
+            if amount_to_reverse <= 0:
+                raise ValueError(
+                    "Cannot reverse this bonus top-up: the granted bonus has already been fully spent"
+                )
         result = apply_payment(
             student=payment.student,
             payment_type="manual_charge",
-            amount=payment.amount,
+            amount=amount_to_reverse,
             group=payment.group,
             lesson=payment.lesson,
             created_by=created_by,
             comment=comment,
+            funding_source=payment.funding_source,
         )
     elif payment.payment_type == "manual_charge":
         # Manual charge was -amount. Reverse with manual_top_up.
@@ -343,6 +356,7 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
             lesson=payment.lesson,
             created_by=created_by,
             comment=comment,
+            funding_source=payment.funding_source,
         )
     elif payment.payment_type == "manual_top_up":
         # Manual top_up was +amount. Reverse with manual_charge.
@@ -354,6 +368,7 @@ def reverse_payment(payment: Payment, created_by=None) -> PaymentResult:
             lesson=payment.lesson,
             created_by=created_by,
             comment=comment,
+            funding_source=payment.funding_source,
         )
     else:
         raise ValueError(f"Reversal for {payment.payment_type} not implemented")
