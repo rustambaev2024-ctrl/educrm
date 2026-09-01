@@ -56,6 +56,9 @@ class PaymentCreateSerializer(serializers.Serializer):
     method = serializers.CharField(required=False, allow_blank=True, max_length=20)
     category = serializers.CharField(required=False, allow_blank=True, max_length=50)
     comment = serializers.CharField(required=False, allow_blank=True, max_length=500)
+    funding_source = serializers.ChoiceField(
+        choices=["main", "bonus"], required=False, default="main",
+    )
 
     def validate_student_id(self, value):
         try:
@@ -95,6 +98,12 @@ class PaymentCreateSerializer(serializers.Serializer):
         payment_type = attrs.get("payment_type")
         request = self.context.get("request")
         user = getattr(request, "user", None)
+
+        funding_source = attrs.get("funding_source", "main")
+        if funding_source == "bonus" and payment_type != "top_up":
+            raise serializers.ValidationError({
+                "funding_source": "funding_source=\"bonus\" is only allowed when payment_type is \"top_up\" — bonus-funded charges and reversals are created internally, not through this endpoint."
+            })
 
         if payment_type == "expense":
             branch = self.context.get("branch")
@@ -162,5 +171,6 @@ class PaymentCreateSerializer(serializers.Serializer):
             method=validated_data.get("method", ""),
             category=validated_data.get("category", "tuition"),
             comment=validated_data.get("comment", ""),
+            funding_source=validated_data.get("funding_source", "main"),
         )
         return payment_result.payment
