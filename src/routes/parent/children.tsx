@@ -145,7 +145,7 @@ function ParentChildren() {
               value={formatMoney(child.balance, lang)}
               label={t("parent.balance")}
               valueClass={child.balance < 0 ? "text-destructive" : "text-success"}
-              subValue={child.bonusBalance ? `+${formatMoney(child.bonusBalance, lang)}` : undefined}
+              subValue={child.bonusBalance ? `+${formatMoney(child.bonusBalance, lang)} ${t("parent.bonus")}` : undefined}
             />
           </div>
         </Card>
