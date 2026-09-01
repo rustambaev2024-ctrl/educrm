@@ -93,6 +93,7 @@ export interface Student {
   status: StudentStatus;
   registeredAt: string;
   balance: number;
+  bonusBalance?: number;
   groupIds: string[];
   parentId?: string;
   documents?: { id: string; name: string; docType?: string; file?: string | null; uploadedAt: string }[];
@@ -201,6 +202,7 @@ export interface Payment {
   date: string;             // ISO
   comment?: string;
   category?: "tuition" | "salary" | "rent" | "utilities" | "marketing" | "other";
+  fundingSource?: "main" | "bonus";
 }
 
 

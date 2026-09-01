@@ -28,6 +28,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             "balance_after",
             "method",
             "category",
+            "funding_source",
             "comment",
             "created_by",
             "created_at",

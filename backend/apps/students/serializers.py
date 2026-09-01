@@ -54,12 +54,22 @@ class StudentSerializer(serializers.ModelSerializer):
             "date_of_birth",
             "status",
             "wallet_balance",
+            "bonus_balance",
             "registered_at",
             "notes",
             "group_ids",
             "parent_id",
         )
-        read_only_fields = ("id", "user_id", "wallet_balance", "registered_at", "documents", "group_ids", "parent_id")
+        read_only_fields = (
+            "id",
+            "user_id",
+            "wallet_balance",
+            "bonus_balance",
+            "registered_at",
+            "documents",
+            "group_ids",
+            "parent_id",
+        )
 
     def validate(self, attrs):
         user_data = attrs.get("user", {})

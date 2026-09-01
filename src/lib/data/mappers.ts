@@ -147,6 +147,7 @@ export interface StudentRaw {
   date_of_birth: string | null;
   status: string;
   wallet_balance: string | number;
+  bonus_balance?: string | number;
   registered_at: string;
   notes: string | null;
   user_id: string;
@@ -172,6 +173,7 @@ export function mapStudent(r: StudentRaw) {
     dateOfBirth: r.date_of_birth,
     status: r.status,
     balance: Number(r.wallet_balance),
+    bonusBalance: Number(r.bonus_balance ?? 0),
     registeredAt: r.registered_at,
     notes: r.notes ?? "",
     userId: r.user_id,
@@ -377,6 +379,7 @@ export interface PaymentRaw {
   type?: string;
   method?: string | null;
   category?: string | null;
+  funding_source?: "main" | "bonus";
   amount: string | number;
   // Денежный след операции: баланс до и после. Бэкенд пишет их по каждому
   // платежу (finance/services.apply_payment), но без этих полей на вопрос
@@ -469,6 +472,7 @@ export function mapPayment(r: PaymentRaw) {
     date: r.created_at ?? r.date ?? new Date().toISOString(),
     comment: r.comment ?? undefined,
     category: r.category ?? (direction === "out" ? "other" : "tuition"),
+    fundingSource: r.funding_source ?? "main",
   };
 }
 
