@@ -37,42 +37,95 @@ class Command(BaseCommand):
                     # Наборы типов берём из общего места, а не переписываем
                     # здесь: разойдись они с правилом проведения платежа, и
                     # эта команда «починила» бы верные балансы на неверные.
-                    income = (
+                    #
+                    # funding_source обязателен в ОБОИХ агрегатах: платежи с
+                    # main и bonus счёта хранятся в одной таблице Payment, и
+                    # без этого фильтра бонусная активность подмешивалась бы
+                    # в основной баланс (а bonus_balance вообще не чинился).
+                    # Историческим платежам (до фичи бонусов) funding_source
+                    # проставлен "main" дефолтом модели — фильтр по "main"
+                    # для них не меняет сумму ни на копейку.
+                    main_income = (
                         Payment.objects.filter(
                             student=student,
                             payment_type__in=WALLET_CREDIT_TYPES,
+                            funding_source="main",
                         ).aggregate(t=Sum("amount"))["t"]
                         or Decimal("0")
                     )
-                    expense = (
+                    main_expense = (
                         Payment.objects.filter(
                             student=student,
                             payment_type__in=WALLET_DEBIT_TYPES,
+                            funding_source="main",
                         ).aggregate(t=Sum("amount"))["t"]
                         or Decimal("0")
                     )
-                    real_balance = income - expense
+                    bonus_income = (
+                        Payment.objects.filter(
+                            student=student,
+                            payment_type__in=WALLET_CREDIT_TYPES,
+                            funding_source="bonus",
+                        ).aggregate(t=Sum("amount"))["t"]
+                        or Decimal("0")
+                    )
+                    bonus_expense = (
+                        Payment.objects.filter(
+                            student=student,
+                            payment_type__in=WALLET_DEBIT_TYPES,
+                            funding_source="bonus",
+                        ).aggregate(t=Sum("amount"))["t"]
+                        or Decimal("0")
+                    )
+                    real_balance = main_income - main_expense
+                    real_bonus_balance = bonus_income - bonus_expense
 
                     wallet, is_new = Wallet.objects.get_or_create(
                         student=student,
-                        defaults={"balance": real_balance},
+                        defaults={
+                            "balance": real_balance,
+                            "bonus_balance": real_bonus_balance,
+                        },
                     )
                     if is_new:
                         created += 1
-                    elif abs(wallet.balance - real_balance) > Decimal("0.01"):
-                        self.stdout.write(
-                            f"  {institution.schema_name} | {student.user.full_name}: "
-                            f"wallet={wallet.balance} -> {real_balance}"
-                        )
-                        wallet.balance = real_balance
-                        wallet.save(update_fields=["balance", "updated_at"])
-                        fixed += 1
                     else:
-                        skipped += 1
+                        # Каждое поле проверяется и логируется независимо —
+                        # у одного студента могло разойтись только одно из
+                        # двух, и оператору важно видеть, что именно чинится,
+                        # а не общее «что-то не сошлось».
+                        changes = []
+                        update_fields = []
+                        if abs(wallet.balance - real_balance) > Decimal("0.01"):
+                            changes.append(f"wallet={wallet.balance} -> {real_balance}")
+                            wallet.balance = real_balance
+                            update_fields.append("balance")
+                        if abs(wallet.bonus_balance - real_bonus_balance) > Decimal("0.01"):
+                            changes.append(
+                                f"bonus={wallet.bonus_balance} -> {real_bonus_balance}"
+                            )
+                            wallet.bonus_balance = real_bonus_balance
+                            update_fields.append("bonus_balance")
 
+                        if update_fields:
+                            self.stdout.write(
+                                f"  {institution.schema_name} | {student.user.full_name}: "
+                                + ", ".join(changes)
+                            )
+                            wallet.save(update_fields=update_fields + ["updated_at"])
+                            fixed += 1
+                        else:
+                            skipped += 1
+
+                    student_fields = []
                     if student.wallet_balance != real_balance:
                         student.wallet_balance = real_balance
-                        student.save(update_fields=["wallet_balance"])
+                        student_fields.append("wallet_balance")
+                    if student.bonus_balance != real_bonus_balance:
+                        student.bonus_balance = real_bonus_balance
+                        student_fields.append("bonus_balance")
+                    if student_fields:
+                        student.save(update_fields=student_fields)
 
                 self.stdout.write(
                     self.style.SUCCESS(

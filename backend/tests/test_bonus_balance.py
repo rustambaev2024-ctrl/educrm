@@ -501,3 +501,97 @@ class TestPaymentCreateSerializerFundingSource:
 
         assert not serializer.is_valid()
         assert "funding_source" in serializer.errors
+
+
+class TestSyncBalancesCommand:
+    """sync_balances management-команда: чинит main и bonus независимо.
+
+    Баг, найденный на финальном ревью: агрегаты не фильтровались по
+    funding_source, суммировали main+bonus платежи вместе и писали это в
+    wallet.balance/student.wallet_balance, а bonus_balance вообще не трогали.
+    У студента с бонусной активностью это тихо портило основной баланс.
+
+    Тест вызывает Command().handle() напрямую (как test_finance_services.py/
+    test_refund_phantom_charges.py дёргают команды через их публичные
+    функции), но патчит Institution.objects и schema_context — сама команда
+    крутит цикл по Institution через django_tenants.schema_context, а тестовая
+    БД — SQLite без реальных tenant-схем (см. tests/conftest.py::
+    _patch_tenant_infra, тот же повод). Приём патчинга схемы скопирован с
+    TestCombinedBalanceCrossConsistency.test_update_debtor_statuses_...
+    (patch.object(..., "schema_context", _NoOpSchemaCtx)) — там та же проблема
+    решалась для apps.finance.tasks.update_debtor_statuses.
+    """
+
+    def test_repairs_both_balances_independently_no_cross_contamination(self):
+        from apps.finance.management.commands import sync_balances as sync_balances_module
+        from apps.finance.services import apply_payment, get_or_create_wallet
+
+        branch = BranchFactory()
+        student = StudentFactory(branch=branch, wallet_balance=Decimal("0.00"))
+
+        # main: +10000 -4000 -> реальный main-баланс 6000
+        apply_payment(
+            student=student, payment_type="top_up", amount=Decimal("10000"),
+            funding_source="main", suppress_notifications=True,
+        )
+        apply_payment(
+            student=student, payment_type="charge", amount=Decimal("4000"),
+            funding_source="main", suppress_notifications=True,
+        )
+        # bonus: +5000 -2000 -> реальный bonus-баланс 3000
+        apply_payment(
+            student=student, payment_type="top_up", amount=Decimal("5000"),
+            funding_source="bonus", suppress_notifications=True,
+        )
+        apply_payment(
+            student=student, payment_type="charge", amount=Decimal("2000"),
+            funding_source="bonus", suppress_notifications=True,
+        )
+
+        student.refresh_from_db()
+        assert student.wallet_balance == Decimal("6000.00")
+        assert student.bonus_balance == Decimal("3000.00")
+
+        # Намеренно портим оба поля и на Wallet, и на Student — до бага
+        # именно так выглядело бы состояние после того, как старую версию
+        # команды запустили на студенте с бонусной активностью.
+        wallet = get_or_create_wallet(student)
+        wallet.balance = Decimal("999999.00")
+        wallet.bonus_balance = Decimal("-1.00")
+        wallet.save(update_fields=["balance", "bonus_balance"])
+        student.wallet_balance = Decimal("999999.00")
+        student.bonus_balance = Decimal("-1.00")
+        student.save(update_fields=["wallet_balance", "bonus_balance"])
+
+        fake_institution = SimpleNamespace(schema_name="public")
+
+        class _FakeQuerySet(list):
+            def exists(self):
+                return len(self) > 0
+
+        class _NoOpSchemaCtx:
+            def __init__(self, schema):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        with patch.object(sync_balances_module, "Institution") as mock_institution, \
+                patch.object(sync_balances_module, "schema_context", _NoOpSchemaCtx):
+            mock_institution.objects.exclude.return_value = _FakeQuerySet([fake_institution])
+            sync_balances_module.Command().handle()
+
+        wallet.refresh_from_db()
+        student.refresh_from_db()
+
+        # Оба поля восстановлены до реальных, платёжно-обоснованных значений...
+        assert wallet.balance == Decimal("6000.00")
+        assert wallet.bonus_balance == Decimal("3000.00")
+        assert student.wallet_balance == Decimal("6000.00")
+        assert student.bonus_balance == Decimal("3000.00")
+        # ...и ни одно значение не «утекло» в другое поле.
+        assert wallet.balance != Decimal("9000.00")  # 6000+3000, признак смешения счетов
+        assert wallet.bonus_balance != Decimal("0.00")
