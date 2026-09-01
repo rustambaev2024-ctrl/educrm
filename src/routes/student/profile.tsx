@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Phone, Calendar, Building2, Wallet, Award, BookOpen, ClipboardCheck, LogOut, Star, UserX } from "lucide-react";
+import { Phone, Calendar, Building2, Wallet, Gift, Award, BookOpen, ClipboardCheck, LogOut, Star, UserX } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -149,6 +149,14 @@ function StudentProfile() {
                   value={formatMoney(stu.balance, lang)}
                   valueClass={stu.balance < 0 ? "text-destructive font-bold" : "text-success font-bold"}
                 />
+                {stu.bonusBalance ? (
+                  <Row
+                    icon={Gift}
+                    label={t("profile.bonus")}
+                    value={formatMoney(stu.bonusBalance, lang)}
+                    valueClass="text-xs text-muted-foreground"
+                  />
+                ) : null}
               </div>
             </Card>
 

@@ -145,6 +145,7 @@ function ParentChildren() {
               value={formatMoney(child.balance, lang)}
               label={t("parent.balance")}
               valueClass={child.balance < 0 ? "text-destructive" : "text-success"}
+              subValue={child.bonusBalance ? `+${formatMoney(child.bonusBalance, lang)}` : undefined}
             />
           </div>
         </Card>
@@ -223,6 +224,9 @@ function ParentChildren() {
               <div className="flex-1">
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("parent.balance")}</div>
                 <div className={`text-lg font-bold ${child.balance < 0 ? "text-destructive" : "text-success"}`}>{formatMoney(child.balance, lang)}</div>
+                {child.bonusBalance ? (
+                  <div className="text-xs text-muted-foreground">+{formatMoney(child.bonusBalance, lang)} {t("parent.bonus")}</div>
+                ) : null}
               </div>
             </Card>
           </TabsContent>

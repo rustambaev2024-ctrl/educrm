@@ -130,6 +130,7 @@ function StudentHome() {
             value={formatMoney(student.balance, lang)}
             hint={student.balance < 0 ? t("studentHome.debt") : t("studentHome.paid")}
             tone={student.balance < 0 ? "warning" : "success"}
+            subValue={student.bonusBalance ? `+ ${t("studentHome.bonus")}: ${formatMoney(student.bonusBalance, lang)}` : undefined}
           />
           <StatTile
             to="/student/homework"

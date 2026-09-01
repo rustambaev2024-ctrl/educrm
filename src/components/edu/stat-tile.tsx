@@ -43,6 +43,14 @@ interface StatTileProps {
    * а не унифицируем размер, чтобы не менять вёрстку обеих страниц.
    */
   size?: "md" | "sm";
+  /**
+   * Необязательная лёгкая вторая строка под основным значением —
+   * напр. бонусный баланс рядом с основным. Рендерится в обоих
+   * вариантах ТОЛЬКО когда передана (нет строки — нет отступа), чтобы
+   * не менять вёрстку для плиток без бонуса. Всегда мельче и светлее
+   * value/hint — это вспомогательная цифра, а не вторая главная.
+   */
+  subValue?: string;
 }
 
 const CARD_TONES: Record<NonNullable<StatTileProps["tone"]>, string> = {
@@ -62,6 +70,7 @@ export function StatTile({
   hint,
   valueClass,
   size = "md",
+  subValue,
 }: StatTileProps) {
   if (variant === "bare") {
     const iconSize = size === "sm" ? "size-3.5" : "size-4";
@@ -72,6 +81,7 @@ export function StatTile({
         <Icon className={`${iconSize} text-muted-foreground`} />
         <div className={`${valueSize} font-bold leading-none ${valueClass ?? ""}`}>{value}</div>
         <div className={`${labelSize} uppercase tracking-wider text-muted-foreground`}>{label}</div>
+        {subValue && <div className={`${size === "sm" ? "text-[8px]" : "text-[9px]"} text-muted-foreground`}>{subValue}</div>}
       </div>
     );
   }
@@ -84,6 +94,7 @@ export function StatTile({
       <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="text-xl font-bold leading-none">{value}</div>
       <div className="text-[11px] text-muted-foreground">{hint}</div>
+      {subValue && <div className="text-[10px] text-muted-foreground">{subValue}</div>}
     </Card>
   );
 

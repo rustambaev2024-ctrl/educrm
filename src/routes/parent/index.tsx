@@ -185,6 +185,11 @@ function ParentHome() {
                   <div className={`mt-1 text-lg font-bold ${child.balance < 0 ? "text-destructive" : "text-success"}`}>
                     {formatMoney(child.balance, lang)}
                   </div>
+                  {child.bonusBalance ? (
+                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                      +{formatMoney(child.bonusBalance, lang)} {t("parent.bonus")}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </Card>
