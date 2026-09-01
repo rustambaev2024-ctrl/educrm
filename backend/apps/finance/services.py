@@ -187,6 +187,61 @@ def apply_payment(
     return PaymentResult(payment=payment, status_changed=status_changed)
 
 
+def charge_for_lesson(
+    student: Student,
+    group,
+    lesson,
+    lesson_price: Decimal,
+    *,
+    category: str = "tuition",
+    comment: str = "",
+    created_by=None,
+) -> list[PaymentResult]:
+    """
+    Списывает lesson_price за урок, разбивая между основным балансом и
+    бонусом. Основной баланс покрывает столько, сколько на нём
+    ПОЛОЖИТЕЛЬНОГО есть (уже отрицательный баланс не считается
+    "доступным" — тогда всё сразу уходит в бонус). Остаток берётся из
+    бонуса, не больше, чем там реально есть. Если и бонуса не хватило —
+    непокрытый остаток списывается с основного, уходя в минус, как и
+    раньше. Возвращает 1 или 2 PaymentResult: одна запись, если счёт
+    всего один, две — если списание разбилось между main и bonus.
+    """
+    wallet = get_or_create_wallet(student)
+    main_available = max(wallet.balance, Decimal("0.00"))
+    from_main = min(lesson_price, main_available)
+    remainder = lesson_price - from_main
+    from_bonus = min(remainder, wallet.bonus_balance) if remainder > 0 else Decimal("0.00")
+    from_main_final = lesson_price - from_bonus
+
+    results = []
+    if from_bonus > 0:
+        results.append(apply_payment(
+            student=student,
+            payment_type="charge",
+            amount=from_bonus,
+            group=group,
+            lesson=lesson,
+            category=category,
+            comment=comment,
+            created_by=created_by,
+            funding_source="bonus",
+        ))
+    if from_main_final > 0:
+        results.append(apply_payment(
+            student=student,
+            payment_type="charge",
+            amount=from_main_final,
+            group=group,
+            lesson=lesson,
+            category=category,
+            comment=comment,
+            created_by=created_by,
+            funding_source="main",
+        ))
+    return results
+
+
 def refund_lesson_charges(lesson, *, student=None, created_by=None) -> int:
     """Вернуть деньги, списанные за занятие. Возвращает число возвратов.
 

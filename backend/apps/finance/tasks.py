@@ -17,6 +17,7 @@ from .models import Payment
 from .services import (
     apply_payment,
     calculate_lesson_price,
+    charge_for_lesson,
 )
 
 logger = logging.getLogger(__name__)
@@ -215,12 +216,11 @@ def charge_groups_for_day(today: date, weekday: int) -> tuple[int, int]:
             try:
                 with transaction.atomic():
                     cat = "absent_charge" if (att and att.status == "absent") else "tuition"
-                    apply_payment(
+                    charge_for_lesson(
                         student=student,
-                        payment_type="charge",
-                        amount=lesson_price,
                         group=group,
                         lesson=lesson,
+                        lesson_price=lesson_price,
                         category=cat,
                         comment=f"Daily lesson charge for {today}",
                     )
