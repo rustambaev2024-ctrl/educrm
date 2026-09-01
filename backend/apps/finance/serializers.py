@@ -48,6 +48,14 @@ class PaymentCreateSerializer(serializers.Serializer):
         "top_up", "discount", "refund", "charge", "expense",
         "manual_charge", "manual_top_up"
     ])
+    # "bonus" разрешён только вместе с payment_type="top_up" (начисление
+    # бонуса) — см. validate() ниже. Списания/сторно с бонуса создаются
+    # только изнутри (charge_for_lesson/reverse_payment), не через этот
+    # публичный эндпоинт, иначе можно было бы обойти всю логику разбивки
+    # и капа на сторно бонуса.
+    funding_source = serializers.ChoiceField(
+        choices=["main", "bonus"], required=False, default="main",
+    )
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     branch_id = serializers.UUIDField(required=False)
     group_id = serializers.UUIDField(required=False)
@@ -56,9 +64,6 @@ class PaymentCreateSerializer(serializers.Serializer):
     method = serializers.CharField(required=False, allow_blank=True, max_length=20)
     category = serializers.CharField(required=False, allow_blank=True, max_length=50)
     comment = serializers.CharField(required=False, allow_blank=True, max_length=500)
-    funding_source = serializers.ChoiceField(
-        choices=["main", "bonus"], required=False, default="main",
-    )
 
     def validate_student_id(self, value):
         try:
@@ -102,7 +107,7 @@ class PaymentCreateSerializer(serializers.Serializer):
         funding_source = attrs.get("funding_source", "main")
         if funding_source == "bonus" and payment_type != "top_up":
             raise serializers.ValidationError({
-                "funding_source": "funding_source=\"bonus\" is only allowed when payment_type is \"top_up\" — bonus-funded charges and reversals are created internally, not through this endpoint."
+                "funding_source": "\"bonus\" is only allowed when payment_type is \"top_up\"."
             })
 
         if payment_type == "expense":
