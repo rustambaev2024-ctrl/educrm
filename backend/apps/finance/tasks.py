@@ -15,7 +15,6 @@ from apps.students.models import Student
 
 from .models import Payment
 from .services import (
-    apply_payment,
     calculate_lesson_price,
     charge_for_lesson,
 )
