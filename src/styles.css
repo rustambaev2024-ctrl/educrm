@@ -346,11 +346,6 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .edu-glass {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: var(--card);
-  }
 }
 
 /* ── Интерактивные состояния ─────────────────────
@@ -396,7 +391,7 @@
     color: var(--sidebar-accent-foreground);
   }
   .edu-glass-item:not([data-active="true"]):hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--muted);
   }
 }
 
@@ -534,40 +529,30 @@
   box-shadow: var(--shadow-1);
 }
 
-/* ── Glassmorphism ────────────────────────────────
-   Translucent, blurred surface for Card/Dialog/Sheet/Popover content.
-   Provides its own background AND border — callers should drop plain
-   `bg-*`/`border` utilities when using this class. Reduced-motion
-   fallback lives in the shared @media (prefers-reduced-motion: reduce)
-   block above (drops the blur, which is the only "motion-adjacent"
-   part of this effect). */
+/* ── Card/Dialog/Sheet/Popover surface ───────────
+   Opaque surface for Card/Dialog/Sheet/Popover content. Provides its
+   own background AND border — callers should drop plain `bg-*`/`border`
+   utilities when using this class. Previously a translucent, blurred
+   "glass" surface — removed per product decision (readability over
+   effect); kept the class name since it's referenced from ~10 call
+   sites and swapping it out everywhere would be pure churn. */
 .edu-glass {
-  background: color-mix(in srgb, var(--card) 72%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  background: var(--card);
+  border: 1px solid var(--border);
 }
 
-/* Legacy overrides
-   background/border no longer !important: these classes are commonly
-   combined with .edu-glass on the same element (Card is now glass by
-   default), and !important here was silently cancelling the translucent
-   background/border on every one of those cards — the glass rule compiled
-   and cost a blur, but rendered fully opaque. box-shadow keeps !important;
-   that part still needs to win over ad-hoc shadow utilities. */
 .shadow-elegant,
 .card-elevated {
   border-radius: var(--radius) !important;
   box-shadow: var(--shadow-1) !important;
 }
 
-/* Opt out of glass when nesting a glass Card inside another glass surface
-   (e.g. inside SheetContent/DialogContent) would stack two translucent+blur
-   layers and mud out contrast, especially over dense tabular text. */
+/* Historically opted a nested Card out of glass so two translucent+blur
+   layers wouldn't stack. .edu-glass is opaque now, so this is just an
+   explicit alias for the same opaque surface — kept for the one call site
+   that already depends on it (admin/quizzes.tsx). */
 .edu-glass-off {
   background: var(--card) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
   border: 1px solid var(--border) !important;
 }
 
@@ -836,8 +821,7 @@ select:focus-visible {
   margin: 0;
 }
 .apply-card {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(24px);
+  background: color-mix(in srgb, var(--public-ink) 6%, var(--public-bg));
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 24px;
@@ -958,8 +942,7 @@ select:focus-visible {
   }
 }
 .apply-success-card {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(24px);
+  background: color-mix(in srgb, var(--public-ink) 6%, var(--public-bg));
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 48px 32px;

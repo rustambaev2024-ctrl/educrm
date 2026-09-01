@@ -504,8 +504,15 @@ function DirectorCoursesPage() {
                                 <div className="truncate text-sm font-medium text-foreground">{student.fullName}</div>
                                 <div className="text-xs text-muted-foreground">{student.phone}</div>
                               </div>
-                              <span className={`shrink-0 text-sm font-semibold tabular-nums ${student.balance >= 0 ? "text-ok" : "text-destructive"}`}>
-                                {formatMoney(student.balance, lang)}
+                              <span className="shrink-0 text-right">
+                                <span className={`block text-sm font-semibold tabular-nums ${student.balance >= 0 ? "text-ok" : "text-destructive"}`}>
+                                  {formatMoney(student.balance, lang)}
+                                </span>
+                                {!!student.bonusBalance && (
+                                  <span className="block text-[11px] font-medium text-warn">
+                                    +{formatMoney(student.bonusBalance, lang)}
+                                  </span>
+                                )}
                               </span>
                               <span
                                 className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${

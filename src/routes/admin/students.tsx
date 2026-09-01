@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Users, UserCheck, AlertCircle, UserPlus, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Users, UserCheck, AlertCircle, UserPlus, ArrowUp, ArrowDown, ArrowUpDown, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
@@ -37,6 +37,7 @@ import { mapStudents } from "@/lib/data/mappers";
 import { isActiveStudent, isDebtor } from "@/lib/data/definitions";
 import { cn } from "@/lib/utils";
 import { CreateStudentSheet, StudentDetailSheet } from "@/components/students";
+import { GrantBonusDialog } from "@/components/edu/grant-bonus-dialog";
 
 export { CreateStudentSheet } from "@/components/students";
 
@@ -74,6 +75,7 @@ export function StudentsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [bonusStudentId, setBonusStudentId] = useState<string | null>(null);
 
   // Сортировка серверная: список пагинирован по 50, поэтому сортировка
   // на клиенте отсортировала бы только текущую страницу и дала бы неверный
@@ -389,10 +391,15 @@ export function StudentsPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell
-                        className={`text-right font-bold tabular-nums ${s.balance > 0 ? "text-ok" : s.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}
-                      >
-                        {s.balance > 0 ? "+" : ""}{formatMoney(s.balance, lang)}
+                      <TableCell className="text-right">
+                        <div className={`font-bold tabular-nums ${s.balance > 0 ? "text-ok" : s.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                          {s.balance > 0 ? "+" : ""}{formatMoney(s.balance, lang)}
+                        </div>
+                        {!!s.bonusBalance && (
+                          <div className="text-[11px] font-medium text-warn">
+                            +{formatMoney(s.bonusBalance, lang)} {lang === "uz" ? "bonus" : "бонус"}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <span className={cn("rounded-md px-2 py-1 text-[11px] font-medium", studentStatusClass(s.status))}>
@@ -400,6 +407,14 @@ export function StudentsPage() {
                         </span>
                       </TableCell>
                       <TableCell style={{ textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          title={lang === "uz" ? "Bonus hisoblash" : "Начислить бонус"}
+                          onClick={() => setBonusStudentId(s.id)}
+                          className="edu-ghost-btn"
+                          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, borderRadius: 6, color: "var(--warn)", background: "transparent", border: "none", cursor: "pointer" }}
+                        >
+                          <Gift className="h-4 w-4" />
+                        </button>
                         <button
                           title={lang === "uz" ? "Ko'rish" : "Открыть"}
                           onClick={() => setSelectedId(s.id)}
@@ -480,6 +495,12 @@ export function StudentsPage() {
           toast.success("O'quvchi o'chirildi");
           setSelectedId(null);
         }}
+      />
+
+      <GrantBonusDialog
+        open={bonusStudentId !== null}
+        onOpenChange={(o) => { if (!o) setBonusStudentId(null); }}
+        initialStudentId={bonusStudentId ?? undefined}
       />
     </PageShell>
   );

@@ -584,7 +584,7 @@ function AdminLeadsPage() {
                 >
                   <div className={`p-4 border-b font-semibold flex items-center justify-between ${headerCls}`}>
                     <span className="text-[15px] tracking-tight">{t.status[status]}</span>
-                    <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-background/50 backdrop-blur-sm">{columnLeads.length}</Badge>
+                    <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-background">{columnLeads.length}</Badge>
                   </div>
                   {isDialogDrop && isDraggingOver && (
                     <div className="mx-3 mt-2 rounded-md bg-warn-soft px-2.5 py-1.5 text-[11px] text-warn dark:text-warn font-medium">

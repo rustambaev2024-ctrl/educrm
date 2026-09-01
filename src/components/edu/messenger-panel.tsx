@@ -197,7 +197,7 @@ export function MessengerPanel({
 
   const sidebar = (
     <div className="flex h-full min-h-0 flex-col border-r border-border/60 bg-card/95">
-      <div className="space-y-3 border-b border-border/60 bg-background/80 p-3 backdrop-blur-xl">
+      <div className="space-y-3 border-b border-border/60 bg-background p-3">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-lg font-bold tracking-tight">{lang === "uz" ? "Xabarlar" : "Сообщения"}</div>
@@ -299,7 +299,7 @@ export function MessengerPanel({
 
   const conversation = selected ? (
     <div className="flex h-full min-h-0 flex-col bg-[radial-gradient(circle_at_15%_10%,hsl(var(--primary)/0.10),transparent_28%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)/0.45))]">
-      <div className="flex items-center gap-3 border-b border-border/60 bg-card/90 px-3 py-3 backdrop-blur-xl md:px-5">
+      <div className="flex items-center gap-3 border-b border-border/60 bg-card px-3 py-3 md:px-5">
         <Button variant="ghost" size="icon" onClick={() => setSelectedId(null)} className="rounded-full md:hidden">
           <ArrowLeft className="size-4" />
         </Button>
@@ -342,7 +342,7 @@ export function MessengerPanel({
         })}
       </div>
 
-      <div className="border-t border-border/60 bg-card/90 p-3 backdrop-blur-xl md:p-4">
+      <div className="border-t border-border/60 bg-card p-3 md:p-4">
         <div className="flex items-end gap-2 rounded-3xl border border-border/70 bg-background p-2 shadow-sm">
           <Input
             value={draft}

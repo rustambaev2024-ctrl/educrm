@@ -146,7 +146,7 @@ function DirectorIntegrationsPage() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* Main settings form */}
           <div className="md:col-span-2 space-y-6">
-            <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">
+            <Card className="p-6 border border-border/60 shadow-elegant bg-card">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border/60">
                 <div className="p-2.5 bg-primary/10 rounded-lg text-primary">
                   <Settings className="size-5" />
@@ -233,7 +233,7 @@ function DirectorIntegrationsPage() {
               )}
             </Card>
 
-            <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">
+            <Card className="p-6 border border-border/60 shadow-elegant bg-card">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ok-soft">
@@ -345,7 +345,7 @@ function DirectorIntegrationsPage() {
               </div>
             </Card>
 
-            <Card className="p-6 border border-border/60 shadow-elegant bg-card/60 backdrop-blur-md">
+            <Card className="p-6 border border-border/60 shadow-elegant bg-card">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warn-soft">
                   <KeyRound className="h-5 w-5 text-warn" />
@@ -410,7 +410,7 @@ function DirectorIntegrationsPage() {
 
           {/* Guidelines Sidebar */}
           <div className="space-y-6">
-            <Card className="p-5 border border-border/60 shadow-elegant bg-primary/5 backdrop-blur-md">
+            <Card className="p-5 border border-border/60 shadow-elegant bg-primary/5">
               <div className="flex items-center gap-2 mb-3 text-primary">
                 <Info className="size-4" />
                 <h4 className="font-semibold text-sm">{t.helpTitle}</h4>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,8 @@ import { getLocalDateTimeString } from "@/lib/format";
 interface GrantBonusDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Предвыбранный ученик — когда диалог открыт с карточки конкретного ученика. */
+  initialStudentId?: string;
 }
 
 /**
@@ -36,16 +38,20 @@ interface GrantBonusDialogProps {
  * бонус одинаково, разница только в наборе студентов, который отдаёт
  * бэкенд по роли (см. CoinStudentsTab — тот же принцип общего компонента).
  */
-export function GrantBonusDialog({ open, onOpenChange }: GrantBonusDialogProps) {
+export function GrantBonusDialog({ open, onOpenChange, initialStudentId }: GrantBonusDialogProps) {
   const { t, lang } = useI18n();
   const { students, branches, addPayment } = useData();
-  const [studentId, setStudentId] = useState("");
+  const [studentId, setStudentId] = useState(initialStudentId ?? "");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (open) setStudentId(initialStudentId ?? "");
+  }, [open, initialStudentId]);
+
   const reset = () => {
-    setStudentId("");
+    setStudentId(initialStudentId ?? "");
     setAmount("");
     setReason("");
   };
@@ -93,7 +99,7 @@ export function GrantBonusDialog({ open, onOpenChange }: GrantBonusDialogProps) 
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-xs">{t("finance.col.student")} *</Label>
-            <Select value={studentId} onValueChange={setStudentId}>
+            <Select value={studentId} onValueChange={setStudentId} disabled={!!initialStudentId}>
               <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
               <SelectContent>
                 {students.filter((s) => s.status !== "archived").map((s) => (

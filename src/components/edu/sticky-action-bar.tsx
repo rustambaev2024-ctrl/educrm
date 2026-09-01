@@ -24,7 +24,7 @@ export function StickyActionBar({ status, children, className }: StickyActionBar
   return (
     <div
       className={cn(
-        "fixed inset-x-0 z-20 border-t border-border bg-card/95 backdrop-blur",
+        "fixed inset-x-0 z-20 border-t border-border bg-card",
         "lg:left-64",
         className,
       )}

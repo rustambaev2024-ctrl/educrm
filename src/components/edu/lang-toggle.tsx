@@ -7,7 +7,7 @@ export function LangToggle() {
     <div
       role="group"
       aria-label={t("lang.toggle")}
-      className="inline-flex h-9 items-center rounded-lg border border-border bg-card/60 p-0.5 backdrop-blur-sm"
+      className="inline-flex h-9 items-center rounded-lg border border-border bg-card p-0.5"
     >
       <Button
         type="button"

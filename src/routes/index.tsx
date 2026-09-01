@@ -122,7 +122,7 @@ export function LoginPage() {
         </div>
 
         <div className="w-full max-w-md flex-shrink-0">
-          <Card className="border-border/60 bg-card/80 p-6 shadow-elegant-lg backdrop-blur-sm sm:p-8">
+          <Card className="border-border/60 bg-card p-6 shadow-elegant-lg sm:p-8">
             <div className="mb-6 flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-gradient-primary shadow-glow">
                 <GraduationCap className="size-5 text-primary-foreground" />

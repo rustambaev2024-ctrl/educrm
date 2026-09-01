@@ -41,7 +41,7 @@ export function Topbar({ title, showSearch = true }: { title?: string; showSearc
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-md md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/60 bg-background px-4 md:px-6">
       {title && <h1 className="hidden text-lg font-semibold md:block">{title}</h1>}
       {showSearch && (
         <button

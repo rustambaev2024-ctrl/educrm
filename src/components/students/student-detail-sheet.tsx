@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Plus, Minus, Search, Phone, Calendar as CalendarIcon, Copy,
-  ArrowDownCircle, ArrowUpCircle, Key, Pencil, Coins,
+  ArrowDownCircle, ArrowUpCircle, Key, Pencil, Coins, Gift,
 } from "lucide-react";
 import { PasswordInput } from "@/components/edu/password-input";
 import { PhoneInput } from "@/components/edu/phone-input";
@@ -45,6 +45,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { GrantBonusDialog } from "@/components/edu/grant-bonus-dialog";
 import { useI18n } from "@/lib/i18n";
 import { useData } from "@/lib/data/store";
 import { formatDate, formatMoney, getLocalDateString } from "@/lib/format";
@@ -154,6 +155,7 @@ export function StudentDetailSheet({
 
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [chargeOpen, setChargeOpen] = useState(false);
+  const [bonusOpen, setBonusOpen] = useState(false);
   const [coinDialogOpen, setCoinDialogOpen] = useState(false);
   const [coinAmount, setCoinAmount] = useState(10);
   const [coinComment, setCoinComment] = useState("");
@@ -468,6 +470,12 @@ export function StudentDetailSheet({
                 <div className={`text-lg font-semibold tabular-nums sm:text-xl ${student.balance < 0 ? "text-destructive" : "text-foreground"}`}>
                   {formatMoney(student.balance, lang)}
                 </div>
+                {!!student.bonusBalance && (
+                  <div className="mt-0.5 flex items-center justify-end gap-1 text-xs font-medium text-warn">
+                    <Gift className="size-3" />
+                    +{formatMoney(student.bonusBalance, lang)}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -481,6 +489,10 @@ export function StudentDetailSheet({
               <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none gap-1 border-warn/30 text-warn hover:bg-warn-soft" onClick={() => { setCoinAction("award"); setCoinAmount(10); setCoinComment(""); setCoinDialogOpen(true); }}>
                 <Coins className="size-3.5" />
                 {lang === "uz" ? "Coin" : "Монеты"}
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1 min-w-[110px] sm:flex-none gap-1 border-warn/30 text-warn hover:bg-warn-soft" onClick={() => setBonusOpen(true)}>
+                <Gift className="size-3.5" />
+                {lang === "uz" ? "Bonus" : "Бонус"}
               </Button>
             </div>
           </div>
@@ -1187,6 +1199,10 @@ export function StudentDetailSheet({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {student && (
+        <GrantBonusDialog open={bonusOpen} onOpenChange={setBonusOpen} initialStudentId={student.id} />
+      )}
 
       {/* Coin Dialog */}
       <Dialog open={coinDialogOpen} onOpenChange={setCoinDialogOpen}>
