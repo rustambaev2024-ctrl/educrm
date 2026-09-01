@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plus, TrendingUp, TrendingDown, Wallet, AlertTriangle, Receipt, RotateCcw } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, AlertTriangle, Receipt, RotateCcw, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { GrantBonusDialog } from "@/components/edu/grant-bonus-dialog";
 import { useData } from "@/lib/data/store";
 import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { isDebtor, totalDebt as sumDebt } from "@/lib/data/definitions";
@@ -104,6 +105,7 @@ function FinancePage() {
   const { t, lang } = useI18n();
   const { payments, students, groups, reversePayment, isLoading } = useData();
   const [payOpen, setPayOpen] = useState(false);
+  const [bonusOpen, setBonusOpen] = useState(false);
   const [reversingId, setReversingId] = useState<string | null>(null);
   const [reverseTarget, setReverseTarget] = useState<{ id: string; amount: number } | null>(null);
 
@@ -225,6 +227,9 @@ function FinancePage() {
         <>
           <Button variant="outline" size="sm" className="h-8" onClick={() => setExpenseOpen(true)}>
             <TrendingDown className="mr-1 size-4" /> {t("finance.addExpense")}
+          </Button>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setBonusOpen(true)}>
+            <Gift className="mr-1 size-4" /> {lang === "uz" ? "Bonus hisoblash" : "Начислить бонус"}
           </Button>
           <Button size="sm" className="h-8" onClick={() => setPayOpen(true)}>
             <Plus className="mr-1 size-4" /> {t("finance.addPayment")}
@@ -513,6 +518,7 @@ function FinancePage() {
 
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} />
       <ExpenseDialog open={expenseOpen} onOpenChange={setExpenseOpen} />
+      <GrantBonusDialog open={bonusOpen} onOpenChange={setBonusOpen} />
       <ConfirmDialog
         open={reverseTarget !== null}
         onOpenChange={(open) => !open && setReverseTarget(null)}

@@ -1432,9 +1432,20 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     // нет». Возвращаем дельтой, а не снимком: если за время запроса баланс
     // изменился по другой причине, снимок затёр бы это изменение.
     const creditsStudent = input.direction === "in" && Boolean(input.studentId);
+    // Начисление бонуса — это тоже "in", но должно оптимистично поднимать
+    // bonusBalance, а не основной balance: у бонуса отдельный кошелёк.
+    const isBonusCredit = creditsStudent && input.fundingSource === "bonus";
     setPayments((prev) => [created, ...prev]);
     if (creditsStudent) {
-      setStudents((prev) => prev.map((s) => (s.id === input.studentId ? { ...s, balance: s.balance + input.amount } : s)));
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.id === input.studentId
+            ? isBonusCredit
+              ? { ...s, bonusBalance: (s.bonusBalance ?? 0) + input.amount }
+              : { ...s, balance: s.balance + input.amount }
+            : s,
+        ),
+      );
     }
     const task = paymentApi.create({
       student_id: created.direction === "in" ? created.studentId : undefined,
@@ -1443,6 +1454,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       branch_id: created.branchId,
       amount: created.amount,
       payment_type: created.direction === "out" ? "expense" : "top_up",
+      funding_source: created.fundingSource,
       method: created.method,
       category: created.category ?? (created.direction === "out" ? "other" : "tuition"),
       comment: created.comment,
@@ -1459,7 +1471,13 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         creditsStudent &&
           (() =>
             setStudents((prev) =>
-              prev.map((s) => (s.id === input.studentId ? { ...s, balance: s.balance - input.amount } : s)),
+              prev.map((s) =>
+                s.id === input.studentId
+                  ? isBonusCredit
+                    ? { ...s, bonusBalance: (s.bonusBalance ?? 0) - input.amount }
+                    : { ...s, balance: s.balance - input.amount }
+                  : s,
+              ),
             )),
       ),
     );

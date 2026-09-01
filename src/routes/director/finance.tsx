@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, Wallet, AlertTriangle, RotateCcw } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, AlertTriangle, RotateCcw, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { GrantBonusDialog } from "@/components/edu/grant-bonus-dialog";
 import { useData } from "@/lib/data/store";
 import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { useI18n } from "@/lib/i18n";
@@ -29,6 +30,7 @@ function DirectorFinancePage() {
   const { payments, students, branches, reversePayment, isLoading } = useData();
 
   const [walletsLimit, setWalletsLimit] = useState(50);
+  const [bonusOpen, setBonusOpen] = useState(false);
   const [reversingId, setReversingId] = useState<string | null>(null);
   const [reverseTarget, setReverseTarget] = useState<{ id: string; amount: number } | null>(null);
 
@@ -119,10 +121,13 @@ function DirectorFinancePage() {
       subtitle={t("finance.directorSubtitle")}
       actions={
         !isLoading && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
             <span>-</span>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
+            <Button variant="outline" size="sm" className="h-8" onClick={() => setBonusOpen(true)}>
+              <Gift className="mr-1 size-4" /> {lang === "uz" ? "Bonus hisoblash" : "Начислить бонус"}
+            </Button>
           </div>
         )
       }
@@ -292,6 +297,7 @@ function DirectorFinancePage() {
         </Card>
       </div>
       )}
+      <GrantBonusDialog open={bonusOpen} onOpenChange={setBonusOpen} />
       <ConfirmDialog
         open={reverseTarget !== null}
         onOpenChange={(open) => !open && setReverseTarget(null)}
