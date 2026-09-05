@@ -311,3 +311,32 @@ class TestBranchScoping:
         forecast = get_revenue_forecast(branch_admin_user, _wide_filters())
 
         assert forecast["potential_revenue"] == "0.00"
+
+
+class TestNewAnalyticsEndpoints:
+    def test_profitability_endpoint_returns_200(self, api_client):
+        director = _director()
+        api_client.force_authenticate(user=director)
+
+        response = api_client.get("/api/v1/analytics/profitability/")
+
+        assert response.status_code == 200, response.content
+        assert "total_profit" in response.json()
+
+    def test_revenue_forecast_endpoint_returns_200(self, api_client):
+        director = _director()
+        api_client.force_authenticate(user=director)
+
+        response = api_client.get("/api/v1/analytics/revenue-forecast/")
+
+        assert response.status_code == 200, response.content
+        assert "forecast_revenue" in response.json()
+
+    def test_debtors_endpoint_includes_collection_rate(self, api_client):
+        director = _director()
+        api_client.force_authenticate(user=director)
+
+        response = api_client.get("/api/v1/analytics/debtors/")
+
+        assert response.status_code == 200, response.content
+        assert "collection_rate" in response.json()
