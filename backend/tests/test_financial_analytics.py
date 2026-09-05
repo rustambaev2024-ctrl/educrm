@@ -340,3 +340,22 @@ class TestNewAnalyticsEndpoints:
 
         assert response.status_code == 200, response.content
         assert "collection_rate" in response.json()
+
+
+class TestFinanceAnalyticsExport:
+    def test_export_excel_finance_analytics_returns_200(self, api_client):
+        director = _director()
+        api_client.force_authenticate(user=director)
+
+        response = api_client.post("/api/v1/export/excel/", {"report_type": "finance_analytics"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response["Content-Type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    def test_export_pdf_finance_analytics_returns_200(self, api_client):
+        director = _director()
+        api_client.force_authenticate(user=director)
+
+        response = api_client.post("/api/v1/export/pdf/", {"report_type": "finance_analytics"}, format="json")
+
+        assert response.status_code == 200, response.content

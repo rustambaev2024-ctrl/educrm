@@ -197,6 +197,29 @@ def _build_export_payload(user, payload: dict) -> tuple[str, dict]:
 
     if report_type == "finance":
         return report_type, get_revenue_report(user, filters)
+    if report_type == "finance_analytics":
+        revenue = get_revenue_report(user, filters)
+        profitability = get_profitability_report(user, filters)
+        debtors = get_debtors_report(user, filters)
+        forecast = get_revenue_forecast(user, filters)
+        return report_type, {
+            "period": revenue["period"],
+            "total_revenue": revenue["total_revenue"],
+            "total_expense": profitability["total_expense"],
+            "total_profit": profitability["total_profit"],
+            "total_margin_percent": profitability["total_margin_percent"],
+            "collection_rate": debtors["collection_rate"],
+            "forecast_revenue": forecast["forecast_revenue"],
+            "potential_revenue": forecast["potential_revenue"],
+            "revenue_by_branch": revenue["by_branch"],
+            "revenue_by_course": revenue["by_course"],
+            "revenue_by_teacher": revenue["by_teacher"],
+            "revenue_by_day": revenue["by_day"],
+            "profitability_by_branch": profitability["by_branch"],
+            "profitability_by_course": profitability["by_course"],
+            "expense_by_category": profitability["expense_by_category"],
+            "debtors": debtors["results"],
+        }
     if report_type == "attendance":
         return report_type, get_attendance_report(user, filters)
     if report_type == "salary":
