@@ -96,3 +96,77 @@ class TestTeachersReportRevenue:
 
         row = next(r for r in report["results"] if r["teacher_id"] == str(teacher.id))
         assert row["revenue_total"] == "0.00"
+
+
+class TestProfitabilityReport:
+    def test_positive_margin_when_revenue_exceeds_expense(self):
+        from apps.reports.services import get_profitability_report
+
+        branch = BranchFactory()
+        student = StudentFactory(branch=branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=branch, payment_type="top_up", amount=Decimal("100000.00"))
+        PaymentFactory(student=None, wallet=None, branch=branch, payment_type="expense", amount=Decimal("40000.00"))
+
+        report = get_profitability_report(_director(), _wide_filters())
+
+        assert report["total_revenue"] == "100000.00"
+        assert report["total_expense"] == "40000.00"
+        assert report["total_profit"] == "60000.00"
+        assert report["total_margin_percent"] == "60.00"
+
+    def test_branch_with_only_expense_has_zero_margin_not_error(self):
+        from apps.reports.services import get_profitability_report
+
+        branch = BranchFactory()
+        PaymentFactory(student=None, wallet=None, branch=branch, payment_type="expense", amount=Decimal("10000.00"))
+
+        report = get_profitability_report(_director(), _wide_filters())
+
+        row = next(r for r in report["by_branch"] if r["id"] == str(branch.id))
+        assert row["revenue"] == "0.00"
+        assert row["expense"] == "10000.00"
+        assert row["profit"] == "-10000.00"
+        assert row["margin_percent"] == "0.00"
+
+    def test_branch_with_only_revenue_has_full_margin(self):
+        from apps.reports.services import get_profitability_report
+
+        branch = BranchFactory()
+        student = StudentFactory(branch=branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=branch, payment_type="top_up", amount=Decimal("50000.00"))
+
+        report = get_profitability_report(_director(), _wide_filters())
+
+        row = next(r for r in report["by_branch"] if r["id"] == str(branch.id))
+        assert row["margin_percent"] == "100.00"
+
+    def test_by_course_breakdown_present(self):
+        from apps.reports.services import get_profitability_report
+
+        branch = BranchFactory()
+        course = CourseFactory(name="Course X")
+        group = GroupFactory(branch=branch, course=course)
+        student = StudentFactory(branch=branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=branch, group=group, payment_type="top_up", amount=Decimal("80000.00"))
+
+        report = get_profitability_report(_director(), _wide_filters())
+
+        row = next(r for r in report["by_course"] if r["id"] == str(course.id))
+        assert row["revenue"] == "80000.00"
+
+    def test_expense_by_category_groups_by_free_text_category(self):
+        from apps.reports.services import get_profitability_report
+
+        branch = BranchFactory()
+        PaymentFactory(student=None, wallet=None, branch=branch, payment_type="expense", amount=Decimal("30000.00"), category="Ijara")
+        PaymentFactory(student=None, wallet=None, branch=branch, payment_type="expense", amount=Decimal("20000.00"), category="Ijara")
+        PaymentFactory(student=None, wallet=None, branch=branch, payment_type="expense", amount=Decimal("15000.00"), category="")
+
+        report = get_profitability_report(_director(), _wide_filters())
+
+        by_category = {row["category"]: row["total"] for row in report["expense_by_category"]}
+        assert by_category["Ijara"] == "50000.00"
+        assert by_category["Uncategorized"] == "15000.00"

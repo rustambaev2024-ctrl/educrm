@@ -271,6 +271,94 @@ def get_revenue_report(user, filters: ReportFilters) -> dict:
     }
 
 
+def get_profitability_report(user, filters: ReportFilters) -> dict:
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
+    payments_qs = Payment.objects.filter(branch_id__in=branch_ids)
+    payments_qs = _with_date_range(payments_qs, "created_at", filters.date_from, filters.date_to)
+
+    revenue_qs = payments_qs.filter(
+        payment_type__in=INCOME_PAYMENT_TYPES + INCOME_REVERSAL_TYPES
+    ).annotate(signed_amount=_SIGNED_REVENUE_AMOUNT)
+    expense_qs = payments_qs.filter(payment_type="expense")
+
+    def _margin_rows(group_field):
+        revenue_by_key = {
+            row[group_field]: row["total"]
+            for row in revenue_qs.values(group_field)
+            .annotate(total=Coalesce(Sum("signed_amount"), Decimal("0.00")))
+        }
+        expense_by_key = {
+            row[group_field]: row["total"]
+            for row in expense_qs.values(group_field)
+            .annotate(total=Coalesce(Sum("amount"), Decimal("0.00")))
+        }
+        keys = {k for k in (set(revenue_by_key) | set(expense_by_key)) if k is not None}
+        rows = []
+        for key in keys:
+            revenue = revenue_by_key.get(key, Decimal("0.00"))
+            expense = expense_by_key.get(key, Decimal("0.00"))
+            profit = revenue - expense
+            margin = _percentage(profit, revenue) if revenue > 0 else Decimal("0.00")
+            rows.append({
+                "id": str(key),
+                "revenue": str(_quantize(revenue)),
+                "expense": str(_quantize(expense)),
+                "profit": str(_quantize(profit)),
+                "margin_percent": str(margin),
+            })
+        rows.sort(key=lambda r: Decimal(r["profit"]), reverse=True)
+        return rows
+
+    by_branch = _margin_rows("branch_id")
+    by_course = _margin_rows("group__course_id")
+
+    # values_list("id", ...) returns real UUID objects, but row["id"] in
+    # by_branch/by_course is already a string (str(key) was called inside
+    # _margin_rows) — build the name dict with string keys upfront so the
+    # lookup matches without converting back to UUID.
+    branch_names = {
+        str(k): v for k, v in Branch.objects.filter(id__in=[r["id"] for r in by_branch]).values_list("id", "name")
+    }
+    for row in by_branch:
+        row["name"] = branch_names.get(row["id"], "Unknown")
+
+    from apps.courses.models import Course
+    course_names = {
+        str(k): v for k, v in Course.objects.filter(id__in=[r["id"] for r in by_course]).values_list("id", "name")
+    }
+    for row in by_course:
+        row["name"] = course_names.get(row["id"], "No course")
+
+    expense_by_category_qs = (
+        expense_qs.values("category")
+        .annotate(total=Coalesce(Sum("amount"), Decimal("0.00")))
+        .order_by("-total")
+    )
+    expense_by_category = [
+        {
+            "category": row["category"] or "Uncategorized",
+            "total": str(_quantize(row["total"])),
+        }
+        for row in expense_by_category_qs
+    ]
+
+    total_revenue = _net_revenue(payments_qs)
+    total_expense = expense_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0.00")))["total"]
+    total_profit = total_revenue - total_expense
+    total_margin = _percentage(total_profit, total_revenue) if total_revenue > 0 else Decimal("0.00")
+
+    return {
+        "period": {"date_from": str(filters.date_from), "date_to": str(filters.date_to)},
+        "total_revenue": str(_quantize(total_revenue)),
+        "total_expense": str(_quantize(total_expense)),
+        "total_profit": str(_quantize(total_profit)),
+        "total_margin_percent": str(total_margin),
+        "by_branch": by_branch,
+        "by_course": by_course,
+        "expense_by_category": expense_by_category,
+    }
+
+
 def get_teachers_report(user, filters: ReportFilters) -> dict:
     branch_ids = branch_ids_for_user(user, filters.branch_id)
 
