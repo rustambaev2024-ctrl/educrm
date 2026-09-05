@@ -353,6 +353,30 @@ def get_teachers_report(user, filters: ReportFilters) -> dict:
             ),
             distinct=True,
         ),
+        revenue_total=Coalesce(
+            Sum(
+                Case(
+                    When(
+                        teaching_groups__payments__payment_type__in=("top_up", "manual_top_up"),
+                        teaching_groups__payments__created_at__date__gte=filters.date_from,
+                        teaching_groups__payments__created_at__date__lte=filters.date_to,
+                        teaching_groups__branch_id__in=branch_ids,
+                        then=F("teaching_groups__payments__amount"),
+                    ),
+                    When(
+                        teaching_groups__payments__payment_type__in=("refund", "manual_charge"),
+                        teaching_groups__payments__created_at__date__gte=filters.date_from,
+                        teaching_groups__payments__created_at__date__lte=filters.date_to,
+                        teaching_groups__branch_id__in=branch_ids,
+                        then=-F("teaching_groups__payments__amount"),
+                    ),
+                    default=Value(Decimal("0.00")),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                ),
+                distinct=True,
+            ),
+            Decimal("0.00"),
+        ),
     )
 
     rows = []
@@ -369,7 +393,7 @@ def get_teachers_report(user, filters: ReportFilters) -> dict:
             "branch_id": str(teacher.branch_id) if teacher.branch_id else None,
             "branch_name": teacher.branch.name if teacher.branch else None,
             "students_count": teacher.students_count or 0,
-            "revenue_total": "0",
+            "revenue_total": str(_quantize(teacher.revenue_total or Decimal("0.00"))),
             "attendance_rate": round(present / total_att * 100, 1) if total_att else 0.0,
             "conducted_lessons": conducted,
             "cancelled_lessons": teacher.cancelled_lessons or 0,

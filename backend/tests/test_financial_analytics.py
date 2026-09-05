@@ -67,3 +67,32 @@ class TestRevenueReportBreakdowns:
 
         unassigned = next(r for r in report["by_teacher"] if r["teacher_id"] is None)
         assert unassigned["total"] == "30000.00"
+
+
+class TestTeachersReportRevenue:
+    def test_revenue_total_sums_payments_for_teachers_groups(self):
+        from apps.reports.services import get_teachers_report
+
+        branch = BranchFactory()
+        teacher = StaffFactory(branch=branch)
+        group = GroupFactory(branch=branch, teacher=teacher)
+        student = StudentFactory(branch=branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=branch, group=group, payment_type="top_up", amount=Decimal("120000.00"))
+
+        report = get_teachers_report(_director(), _wide_filters())
+
+        row = next(r for r in report["results"] if r["teacher_id"] == str(teacher.id))
+        assert row["revenue_total"] == "120000.00"
+
+    def test_revenue_total_is_zero_for_teacher_without_payments(self):
+        from apps.reports.services import get_teachers_report
+
+        branch = BranchFactory()
+        teacher = StaffFactory(branch=branch)
+        GroupFactory(branch=branch, teacher=teacher)
+
+        report = get_teachers_report(_director(), _wide_filters())
+
+        row = next(r for r in report["results"] if r["teacher_id"] == str(teacher.id))
+        assert row["revenue_total"] == "0.00"
