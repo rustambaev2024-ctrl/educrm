@@ -69,6 +69,11 @@ class StudentFactory(factory.django.DjangoModelFactory):
 class WalletFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "finance.Wallet"
+        # Student has a post_save signal (apps.finance.signals.ensure_wallet_for_student)
+        # that auto-creates a Wallet row. A plain create() here would collide with
+        # that row (UNIQUE constraint on student_id) whenever StudentFactory() has
+        # already run first, which is the common call pattern in tests.
+        django_get_or_create = ("student",)
 
     student = factory.SubFactory(StudentFactory)
     balance = Decimal("0.00")

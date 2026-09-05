@@ -208,6 +208,16 @@ def get_revenue_report(user, filters: ReportFilters) -> dict:
         .annotate(total=net, transactions=Count("id"))
         .order_by("-total")
     )
+    by_course = (
+        payments_qs.values("group__course_id", "group__course__name")
+        .annotate(total=net, transactions=Count("id"))
+        .order_by("-total")
+    )
+    by_teacher = (
+        payments_qs.values("group__teacher_id", "group__teacher__user__full_name")
+        .annotate(total=net, transactions=Count("id"))
+        .order_by("-total")
+    )
     by_day = (
         payments_qs.annotate(day=TruncDate("created_at"))
         .values("day")
@@ -235,6 +245,24 @@ def get_revenue_report(user, filters: ReportFilters) -> dict:
                 "total": str(_quantize(row["total"])),
             }
             for row in by_group
+        ],
+        "by_course": [
+            {
+                "course_id": str(row["group__course_id"]) if row["group__course_id"] else None,
+                "course_name": row["group__course__name"] or "No course",
+                "transactions": row["transactions"],
+                "total": str(_quantize(row["total"])),
+            }
+            for row in by_course
+        ],
+        "by_teacher": [
+            {
+                "teacher_id": str(row["group__teacher_id"]) if row["group__teacher_id"] else None,
+                "teacher_name": row["group__teacher__user__full_name"] or "Unassigned",
+                "transactions": row["transactions"],
+                "total": str(_quantize(row["total"])),
+            }
+            for row in by_teacher
         ],
         "by_day": [
             {"day": str(row["day"]), "total": str(_quantize(row["total"]))}
