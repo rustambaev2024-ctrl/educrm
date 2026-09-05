@@ -583,10 +583,20 @@ def get_debtors_report(user, filters: ReportFilters) -> dict:
         }
         for student in debtors_qs.order_by("user__full_name")
     ]
+
+    period_payments_qs = Payment.objects.filter(branch_id__in=branch_ids)
+    period_payments_qs = _with_date_range(period_payments_qs, "created_at", filters.date_from, filters.date_to)
+    billed = period_payments_qs.filter(payment_type__in=CHARGE_PAYMENT_TYPES).aggregate(
+        total=Coalesce(Sum("amount"), Decimal("0.00"))
+    )["total"]
+    collected = _net_revenue(period_payments_qs)
+    collection_rate = _percentage(collected, billed) if billed > 0 else Decimal("100.00")
+
     return {
         "period": {"date_from": str(filters.date_from), "date_to": str(filters.date_to)},
         "debtors_count": len(results),
         "results": results,
+        "collection_rate": str(collection_rate),
     }
 
 

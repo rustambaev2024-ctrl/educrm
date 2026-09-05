@@ -170,3 +170,40 @@ class TestProfitabilityReport:
         by_category = {row["category"]: row["total"] for row in report["expense_by_category"]}
         assert by_category["Ijara"] == "50000.00"
         assert by_category["Uncategorized"] == "15000.00"
+
+
+class TestDebtorsCollectionRate:
+    def test_full_collection_rate_when_all_billed_is_collected(self):
+        from apps.reports.services import get_debtors_report
+
+        branch = BranchFactory()
+        student = StudentFactory(branch=branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=branch, payment_type="charge", amount=Decimal("50000.00"))
+        PaymentFactory(student=student, branch=branch, payment_type="top_up", amount=Decimal("50000.00"))
+
+        report = get_debtors_report(_director(), _wide_filters())
+
+        assert report["collection_rate"] == "100.00"
+
+    def test_zero_billed_gives_full_collection_rate_not_division_error(self):
+        from apps.reports.services import get_debtors_report
+
+        BranchFactory()
+
+        report = get_debtors_report(_director(), _wide_filters())
+
+        assert report["collection_rate"] == "100.00"
+
+    def test_partial_collection_rate(self):
+        from apps.reports.services import get_debtors_report
+
+        branch = BranchFactory()
+        student = StudentFactory(branch=branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=branch, payment_type="charge", amount=Decimal("100000.00"))
+        PaymentFactory(student=student, branch=branch, payment_type="top_up", amount=Decimal("40000.00"))
+
+        report = get_debtors_report(_director(), _wide_filters())
+
+        assert report["collection_rate"] == "40.00"
