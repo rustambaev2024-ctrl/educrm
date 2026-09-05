@@ -263,3 +263,51 @@ class TestRevenueForecast:
         forecast = get_revenue_forecast(_director(), _wide_filters())
 
         assert forecast["potential_revenue"] == "0.00"
+
+
+class TestBranchScoping:
+    def test_branch_admin_does_not_see_other_branch_revenue(self):
+        from apps.reports.services import get_revenue_report
+
+        own_branch = BranchFactory()
+        other_branch = BranchFactory()
+        branch_admin_user = UserFactory(role="branch_admin")
+        StaffFactory(user=branch_admin_user, branch=own_branch)
+
+        student = StudentFactory(branch=other_branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=other_branch, payment_type="top_up", amount=Decimal("999999.00"))
+
+        report = get_revenue_report(branch_admin_user, _wide_filters())
+
+        assert report["total_revenue"] == "0.00"
+
+    def test_branch_admin_does_not_see_other_branch_profitability(self):
+        from apps.reports.services import get_profitability_report
+
+        own_branch = BranchFactory()
+        other_branch = BranchFactory()
+        branch_admin_user = UserFactory(role="branch_admin")
+        StaffFactory(user=branch_admin_user, branch=own_branch)
+
+        student = StudentFactory(branch=other_branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=other_branch, payment_type="top_up", amount=Decimal("999999.00"))
+
+        report = get_profitability_report(branch_admin_user, _wide_filters())
+
+        assert report["total_revenue"] == "0.00"
+
+    def test_branch_admin_does_not_see_other_branch_forecast(self):
+        from apps.reports.services import get_revenue_forecast
+
+        own_branch = BranchFactory()
+        other_branch = BranchFactory()
+        branch_admin_user = UserFactory(role="branch_admin")
+        StaffFactory(user=branch_admin_user, branch=own_branch)
+
+        GroupFactory(branch=other_branch, status="active", monthly_price=Decimal("500000.00"))
+
+        forecast = get_revenue_forecast(branch_admin_user, _wide_filters())
+
+        assert forecast["potential_revenue"] == "0.00"
