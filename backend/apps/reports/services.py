@@ -4,7 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db.models import Avg, Case, Count, DecimalField, F, Sum, Value, When
+from django.db.models import Avg, Case, Count, DecimalField, F, Q, Sum, Value, When
 from django.db.models.functions import Coalesce, TruncDate
 from django.utils import timezone
 
@@ -597,6 +597,41 @@ def get_debtors_report(user, filters: ReportFilters) -> dict:
         "debtors_count": len(results),
         "results": results,
         "collection_rate": str(collection_rate),
+    }
+
+
+def get_revenue_forecast(user, filters: ReportFilters) -> dict:
+    from apps.courses.models import Group
+
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
+    active_groups = Group.objects.filter(
+        branch_id__in=branch_ids, status="active"
+    ).annotate(
+        active_students=Count("memberships", filter=Q(memberships__left_at__isnull=True))
+    )
+    potential = sum(
+        ((g.monthly_price or Decimal("0.00")) * g.active_students for g in active_groups),
+        Decimal("0.00"),
+    )
+
+    today = timezone.localdate()
+    lookback_from = (today.replace(day=1) - timedelta(days=90)).replace(day=1)
+    lookback_to = today.replace(day=1) - timedelta(days=1)
+    lookback_qs = Payment.objects.filter(branch_id__in=branch_ids)
+    lookback_qs = _with_date_range(lookback_qs, "created_at", lookback_from, lookback_to)
+
+    billed = lookback_qs.filter(payment_type__in=CHARGE_PAYMENT_TYPES).aggregate(
+        total=Coalesce(Sum("amount"), Decimal("0.00"))
+    )["total"]
+    collected = _net_revenue(lookback_qs)
+    shortfall_rate = _percentage(billed - collected, billed) if billed > 0 else Decimal("0.00")
+    forecast = potential * (Decimal("100.00") - shortfall_rate) / Decimal("100.00")
+
+    return {
+        "potential_revenue": str(_quantize(potential)),
+        "shortfall_rate_percent": str(shortfall_rate),
+        "forecast_revenue": str(_quantize(forecast)),
+        "has_sufficient_history": billed > 0,
     }
 
 

@@ -207,3 +207,59 @@ class TestDebtorsCollectionRate:
         report = get_debtors_report(_director(), _wide_filters())
 
         assert report["collection_rate"] == "40.00"
+
+
+from apps.courses.models import GroupMembership
+from tests.factories import GroupMembershipFactory
+
+
+class TestRevenueForecast:
+    def test_forecast_from_active_students_and_group_price(self):
+        from apps.reports.services import get_revenue_forecast
+
+        branch = BranchFactory()
+        group = GroupFactory(branch=branch, status="active", monthly_price=Decimal("100000.00"))
+        s1 = StudentFactory(branch=branch)
+        s2 = StudentFactory(branch=branch)
+        GroupMembershipFactory(group=group, student=s1, left_at=None)
+        GroupMembershipFactory(group=group, student=s2, left_at=None)
+
+        forecast = get_revenue_forecast(_director(), _wide_filters())
+
+        assert forecast["potential_revenue"] == "200000.00"
+
+    def test_no_active_groups_gives_zero_forecast_not_crash(self):
+        from apps.reports.services import get_revenue_forecast
+
+        BranchFactory()
+
+        forecast = get_revenue_forecast(_director(), _wide_filters())
+
+        assert forecast["potential_revenue"] == "0.00"
+        assert forecast["forecast_revenue"] == "0.00"
+
+    def test_no_billing_history_gives_zero_shortfall_rate(self):
+        from apps.reports.services import get_revenue_forecast
+
+        branch = BranchFactory()
+        group = GroupFactory(branch=branch, status="active", monthly_price=Decimal("50000.00"))
+        student = StudentFactory(branch=branch)
+        GroupMembershipFactory(group=group, student=student, left_at=None)
+
+        forecast = get_revenue_forecast(_director(), _wide_filters())
+
+        assert forecast["shortfall_rate_percent"] == "0.00"
+        assert forecast["forecast_revenue"] == forecast["potential_revenue"]
+
+    def test_left_students_not_counted(self):
+        from apps.reports.services import get_revenue_forecast
+        from django.utils import timezone
+
+        branch = BranchFactory()
+        group = GroupFactory(branch=branch, status="active", monthly_price=Decimal("100000.00"))
+        student = StudentFactory(branch=branch)
+        GroupMembershipFactory(group=group, student=student, left_at=timezone.now())
+
+        forecast = get_revenue_forecast(_director(), _wide_filters())
+
+        assert forecast["potential_revenue"] == "0.00"
