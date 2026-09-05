@@ -68,6 +68,28 @@ class TestRevenueReportBreakdowns:
         unassigned = next(r for r in report["by_teacher"] if r["teacher_id"] is None)
         assert unassigned["total"] == "30000.00"
 
+    def test_by_course_nets_manual_charge_reversal_against_top_up(self):
+        """
+        Zero prior coverage for a reversed/cancelled payment in by_course:
+        a top_up followed by its manual_charge reversal (see
+        apps.finance.services.reverse_payment) must net out in the
+        breakdown, not double-count as if both were separate revenue.
+        """
+        from apps.reports.services import get_revenue_report
+
+        branch = BranchFactory()
+        course = CourseFactory(name="Course Net")
+        group = GroupFactory(branch=branch, course=course)
+        student = StudentFactory(branch=branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=branch, group=group, payment_type="top_up", amount=Decimal("100000.00"))
+        PaymentFactory(student=student, branch=branch, group=group, payment_type="manual_charge", amount=Decimal("30000.00"))
+
+        report = get_revenue_report(_director(), _wide_filters())
+
+        row = next(r for r in report["by_course"] if r["course_name"] == "Course Net")
+        assert row["total"] == "70000.00"
+
 
 class TestTeachersReportRevenue:
     def test_revenue_total_sums_payments_for_teachers_groups(self):
@@ -91,6 +113,57 @@ class TestTeachersReportRevenue:
         branch = BranchFactory()
         teacher = StaffFactory(branch=branch)
         GroupFactory(branch=branch, teacher=teacher)
+
+        report = get_teachers_report(_director(), _wide_filters())
+
+        row = next(r for r in report["results"] if r["teacher_id"] == str(teacher.id))
+        assert row["revenue_total"] == "0.00"
+
+    def test_revenue_total_does_not_dedupe_equal_amounts_across_groups(self):
+        """
+        Regression for Sum(Case(...), distinct=True): distinct=True on Sum
+        compiles to SUM(DISTINCT expr), which collapses equal amounts, not
+        equal rows. A teacher with two groups, each with one distinct
+        top_up payment of the same amount (e.g. same monthly course price
+        paid by two different students), must report the sum of both, not
+        just one of them.
+        """
+        from apps.reports.services import get_teachers_report
+
+        branch = BranchFactory()
+        teacher = StaffFactory(branch=branch)
+        group_a = GroupFactory(branch=branch, teacher=teacher)
+        group_b = GroupFactory(branch=branch, teacher=teacher)
+        student_a = StudentFactory(branch=branch)
+        student_b = StudentFactory(branch=branch)
+        WalletFactory(student=student_a)
+        WalletFactory(student=student_b)
+        PaymentFactory(student=student_a, branch=branch, group=group_a, payment_type="top_up", amount=Decimal("100000.00"))
+        PaymentFactory(student=student_b, branch=branch, group=group_b, payment_type="top_up", amount=Decimal("100000.00"))
+
+        report = get_teachers_report(_director(), _wide_filters())
+
+        row = next(r for r in report["results"] if r["teacher_id"] == str(teacher.id))
+        assert row["revenue_total"] == "200000.00"
+
+    def test_revenue_total_ignores_refund_which_reverses_charge_not_top_up(self):
+        """
+        Regression for treating "refund" as a top_up reversal. In this
+        codebase "refund" reverses a "charge" (cancelled/rescheduled/excused
+        lesson refund) — it has nothing to do with top_up/revenue_total.
+        Only "manual_charge" reverses a "top_up" (see
+        apps.core.definitions.INCOME_REVERSAL_TYPES). A lone refund payment
+        for a cancelled lesson, with no top_up ever recorded, must produce
+        revenue_total == 0.00, not a negative number.
+        """
+        from apps.reports.services import get_teachers_report
+
+        branch = BranchFactory()
+        teacher = StaffFactory(branch=branch)
+        group = GroupFactory(branch=branch, teacher=teacher)
+        student = StudentFactory(branch=branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=branch, group=group, payment_type="refund", amount=Decimal("50000.00"))
 
         report = get_teachers_report(_director(), _wide_filters())
 

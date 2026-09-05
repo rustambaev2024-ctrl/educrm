@@ -362,8 +362,27 @@ def get_profitability_report(user, filters: ReportFilters) -> dict:
 def get_teachers_report(user, filters: ReportFilters) -> dict:
     branch_ids = branch_ids_for_user(user, filters.branch_id)
 
-    from django.db.models import Avg, Count, Q
+    from django.db.models import Avg, Count
     from django.db.models.functions import Coalesce
+
+    # revenue_total считается отдельным сгруппированным запросом, а не
+    # Sum(Case(...distinct=True)) внутри teachers_qs.annotate(...): distinct=True
+    # на Sum компилируется в SUM(DISTINCT expr) — он схлопывает РАВНЫЕ СУММЫ,
+    # а не повторяющиеся строки. Два разных top_up на 100000.00 (например, два
+    # ученика в разных группах платят одну и ту же цену курса) считались бы как
+    # один. Тот же паттерн, что и _margin_rows() в get_profitability_report ниже.
+    revenue_by_teacher = {
+        row["group__teacher_id"]: row["total"]
+        for row in Payment.objects.filter(
+            group__branch_id__in=branch_ids,
+            payment_type__in=INCOME_PAYMENT_TYPES + INCOME_REVERSAL_TYPES,
+            created_at__date__gte=filters.date_from,
+            created_at__date__lte=filters.date_to,
+        )
+        .annotate(signed_amount=_SIGNED_REVENUE_AMOUNT)
+        .values("group__teacher_id")
+        .annotate(total=Coalesce(Sum("signed_amount"), Decimal("0.00")))
+    }
 
     teachers_qs = Staff.objects.select_related("user", "branch").filter(
         user__role="teacher",
@@ -441,30 +460,6 @@ def get_teachers_report(user, filters: ReportFilters) -> dict:
             ),
             distinct=True,
         ),
-        revenue_total=Coalesce(
-            Sum(
-                Case(
-                    When(
-                        teaching_groups__payments__payment_type__in=("top_up", "manual_top_up"),
-                        teaching_groups__payments__created_at__date__gte=filters.date_from,
-                        teaching_groups__payments__created_at__date__lte=filters.date_to,
-                        teaching_groups__branch_id__in=branch_ids,
-                        then=F("teaching_groups__payments__amount"),
-                    ),
-                    When(
-                        teaching_groups__payments__payment_type__in=("refund", "manual_charge"),
-                        teaching_groups__payments__created_at__date__gte=filters.date_from,
-                        teaching_groups__payments__created_at__date__lte=filters.date_to,
-                        teaching_groups__branch_id__in=branch_ids,
-                        then=-F("teaching_groups__payments__amount"),
-                    ),
-                    default=Value(Decimal("0.00")),
-                    output_field=DecimalField(max_digits=14, decimal_places=2),
-                ),
-                distinct=True,
-            ),
-            Decimal("0.00"),
-        ),
     )
 
     rows = []
@@ -481,7 +476,7 @@ def get_teachers_report(user, filters: ReportFilters) -> dict:
             "branch_id": str(teacher.branch_id) if teacher.branch_id else None,
             "branch_name": teacher.branch.name if teacher.branch else None,
             "students_count": teacher.students_count or 0,
-            "revenue_total": str(_quantize(teacher.revenue_total or Decimal("0.00"))),
+            "revenue_total": str(_quantize(revenue_by_teacher.get(teacher.id, Decimal("0.00")))),
             "attendance_rate": round(present / total_att * 100, 1) if total_att else 0.0,
             "conducted_lessons": conducted,
             "cancelled_lessons": teacher.cancelled_lessons or 0,
@@ -624,7 +619,12 @@ def get_revenue_forecast(user, filters: ReportFilters) -> dict:
         total=Coalesce(Sum("amount"), Decimal("0.00"))
     )["total"]
     collected = _net_revenue(lookback_qs)
-    shortfall_rate = _percentage(billed - collected, billed) if billed > 0 else Decimal("0.00")
+    # Клампим снизу: если collected > billed (сборы за реверсы/предоплаты
+    # прошлых периодов перекрыли начисления окна), shortfall_rate не должен
+    # уходить в минус — иначе forecast_revenue превысит potential_revenue.
+    shortfall_rate = (
+        max(_percentage(billed - collected, billed), Decimal("0.00")) if billed > 0 else Decimal("0.00")
+    )
     forecast = potential * (Decimal("100.00") - shortfall_rate) / Decimal("100.00")
 
     return {
