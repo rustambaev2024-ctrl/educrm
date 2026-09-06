@@ -603,6 +603,36 @@ export const analyticsApi = {
     requestJson(`/analytics/group-report/${groupId}/${params ? `?${new URLSearchParams(params)}` : ""}`),
 };
 
+export async function exportReport(
+  kind: "excel" | "pdf",
+  payload: Record<string, string>,
+): Promise<void> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Tenant-Schema": getTenantSchema(),
+  };
+  const access = readAccessToken();
+  if (access) headers.Authorization = `Bearer ${access}`;
+
+  const res = await fetch(`${API_BASE_URL}/export/${kind}/`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(`Export failed: ${res.status}`);
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `finance_analytics_report.${kind === "excel" ? "xlsx" : "pdf"}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export const auditApi = {
   list: (params?: Record<string, string>) =>
     requestJson(`/audit/${params ? `?${new URLSearchParams(params)}` : ""}`),
