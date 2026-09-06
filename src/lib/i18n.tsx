@@ -486,6 +486,26 @@ const UZ: Dict = {
   "parent.recentGrades": "So'nggi baholar",
   "parent.upcomingLessons": "Yaqin darslar",
 
+  // Finance analytics
+  "financeAnalytics.tab": "Moliya",
+  "financeAnalytics.overviewTab": "Umumiy",
+  "financeAnalytics.periodThisMonth": "Bu oy",
+  "financeAnalytics.periodQuarter": "Chorak",
+  "financeAnalytics.periodSixMonths": "6 oy",
+  "financeAnalytics.periodYear": "Yil",
+  "financeAnalytics.periodCustom": "O'z oralig'i",
+  "financeAnalytics.byBranch": "Filial bo'yicha",
+  "financeAnalytics.byCourse": "Kurs bo'yicha",
+  "financeAnalytics.byTeacher": "O'qituvchi bo'yicha",
+  "financeAnalytics.profitMargin": "Foyda va marja",
+  "financeAnalytics.expenseByCategory": "Xarajat turlari",
+  "financeAnalytics.debtCollection": "Qarzlar va yig'im",
+  "financeAnalytics.collectionRate": "Yig'im foizi",
+  "financeAnalytics.forecastNextMonth": "Keyingi oy uchun prognoz",
+  "financeAnalytics.forecastInsufficientHistory": "Aniq prognoz uchun tarix yetarli emas",
+  "financeAnalytics.exportExcel": "Excel eksport",
+  "financeAnalytics.exportPdf": "PDF eksport",
+
   // Director home
   "director.title": "Direktor paneli",
   "director.subtitle": "Muassasa bo'yicha umumiy holat",
@@ -1276,6 +1296,26 @@ const RU: Dict = {
   "parent.attendance": "Посещаемость",
   "parent.recentGrades": "Последние оценки",
   "parent.upcomingLessons": "Ближайшие уроки",
+
+  // Finance analytics
+  "financeAnalytics.tab": "Финансы",
+  "financeAnalytics.overviewTab": "Обзор",
+  "financeAnalytics.periodThisMonth": "Этот месяц",
+  "financeAnalytics.periodQuarter": "Квартал",
+  "financeAnalytics.periodSixMonths": "6 месяцев",
+  "financeAnalytics.periodYear": "Год",
+  "financeAnalytics.periodCustom": "Свой диапазон",
+  "financeAnalytics.byBranch": "По филиалам",
+  "financeAnalytics.byCourse": "По курсам",
+  "financeAnalytics.byTeacher": "По учителям",
+  "financeAnalytics.profitMargin": "Прибыль и маржа",
+  "financeAnalytics.expenseByCategory": "Расходы по категориям",
+  "financeAnalytics.debtCollection": "Долги и сбор",
+  "financeAnalytics.collectionRate": "Процент сбора",
+  "financeAnalytics.forecastNextMonth": "Прогноз на следующий месяц",
+  "financeAnalytics.forecastInsufficientHistory": "Недостаточно истории для точного прогноза",
+  "financeAnalytics.exportExcel": "Экспорт в Excel",
+  "financeAnalytics.exportPdf": "Экспорт в PDF",
 
   // Director home
   "director.title": "Панель директора",
