@@ -16,7 +16,7 @@ class AnalyticsFilterSerializer(serializers.Serializer):
 
 class ExportRequestSerializer(AnalyticsFilterSerializer):
     report_type = serializers.ChoiceField(
-        choices=["finance", "finance_analytics", "attendance", "salary", "audit"],
+        choices=["finance", "finance_analytics", "center_summary", "attendance", "salary", "audit"],
     )
     teacher_id = serializers.UUIDField(required=False)
     salary_percent = serializers.DecimalField(

@@ -24,6 +24,8 @@ from .services import (
     get_conversion_report,
     get_daily_report,
     get_debtors_report,
+    get_enrollment_trend,
+    get_occupancy_trend,
     get_overview,
     get_profitability_report,
     get_revenue_forecast,
@@ -148,6 +150,18 @@ class AnalyticsRevenueForecastView(AnalyticsBaseView):
     @extend_schema(parameters=[AnalyticsFilterSerializer], responses=OpenApiTypes.OBJECT)
     def get(self, request):
         return Response(get_revenue_forecast(request.user, self.get_filters(request)))
+
+
+class AnalyticsEnrollmentTrendView(AnalyticsBaseView):
+    @extend_schema(parameters=[AnalyticsFilterSerializer], responses=OpenApiTypes.OBJECT)
+    def get(self, request):
+        return Response(get_enrollment_trend(request.user, self.get_filters(request)))
+
+
+class AnalyticsOccupancyTrendView(AnalyticsBaseView):
+    @extend_schema(parameters=[AnalyticsFilterSerializer], responses=OpenApiTypes.OBJECT)
+    def get(self, request):
+        return Response(get_occupancy_trend(request.user, self.get_filters(request)))
 
 
 class SalaryCalculateView(APIView):

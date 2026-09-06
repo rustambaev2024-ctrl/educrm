@@ -250,3 +250,29 @@ class TestCenterSummaryBranchScoping:
         report = get_attendance_report(branch_admin_user, _wide_filters())
 
         assert report["by_day"] == []
+
+
+class TestCenterSummaryEndpoints:
+    def test_enrollment_trend_endpoint(self, api_client):
+        api_client.force_authenticate(user=_director())
+
+        response = api_client.get("/api/v1/analytics/enrollment-trend/")
+
+        assert response.status_code == 200, response.content
+        assert "results" in response.json()
+
+    def test_occupancy_trend_endpoint(self, api_client):
+        api_client.force_authenticate(user=_director())
+
+        response = api_client.get("/api/v1/analytics/occupancy-trend/")
+
+        assert response.status_code == 200, response.content
+        assert "results" in response.json()
+
+    def test_attendance_endpoint_includes_by_day(self, api_client):
+        api_client.force_authenticate(user=_director())
+
+        response = api_client.get("/api/v1/analytics/attendance/")
+
+        assert response.status_code == 200, response.content
+        assert "by_day" in response.json()
