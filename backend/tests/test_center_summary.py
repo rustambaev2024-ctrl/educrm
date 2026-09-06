@@ -197,3 +197,56 @@ class TestOccupancyTrend:
 
         assert report["results"][0]["capacity"] == 0
         assert report["results"][0]["occupancy_percent"] == "0.00"
+
+
+class TestCenterSummaryBranchScoping:
+    def test_enrollment_trend_excludes_other_branch(self):
+        from apps.reports.services import get_enrollment_trend
+        from apps.students.models import Student
+
+        own_branch = BranchFactory()
+        other_branch = BranchFactory()
+        branch_admin_user = UserFactory(role="branch_admin")
+        StaffFactory(user=branch_admin_user, branch=own_branch)
+
+        student = StudentFactory(branch=other_branch)
+        Student.objects.filter(id=student.id).update(
+            registered_at=timezone.now().replace(year=2026, month=5, day=1)
+        )
+
+        report = get_enrollment_trend(branch_admin_user, _filters(date(2026, 1, 1), date(2026, 12, 31)))
+
+        assert report["total_enrolled"] == 0
+
+    def test_occupancy_trend_excludes_other_branch(self):
+        from apps.reports.services import get_occupancy_trend
+
+        own_branch = BranchFactory()
+        other_branch = BranchFactory()
+        branch_admin_user = UserFactory(role="branch_admin")
+        StaffFactory(user=branch_admin_user, branch=own_branch)
+
+        group = GroupFactory(branch=other_branch, status="active", capacity=20)
+        GroupMembershipFactory(group=group, student=StudentFactory(branch=other_branch), left_at=None)
+
+        report = get_occupancy_trend(branch_admin_user, _filters(date(2026, 1, 1), date(2026, 1, 31)))
+
+        assert report["capacity"] == 0
+        assert report["results"][0]["occupied"] == 0
+
+    def test_attendance_by_day_excludes_other_branch(self):
+        from apps.lessons.models import Attendance
+        from apps.reports.services import get_attendance_report
+
+        own_branch = BranchFactory()
+        other_branch = BranchFactory()
+        branch_admin_user = UserFactory(role="branch_admin")
+        StaffFactory(user=branch_admin_user, branch=own_branch)
+
+        group = GroupFactory(branch=other_branch)
+        lesson = LessonFactory(group=group, datetime=timezone.now())
+        Attendance.objects.create(lesson=lesson, student=StudentFactory(branch=other_branch), status="present")
+
+        report = get_attendance_report(branch_admin_user, _wide_filters())
+
+        assert report["by_day"] == []
