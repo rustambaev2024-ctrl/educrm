@@ -92,7 +92,14 @@ export function FinanceAnalyticsTab({ branchId }: FinanceAnalyticsTabProps) {
   useEffect(() => {
     if (!params) {
       // Свой диапазон выбран, но обе даты ещё не введены — ничего не грузим,
-      // не показываем ни спиннер, ни пустые блоки как ошибку.
+      // не показываем ни спиннер, ни пустые блоки как ошибку. Чистим данные
+      // предыдущего периода, иначе карточки молча показывают устаревшие цифры
+      // под селектором, который уже указывает на другой, ещё не загруженный
+      // диапазон.
+      setRevenue(null);
+      setProfitability(null);
+      setDebtors(null);
+      setForecast(null);
       setLoading(false);
       return;
     }
@@ -113,6 +120,12 @@ export function FinanceAnalyticsTab({ branchId }: FinanceAnalyticsTabProps) {
       })
       .catch((e) => {
         if (cancelled) return;
+        // Та же логика: на ошибке не оставляем цифры прошлого периода —
+        // сбрасываем всё, чтобы карточки ушли в свой пустой стейт.
+        setRevenue(null);
+        setProfitability(null);
+        setDebtors(null);
+        setForecast(null);
         toast.error(apiErrorMessage(e));
       })
       .finally(() => {

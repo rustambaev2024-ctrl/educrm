@@ -620,7 +620,8 @@ export async function exportReport(
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    throw new Error(`Export failed: ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body as Record<string, unknown>);
   }
   const blob = await res.blob();
   const url = window.URL.createObjectURL(blob);
