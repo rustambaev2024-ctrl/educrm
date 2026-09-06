@@ -385,6 +385,61 @@ class TestBranchScoping:
 
         assert forecast["potential_revenue"] == "0.00"
 
+    def test_branch_admin_does_not_see_other_branch_debtors(self):
+        from apps.reports.services import get_debtors_report
+
+        own_branch = BranchFactory()
+        other_branch = BranchFactory()
+        branch_admin_user = UserFactory(role="branch_admin")
+        StaffFactory(user=branch_admin_user, branch=own_branch)
+
+        StudentFactory(branch=other_branch, wallet_balance=Decimal("-999999.00"))
+
+        report = get_debtors_report(branch_admin_user, _wide_filters())
+
+        assert report["results"] == []
+        assert report["debtors_count"] == 0
+
+    def test_branch_admin_does_not_see_other_branch_teacher_revenue(self):
+        from apps.reports.services import get_teachers_report
+
+        own_branch = BranchFactory()
+        other_branch = BranchFactory()
+        branch_admin_user = UserFactory(role="branch_admin")
+        StaffFactory(user=branch_admin_user, branch=own_branch)
+
+        other_teacher = StaffFactory(branch=other_branch)
+        group = GroupFactory(branch=other_branch, teacher=other_teacher)
+        student = StudentFactory(branch=other_branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=other_branch, group=group, payment_type="top_up", amount=Decimal("999999.00"))
+
+        report = get_teachers_report(branch_admin_user, _wide_filters())
+
+        assert all(row["teacher_id"] != str(other_teacher.id) for row in report["results"])
+
+    def test_branch_id_filter_not_matching_own_branch_returns_empty_not_leaked(self):
+        """
+        branch_ids_for_user returns [] when a branch_admin/teacher explicitly
+        passes a branch_id that isn't their own branch (see
+        apps.reports.services.branch_ids_for_user). This must degrade to an
+        empty/zero report, never an error and never the other branch's data.
+        """
+        from apps.reports.services import get_revenue_report
+
+        own_branch = BranchFactory()
+        other_branch = BranchFactory()
+        branch_admin_user = UserFactory(role="branch_admin")
+        StaffFactory(user=branch_admin_user, branch=own_branch)
+
+        student = StudentFactory(branch=other_branch)
+        WalletFactory(student=student)
+        PaymentFactory(student=student, branch=other_branch, payment_type="top_up", amount=Decimal("999999.00"))
+
+        report = get_revenue_report(branch_admin_user, _wide_filters(branch_id=str(other_branch.id)))
+
+        assert report["total_revenue"] == "0.00"
+
 
 class TestNewAnalyticsEndpoints:
     def test_profitability_endpoint_returns_200(self, api_client):

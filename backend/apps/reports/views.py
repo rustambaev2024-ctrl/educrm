@@ -211,6 +211,8 @@ def _build_export_payload(user, payload: dict) -> tuple[str, dict]:
             "collection_rate": debtors["collection_rate"],
             "forecast_revenue": forecast["forecast_revenue"],
             "potential_revenue": forecast["potential_revenue"],
+            "shortfall_rate_percent": forecast["shortfall_rate_percent"],
+            "has_sufficient_history": forecast["has_sufficient_history"],
             "revenue_by_branch": revenue["by_branch"],
             "revenue_by_course": revenue["by_course"],
             "revenue_by_teacher": revenue["by_teacher"],
