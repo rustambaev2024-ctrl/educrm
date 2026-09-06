@@ -8,6 +8,8 @@ import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { PageLoadingState } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FinanceAnalyticsTab } from "@/components/edu/finance-analytics-tab";
 import { useData } from "@/lib/data/store";
 import { sumIncome, sumExpense } from "@/lib/data/mappers";
 import { attendancePercentage } from "@/lib/data/metrics";
@@ -96,6 +98,12 @@ function AnalyticsPage() {
 
   return (
     <PageShell title={t("nav.analytics")} subtitle={t("director.subtitle")}>
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList>
+          <TabsTrigger value="overview">{t("financeAnalytics.overviewTab")}</TabsTrigger>
+          <TabsTrigger value="finance">{t("financeAnalytics.tab")}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview">
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard label={t("director.activeStudents")} value={`${activeStudents}`} icon={Users} iconColor="blue" subtitle={lang === "uz" ? `${students.length} tadan` : `из ${students.length} всего`} />
@@ -194,6 +202,11 @@ function AnalyticsPage() {
           <SmallStat icon={Wallet} label={t("director.profit")} value={formatMoney(totalRevenue - totalExpense, lang)} tone={totalRevenue - totalExpense >= 0 ? "text-success" : "text-destructive"} />
         </div>
       </div>
+        </TabsContent>
+        <TabsContent value="finance">
+          <FinanceAnalyticsTab />
+        </TabsContent>
+      </Tabs>
     </PageShell>
   );
 }
