@@ -292,6 +292,51 @@ def get_enrollment_trend(user, filters: ReportFilters) -> dict:
     }
 
 
+def get_occupancy_trend(user, filters: ReportFilters) -> dict:
+    from apps.courses.models import Group, GroupMembership
+
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
+
+    # Вместимость берётся текущая: истории у Group.capacity нет, отдельную
+    # таблицу снимков ради тренда не заводим. Направление (растёт/падает
+    # заполняемость) от этого не искажается, абсолютный процент прошлых
+    # месяцев — пересчитан по сегодняшней вместимости.
+    capacity = Group.objects.filter(
+        branch_id__in=branch_ids, status="active"
+    ).aggregate(total=Coalesce(Sum("capacity"), 0))["total"]
+
+    results = []
+    for month in _months_in_range(filters.date_from, filters.date_to):
+        year, month_number = (int(part) for part in month.split("-"))
+        if month_number == 12:
+            month_end = date(year, 12, 31)
+        else:
+            month_end = date(year, month_number + 1, 1) - timedelta(days=1)
+
+        occupied = (
+            GroupMembership.objects.filter(
+                group__branch_id__in=branch_ids,
+                enrolled_at__date__lte=month_end,
+            )
+            .filter(Q(left_at__isnull=True) | Q(left_at__date__gt=month_end))
+            .count()
+        )
+        results.append(
+            {
+                "month": month,
+                "occupied": occupied,
+                "capacity": capacity,
+                "occupancy_percent": str(_percentage(occupied, capacity)),
+            }
+        )
+
+    return {
+        "period": {"date_from": str(filters.date_from), "date_to": str(filters.date_to)},
+        "capacity": capacity,
+        "results": results,
+    }
+
+
 def get_revenue_report(user, filters: ReportFilters) -> dict:
     branch_ids = branch_ids_for_user(user, filters.branch_id)
     all_payments_qs = Payment.objects.filter(branch_id__in=branch_ids)

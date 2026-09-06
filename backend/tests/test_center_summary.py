@@ -144,3 +144,56 @@ class TestEnrollmentTrend:
         months = [r["month"] for r in report["results"]]
         assert months == ["2026-01", "2026-02", "2026-03"]
         assert all(r["enrolled"] == 0 and r["churned"] == 0 for r in report["results"])
+
+
+class TestOccupancyTrend:
+    def test_membership_open_at_month_end_counts(self):
+        from apps.reports.services import get_occupancy_trend
+
+        branch = BranchFactory()
+        group = GroupFactory(branch=branch, status="active", capacity=10)
+        student = StudentFactory(branch=branch)
+        from apps.courses.models import GroupMembership
+        membership = GroupMembershipFactory(group=group, student=student, left_at=None)
+        GroupMembership.objects.filter(id=membership.id).update(
+            enrolled_at=timezone.now().replace(year=2026, month=2, day=10)
+        )
+
+        report = get_occupancy_trend(_director(), _filters(date(2026, 1, 1), date(2026, 3, 31)))
+
+        by_month = {r["month"]: r for r in report["results"]}
+        assert by_month["2026-01"]["occupied"] == 0, "до вступления место не занято"
+        assert by_month["2026-02"]["occupied"] == 1
+        assert by_month["2026-03"]["occupied"] == 1
+        assert by_month["2026-02"]["capacity"] == 10
+        assert by_month["2026-02"]["occupancy_percent"] == "10.00"
+
+    def test_membership_closed_before_month_end_does_not_count(self):
+        from apps.reports.services import get_occupancy_trend
+        from apps.courses.models import GroupMembership
+
+        branch = BranchFactory()
+        group = GroupFactory(branch=branch, status="active", capacity=5)
+        student = StudentFactory(branch=branch)
+        membership = GroupMembershipFactory(group=group, student=student)
+        GroupMembership.objects.filter(id=membership.id).update(
+            enrolled_at=timezone.now().replace(year=2026, month=1, day=5),
+            left_at=timezone.now().replace(year=2026, month=2, day=3),
+        )
+
+        report = get_occupancy_trend(_director(), _filters(date(2026, 1, 1), date(2026, 3, 31)))
+
+        by_month = {r["month"]: r for r in report["results"]}
+        assert by_month["2026-01"]["occupied"] == 1
+        assert by_month["2026-02"]["occupied"] == 0
+        assert by_month["2026-03"]["occupied"] == 0
+
+    def test_zero_capacity_does_not_divide_by_zero(self):
+        from apps.reports.services import get_occupancy_trend
+
+        BranchFactory()
+
+        report = get_occupancy_trend(_director(), _filters(date(2026, 1, 1), date(2026, 1, 31)))
+
+        assert report["results"][0]["capacity"] == 0
+        assert report["results"][0]["occupancy_percent"] == "0.00"
