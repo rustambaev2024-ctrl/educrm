@@ -178,10 +178,41 @@ def get_attendance_report(user, filters: ReportFilters) -> dict:
         )
 
     overall_present, overall_total = attendance_rate_parts(attendance_qs)
+
+    # Тренд по дням — тем же правилом, что и overall_rate: числитель
+    # ATTENDANCE_PRESENT_STATUSES, знаменатель ATTENDANCE_COUNTED_STATUSES
+    # (уважительные исключены из обоих). Считается двумя сгруппированными
+    # запросами вместо цикла по дням: дней в году 365, а запросов должно
+    # остаться два.
+    present_by_day = {
+        row["day"]: row["count"]
+        for row in attendance_qs.filter(status__in=ATTENDANCE_PRESENT_STATUSES)
+        .annotate(day=TruncDate("lesson__datetime"))
+        .values("day")
+        .annotate(count=Count("id"))
+    }
+    counted_by_day = {
+        row["day"]: row["count"]
+        for row in attendance_qs.filter(status__in=ATTENDANCE_COUNTED_STATUSES)
+        .annotate(day=TruncDate("lesson__datetime"))
+        .values("day")
+        .annotate(count=Count("id"))
+    }
+    by_day = [
+        {
+            "day": str(day),
+            "present_records": present_by_day.get(day, 0),
+            "total_records": counted_by_day[day],
+            "attendance_rate": str(_percentage(present_by_day.get(day, 0), counted_by_day[day])),
+        }
+        for day in sorted(counted_by_day)
+    ]
+
     return {
         "period": {"date_from": str(filters.date_from), "date_to": str(filters.date_to)},
         "overall_rate": str(_percentage(overall_present, overall_total)),
         "results": results,
+        "by_day": by_day,
     }
 
 
