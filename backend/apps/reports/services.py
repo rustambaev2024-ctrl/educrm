@@ -4,8 +4,8 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db.models import Avg, Case, Count, DecimalField, F, Q, Sum, Value, When
-from django.db.models.functions import Coalesce, TruncDate
+from django.db.models import Avg, Case, Count, DecimalField, F, Max, Q, Sum, Value, When
+from django.db.models.functions import Coalesce, TruncDate, TruncMonth
 from django.utils import timezone
 
 from apps.audit.models import AuditLog
@@ -82,6 +82,22 @@ def _percentage(part: int | Decimal, total: int | Decimal) -> Decimal:
     if not total:
         return Decimal("0.00")
     return _quantize((Decimal(part) / Decimal(total)) * Decimal("100"))
+
+
+def _months_in_range(date_from: date, date_to: date) -> list[str]:
+    """Ключи «YYYY-MM» по всем месяцам периода включительно.
+
+    Месяцы без событий должны присутствовать в тренде нулями, иначе на
+    графике провал выглядит как отсутствие данных, а не как настоящий ноль.
+    """
+    months = []
+    year, month = date_from.year, date_from.month
+    while (year, month) <= (date_to.year, date_to.month):
+        months.append(f"{year:04d}-{month:02d}")
+        month += 1
+        if month > 12:
+            year, month = year + 1, 1
+    return months
 
 
 def branch_ids_for_user(user, branch_id: str | None = None) -> list:
@@ -213,6 +229,66 @@ def get_attendance_report(user, filters: ReportFilters) -> dict:
         "overall_rate": str(_percentage(overall_present, overall_total)),
         "results": results,
         "by_day": by_day,
+    }
+
+
+def get_enrollment_trend(user, filters: ReportFilters) -> dict:
+    branch_ids = branch_ids_for_user(user, filters.branch_id)
+
+    enrolled_by_month = {
+        row["month"].strftime("%Y-%m"): row["count"]
+        for row in Student.objects.filter(
+            branch_id__in=branch_ids,
+            registered_at__date__gte=filters.date_from,
+            registered_at__date__lte=filters.date_to,
+        )
+        .annotate(month=TruncMonth("registered_at"))
+        .values("month")
+        .annotate(count=Count("id"))
+        if row["month"]
+    }
+
+    # Отток: у ученика закрылось ПОСЛЕДНЕЕ членство и активных не осталось.
+    # Перевод из группы в группу закрывает одно членство, но открывает другое —
+    # такой ученик из центра не ушёл, и в отток попадать не должен.
+    #
+    # «Активных не осталось» проверяется на СЕГОДНЯ, а не на конец того месяца:
+    # ученик, который ушёл и вернулся, в итоге не потерян, и показывать его в
+    # прошлом месяце как ушедшего — вводить директора в заблуждение.
+    churned_by_month: dict[str, int] = {}
+    churn_candidates = (
+        Student.objects.filter(branch_id__in=branch_ids)
+        .annotate(
+            active_memberships=Count(
+                "group_memberships",
+                filter=Q(group_memberships__left_at__isnull=True),
+            ),
+            last_left_at=Max("group_memberships__left_at"),
+        )
+        .filter(
+            active_memberships=0,
+            last_left_at__date__gte=filters.date_from,
+            last_left_at__date__lte=filters.date_to,
+        )
+    )
+    for student in churn_candidates:
+        key = timezone.localtime(student.last_left_at).strftime("%Y-%m")
+        churned_by_month[key] = churned_by_month.get(key, 0) + 1
+
+    results = [
+        {
+            "month": month,
+            "enrolled": enrolled_by_month.get(month, 0),
+            "churned": churned_by_month.get(month, 0),
+        }
+        for month in _months_in_range(filters.date_from, filters.date_to)
+    ]
+
+    return {
+        "period": {"date_from": str(filters.date_from), "date_to": str(filters.date_to)},
+        "total_enrolled": sum(r["enrolled"] for r in results),
+        "total_churned": sum(r["churned"] for r in results),
+        "results": results,
     }
 
 
