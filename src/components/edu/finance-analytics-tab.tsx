@@ -15,7 +15,7 @@ import {
 import { DateInput } from "@/components/edu/date-input";
 import { analyticsApi } from "@/lib/api";
 import { apiErrorMessage } from "@/lib/data/store";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 
 type PeriodPreset = "month" | "quarter" | "half_year" | "year" | "custom";
@@ -290,7 +290,7 @@ export function FinanceAnalyticsTab({ branchId }: FinanceAnalyticsTabProps) {
   );
 }
 
-function BreakdownTable({ title, rows, nameKey, lang }: { title: string; rows: any[]; nameKey: string; lang: string }) {
+function BreakdownTable({ title, rows, nameKey, lang }: { title: string; rows: any[]; nameKey: string; lang: Lang }) {
   return (
     <div>
       <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</div>
