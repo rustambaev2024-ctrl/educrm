@@ -276,3 +276,51 @@ class TestCenterSummaryEndpoints:
 
         assert response.status_code == 200, response.content
         assert "by_day" in response.json()
+
+
+class TestCenterSummaryExport:
+    def test_export_excel_center_summary(self, api_client):
+        api_client.force_authenticate(user=_director())
+
+        response = api_client.post(
+            "/api/v1/export/excel/", {"report_type": "center_summary"}, format="json"
+        )
+
+        assert response.status_code == 200, response.content
+        assert response["Content-Type"] == (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    def test_export_pdf_center_summary(self, api_client):
+        api_client.force_authenticate(user=_director())
+
+        response = api_client.post(
+            "/api/v1/export/pdf/", {"report_type": "center_summary"}, format="json"
+        )
+
+        assert response.status_code == 200, response.content
+
+    def test_export_payload_is_center_summary_not_audit_fallback(self):
+        # Ветка-заглушка в _build_export_payload отдаёт журнал аудита для любого
+        # незнакомого типа, поэтому HTTP-тесты выше зеленеют и без реализации.
+        # Этот тест проверяет сам payload — без него ветка center_summary
+        # неотличима от fallback.
+        from apps.reports.views import _build_export_payload
+
+        report_type, data = _build_export_payload(
+            _director(), {"report_type": "center_summary"}
+        )
+
+        assert report_type == "center_summary"
+        assert "logs" not in data, "должен быть отчёт по центру, а не журнал аудита"
+        for key in (
+            "students_total",
+            "attendance_overall_rate",
+            "total_enrolled",
+            "total_churned",
+            "capacity",
+            "attendance_by_day",
+            "enrollment_by_month",
+            "occupancy_by_month",
+        ):
+            assert key in data, key

@@ -236,6 +236,26 @@ def _build_export_payload(user, payload: dict) -> tuple[str, dict]:
             "expense_by_category": profitability["expense_by_category"],
             "debtors": debtors["results"],
         }
+    if report_type == "center_summary":
+        overview = get_overview(user, filters)
+        attendance = get_attendance_report(user, filters)
+        enrollment = get_enrollment_trend(user, filters)
+        occupancy = get_occupancy_trend(user, filters)
+        return report_type, {
+            "period": overview["period"],
+            "students_total": overview["students_total"],
+            "students_active": overview["students_active"],
+            "debtors_count": overview["debtors_count"],
+            "attendance_rate": overview["attendance_rate"],
+            "attendance_overall_rate": attendance["overall_rate"],
+            "total_enrolled": enrollment["total_enrolled"],
+            "total_churned": enrollment["total_churned"],
+            "capacity": occupancy["capacity"],
+            "attendance_by_branch": attendance["results"],
+            "attendance_by_day": attendance["by_day"],
+            "enrollment_by_month": enrollment["results"],
+            "occupancy_by_month": occupancy["results"],
+        }
     if report_type == "attendance":
         return report_type, get_attendance_report(user, filters)
     if report_type == "salary":
