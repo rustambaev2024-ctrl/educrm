@@ -59,3 +59,28 @@ class TestAttendanceTrend:
         report = get_attendance_report(_director(), _wide_filters())
 
         assert report["by_day"] == []
+
+
+class TestTeachersReportBranchLeak:
+    def test_attendance_counts_do_not_leak_across_branches(self):
+        from apps.lessons.models import Attendance
+        from apps.reports.services import get_teachers_report
+
+        own_branch = BranchFactory()
+        other_branch = BranchFactory()
+        branch_admin_user = UserFactory(role="branch_admin")
+        teacher = StaffFactory(user=UserFactory(role="teacher"), branch=own_branch)
+        StaffFactory(user=branch_admin_user, branch=own_branch)
+
+        # Группа того же учителя, но в ЧУЖОМ филиале, с посещаемостью
+        other_group = GroupFactory(branch=other_branch, teacher=teacher)
+        other_lesson = LessonFactory(group=other_group, teacher=teacher, datetime=timezone.now())
+        student = StudentFactory(branch=other_branch)
+        Attendance.objects.create(lesson=other_lesson, student=student, status="present")
+
+        report = get_teachers_report(branch_admin_user, _wide_filters())
+
+        row = next((r for r in report["results"] if r["teacher_id"] == str(teacher.id)), None)
+        assert row is not None, "учитель своего филиала должен быть в отчёте"
+        assert row["present_count"] == 0, "посещаемость чужого филиала не должна течь в цифры"
+        assert row["absent_count"] == 0
