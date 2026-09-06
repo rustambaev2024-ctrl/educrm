@@ -6,6 +6,8 @@ import { PageShell } from "@/components/edu/page-shell";
 import { KpiCard } from "@/components/edu/kpi-card";
 import { Card } from "@/components/ui/card";
 import { PageLoadingState } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FinanceAnalyticsTab } from "@/components/edu/finance-analytics-tab";
 import { useData } from "@/lib/data/store";
 import { sumIncome } from "@/lib/data/mappers";
 import { attendancePercentage } from "@/lib/data/metrics";
@@ -78,6 +80,12 @@ function AdminAnalytics() {
 
   return (
     <PageShell title={t("nav.analytics")} subtitle={t("admin.subtitle")}>
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList>
+          <TabsTrigger value="overview">{t("financeAnalytics.overviewTab")}</TabsTrigger>
+          <TabsTrigger value="finance">{t("financeAnalytics.tab")}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview">
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} iconColor="blue" subtitle={lang === "uz" ? "Faol va muzlatilganlar" : "Активные и замороженные"} />
@@ -163,6 +171,11 @@ function AdminAnalytics() {
           </div>
         </Card>
       </div>
+        </TabsContent>
+        <TabsContent value="finance">
+          <FinanceAnalyticsTab />
+        </TabsContent>
+      </Tabs>
     </PageShell>
   );
 }
