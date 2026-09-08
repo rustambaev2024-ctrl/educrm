@@ -589,6 +589,10 @@ export const analyticsApi = {
     requestJson(`/analytics/profitability/${params ? `?${new URLSearchParams(params)}` : ""}`),
   revenueForecast: (params?: Record<string, string>) =>
     requestJson(`/analytics/revenue-forecast/${params ? `?${new URLSearchParams(params)}` : ""}`),
+  enrollmentTrend: (params?: Record<string, string>) =>
+    requestJson(`/analytics/enrollment-trend/${params ? `?${new URLSearchParams(params)}` : ""}`),
+  occupancyTrend: (params?: Record<string, string>) =>
+    requestJson(`/analytics/occupancy-trend/${params ? `?${new URLSearchParams(params)}` : ""}`),
   teachers: (params?: Record<string, string>) =>
     requestJson(`/analytics/teachers/${params ? `?${new URLSearchParams(params)}` : ""}`),
   teacherLessons: (params: { teacher_id: string; date_from?: string; date_to?: string }) =>

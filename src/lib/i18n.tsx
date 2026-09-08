@@ -506,6 +506,20 @@ const UZ: Dict = {
   "financeAnalytics.exportExcel": "Excel eksport",
   "financeAnalytics.exportPdf": "PDF eksport",
 
+  // Center summary analytics
+  "centerSummary.attendanceTrend": "Davomat dinamikasi",
+  "centerSummary.attendanceByBranch": "Filiallar bo'yicha davomat",
+  "centerSummary.enrollmentTrend": "Yangi o'quvchilar va ketganlar",
+  "centerSummary.enrolled": "Qabul qilindi",
+  "centerSummary.churned": "Ketdi",
+  "centerSummary.occupancyTrend": "Guruhlar to'ldirilganligi",
+  "centerSummary.occupied": "Band joylar",
+  "centerSummary.capacity": "Sig'im",
+  "centerSummary.studentsTotal": "Jami o'quvchilar",
+  "centerSummary.studentsActive": "Faol o'quvchilar",
+  "centerSummary.debtors": "Qarzdorlar",
+  "centerSummary.attendanceRate": "O'rtacha davomat",
+
   // Director home
   "director.title": "Direktor paneli",
   "director.subtitle": "Muassasa bo'yicha umumiy holat",
@@ -1316,6 +1330,20 @@ const RU: Dict = {
   "financeAnalytics.forecastInsufficientHistory": "Недостаточно истории для точного прогноза",
   "financeAnalytics.exportExcel": "Экспорт в Excel",
   "financeAnalytics.exportPdf": "Экспорт в PDF",
+
+  // Center summary analytics
+  "centerSummary.attendanceTrend": "Динамика посещаемости",
+  "centerSummary.attendanceByBranch": "Посещаемость по филиалам",
+  "centerSummary.enrollmentTrend": "Набор и отток",
+  "centerSummary.enrolled": "Пришли",
+  "centerSummary.churned": "Ушли",
+  "centerSummary.occupancyTrend": "Заполненность групп",
+  "centerSummary.occupied": "Занято мест",
+  "centerSummary.capacity": "Вместимость",
+  "centerSummary.studentsTotal": "Всего учеников",
+  "centerSummary.studentsActive": "Активных учеников",
+  "centerSummary.debtors": "Должников",
+  "centerSummary.attendanceRate": "Средняя посещаемость",
 
   // Director home
   "director.title": "Панель директора",
