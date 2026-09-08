@@ -1,82 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { AlertCircle, Users, Wallet, CalendarCheck, Layers } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell, Legend as ChartLegend } from "recharts";
 import { PageShell } from "@/components/edu/page-shell";
-import { KpiCard } from "@/components/edu/kpi-card";
-import { Card } from "@/components/ui/card";
-import { PageLoadingState } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CenterSummaryTab } from "@/components/edu/center-summary-tab";
 import { FinanceAnalyticsTab } from "@/components/edu/finance-analytics-tab";
-import { useData } from "@/lib/data/store";
-import { sumIncome } from "@/lib/data/mappers";
-import { attendancePercentage } from "@/lib/data/metrics";
 import { useI18n } from "@/lib/i18n";
-import { formatMoney } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/analytics")({ component: AdminAnalytics });
 
-const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
-
+/**
+ * Каркас вкладок; цифры считает бэкенд. Скоуп по филиалу администратору
+ * сужает сам сервер (branch_ids_for_user), поэтому переключателя филиала
+ * здесь нет и CenterSummaryTab вызывается без branchId.
+ */
 function AdminAnalytics() {
-  const { t, lang } = useI18n();
-  const { students, groups, lessons, payments, attendance, courses, isLoading } = useData();
-
-  const monthIncome = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
-    return payments
-      .filter((p) => {
-        if (p.direction !== "in") return false;
-        const t = new Date(p.date).getTime();
-        return t >= monthStart && t < monthEnd;
-      })
-      .reduce((s, p) => s + p.amount, 0);
-  }, [payments]);
-  const completedLessons = lessons.filter((l) => l.status === "completed").length;
-  const attPct = attendancePercentage(attendance);
-
-  const byStatus = useMemo(() => {
-    const map = new Map<string, number>();
-    students.forEach((s) => map.set(s.status, (map.get(s.status) ?? 0) + 1));
-    return Array.from(map.entries()).map(([k, v]) => ({ name: t(`status.${k}`), value: v }));
-  }, [students, t]);
-
-  const last14 = useMemo(() => {
-    const arr: { day: string; income: number }[] = [];
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      d.setHours(0, 0, 0, 0);
-      const next = new Date(d);
-      next.setDate(d.getDate() + 1);
-      const inDay = payments.filter((p) => {
-        const pt = new Date(p.date).getTime();
-        return pt >= d.getTime() && pt < next.getTime();
-      });
-      arr.push({ day: `${d.getDate()}.${d.getMonth() + 1}`, income: sumIncome(inDay) / 1_000_000 });
-    }
-    return arr;
-  }, [payments]);
-
-  const byCourse = useMemo(() => {
-    return courses.map((c) => {
-      const cGroups = groups.filter((g) => g.courseId === c.id);
-      const studentSet = new Set<string>();
-      cGroups.forEach((g) => g.studentIds.forEach((sid) => studentSet.add(sid)));
-      return { name: c.name, value: studentSet.size };
-    });
-  }, [courses, groups]);
-  const moneyUnit = lang === "uz" ? "mln so'm" : "млн сум";
-  const last14Label = lang === "uz" ? "So'nggi 14 kun" : "Последние 14 дней";
-  const hasIncomeData = last14.some((item) => item.income > 0);
-  const hasStatusData = byStatus.length > 0;
-  const hasCourseData = byCourse.some((item) => item.value > 0);
-
-  if (isLoading) {
-    return <PageLoadingState />;
-  }
+  const { t } = useI18n();
 
   return (
     <PageShell title={t("nav.analytics")} subtitle={t("admin.subtitle")}>
@@ -86,105 +23,12 @@ function AdminAnalytics() {
           <TabsTrigger value="finance">{t("financeAnalytics.tab")}</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard label={t("director.activeStudents")} value={`${students.length}`} icon={Users} iconColor="blue" subtitle={lang === "uz" ? "Faol va muzlatilganlar" : "Активные и замороженные"} />
-          <KpiCard label={t("admin.activeGroups")} value={`${groups.length}`} icon={Layers} iconColor="violet" subtitle={lang === "uz" ? "Faol o'quv guruhlari" : "Активные учебные группы"} />
-          <KpiCard label={t("director.attendanceAvg")} value={`${attPct}%`} icon={CalendarCheck} iconColor="green" subtitle={lang === "uz" ? "O'rtacha joriy oy" : "Среднее за текущий месяц"} />
-          <KpiCard label={t("director.monthlyRevenue")} value={formatMoney(monthIncome, lang)} icon={Wallet} iconColor="amber" subtitle={lang === "uz" ? "Joriy oy" : "Текущий месяц"} />
-        </div>
-
-        <Card className="p-6 shadow-elegant">
-          <div className="mb-4">
-            <h3 className="text-base font-semibold">{t("director.monthlyRevenue")}</h3>
-            <p className="text-xs text-muted-foreground">{last14Label} · {moneyUnit}</p>
-          </div>
-          {hasIncomeData ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={last14}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip
-                  formatter={(value: any) => [`${Number(value).toFixed(1)} ${moneyUnit}`, t("finance.kpi.income")]}
-                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                />
-                <Bar dataKey="income" name={t("finance.kpi.income")} fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <EmptyChartState label={lang === "uz" ? "Hali tushum ma'lumotlari yo'q" : "Доходов пока нет"} />
-          )}
-        </Card>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card className="p-6 shadow-elegant">
-            <div className="mb-4">
-              <h3 className="text-base font-semibold">{t("students.col.status")}</h3>
-              <p className="text-xs text-muted-foreground">{lang === "uz" ? "O'quvchilar holati" : "Статус студентов"} · {students.length}</p>
-            </div>
-            {hasStatusData ? (
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={byStatus} dataKey="value" nameKey="name" outerRadius={90} innerRadius={50} paddingAngle={3}>
-                    {byStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                  <ChartLegend wrapperStyle={{ fontSize: 11 }} formatter={(value: string, entry: any) => `${value}: ${entry?.payload?.value ?? 0}`} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyChartState label={lang === "uz" ? "O'quvchilar hali qo'shilmagan" : "Ученики пока не добавлены"} />
-            )}
-          </Card>
-
-          <Card className="p-6 shadow-elegant">
-            <div className="mb-4">
-              <h3 className="text-base font-semibold">{t("director.byCourse")}</h3>
-              <p className="text-xs text-muted-foreground">{lang === "uz" ? "Guruhlardagi o'quvchilar" : "Студенты по курсам"}</p>
-            </div>
-            {hasCourseData ? (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={byCourse} layout="vertical" margin={{ left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={140} />
-                  <Tooltip formatter={(value: any) => [`${value} ${lang === "uz" ? "o'quvchi" : "уч."}`, ""]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                  <Bar dataKey="value" fill="var(--chart-2)" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyChartState label={lang === "uz" ? "Kurslarga o'quvchilar hali biriktirilmagan" : "По курсам пока нет учеников"} />
-            )}
-          </Card>
-        </div>
-
-        <Card className="p-5 shadow-elegant">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-accent text-primary">
-              <CalendarCheck className="size-6" />
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("lstatus.completed")}</div>
-              <div className="text-2xl font-bold tabular-nums">{completedLessons}</div>
-            </div>
-          </div>
-        </Card>
-      </div>
+          <CenterSummaryTab />
         </TabsContent>
         <TabsContent value="finance">
           <FinanceAnalyticsTab />
         </TabsContent>
       </Tabs>
     </PageShell>
-  );
-}
-
-function EmptyChartState({ label }: { label: string }) {
-  return (
-    <div className="flex h-[260px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
-      <AlertCircle className="size-8 text-muted-foreground" />
-      <div className="mt-3 text-sm font-medium text-foreground">{label}</div>
-    </div>
   );
 }
