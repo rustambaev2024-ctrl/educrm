@@ -313,9 +313,14 @@ def get_occupancy_trend(user, filters: ReportFilters) -> dict:
         else:
             month_end = date(year, month_number + 1, 1) - timedelta(days=1)
 
+        # group__status="active" обязателен: знаменатель (capacity) считается
+        # только по активным группам, и без этого фильтра членства в
+        # завершённых/замороженных группах попадали бы в числитель, давая
+        # заполненность больше 100%.
         occupied = (
             GroupMembership.objects.filter(
                 group__branch_id__in=branch_ids,
+                group__status="active",
                 enrolled_at__date__lte=month_end,
             )
             .filter(Q(left_at__isnull=True) | Q(left_at__date__gt=month_end))

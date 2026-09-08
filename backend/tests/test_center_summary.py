@@ -134,6 +134,38 @@ class TestEnrollmentTrend:
         row = next(r for r in report["results"] if r["month"] == "2026-04")
         assert row["churned"] == 1
 
+    def test_month_key_is_local_time_for_both_halves_of_the_trend(self):
+        """Набор и отток обязаны раскладываться по месяцам одинаково.
+
+        Это не теоретический риск: «пришли» считает БД через TruncMonth, а
+        «ушли» — Python через timezone.localtime. Два разных механизма для
+        одного и того же ключа месяца. Момент 2026-02-28 19:30 UTC — это уже
+        2026-03-01 в Ташкенте (UTC+5), поэтому обе половины должны отнести
+        его к марту; если один из них когда-нибудь начнёт считать в UTC,
+        тренд разъедется по месяцам молча.
+        """
+        from datetime import datetime, timezone as dt_timezone
+
+        from apps.courses.models import GroupMembership
+        from apps.reports.services import get_enrollment_trend
+        from apps.students.models import Student
+
+        moment_utc = datetime(2026, 2, 28, 19, 30, tzinfo=dt_timezone.utc)
+
+        branch = BranchFactory()
+        joined = StudentFactory(branch=branch)
+        Student.objects.filter(id=joined.id).update(registered_at=moment_utc)
+
+        left = StudentFactory(branch=branch)
+        membership = GroupMembershipFactory(group=GroupFactory(branch=branch), student=left)
+        GroupMembership.objects.filter(id=membership.id).update(left_at=moment_utc)
+
+        report = get_enrollment_trend(_director(), _filters(date(2026, 1, 1), date(2026, 12, 31)))
+
+        march = next(r for r in report["results"] if r["month"] == "2026-03")
+        assert march["enrolled"] == 1
+        assert march["churned"] == 1
+
     def test_months_without_events_are_present_as_zeros(self):
         from apps.reports.services import get_enrollment_trend
 
@@ -187,6 +219,35 @@ class TestOccupancyTrend:
         assert by_month["2026-01"]["occupied"] == 1
         assert by_month["2026-02"]["occupied"] == 0
         assert by_month["2026-03"]["occupied"] == 0
+
+    def test_completed_group_membership_does_not_inflate_occupancy(self):
+        """Числитель и знаменатель должны считаться по одному набору групп.
+
+        capacity берётся только по активным группам — значит и занятые места
+        нужно считать только по ним, иначе членства в завершённых группах
+        дают заполненность больше 100%.
+        """
+        from apps.courses.models import GroupMembership
+        from apps.reports.services import get_occupancy_trend
+
+        branch = BranchFactory()
+        active_group = GroupFactory(branch=branch, status="active", capacity=10)
+        completed_group = GroupFactory(branch=branch, status="completed", capacity=10)
+        for group in (active_group, completed_group):
+            for _ in range(8):
+                membership = GroupMembershipFactory(
+                    group=group, student=StudentFactory(branch=branch), left_at=None
+                )
+                GroupMembership.objects.filter(id=membership.id).update(
+                    enrolled_at=timezone.now().replace(year=2026, month=1, day=5)
+                )
+
+        report = get_occupancy_trend(_director(), _filters(date(2026, 1, 1), date(2026, 1, 31)))
+
+        row = report["results"][0]
+        assert row["capacity"] == 10
+        assert row["occupied"] == 8
+        assert row["occupancy_percent"] == "80.00"
 
     def test_zero_capacity_does_not_divide_by_zero(self):
         from apps.reports.services import get_occupancy_trend
