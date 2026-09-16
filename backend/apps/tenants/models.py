@@ -28,6 +28,11 @@ class Institution(TenantMixin):
     sms_password = models.CharField(max_length=255, blank=True, default="")
     sms_sender = models.CharField(max_length=20, blank=True, default="")
     lead_api_key = models.CharField(max_length=64, blank=True, null=True, default=None, unique=True)
+    # Куда и с каким ключом слать статусы заявок обратно в LeadPixel.
+    # Хранится открытым текстом — как meta_access_token и sms_password выше:
+    # это ключ стороннего сервиса, а не пароль пользователя.
+    lidpixel_status_url = models.URLField(max_length=500, blank=True, default="")
+    lidpixel_status_key = models.CharField(max_length=255, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     auto_create_schema = True
