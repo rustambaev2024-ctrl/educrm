@@ -110,6 +110,16 @@ class LidPixelLeadThrottle(SimpleRateThrottle):
         return f"throttle_lidpixel_{key}" if key else None
 
 
+def _lidpixel_external_id(data) -> str:
+    """Номер заявки у LeadPixel. Имя поля неизвестно — принимаем алиасы,
+    тем же приёмом, что уже применён к имени и телефону."""
+    for key in ("id", "lead_id", "leadgen_id"):
+        value = data.get(key)
+        if value not in (None, ""):
+            return str(value)
+    return ""
+
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 @throttle_classes([LidPixelLeadThrottle])
@@ -155,6 +165,7 @@ def public_submit_lead_lidpixel(request):
             "source": "lidpixel",
             "notes": notes,
             "status": "new",
+            "external_id": _lidpixel_external_id(data),
         }
         first_branch = Branch.objects.first()
         if first_branch:
@@ -689,7 +700,8 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
 
         # Mark lead as won
         lead.status = "won"
-        lead.save(update_fields=["status", "updated_at"])
+        lead.converted_student = student
+        lead.save(update_fields=["status", "converted_student", "updated_at"])
 
         meta_sent = False
         try:

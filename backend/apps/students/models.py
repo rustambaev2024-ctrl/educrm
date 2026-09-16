@@ -179,6 +179,18 @@ class StudentLead(models.Model):
         related_name="student_leads",
     )
     source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default="walk_in")
+    # Номер заявки на стороне LeadPixel. Нужен, чтобы обратная передача
+    # статуса ссылалась на их запись, а не только на нашу.
+    external_id = models.CharField(max_length=128, blank=True, default="", db_index=True)
+    # Ученик, созданный из заявки. Без этой связи первую оплату не к чему
+    # привязать, а значит нечего отправить как продажу.
+    converted_student = models.ForeignKey(
+        "students.Student",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="source_leads",
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new")
     next_follow_up = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True)
