@@ -272,6 +272,12 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.lessons.tasks.extend_lesson_horizons",
         "schedule": crontab(hour=1, minute=0),
     },
+    # ИНТЕГРАЦИИ — обратная передача статусов заявок в LeadPixel. Раз в
+    # минуту: события копятся в журнале, задача разносит их с повторами.
+    "deliver-lead-statuses": {
+        "task": "apps.students.tasks.deliver_lead_statuses",
+        "schedule": crontab(minute="*"),
+    },
     # УВЕДОМЛЕНИЯ
     "lead-follow-up-reminder": {
         "task": "apps.notifications.tasks.lead_follow_up_reminder",
