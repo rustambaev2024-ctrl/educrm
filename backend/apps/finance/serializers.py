@@ -1,4 +1,7 @@
+import logging
 from decimal import Decimal
+
+from django.db import transaction
 
 from rest_framework import serializers
 
@@ -10,6 +13,8 @@ from apps.students.models import Student
 
 from .models import Payment
 from .services import apply_payment, get_or_create_wallet
+
+logger = logging.getLogger(__name__)
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -67,7 +72,19 @@ def _queue_lidpixel_sale(student, validated_data, payment):
         return
     if LeadStatusDelivery.objects.filter(lead=lead, event="sale").exists():
         return
-    queue_lead_event(lead, "sale", amount=payment.amount)
+    try:
+        # Точка сохранения обязательна: платёж идёт в общей транзакции, и
+        # проглоченная без неё ошибка БД оставила бы транзакцию сломанной.
+        # Сама гонка реальна — две одновременные первые оплаты обе пройдут
+        # проверку выше, и вторую остановит уже ограничение в БД.
+        with transaction.atomic():
+            queue_lead_event(lead, "sale", amount=payment.amount)
+    except Exception:
+        # Деньги клиента важнее уведомления: сбой уведомления не отменяет
+        # платёж. Но и молча не глушим — ошибка уходит в лог целиком.
+        logger.exception(
+            "Не удалось поставить в очередь продажу по заявке %s", lead.id
+        )
 
 
 class PaymentCreateSerializer(serializers.Serializer):

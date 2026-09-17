@@ -268,6 +268,25 @@ class TestStatusChangeEvents:
 
         assert not LeadStatusDelivery.objects.filter(lead=lead).exists()
 
+    def test_lead_save_survives_failure_to_queue_the_event(self, monkeypatch):
+        """Карточка заявки важнее уведомления: сбой постановки события не
+        должен отменять сохранение статуса."""
+        from apps.students.models import LeadStatusDelivery, StudentLead
+
+        def _boom(*args, **kwargs):
+            from django.db import IntegrityError
+
+            raise IntegrityError("boom")
+
+        lead = self._lead()
+        monkeypatch.setattr("apps.students.lidpixel.queue_lead_event", _boom)
+
+        lead.status = "contacted"
+        lead.save(update_fields=["status", "updated_at"])
+
+        assert StudentLead.objects.get(pk=lead.pk).status == "contacted"
+        assert not LeadStatusDelivery.objects.filter(lead=lead).exists()
+
     def test_conversion_save_queues_won_event(self):
         """Перевод заявки в ученики идёт через save(update_fields=[...]).
 
@@ -387,6 +406,32 @@ class TestSaleEvent:
         reverse_payment(charge)
 
         assert not LeadStatusDelivery.objects.filter(lead=lead, event="sale").exists()
+
+    def test_payment_survives_failure_to_queue_the_event(self, monkeypatch):
+        """Уведомление LeadPixel не может стоить клиенту платежа.
+
+        Гонка двух первых оплат реальна: обе проходят проверку «продажи ещё
+        не было», обе вставляют запись, вторая ловит ограничение БД. Без
+        этой защиты второй платёж упал бы с ошибкой.
+        """
+        from apps.finance.models import Payment
+        from apps.students.models import LeadStatusDelivery
+
+        branch = BranchFactory()
+        lead, student = self._lead_with_student(branch)
+
+        def _boom(*args, **kwargs):
+            from django.db import IntegrityError
+
+            raise IntegrityError("uniq_sale_delivery_per_lead")
+
+        monkeypatch.setattr("apps.students.lidpixel.queue_lead_event", _boom)
+
+        payment = self._pay(student, Decimal("500000.00"))
+
+        assert Payment.objects.filter(id=payment.id).exists()
+        assert payment.amount == Decimal("500000.00")
+        assert not LeadStatusDelivery.objects.filter(lead=lead).exists()
 
     def test_student_without_lidpixel_lead_creates_nothing(self):
         from apps.students.models import LeadStatusDelivery

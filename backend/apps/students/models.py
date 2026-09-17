@@ -3,7 +3,7 @@ import uuid
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -368,7 +368,11 @@ def queue_lidpixel_status_event(sender, instance, created, **kwargs):
     from apps.students.lidpixel import queue_lead_event
 
     try:
-        queue_lead_event(instance, "status_changed")
+        # Точка сохранения обязательна: сохранение заявки идёт в общей
+        # транзакции, и проглоченная без неё ошибка БД оставила бы
+        # транзакцию сломанной.
+        with transaction.atomic():
+            queue_lead_event(instance, "status_changed")
     except Exception:
         # Заявка важнее уведомления: сбой настройки или записи журнала не
         # должен отменять сохранение карточки. Но и молча не глушим —
