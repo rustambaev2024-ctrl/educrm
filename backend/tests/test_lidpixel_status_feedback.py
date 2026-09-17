@@ -72,3 +72,87 @@ class TestDeliveryModel:
         LeadStatusDelivery.objects.create(lead=lead, event="status_changed", payload={})
 
         assert LeadStatusDelivery.objects.filter(lead=lead).count() == 2
+
+
+class TestStatusUrlSafety:
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://leadpixel.example/status",
+            "https://localhost/status",
+            "https://127.0.0.1/status",
+            "https://10.0.0.5/status",
+            "https://169.254.169.254/status",
+            "ftp://leadpixel.example/status",
+            "",
+        ],
+    )
+    def test_unsafe_urls_rejected(self, url):
+        from apps.students.lidpixel import UnsafeStatusUrl, validate_status_url
+
+        with pytest.raises(UnsafeStatusUrl):
+            validate_status_url(url)
+
+    def test_public_https_url_accepted(self, monkeypatch):
+        """Разрешение имени подменяем: иначе тест зависел бы от наличия сети
+        и от того, куда сегодня резолвится внешний домен."""
+        import socket as socket_module
+
+        from apps.students import lidpixel
+
+        monkeypatch.setattr(
+            lidpixel.socket,
+            "getaddrinfo",
+            lambda *a, **kw: [
+                (socket_module.AF_INET, None, None, "", ("93.184.216.34", 0))
+            ],
+        )
+
+        assert (
+            lidpixel.validate_status_url("https://example.com/status")
+            == "https://example.com/status"
+        )
+
+
+class TestPayload:
+    def _lead(self, **kwargs):
+        from apps.students.models import StudentLead
+
+        defaults = {
+            "full_name": "Ali",
+            "phone": "+998901112233",
+            "branch": BranchFactory(),
+            "source": "lidpixel",
+        }
+        defaults.update(kwargs)
+        return StudentLead.objects.create(**defaults)
+
+    def test_status_payload_shape(self):
+        from apps.students.lidpixel import build_lidpixel_payload
+
+        lead = self._lead(external_id="LP-7", status="contacted")
+
+        payload = build_lidpixel_payload(
+            event="status_changed", lead=lead, currency="UZS"
+        )
+
+        assert payload["event"] == "status_changed"
+        assert payload["lead_id"] == "LP-7"
+        assert payload["crm_lead_id"] == str(lead.id)
+        assert payload["status"] == "contacted"
+        assert payload["amount"] is None
+        assert payload["currency"] == "UZS"
+        assert payload["occurred_at"]
+
+    def test_sale_payload_carries_amount_as_string(self):
+        from apps.students.lidpixel import build_lidpixel_payload
+
+        lead = self._lead(status="won")
+
+        payload = build_lidpixel_payload(
+            event="sale", lead=lead, amount=Decimal("500000.00"), currency="UZS"
+        )
+
+        assert payload["event"] == "sale"
+        assert payload["amount"] == "500000.00"
+        assert payload["lead_id"] == "", "внешнего номера нет — шлём пустую строку, не None"
