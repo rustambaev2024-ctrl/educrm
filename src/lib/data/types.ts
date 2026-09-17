@@ -101,7 +101,16 @@ export interface Student {
 }
 
 export type StudentLeadStatus = "new" | "contacted" | "trial" | "won" | "lost";
-export type StudentLeadSource = "walk_in" | "phone" | "telegram" | "instagram" | "referral" | "other";
+export type StudentLeadSource =
+  | "walk_in"
+  | "phone"
+  | "telegram"
+  | "instagram"
+  | "referral"
+  // Приходит из вебхука LidPixel, вручную не выбирается — но подпись
+  // и фильтр нужны, иначе источник рекламной заявки виден как пустой.
+  | "lidpixel"
+  | "other";
 
 export interface StudentLead {
   id: string;

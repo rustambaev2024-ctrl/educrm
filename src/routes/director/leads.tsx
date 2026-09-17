@@ -89,6 +89,9 @@ type FilterSource = StudentLeadSource | "all";
 
 const STATUS_OPTIONS: StudentLeadStatus[] = ["new", "contacted", "trial", "won", "lost"];
 const SOURCE_OPTIONS: StudentLeadSource[] = ["walk_in", "phone", "telegram", "instagram", "referral", "other"];
+// Фильтр знает про LidPixel, а форма создания — нет: такую заявку заводит
+// только вебхук, вручную выбрать этот источник было бы неправдой.
+const FILTER_SOURCE_OPTIONS: StudentLeadSource[] = [...SOURCE_OPTIONS, "lidpixel"];
 const NONE = "__none__";
 
 const emptyForm: LeadForm = {
@@ -480,7 +483,7 @@ function DirectorLeadsPage() {
                 <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t.allSources}</SelectItem>
-                  {SOURCE_OPTIONS.map((source) => <SelectItem key={source} value={source}>{t.source[source]}</SelectItem>)}
+                  {FILTER_SOURCE_OPTIONS.map((source) => <SelectItem key={source} value={source}>{t.source[source]}</SelectItem>)}
                 </SelectContent>
               </Select>
               <div className="flex h-9 items-center justify-center rounded-md border border-border px-3 text-xs text-muted-foreground">
@@ -1055,6 +1058,7 @@ function labels(lang: "uz" | "ru") {
         telegram: "Telegram",
         instagram: "Instagram",
         referral: "Рекомендация",
+        lidpixel: "LidPixel (реклама)",
         other: "Другое",
       },
     };
@@ -1125,6 +1129,7 @@ function labels(lang: "uz" | "ru") {
       telegram: "Telegram",
       instagram: "Instagram",
       referral: "Tavsiya",
+      lidpixel: "LidPixel (reklama)",
       other: "Boshqa",
     },
   };
