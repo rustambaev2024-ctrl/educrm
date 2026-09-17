@@ -173,6 +173,122 @@ class BranchViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @action(
+        detail=False,
+        methods=["get", "patch"],
+        url_path="lidpixel-status-settings",
+        permission_classes=[IsDirector],
+    )
+    def lidpixel_status_settings(self, request):
+        from apps.students.lidpixel import UnsafeStatusUrl, validate_status_url
+
+        # Адрес проверяем до обращения к организации: невалидный ввод не
+        # должен зависеть от состояния тенанта.
+        if request.method == "PATCH" and "lidpixel_status_url" in request.data:
+            url = (request.data.get("lidpixel_status_url") or "").strip()
+            if url:
+                try:
+                    validate_status_url(url)
+                except UnsafeStatusUrl as exc:
+                    return Response(
+                        {"lidpixel_status_url": str(exc)},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+        institution = request.tenant
+        if request.method == "GET":
+            masked = (
+                f"****{institution.lidpixel_status_key[-4:]}"
+                if institution.lidpixel_status_key
+                else ""
+            )
+            return Response(
+                {
+                    "lidpixel_status_url": institution.lidpixel_status_url,
+                    "lidpixel_status_key_masked": masked,
+                    "has_key": bool(institution.lidpixel_status_key),
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if "lidpixel_status_url" in request.data:
+            institution.lidpixel_status_url = (
+                request.data.get("lidpixel_status_url") or ""
+            ).strip()
+        key = request.data.get("lidpixel_status_key")
+        # Маску обратно не сохраняем: её присылает форма, если ключ не меняли.
+        if key and not key.startswith("****"):
+            institution.lidpixel_status_key = key
+        institution.save(update_fields=["lidpixel_status_url", "lidpixel_status_key"])
+        return Response({"success": True}, status=status.HTTP_200_OK)
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="lidpixel-status-test",
+        permission_classes=[IsDirector],
+    )
+    def lidpixel_status_test(self, request):
+        """Проверочное событие — отправляется сразу, в журнал не пишется."""
+        from django.utils import timezone
+
+        from apps.students.lidpixel import send_status_event
+
+        institution = request.tenant
+        if not institution.lidpixel_status_url:
+            return Response(
+                {"detail": "Адрес для статусов не задан"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ok, code, error = send_status_event(
+            url=institution.lidpixel_status_url,
+            key=institution.lidpixel_status_key,
+            payload={
+                "event": "test",
+                "lead_id": "",
+                "crm_lead_id": "",
+                "status": "test",
+                "amount": None,
+                "currency": institution.currency or "UZS",
+                "occurred_at": timezone.now().isoformat(),
+            },
+        )
+        return Response(
+            {"ok": ok, "response_code": code, "error": error},
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="lidpixel-deliveries",
+        permission_classes=[IsDirector],
+    )
+    def lidpixel_deliveries(self, request):
+        from apps.students.models import LeadStatusDelivery
+
+        deliveries = LeadStatusDelivery.objects.select_related("lead").order_by(
+            "-created_at"
+        )[:20]
+        return Response(
+            {
+                "results": [
+                    {
+                        "id": str(d.id),
+                        "lead_name": d.lead.full_name,
+                        "event": d.event,
+                        "status": d.status,
+                        "attempts": d.attempts,
+                        "response_code": d.response_code,
+                        "last_error": d.last_error,
+                        "created_at": d.created_at.isoformat(),
+                    }
+                    for d in deliveries
+                ]
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=False, methods=["post"], url_path="sms-test", permission_classes=[IsDirector])
     def sms_test(self, request):
         from apps.notifications.sms import EskizSmsService

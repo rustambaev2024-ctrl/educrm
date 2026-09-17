@@ -358,6 +358,33 @@ export const branchApi = {
     requestJson<{ webhook_url: string; api_key_masked: string; has_key: boolean }>("/branches/lead-api-key/"),
   regenerateLeadApiKey: () =>
     requestJson<{ webhook_url: string; api_key: string }>("/branches/lead-api-key/", { method: "POST" }),
+  lidpixelStatusSettings: () =>
+    requestJson<{ lidpixel_status_url: string; lidpixel_status_key_masked: string; has_key: boolean }>(
+      "/branches/lidpixel-status-settings/",
+    ),
+  updateLidpixelStatusSettings: (data: Record<string, unknown>) =>
+    requestJson("/branches/lidpixel-status-settings/", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  testLidpixelStatus: () =>
+    requestJson<{ ok: boolean; response_code: number | null; error: string }>(
+      "/branches/lidpixel-status-test/",
+      { method: "POST" },
+    ),
+  lidpixelDeliveries: () =>
+    requestJson<{
+      results: Array<{
+        id: string;
+        lead_name: string;
+        event: string;
+        status: string;
+        attempts: number;
+        response_code: number | null;
+        last_error: string;
+        created_at: string;
+      }>;
+    }>("/branches/lidpixel-deliveries/"),
   institutionSettings: () => requestJson<{ name: string; address: string; phone: string; logo: string | null }>("/branches/settings/"),
   updateInstitutionSettings: (data: FormData | Record<string, any>) => {
     if (data instanceof FormData) {

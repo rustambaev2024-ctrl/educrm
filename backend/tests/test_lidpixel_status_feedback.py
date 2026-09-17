@@ -489,3 +489,30 @@ class TestDelivery:
         delivery.refresh_from_db()
         assert delivery.status == "pending"
         assert delivery.attempts == 0
+
+
+class TestSettingsEndpoints:
+    """Успешное сохранение тестом не покрываем: request.tenant — настоящая
+    Institution, которой на SQLite нет. Проверяем отказы, срабатывающие до
+    обращения к тенанту, — и порядок проверок в коде обязан быть именно
+    такой: сначала права, потом валидация адреса, потом сохранение."""
+
+    def test_patch_rejects_unsafe_url(self, api_client):
+        director = UserFactory(role="director")
+        api_client.force_authenticate(user=director)
+
+        response = api_client.patch(
+            "/api/v1/branches/lidpixel-status-settings/",
+            {"lidpixel_status_url": "http://localhost/status"},
+            format="json",
+        )
+
+        assert response.status_code == 400, response.content
+
+    def test_non_director_is_denied(self, api_client):
+        teacher = UserFactory(role="teacher")
+        api_client.force_authenticate(user=teacher)
+
+        response = api_client.get("/api/v1/branches/lidpixel-status-settings/")
+
+        assert response.status_code == 403, response.content
