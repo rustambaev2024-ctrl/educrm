@@ -88,9 +88,15 @@ def send_status_event(*, url, key, payload):
             json=payload,
             headers={"X-API-Key": key, "Content-Type": "application/json"},
             timeout=REQUEST_TIMEOUT_SECONDS,
+            # Без этого проверку адреса можно обойти целиком: разрешённый
+            # публичный хост отвечает 302 на внутренний адрес, и requests
+            # молча идёт туда уже без всяких проверок.
+            allow_redirects=False,
         )
     except requests.RequestException as exc:
         return False, None, str(exc)[:500]
+    if 300 <= response.status_code < 400:
+        return False, response.status_code, "Переадресация запрещена"
     ok = 200 <= response.status_code < 300
     return ok, response.status_code, "" if ok else response.text[:500]
 

@@ -114,6 +114,48 @@ class TestStatusUrlSafety:
         )
 
 
+class TestSendGuards:
+    """Отправка не должна давать обойти проверку адреса через переадресацию."""
+
+    def _send(self, monkeypatch, status_code):
+        from apps.students import lidpixel
+
+        captured = {}
+
+        class _Resp:
+            status_code = None
+            text = "redirected"
+
+        def _fake_post(url, **kwargs):
+            captured.update(kwargs)
+            resp = _Resp()
+            resp.status_code = status_code
+            return resp
+
+        monkeypatch.setattr(lidpixel, "validate_status_url", lambda url: url)
+        monkeypatch.setattr(lidpixel.requests, "post", _fake_post)
+        result = lidpixel.send_status_event(
+            url="https://leadpixel.example/status", key="k", payload={}
+        )
+        return result, captured
+
+    def test_redirects_are_not_followed(self, monkeypatch):
+        """Разрешённый хост может ответить 302 на внутренний адрес — без
+        этого запрета requests пошёл бы туда уже без всякой проверки."""
+        (ok, code, error), captured = self._send(monkeypatch, 302)
+
+        assert captured["allow_redirects"] is False
+        assert ok is False
+        assert code == 302
+        assert error
+
+    def test_success_still_reported_ok(self, monkeypatch):
+        (ok, code, error), _ = self._send(monkeypatch, 200)
+
+        assert ok is True
+        assert code == 200
+
+
 class TestPayload:
     def _lead(self, **kwargs):
         from apps.students.models import StudentLead
@@ -355,3 +397,95 @@ class TestSaleEvent:
         self._pay(student, Decimal("500000.00"))
 
         assert not LeadStatusDelivery.objects.exists()
+
+
+class TestDelivery:
+    def _pending(self):
+        from apps.students.models import LeadStatusDelivery, StudentLead
+
+        lead = StudentLead.objects.create(
+            full_name="Ali",
+            phone="+998901112233",
+            branch=BranchFactory(),
+            source="lidpixel",
+            status="won",
+        )
+        return LeadStatusDelivery.objects.create(
+            lead=lead, event="status_changed", payload={"event": "status_changed"}
+        )
+
+    def test_successful_send_marks_sent(self, monkeypatch):
+        from apps.students import tasks
+
+        monkeypatch.setattr(tasks, "send_status_event", lambda **kw: (True, 200, ""))
+        delivery = self._pending()
+
+        tasks.deliver_pending_for_institution(_institution())
+
+        delivery.refresh_from_db()
+        assert delivery.status == "sent"
+        assert delivery.response_code == 200
+        assert delivery.sent_at is not None
+
+    def test_failure_schedules_retry(self, monkeypatch):
+        from apps.students import tasks
+
+        monkeypatch.setattr(tasks, "send_status_event", lambda **kw: (False, 500, "boom"))
+        delivery = self._pending()
+        before = delivery.next_attempt_at
+
+        tasks.deliver_pending_for_institution(_institution())
+
+        delivery.refresh_from_db()
+        assert delivery.status == "pending"
+        assert delivery.attempts == 1
+        assert delivery.next_attempt_at > before
+        assert delivery.last_error == "boom"
+
+    def test_gives_up_after_five_attempts(self, monkeypatch):
+        from apps.students import tasks
+
+        monkeypatch.setattr(tasks, "send_status_event", lambda **kw: (False, 500, "boom"))
+        delivery = self._pending()
+
+        for _ in range(5):
+            delivery.next_attempt_at = timezone.now()
+            delivery.save(update_fields=["next_attempt_at"])
+            tasks.deliver_pending_for_institution(_institution())
+            delivery.refresh_from_db()
+
+        assert delivery.status == "failed"
+        assert delivery.attempts == 5
+
+    def test_key_and_url_are_passed_to_sender(self, monkeypatch):
+        from apps.students import tasks
+
+        captured = {}
+
+        def _fake(**kwargs):
+            captured.update(kwargs)
+            return True, 200, ""
+
+        monkeypatch.setattr(tasks, "send_status_event", _fake)
+        self._pending()
+
+        tasks.deliver_pending_for_institution(_institution(key="the-key"))
+
+        assert captured["key"] == "the-key"
+        assert captured["url"] == "https://leadpixel.example/status"
+
+    def test_not_due_delivery_is_skipped(self, monkeypatch):
+        from datetime import timedelta
+
+        from apps.students import tasks
+
+        monkeypatch.setattr(tasks, "send_status_event", lambda **kw: (True, 200, ""))
+        delivery = self._pending()
+        delivery.next_attempt_at = timezone.now() + timedelta(hours=1)
+        delivery.save(update_fields=["next_attempt_at"])
+
+        tasks.deliver_pending_for_institution(_institution())
+
+        delivery.refresh_from_db()
+        assert delivery.status == "pending"
+        assert delivery.attempts == 0
