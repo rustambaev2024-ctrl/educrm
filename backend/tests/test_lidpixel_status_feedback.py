@@ -246,3 +246,112 @@ class TestStatusChangeEvents:
         assert delivery.payload["status"] == "won"
         lead.refresh_from_db()
         assert lead.converted_student_id == student.id
+
+
+class TestSaleEvent:
+    @pytest.fixture(autouse=True)
+    def _configured(self, monkeypatch):
+        monkeypatch.setattr(
+            "apps.students.lidpixel._current_institution", lambda: _institution()
+        )
+
+    def _lead_with_student(self, branch):
+        from apps.students.models import StudentLead
+
+        student = StudentFactory(branch=branch)
+        lead = StudentLead.objects.create(
+            full_name="Ali",
+            phone="+998901112233",
+            branch=branch,
+            source="lidpixel",
+            status="won",
+            converted_student=student,
+        )
+        return lead, student
+
+    def _pay(self, student, amount, payment_type="top_up", funding_source="main"):
+        """Оплата ровно тем путём, которым её вводит сотрудник."""
+        from apps.finance.serializers import PaymentCreateSerializer
+
+        class _Req:
+            user = UserFactory(role="director")
+
+        serializer = PaymentCreateSerializer(
+            data={
+                "payment_type": payment_type,
+                "amount": str(amount),
+                "funding_source": funding_source,
+            },
+            context={"student": student, "request": _Req()},
+        )
+        serializer.is_valid(raise_exception=True)
+        return serializer.save()
+
+    def test_first_real_payment_creates_sale(self):
+        from apps.students.models import LeadStatusDelivery
+
+        branch = BranchFactory()
+        lead, student = self._lead_with_student(branch)
+
+        self._pay(student, Decimal("500000.00"))
+
+        delivery = LeadStatusDelivery.objects.get(lead=lead, event="sale")
+        assert delivery.payload["amount"] == "500000.00"
+
+    def test_manual_top_up_also_counts(self):
+        from apps.students.models import LeadStatusDelivery
+
+        branch = BranchFactory()
+        lead, student = self._lead_with_student(branch)
+
+        self._pay(student, Decimal("300000.00"), payment_type="manual_top_up")
+
+        assert LeadStatusDelivery.objects.filter(lead=lead, event="sale").exists()
+
+    def test_bonus_grant_is_not_a_sale(self):
+        from apps.students.models import LeadStatusDelivery
+
+        branch = BranchFactory()
+        lead, student = self._lead_with_student(branch)
+
+        self._pay(student, Decimal("100000.00"), funding_source="bonus")
+
+        assert not LeadStatusDelivery.objects.filter(lead=lead, event="sale").exists()
+
+    def test_second_payment_does_not_create_second_sale(self):
+        from apps.students.models import LeadStatusDelivery
+
+        branch = BranchFactory()
+        lead, student = self._lead_with_student(branch)
+
+        self._pay(student, Decimal("500000.00"))
+        self._pay(student, Decimal("200000.00"))
+
+        assert LeadStatusDelivery.objects.filter(lead=lead, event="sale").count() == 1
+
+    def test_reversal_generated_top_up_is_not_a_sale(self):
+        """Сторно ручного списания создаёт manual_top_up внутри финансовой
+        логики, минуя сериализатор. Именно поэтому хук стоит в сериализаторе,
+        а не в сигнале модели Payment."""
+        from apps.finance.services import apply_payment, reverse_payment
+        from apps.students.models import LeadStatusDelivery
+
+        branch = BranchFactory()
+        lead, student = self._lead_with_student(branch)
+        charge = apply_payment(
+            student=student, payment_type="manual_charge", amount=Decimal("50000.00")
+        ).payment
+
+        reverse_payment(charge)
+
+        assert not LeadStatusDelivery.objects.filter(lead=lead, event="sale").exists()
+
+    def test_student_without_lidpixel_lead_creates_nothing(self):
+        from apps.students.models import LeadStatusDelivery
+
+        branch = BranchFactory()
+        student = StudentFactory(branch=branch)
+
+        self._pay(student, Decimal("500000.00"))
+
+        assert not LeadStatusDelivery.objects.exists()

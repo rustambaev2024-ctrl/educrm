@@ -43,6 +43,33 @@ class PaymentSerializer(serializers.ModelSerializer):
         )
 
 
+def _queue_lidpixel_sale(student, validated_data, payment):
+    """Первая настоящая оплата ученика, пришедшего из LeadPixel, — это продажа.
+
+    Хук стоит здесь, а не в сигнале на Payment, сознательно: manual_top_up
+    создаётся и сотрудником (настоящие деньги), и сторно ручного списания
+    внутри finance/services.py. По самой записи их не различить, но сторно
+    через этот сериализатор не проходит никогда — значит здесь остаются
+    только деньги клиента. Бонусы отсекает funding_source.
+    """
+    if validated_data["payment_type"] not in ("top_up", "manual_top_up"):
+        return
+    if validated_data.get("funding_source", "main") != "main":
+        return
+
+    from apps.students.lidpixel import queue_lead_event
+    from apps.students.models import LeadStatusDelivery, StudentLead
+
+    lead = StudentLead.objects.filter(
+        converted_student=student, source="lidpixel"
+    ).first()
+    if not lead:
+        return
+    if LeadStatusDelivery.objects.filter(lead=lead, event="sale").exists():
+        return
+    queue_lead_event(lead, "sale", amount=payment.amount)
+
+
 class PaymentCreateSerializer(serializers.Serializer):
     student_id = serializers.UUIDField(required=False)
     payment_type = serializers.ChoiceField(choices=[
@@ -179,4 +206,5 @@ class PaymentCreateSerializer(serializers.Serializer):
             comment=validated_data.get("comment", ""),
             funding_source=validated_data.get("funding_source", "main"),
         )
+        _queue_lidpixel_sale(student, validated_data, payment_result.payment)
         return payment_result.payment
