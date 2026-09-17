@@ -42,6 +42,23 @@ function DirectorIntegrationsPage() {
   const [leadKeyLoading, setLeadKeyLoading] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
 
+  const [statusUrl, setStatusUrl] = useState("");
+  const [statusKey, setStatusKey] = useState("");
+  const [statusKeyMasked, setStatusKeyMasked] = useState("");
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusTesting, setStatusTesting] = useState(false);
+  const [deliveries, setDeliveries] = useState<
+    Array<{
+      id: string;
+      lead_name: string;
+      event: string;
+      status: string;
+      response_code: number | null;
+      last_error: string;
+      created_at: string;
+    }>
+  >([]);
+
   const t = labels(lang);
 
   useEffect(() => {
@@ -84,6 +101,67 @@ function DirectorIntegrationsPage() {
         toast.error(apiErrorMessage(err));
       });
   }, []);
+
+  useEffect(() => {
+    branchApi
+      .lidpixelStatusSettings()
+      .then((data) => {
+        setStatusUrl(data.lidpixel_status_url);
+        setStatusKeyMasked(data.lidpixel_status_key_masked);
+      })
+      .catch((err) => {
+        console.error("Failed to load LidPixel status settings", err);
+        toast.error(apiErrorMessage(err));
+      });
+    // Журнал — вспомогательный блок: его сбой не должен заваливать экран
+    // тостом поверх основных настроек, достаточно записи в консоли.
+    branchApi
+      .lidpixelDeliveries()
+      .then((data) => setDeliveries(data.results))
+      .catch((err) => console.error("Failed to load LidPixel deliveries", err));
+  }, []);
+
+  const saveStatusSettings = async () => {
+    if (statusSaving) return;
+    setStatusSaving(true);
+    try {
+      const payload: Record<string, unknown> = { lidpixel_status_url: statusUrl };
+      if (statusKey) payload.lidpixel_status_key = statusKey;
+      await branchApi.updateLidpixelStatusSettings(payload);
+      if (statusKey) {
+        setStatusKeyMasked(`****${statusKey.slice(-4)}`);
+        setStatusKey("");
+      }
+      toast.success(lang === "uz" ? "Saqlandi" : "Сохранено");
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const sendTestStatus = async () => {
+    if (statusTesting) return;
+    setStatusTesting(true);
+    try {
+      const res = await branchApi.testLidpixelStatus();
+      if (res.ok) {
+        toast.success(
+          lang === "uz"
+            ? `LeadPixel javob berdi: ${res.response_code}`
+            : `LeadPixel ответил: ${res.response_code}`,
+        );
+      } else {
+        toast.error(res.error || (lang === "uz" ? "Yuborilmadi" : "Не отправлено"));
+      }
+      const data = await branchApi.lidpixelDeliveries();
+      setDeliveries(data.results);
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
+    } finally {
+      setStatusTesting(false);
+    }
+  };
 
   const copyToClipboard = (value: string) => {
     if (!value) return;
@@ -404,6 +482,100 @@ function DirectorIntegrationsPage() {
                       ? lang === "uz" ? "Kalitni qayta yaratish" : "Перевыпустить ключ"
                       : lang === "uz" ? "Kalit yaratish" : "Создать ключ"}
                 </Button>
+
+                <div className="border-t border-border pt-3 mt-3 space-y-3">
+                  <div>
+                    <h4 className="text-sm font-medium">
+                      {lang === "uz" ? "Statuslarni qaytarish" : "Обратная передача статусов"}
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {lang === "uz"
+                        ? "CRM o'zi LeadPixel'ga ariza statusi va birinchi to'lov haqida xabar beradi — shunda u sotuvlar va reklama qaytimini hisoblaydi."
+                        : "CRM сама сообщает LeadPixel о смене статуса заявки и первой оплате — тогда он считает продажи и окупаемость рекламы."}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      {lang === "uz" ? "Statuslar uchun manzil" : "Адрес для статусов"}
+                    </Label>
+                    <Input
+                      value={statusUrl}
+                      onChange={(e) => setStatusUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="mt-1 text-xs font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      {lang === "uz" ? "LeadPixel kaliti" : "Ключ LeadPixel"}
+                    </Label>
+                    <Input
+                      value={statusKey}
+                      onChange={(e) => setStatusKey(e.target.value)}
+                      placeholder={statusKeyMasked || "—"}
+                      className="mt-1 text-xs font-mono"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={saveStatusSettings}
+                      disabled={statusSaving}
+                    >
+                      {statusSaving ? "..." : lang === "uz" ? "Saqlash" : "Сохранить"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={sendTestStatus}
+                      disabled={statusTesting || !statusUrl}
+                    >
+                      {statusTesting ? "..." : lang === "uz" ? "Tekshirish" : "Проверить"}
+                    </Button>
+                  </div>
+
+                  {deliveries.length > 0 && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        {lang === "uz" ? "So'nggi yuborishlar" : "Последние отправки"}
+                      </Label>
+                      <div className="mt-1 space-y-1">
+                        {deliveries.map((d) => (
+                          <div
+                            key={d.id}
+                            className="flex items-center justify-between gap-2 text-[11px]"
+                          >
+                            <span className="truncate text-muted-foreground">
+                              {d.lead_name} ·{" "}
+                              {d.event === "sale"
+                                ? lang === "uz" ? "sotuv" : "продажа"
+                                : lang === "uz" ? "status" : "статус"}
+                            </span>
+                            <span
+                              className={
+                                d.status === "sent"
+                                  ? "shrink-0 text-ok"
+                                  : d.status === "failed"
+                                    ? "shrink-0 text-bad"
+                                    : "shrink-0 text-muted-foreground"
+                              }
+                            >
+                              {d.status === "sent"
+                                ? lang === "uz" ? "yuborildi" : "отправлено"
+                                : d.status === "failed"
+                                  ? lang === "uz" ? "xato" : "ошибка"
+                                  : lang === "uz" ? "navbatda" : "в очереди"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </Card>
           </div>
