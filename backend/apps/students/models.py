@@ -1,13 +1,16 @@
+import logging
 import uuid
 from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
 from .storage import private_document_storage, student_document_path
+
+logger = logging.getLogger(__name__)
 
 
 class Student(models.Model):
@@ -334,3 +337,40 @@ def close_memberships_on_status_change(sender, instance, **kwargs):
             student=instance,
             left_at__isnull=True,
         ).update(left_at=timezone.now())
+
+
+@receiver(pre_save, sender=StudentLead)
+def remember_previous_lead_status(sender, instance, **kwargs):
+    """Запоминает прежний статус до записи — post_save его уже не увидит."""
+    if kwargs.get("raw") or not instance.pk:
+        instance._previous_status = None
+        return
+    instance._previous_status = (
+        StudentLead.objects.filter(pk=instance.pk)
+        .values_list("status", flat=True)
+        .first()
+    )
+
+
+@receiver(post_save, sender=StudentLead)
+def queue_lidpixel_status_event(sender, instance, created, **kwargs):
+    """Смена статуса заявки из LeadPixel — повод сообщить ему об этом.
+
+    Создание заявки событием не считается: её прислал сам LeadPixel, и
+    начальный статус он знает.
+    """
+    if kwargs.get("raw") or created:
+        return
+    previous = getattr(instance, "_previous_status", None)
+    if previous is None or previous == instance.status:
+        return
+
+    from apps.students.lidpixel import queue_lead_event
+
+    try:
+        queue_lead_event(instance, "status_changed")
+    except Exception:
+        # Заявка важнее уведомления: сбой настройки или записи журнала не
+        # должен отменять сохранение карточки. Но и молча не глушим —
+        # ошибка уходит в лог целиком.
+        logger.exception("Не удалось поставить в очередь статус заявки %s", instance.pk)

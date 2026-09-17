@@ -156,3 +156,93 @@ class TestPayload:
         assert payload["event"] == "sale"
         assert payload["amount"] == "500000.00"
         assert payload["lead_id"] == "", "внешнего номера нет — шлём пустую строку, не None"
+
+
+class TestStatusChangeEvents:
+    @pytest.fixture(autouse=True)
+    def _configured(self, monkeypatch):
+        monkeypatch.setattr(
+            "apps.students.lidpixel._current_institution", lambda: _institution()
+        )
+
+    def _lead(self, **kwargs):
+        from apps.students.models import StudentLead
+
+        defaults = {
+            "full_name": "Ali",
+            "phone": "+998901112233",
+            "branch": BranchFactory(),
+            "source": "lidpixel",
+        }
+        defaults.update(kwargs)
+        return StudentLead.objects.create(**defaults)
+
+    def test_status_change_creates_event(self):
+        from apps.students.models import LeadStatusDelivery
+
+        lead = self._lead()
+        lead.status = "contacted"
+        lead.save(update_fields=["status", "updated_at"])
+
+        delivery = LeadStatusDelivery.objects.get(lead=lead, event="status_changed")
+        assert delivery.payload["status"] == "contacted"
+        assert delivery.status == "pending"
+
+    def test_creating_lead_does_not_create_event(self):
+        from apps.students.models import LeadStatusDelivery
+
+        lead = self._lead()
+
+        assert not LeadStatusDelivery.objects.filter(lead=lead).exists()
+
+    def test_save_without_status_change_creates_nothing(self):
+        from apps.students.models import LeadStatusDelivery
+
+        lead = self._lead()
+        lead.notes = "перезвонить"
+        lead.save(update_fields=["notes", "updated_at"])
+
+        assert not LeadStatusDelivery.objects.filter(lead=lead).exists()
+
+    def test_other_source_creates_nothing(self):
+        from apps.students.models import LeadStatusDelivery
+
+        lead = self._lead(source="walk_in")
+        lead.status = "contacted"
+        lead.save(update_fields=["status", "updated_at"])
+
+        assert not LeadStatusDelivery.objects.filter(lead=lead).exists()
+
+    def test_no_event_when_url_not_configured(self, monkeypatch):
+        from apps.students.models import LeadStatusDelivery
+
+        monkeypatch.setattr(
+            "apps.students.lidpixel._current_institution",
+            lambda: _institution(url=""),
+        )
+        lead = self._lead()
+        lead.status = "won"
+        lead.save(update_fields=["status", "updated_at"])
+
+        assert not LeadStatusDelivery.objects.filter(lead=lead).exists()
+
+    def test_conversion_save_queues_won_event(self):
+        """Перевод заявки в ученики идёт через save(update_fields=[...]).
+
+        Сигнал обязан сработать и на таком сохранении — иначе самое важное
+        событие («поступил») никогда не уйдёт.
+        """
+        from apps.students.models import LeadStatusDelivery
+
+        branch = BranchFactory()
+        lead = self._lead(branch=branch)
+        student = StudentFactory(branch=branch)
+
+        lead.status = "won"
+        lead.converted_student = student
+        lead.save(update_fields=["status", "converted_student", "updated_at"])
+
+        delivery = LeadStatusDelivery.objects.get(lead=lead, event="status_changed")
+        assert delivery.payload["status"] == "won"
+        lead.refresh_from_db()
+        assert lead.converted_student_id == student.id
