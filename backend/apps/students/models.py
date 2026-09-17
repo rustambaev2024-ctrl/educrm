@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 from .storage import private_document_storage, student_document_path
 
@@ -223,6 +224,56 @@ class StudentLead(models.Model):
 
     def __str__(self) -> str:
         return f"{self.full_name} ({self.phone})"
+
+
+class LeadStatusDelivery(models.Model):
+    """Журнал отправок статусов заявки во внешний сервис (LeadPixel).
+
+    Событие пишется сразу, в одной транзакции с действием пользователя, а
+    отправляется фоном: администратор не должен ждать сеть, и недоступность
+    LeadPixel не должна ломать работу в CRM.
+    """
+
+    EVENT_CHOICES = [
+        ("status_changed", "Status changed"),
+        ("sale", "Sale"),
+    ]
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("sent", "Sent"),
+        ("failed", "Failed"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    lead = models.ForeignKey(
+        StudentLead, on_delete=models.CASCADE, related_name="status_deliveries"
+    )
+    event = models.CharField(max_length=20, choices=EVENT_CHOICES)
+    payload = models.JSONField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
+    attempts = models.PositiveIntegerField(default=0)
+    next_attempt_at = models.DateTimeField(default=timezone.now)
+    response_code = models.IntegerField(null=True, blank=True)
+    last_error = models.TextField(blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "students_lead_status_delivery"
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status", "next_attempt_at"])]
+        constraints = [
+            # Продажа по заявке одна: вторая означала бы, что первую оплату
+            # засчитали дважды.
+            models.UniqueConstraint(
+                fields=["lead"],
+                condition=models.Q(event="sale"),
+                name="uniq_sale_delivery_per_lead",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.lead_id} {self.event} {self.status}"
 
 
 class ParentLinkCode(models.Model):

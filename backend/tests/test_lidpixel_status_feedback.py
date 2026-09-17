@@ -40,3 +40,35 @@ class TestWebhookExternalId:
         from apps.students.views import _lidpixel_external_id
 
         assert _lidpixel_external_id({"id": 42}) == "42"
+
+
+class TestDeliveryModel:
+    def _lead(self):
+        from apps.students.models import StudentLead
+
+        return StudentLead.objects.create(
+            full_name="Ali",
+            phone="+998901112233",
+            branch=BranchFactory(),
+            source="lidpixel",
+        )
+
+    def test_only_one_sale_delivery_per_lead(self):
+        from django.db import IntegrityError
+
+        from apps.students.models import LeadStatusDelivery
+
+        lead = self._lead()
+        LeadStatusDelivery.objects.create(lead=lead, event="sale", payload={})
+
+        with pytest.raises(IntegrityError):
+            LeadStatusDelivery.objects.create(lead=lead, event="sale", payload={})
+
+    def test_two_status_deliveries_are_allowed(self):
+        from apps.students.models import LeadStatusDelivery
+
+        lead = self._lead()
+        LeadStatusDelivery.objects.create(lead=lead, event="status_changed", payload={})
+        LeadStatusDelivery.objects.create(lead=lead, event="status_changed", payload={})
+
+        assert LeadStatusDelivery.objects.filter(lead=lead).count() == 2
