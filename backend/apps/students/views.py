@@ -637,6 +637,48 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Won lead cannot be edited"}, status=status.HTTP_400_BAD_REQUEST)
         return super().partial_update(request, *args, **kwargs)
 
+    def _students_in_scope(self):
+        """Ученики, доступные тому, кто спрашивает — теми же правилами, что и заявки.
+
+        Связывание заявки с учеником — это ручка вида «возьми вон того
+        ученика по id», а на таких ручках в этом проекте уже находили утечки
+        между филиалами. Поэтому правило скоупа повторено здесь явно, а не
+        подразумевается из того, что заявка уже отфильтрована.
+        """
+        user = self.request.user
+        qs = Student.objects.select_related("user", "branch")
+        if not user.is_authenticated:
+            return qs.none()
+        if user.role in ("superadmin", "director"):
+            return qs
+        if user.role == "branch_admin" and hasattr(user, "staff_profile"):
+            branch_id = user.staff_profile.branch_id
+            return qs.filter(branch_id=branch_id) if branch_id else qs.none()
+        return qs.none()
+
+    def _send_meta_purchase(self, request, lead):
+        """Событие «Purchase» в Meta. Общее для обоих путей перевода.
+
+        Вынесено из тела конверсии: у заявки теперь два способа стать
+        выигранной — создание ученика и связывание с уже заведённым, — и
+        реклама должна узнавать о продаже одинаково в обоих случаях.
+        Иначе половина сделок молча выпала бы из атрибуции.
+        """
+        try:
+            institution = request.tenant
+            if getattr(institution, "meta_pixel_id", None):
+                return send_lead_event(
+                    pixel_id=institution.meta_pixel_id,
+                    access_token=institution.meta_access_token,
+                    phone=lead.phone,
+                    lead_id=str(lead.id),
+                )
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Meta event error for lead %s", lead.pk
+            )
+        return False
+
     @action(detail=True, methods=["post"], url_path="convert")
     @transaction.atomic
     def convert_to_student(self, request, pk=None):
@@ -649,11 +691,84 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
         import secrets
 
         data = request.data
+
+        # Ученика нередко заводят руками на странице «Ученики» — с группой,
+        # оплатой и родителем, — и только потом вспоминают про карточку
+        # заявки. Раньше это был тупик: доска пускает в «Yozildi» только
+        # через эту ручку, а ручка упиралась в занятый телефон. Заявка не
+        # могла стать выигранной никогда, а вместе с ней не уходили ни
+        # «Purchase» в Meta, ни продажа в LeadPixel.
+        link_student_id = data.get("link_student_id")
+        if link_student_id:
+            student = self._students_in_scope().filter(pk=link_student_id).first()
+            if student is None:
+                return Response(
+                    {
+                        "detail": {
+                            "uz": "O'quvchi topilmadi.",
+                            "ru": "Ученик не найден.",
+                        }
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            # На одного ученика может указывать несколько заявок: поле —
+            # обычный ForeignKey. Без этой проверки два лида на одного
+            # ребёнка отправили бы в LeadPixel две продажи, и окупаемость
+            # рекламы у них завысилась бы вдвое.
+            already = (
+                StudentLead.objects.filter(converted_student=student, status="won")
+                .exclude(pk=lead.pk)
+                .first()
+            )
+            if already is not None:
+                return Response(
+                    {
+                        "detail": {
+                            "uz": "Bu o'quvchi boshqa murojaatga biriktirilgan.",
+                            "ru": "Этот ученик уже связан с другой заявкой.",
+                        }
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+            lead.converted_student = student
+            lead.status = "won"
+            lead.save(update_fields=["status", "converted_student", "updated_at"])
+            return Response(
+                {
+                    "student_id": str(student.id),
+                    "linked": True,
+                    "meta_event_sent": self._send_meta_purchase(request, lead),
+                }
+            )
+
         password = data.get("password") or secrets.token_urlsafe(8)
         full_name = data.get("full_name", lead.full_name)
         phone = data.get("phone", lead.phone)
 
         if User.objects.filter(phone=phone).exists():
+            # Занятый телефон — не всегда ошибка. Если он принадлежит
+            # ученику в зоне видимости запрашивающего, это тот самый
+            # человек, и заявку надо связать с ним, а не заводить дубль.
+            existing = self._students_in_scope().filter(user__phone=phone).first()
+            if existing is not None:
+                return Response(
+                    {
+                        "detail": {
+                            "uz": "Bu o'quvchi allaqachon tizimda bor.",
+                            "ru": "Этот ученик уже заведён в системе.",
+                        },
+                        "existing_student": {
+                            "id": str(existing.id),
+                            "full_name": existing.user.full_name,
+                            "phone": existing.user.phone,
+                            "branch": existing.branch.name if existing.branch else "",
+                        },
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+            # Телефон занят не учеником (сотрудник, родитель) либо учеником
+            # чужого филиала. Связывать нечего и показывать нечего — ответ
+            # остаётся прежним и никого постороннего не раскрывает.
             return Response(
                 {
                     "detail": {
@@ -703,22 +818,8 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
         lead.converted_student = student
         lead.save(update_fields=["status", "converted_student", "updated_at"])
 
-        meta_sent = False
-        try:
-            institution = request.tenant
-            if hasattr(institution, "meta_pixel_id") and institution.meta_pixel_id:
-                meta_sent = send_lead_event(
-                    pixel_id=institution.meta_pixel_id,
-                    access_token=institution.meta_access_token,
-                    phone=lead.phone,
-                    lead_id=str(lead.id),
-                )
-        except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.error(f"Meta event error: {e}")
-
         return Response({
             "student_id": str(student.id),
             "password": password,
-            "meta_event_sent": meta_sent,
+            "meta_event_sent": self._send_meta_purchase(request, lead),
         })

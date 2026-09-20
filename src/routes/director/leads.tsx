@@ -189,6 +189,16 @@ function DirectorLeadsPage() {
   const [sourceFilter, setSourceFilter] = useState<FilterSource>("all");
   const [showWon, setShowWon] = useState(false);
   const [convertSheetOpen, setConvertSheetOpen] = useState(false);
+  // Ученика часто заводят руками раньше, чем вспоминают про карточку заявки.
+  // Тогда создание дубля невозможно и не нужно — бэкенд отвечает 409 и
+  // называет найденного человека, а мы предлагаем связать заявку с ним.
+  const [linkCandidate, setLinkCandidate] = useState<{
+    id: string;
+    full_name: string;
+    phone: string;
+    branch: string;
+  } | null>(null);
+  const [isLinking, setIsLinking] = useState(false);
   const [trialDialog, setTrialDialog] = useState<{ lead: StudentLead | null; date: string; groupId: string }>({
     lead: null,
     date: "",
@@ -391,6 +401,49 @@ function DirectorLeadsPage() {
     }
   };
 
+  /**
+   * Общий хвост обоих путей перевода: создания ученика и связывания с уже
+   * заведённым.
+   *
+   * convert-endpoint уже проставляет status="won" на сервере. Доска лидов
+   * живёт в локальном стейте (loadLeads), а ученики — в сторе (reload):
+   * перечитываем оба, иначе карточка залипает на доске (BUG-015). Отдельный
+   * PATCH был бы отклонён гардом "Won lead cannot be edited". silent: true —
+   * доска уже показывает актуальный список, это фоновая ресинхронизация
+   * после мутации, а не первая загрузка.
+   */
+  const finishConversion = async () => {
+    await Promise.all([loadLeads({ silent: true }), reload()]);
+    setConvertSheetOpen(false);
+    setSelectedId(null);
+  };
+
+  const confirmLink = async () => {
+    if (!selected || !linkCandidate) return;
+    setIsLinking(true);
+    try {
+      await leadApi.convert(selected.id, { link_student_id: linkCandidate.id });
+      await finishConversion();
+      setLinkCandidate(null);
+      toast.success(t.linked);
+    } catch (err) {
+      console.error("[leads] link failed", err);
+      let message = t.convertError;
+      if (err instanceof ApiError) {
+        const detail = err.body?.detail;
+        if (typeof detail === "string") {
+          message = detail;
+        } else if (detail && typeof detail === "object") {
+          const d = detail as Record<string, string>;
+          message = d[lang] ?? d.ru ?? t.convertError;
+        }
+      }
+      toast.error(message);
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
   const handleConvertSubmit = async (payload: any) => {
     if (!selected) return;
     try {
@@ -404,18 +457,21 @@ function DirectorLeadsPage() {
         parent_phone: payload.parentPhone,
         parent_password: payload.parentPassword,
       });
-      // convert-endpoint уже проставляет status="won" на сервере. Доска лидов
-      // живёт в локальном стейте (loadLeads), а ученики — в сторе (reload):
-      // перечитываем оба, иначе карточка залипает на доске (BUG-015).
-      // Отдельный PATCH был бы отклонён гардом "Won lead cannot be edited".
-      // silent: true — доска уже показывает актуальный список лидов, это
-      // фоновая ресинхронизация после мутации, а не первая загрузка.
-      await Promise.all([loadLeads({ silent: true }), reload()]);
+      await finishConversion();
       toast.success(t.converted);
-      setConvertSheetOpen(false);
-      setSelectedId(null);
     } catch (err) {
       console.error("[leads] convert failed", err);
+      // 409 с найденным учеником — не ошибка, а другой случай: человека уже
+      // завели вручную. Раньше здесь был тупик — заявка не могла стать
+      // «Yozildi» никогда, и вместе с ней не уходили ни «Purchase» в Meta,
+      // ни продажа в LeadPixel.
+      const existing = err instanceof ApiError && err.status === 409
+        ? (err.body?.existing_student as typeof linkCandidate)
+        : null;
+      if (existing) {
+        setLinkCandidate(existing);
+        return;
+      }
       let message = t.convertError;
       if (err instanceof ApiError) {
         const detail = err.body?.detail;
@@ -811,6 +867,22 @@ function DirectorLeadsPage() {
         </DialogContent>
       </Dialog>
       <ConfirmDialog
+        open={linkCandidate !== null}
+        onOpenChange={(open) => { if (!open) setLinkCandidate(null); }}
+        title={t.linkTitle}
+        description={
+          linkCandidate
+            ? (lang === "uz"
+                ? `${linkCandidate.full_name} (${linkCandidate.phone})${linkCandidate.branch ? `, ${linkCandidate.branch}` : ""}. Yangi o'quvchi yaratilmaydi — murojaat shu o'quvchiga biriktiriladi va yopiladi.`
+                : `${linkCandidate.full_name} (${linkCandidate.phone})${linkCandidate.branch ? `, ${linkCandidate.branch}` : ""}. Новый ученик создан не будет — заявка свяжется с этим человеком и закроется.`)
+            : undefined
+        }
+        confirmText={t.linkConfirm}
+        cancelText={lang === "uz" ? "Bekor qilish" : "Отмена"}
+        isLoading={isLinking}
+        onConfirm={confirmLink}
+      />
+      <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
         title={lang === "uz" ? "Murojaatni o'chirish" : "Удалить заявку"}
@@ -1044,6 +1116,9 @@ function labels(lang: "uz" | "ru") {
       retry: "Повторить",
       saveError: "Не удалось сохранить заявку",
       convertError: "Не удалось создать ученика",
+      linkTitle: "Этот ученик уже есть в системе",
+      linkConfirm: "Связать заявку",
+      linked: "Заявка связана с учеником и закрыта",
       branchRequired: "Для создания ученика укажите филиал",
       status: {
         new: "Новая",
@@ -1115,6 +1190,9 @@ function labels(lang: "uz" | "ru") {
     retry: "Qayta urinish",
     saveError: "Murojaatni saqlab bo'lmadi",
     convertError: "O'quvchini yaratib bo'lmadi",
+    linkTitle: "Bu o'quvchi tizimda allaqachon bor",
+    linkConfirm: "Murojaatni biriktirish",
+    linked: "Murojaat o'quvchiga biriktirildi va yopildi",
     branchRequired: "O'quvchi yaratish uchun filialni tanlang",
     status: {
       new: "Yangi",
