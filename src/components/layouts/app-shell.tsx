@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "@/components/edu/global-search";
 import { LangToggle } from "@/components/edu/lang-toggle";
+import { ThemeToggle } from "@/components/edu/theme-toggle";
 import { NotificationsPopover } from "@/components/edu/notifications-popover";
 import { useInstitutionBrand } from "@/hooks/use-institution-brand";
 import { useAuth } from "@/lib/auth";
@@ -222,6 +223,7 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
           >
             <Search className="size-4" />
           </Button>
+          <ThemeToggle />
           <LangToggle />
           <NotificationsPopover size="sm" />
           <DropdownMenu>
@@ -258,6 +260,7 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
           <kbd className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px]">Ctrl K</kbd>
         </Button>
         <div className="ml-auto flex items-center gap-1">
+          <ThemeToggle />
           <LangToggle />
           <NotificationsPopover />
         </div>

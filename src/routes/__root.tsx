@@ -18,10 +18,17 @@ function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <div className="text-7xl font-bold bg-gradient-primary bg-clip-text text-transparent">404</div>
+        <div className="text-7xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          404
+        </div>
         <h2 className="mt-4 text-xl font-semibold">{t("notFound.title")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{t("notFound.body")}</p>
-        <Link to="/" className="mt-6 inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">{t("notFound.home")}</Link>
+        <Link
+          to="/"
+          className="mt-6 inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          {t("notFound.home")}
+        </Link>
       </div>
     </div>
   );
@@ -94,15 +101,25 @@ export const Route = createRootRoute({
       // Цвет системной панели браузера. Совпадает с --sidebar: на телефоне
       // адресная строка красится в него, и она должна быть частью продукта,
       // а не остатком прежнего синего бренда.
-      { name: "theme-color", content: "#0a3527" },
+      { name: "theme-color", content: "#051F20" },
       { title: "GrowBase — Платформа управления образовательными центрами" },
-      { name: "description", content: "Управление учениками, группами, расписанием, финансами и аналитикой образовательного центра в одной системе." },
+      {
+        name: "description",
+        content:
+          "Управление учениками, группами, расписанием, финансами и аналитикой образовательного центра в одной системе.",
+      },
       { property: "og:title", content: "GrowBase — Управление учебным центром" },
-      { property: "og:description", content: "Современная SaaS-платформа для образовательных центров." },
+      {
+        property: "og:description",
+        content: "Современная SaaS-платформа для образовательных центров.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "GrowBase — Управление учебным центром" },
-      { name: "twitter:description", content: "Современная SaaS-платформа для образовательных центров." },
+      {
+        name: "twitter:description",
+        content: "Современная SaaS-платформа для образовательных центров.",
+      },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "GrowBase" },
@@ -111,7 +128,10 @@ export const Route = createRootRoute({
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+      },
       { rel: "manifest", href: "/manifest.webmanifest" },
       // Favicon и apple-touch — только PNG: WebP в rel="icon" поддержан не везде,
       // а сам PNG отдаётся в целевом размере, а не масштабируется из 1254px.
@@ -133,7 +153,11 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{document.documentElement.classList.remove('dark');var l=localStorage.getItem('educrm.lang');document.documentElement.lang=(l==='ru'?'ru':'uz');}catch(e){}`,
+            // Тема выставляется ДО гидратации и синхронно — иначе страница
+            // мигнёт светлым перед тем, как React успеет надеть класс.
+            // Раньше здесь стоял безусловный remove('dark'): тёмной темы не
+            // существовало, и скрипт её гасил. Теперь он её восстанавливает.
+            __html: `try{var t=localStorage.getItem('educrm.theme');document.documentElement.classList.toggle('dark',t==='dark');var l=localStorage.getItem('educrm.lang');document.documentElement.lang=(l==='ru'?'ru':'uz');}catch(e){}`,
           }}
         />
         <script
