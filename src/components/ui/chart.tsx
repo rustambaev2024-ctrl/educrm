@@ -3,7 +3,7 @@ import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@/lib/utils";
 
-// EduCRM currently renders one forced-light visual theme.
+// GrowBase currently renders one forced-light visual theme.
 const THEMES = { light: "" } as const;
 
 export type ChartConfig = {

@@ -362,7 +362,7 @@ function DirectorIntegrationsPage() {
                     value={smsSettings.sms_sender}
                     onChange={(e) => setSmsSettings((s) => ({ ...s, sms_sender: e.target.value }))}
                     autoComplete="off"
-                    placeholder="EduCRM"
+                    placeholder="GrowBase"
                     maxLength={11}
                   />
                 </div>

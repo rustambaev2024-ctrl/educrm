@@ -95,17 +95,17 @@ export const Route = createRootRoute({
       // адресная строка красится в него, и она должна быть частью продукта,
       // а не остатком прежнего синего бренда.
       { name: "theme-color", content: "#0a3527" },
-      { title: "EduCRM — Платформа управления образовательными центрами" },
+      { title: "GrowBase — Платформа управления образовательными центрами" },
       { name: "description", content: "Управление учениками, группами, расписанием, финансами и аналитикой образовательного центра в одной системе." },
-      { property: "og:title", content: "EduCRM — Управление учебным центром" },
+      { property: "og:title", content: "GrowBase — Управление учебным центром" },
       { property: "og:description", content: "Современная SaaS-платформа для образовательных центров." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "EduCRM — Управление учебным центром" },
+      { name: "twitter:title", content: "GrowBase — Управление учебным центром" },
       { name: "twitter:description", content: "Современная SaaS-платформа для образовательных центров." },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "EduCRM" },
+      { name: "apple-mobile-web-app-title", content: "GrowBase" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -142,7 +142,7 @@ function RootShell({ children }: { children: ReactNode }) {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
-              name: "EduCRM",
+              name: "GrowBase",
               applicationCategory: "BusinessApplication",
               operatingSystem: "Web",
               description:

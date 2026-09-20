@@ -24,7 +24,7 @@ function SaSettings() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
-  const [platformName, setPlatformName] = useState("EduCRM");
+  const [platformName, setPlatformName] = useState("GrowBase");
   const [supportEmail, setSupportEmail] = useState("");
   const [supportPhone, setSupportPhone] = useState("");
   const [defaultLang, setDefaultLang] = useState("uz");
@@ -47,7 +47,7 @@ function SaSettings() {
     superadminApi.settings.get()
       .then((data: any) => {
         if (data) {
-          setPlatformName(data.platform_name ?? "EduCRM");
+          setPlatformName(data.platform_name ?? "GrowBase");
           setSupportEmail(data.support_email ?? "");
           setSupportPhone(data.support_phone ?? "");
           setDefaultLang(data.default_language ?? "uz");

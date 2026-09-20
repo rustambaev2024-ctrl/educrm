@@ -3,7 +3,7 @@ import { branchApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 export interface InstitutionBrand {
-  /** Название организации. До загрузки — «EduCRM». */
+  /** Название организации. До загрузки — «GrowBase». */
   name: string;
   /** Логотип организации, если загружен и отрисовался. */
   logo: string | null;
@@ -17,14 +17,14 @@ export interface InstitutionBrand {
  * Вынесено в одно место намеренно. Раньше этот код был скопирован в двух
  * каркасах, и копии разошлись: в одной ошибку загрузки записывали в консоль,
  * в другой глушили пустым catch. Из-за этого клиент весь сеанс видел
- * «EduCRM» вместо названия своего центра, а причину найти было нечем.
+ * «GrowBase» вместо названия своего центра, а причину найти было нечем.
  *
  * Брендинг не критичен для работы — при сбое экран остаётся рабочим
  * с названием по умолчанию, но молчать об этом нельзя.
  */
 export function useInstitutionBrand(): InstitutionBrand {
   const { user } = useAuth();
-  const [name, setName] = useState("EduCRM");
+  const [name, setName] = useState("GrowBase");
   const [logo, setLogo] = useState<string | null>(null);
 
   useEffect(() => {

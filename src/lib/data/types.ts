@@ -1,4 +1,4 @@
-// Domain types for EduCRM frontend (V1).
+// Domain types for GrowBase frontend (V1).
 // Backend (Django) is the source of truth — these types must mirror DRF serializers.
 
 export type StudentStatus =

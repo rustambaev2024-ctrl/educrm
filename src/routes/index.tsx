@@ -110,7 +110,7 @@ export function LoginPage() {
               <GraduationCap className="size-6 text-primary-foreground" />
             </div>
             <div>
-              <div className="text-xl font-bold tracking-tight">EduCRM</div>
+              <div className="text-xl font-bold tracking-tight">GrowBase</div>
               <div className="text-xs text-muted-foreground">{t("brand.tagline")}</div>
             </div>
           </div>
@@ -129,7 +129,7 @@ export function LoginPage() {
               </div>
               <div>
                 <div className="text-base font-semibold">{t("login.signInAs")}</div>
-                <div className="text-xs text-muted-foreground">EduCRM</div>
+                <div className="text-xs text-muted-foreground">GrowBase</div>
               </div>
             </div>
 
