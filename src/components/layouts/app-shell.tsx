@@ -213,7 +213,11 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
                 onError={brand.onLogoError}
               />
             ) : brand.name === PLATFORM_BRAND_NAME ? (
-              <img src="/brand/growbase-logo-mark.webp" alt="" className="size-full object-contain" />
+              <img
+                src="/brand/growbase-logo-mark.webp"
+                alt=""
+                className="size-full object-contain"
+              />
             ) : (
               brand.name.charAt(0).toUpperCase()
             )}
@@ -315,7 +319,9 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
       {/* ══ «Ещё» — остальные разделы ══ */}
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="rounded-t-2xl">
-          <SheetTitle className="px-4 pt-4 text-base">{tr("Barcha bo'limlar", "Все разделы")}</SheetTitle>
+          <SheetTitle className="px-4 pt-4 text-base">
+            {tr("Barcha bo'limlar", "Все разделы")}
+          </SheetTitle>
           <div className="grid grid-cols-1 gap-1 p-4 pt-2 sm:grid-cols-2">
             {restItems.map((item) => {
               const isActive = items[active] === item;

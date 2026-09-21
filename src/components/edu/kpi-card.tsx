@@ -59,7 +59,15 @@ const legacyMap: Record<string, keyof typeof TONE> = {
   cyan: "cyan",
 };
 
-export function KpiCard({ label, value, subtitle, delta, icon: Icon, color, iconColor }: KpiCardProps) {
+export function KpiCard({
+  label,
+  value,
+  subtitle,
+  delta,
+  icon: Icon,
+  color,
+  iconColor,
+}: KpiCardProps) {
   const key = color ?? (iconColor ? legacyMap[iconColor] : undefined) ?? "blue";
   const tone = TONE[key] ?? TONE.blue;
 
