@@ -1,13 +1,7 @@
 // Domain types for GrowBase frontend (V1).
 // Backend (Django) is the source of truth — these types must mirror DRF serializers.
 
-export type StudentStatus =
-  | "active"
-  | "frozen"
-  | "debtor"
-  | "archived"
-  | "graduate"
-  | "expelled";
+export type StudentStatus = "active" | "frozen" | "debtor" | "archived" | "graduate" | "expelled";
 
 export type GroupStatus = "recruiting" | "active" | "frozen" | "completed";
 
@@ -96,7 +90,13 @@ export interface Student {
   bonusBalance?: number;
   groupIds: string[];
   parentId?: string;
-  documents?: { id: string; name: string; docType?: string; file?: string | null; uploadedAt: string }[];
+  documents?: {
+    id: string;
+    name: string;
+    docType?: string;
+    file?: string | null;
+    uploadedAt: string;
+  }[];
   certificates?: { id: string; courseName: string; date: string }[];
 }
 
@@ -191,14 +191,14 @@ export type PaymentDirection = "in" | "out" | "internal";
 
 export interface Payment {
   id: string;
-  studentId?: string;       // for incoming tuition payments
-  staffId?: string;         // for salary outgoing
+  studentId?: string; // for incoming tuition payments
+  staffId?: string; // for salary outgoing
   groupId?: string;
   branchId: string;
   /** За какой урок списание — есть у списаний за занятие. */
   lessonId?: string;
   type: string;
-  amount: number;           // positive value
+  amount: number; // positive value
   /**
    * Баланс кошелька до и после операции — денежный след, по которому можно
    * ответить «почему у ученика такой баланс». Не приходит у оптимистичных
@@ -208,12 +208,11 @@ export interface Payment {
   balanceAfter?: number;
   direction: PaymentDirection; // internal = wallet operation, not organisation income/expense
   method: PaymentMethod;
-  date: string;             // ISO
+  date: string; // ISO
   comment?: string;
   category?: "tuition" | "salary" | "rent" | "utilities" | "marketing" | "other";
   fundingSource?: "main" | "bonus";
 }
-
 
 export type ChatScope = "direct" | "group" | "broadcast";
 
@@ -232,10 +231,10 @@ export interface ChatMessage {
 
 export interface ChatThread {
   id: string;
-  title: string;             // contact display name or group name
+  title: string; // contact display name or group name
   scope: ChatScope;
-  participantIds: string[];  // user ids
-  groupId?: string;          // when scope=group
+  participantIds: string[]; // user ids
+  groupId?: string; // when scope=group
   lastMessageAt: string;
   lastMessage?: string;
   unread: number;
@@ -259,7 +258,15 @@ export interface AppNotification {
   createdAt: string;
   read: boolean;
   link?: string;
-  audience: ("superadmin" | "director" | "admin" | "branch_admin" | "teacher" | "student" | "parent")[];
+  audience: (
+    | "superadmin"
+    | "director"
+    | "admin"
+    | "branch_admin"
+    | "teacher"
+    | "student"
+    | "parent"
+  )[];
 }
 
 // Homework
@@ -282,7 +289,7 @@ export interface Homework {
   description: string;
   link?: string;
   assignedAt: string; // ISO
-  dueDate: string;    // ISO date
+  dueDate: string; // ISO date
   fileUrl?: string | null;
   attachments?: HomeworkAttachment[];
 }
@@ -294,13 +301,21 @@ export interface HomeworkSubmission {
   status: HomeworkSubmissionStatus;
   submittedAt?: string;
   comment?: string;
-  grade?: number;     // 2..5, школьная шкала (как и Grade.score)
+  grade?: number; // 2..5, школьная шкала (как и Grade.score)
   feedback?: string;
   attachments?: HomeworkAttachment[];
 }
 
 // Grades / exams
-export type GradeKind = "lesson" | "homework" | "exam" | "activity" | "speaking" | "vocabulary" | "test" | "extra_lesson";
+export type GradeKind =
+  | "lesson"
+  | "homework"
+  | "exam"
+  | "activity"
+  | "speaking"
+  | "vocabulary"
+  | "test"
+  | "extra_lesson";
 
 export interface Grade {
   id: string;
@@ -313,9 +328,9 @@ export interface Grade {
   /** За какой экзамен поставлена оценка. */
   examId?: string;
   homeworkStatusId?: string;
-  title: string;       // e.g. "Unit 4 Quiz", "Midterm"
-  score: number;       // 2..5, школьная шкала — единая для всех kind
-  date: string;        // ISO date
+  title: string; // e.g. "Unit 4 Quiz", "Midterm"
+  score: number; // 2..5, школьная шкала — единая для всех kind
+  date: string; // ISO date
   comment?: string;
 }
 
@@ -334,13 +349,20 @@ export interface AuditEntry {
   id: string;
   actorId: string;
   actorName: string;
-  actorRole: "superadmin" | "director" | "admin" | "branch_admin" | "teacher" | "student" | "parent";
+  actorRole:
+    | "superadmin"
+    | "director"
+    | "admin"
+    | "branch_admin"
+    | "teacher"
+    | "student"
+    | "parent";
   action: AuditAction;
-  entity: string;        // e.g. "student", "group", "lesson", "payment"
+  entity: string; // e.g. "student", "group", "lesson", "payment"
   entityId?: string;
-  summary: string;       // human-readable short text
+  summary: string; // human-readable short text
   branchId?: string;
-  createdAt: string;     // ISO
+  createdAt: string; // ISO
 }
 
 // Institution (superadmin level)
@@ -359,9 +381,9 @@ export interface Institution {
   staffCount: number;
   status: InstitutionStatus;
   subscriptionStatus?: SubscriptionStatus;
-  monthlyRevenue: number;  // UZS
-  expiresAt: string;       // ISO date
-  createdAt: string;       // ISO date
+  monthlyRevenue: number; // UZS
+  expiresAt: string; // ISO date
+  createdAt: string; // ISO date
   directorId?: string;
   directorName?: string;
   directorPhone?: string;

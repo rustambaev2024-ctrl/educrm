@@ -10,7 +10,8 @@ const UZ: Dict = {
   "brand.tagline": "O'quv markazlari platformasi",
   "login.heroPrefix": "O'quv markazingizni boshqaring",
   "login.heroAccent": "yagona tizimda",
-  "login.subtitle": "O'quvchilar, guruhlar, davomat, moliya, analitika va messenjer. Hammasi tez, chiroyli va ishonchli ishlaydi.",
+  "login.subtitle":
+    "O'quvchilar, guruhlar, davomat, moliya, analitika va messenjer. Hammasi tez, chiroyli va ishonchli ishlaydi.",
   "login.chooseRole": "Tezkor kirish uchun rolni tanlang",
   "login.signInAs": "Kirish",
   "login.phone": "Telefon raqam",
@@ -19,9 +20,11 @@ const UZ: Dict = {
   "login.remember": "Meni eslab qol",
   "login.forgot": "Parolni unutdingizmi?",
   "login.forgotTitle": "Parolni tiklash",
-  "login.forgotBody": "Parolni tiklash uchun o'quv markazi administratoriga yoki direktoriga murojaat qiling. Yangi parol siz uchun belgilanadi.",
+  "login.forgotBody":
+    "Parolni tiklash uchun o'quv markazi administratoriga yoki direktoriga murojaat qiling. Yangi parol siz uchun belgilanadi.",
   "login.chooseInstitutionTitle": "Qaysi tashkilotga kirasiz?",
-  "login.chooseInstitutionBody": "Bu raqam bir nechta o'quv markazida ro'yxatdan o'tgan. Kerakligini tanlang.",
+  "login.chooseInstitutionBody":
+    "Bu raqam bir nechta o'quv markazida ro'yxatdan o'tgan. Kerakligini tanlang.",
   "login.back": "Orqaga",
   "login.footer": "GrowBase v1.0",
   "toast.fillFields": "Telefon va parolni kiriting",
@@ -202,13 +205,15 @@ const UZ: Dict = {
   "groups.full": "To'la",
   "groups.namePlaceholder": "Masalan: Matematika — Ertalab",
   "groups.roomRequired": "Avval direktor kabinet yaratishi kerak.",
-  "groups.roomOptionalHint": "Kabinetlar yo'q — guruhni kabinetisiz yaratishingiz mumkin, keyin direktor kabinet qo'shadi.",
+  "groups.roomOptionalHint":
+    "Kabinetlar yo'q — guruhni kabinetisiz yaratishingiz mumkin, keyin direktor kabinet qo'shadi.",
   "groups.foundSlots": "{found} ta topildi · {slots} ta joy qoldi",
   "groups.sameBranch": "shu filial",
   "groups.moreStudents": "Yana {n} ta o'quvchi bor. Aniqroq qidiruv kiriting.",
   "groups.noSuchStudent": "Bunday o'quvchi topilmadi.",
   "groups.noFreeStudents": "Qo'shish uchun bo'sh o'quvchi yo'q.",
-  "groups.groupFull": "Guruh to'lgan. Yangi o'quvchi qo'shish uchun avval joy bo'shating yoki sig'imni oshiring.",
+  "groups.groupFull":
+    "Guruh to'lgan. Yangi o'quvchi qo'shish uchun avval joy bo'shating yoki sig'imni oshiring.",
   "groups.pickRoom": "Kabinet tanlang",
   "groups.updated": "Guruh yangilandi",
 
@@ -691,7 +696,8 @@ const UZ: Dict = {
   "sa.confirmDeleteType": "Tasdiqlash uchun «{name}» deb yozing:",
   "sa.confirmDeletePlaceholder": "«{name}» deb yozing",
   "sa.activeStudentsTitle": "Faol o'quvchilar bor!",
-  "sa.activeStudentsBody": "«{name}» tashkilotida {count} faol o'quvchi bor. Barchasini o'chirib yuborasizmi? Bu amalni qaytarib bo'lmaydi.",
+  "sa.activeStudentsBody":
+    "«{name}» tashkilotida {count} faol o'quvchi bor. Barchasini o'chirib yuborasizmi? Bu amalni qaytarib bo'lmaydi.",
   "sa.forceDelete": "Ha, o'chirib yuborish",
   "sa.slug.checking": "Tekshirilmoqda...",
   "sa.slug.available": "Mavjud",
@@ -739,7 +745,8 @@ const UZ: Dict = {
   "settings.prof.desc": "Login sifatida foydalaniladigan telefon raqam",
   "settings.prof.fullname": "F.I.Sh.",
   "settings.prof.phone": "Telefon raqam (Login)",
-  "settings.prof.phoneHint": "Ushbu raqam orqali sistemaga kirasiz. O'zgartirsangiz, keyingi safar yangi raqam bilan kirishingiz kerak bo'ladi.",
+  "settings.prof.phoneHint":
+    "Ushbu raqam orqali sistemaga kirasiz. O'zgartirsangiz, keyingi safar yangi raqam bilan kirishingiz kerak bo'ladi.",
   "settings.prof.update": "Yangilash",
   "settings.pass.title": "Parolni o'zgartirish",
   "settings.pass.desc": "Xavfsizlik uchun parolingizni yangilab turing",
@@ -787,7 +794,8 @@ const UZ: Dict = {
   "sd.reason.student_request": "O'quvchi talabi",
   "sd.reason.other": "Boshqa",
   "sd.transferTitle": "Guruhlararo ko'chirish",
-  "sd.transferDesc": "O'quvchini boshqa guruhga ko'chirish. Balans o'zgarmaydi, dars narxi yangi guruh narxiga mos ravishda hisoblanadi.",
+  "sd.transferDesc":
+    "O'quvchini boshqa guruhga ko'chirish. Balans o'zgarmaydi, dars narxi yangi guruh narxiga mos ravishda hisoblanadi.",
   "sd.fromGroup": "Qaysi guruhdan",
   "sd.toGroup": "Qaysi guruhga",
   "sd.pickGroup": "Guruhni tanlang",
@@ -796,7 +804,8 @@ const UZ: Dict = {
   "sd.comment": "Izoh",
   "sd.commentPlaceholder": "Izoh yozing...",
   "sd.transfer": "Ko'chirish",
-  "sd.assignParentDesc": "Ushbu o'quvchiga mavjud ota-onani biriktirishingiz yoki yangi ota-ona yaratishingiz mumkin.",
+  "sd.assignParentDesc":
+    "Ushbu o'quvchiga mavjud ota-onani biriktirishingiz yoki yangi ota-ona yaratishingiz mumkin.",
   "sd.existingParent": "Mavjud ota-ona",
   "sd.newParent": "Yangi ota-ona",
   "sd.searchParent": "Ota-onani qidirish",
@@ -836,7 +845,8 @@ const RU: Dict = {
   "brand.tagline": "Платформа учебных центров",
   "login.heroPrefix": "Управляйте учебным центром",
   "login.heroAccent": "в одной системе",
-  "login.subtitle": "Ученики, группы, посещаемость, финансы, аналитика и мессенджер. Всё работает быстро, красиво и надёжно.",
+  "login.subtitle":
+    "Ученики, группы, посещаемость, финансы, аналитика и мессенджер. Всё работает быстро, красиво и надёжно.",
   "login.chooseRole": "Выберите роль для быстрого входа",
   "login.signInAs": "Вход как",
   "login.phone": "Номер телефона",
@@ -845,9 +855,11 @@ const RU: Dict = {
   "login.remember": "Запомнить меня",
   "login.forgot": "Забыли пароль?",
   "login.forgotTitle": "Восстановление пароля",
-  "login.forgotBody": "Для восстановления пароля обратитесь к администратору или директору вашего учебного центра. Новый пароль будет установлен для вас.",
+  "login.forgotBody":
+    "Для восстановления пароля обратитесь к администратору или директору вашего учебного центра. Новый пароль будет установлен для вас.",
   "login.chooseInstitutionTitle": "В какую организацию войти?",
-  "login.chooseInstitutionBody": "Этот номер зарегистрирован в нескольких учебных центрах. Выберите нужный.",
+  "login.chooseInstitutionBody":
+    "Этот номер зарегистрирован в нескольких учебных центрах. Выберите нужный.",
   "login.back": "Назад",
   "login.footer": "GrowBase v1.0",
   "toast.fillFields": "Введите телефон и пароль",
@@ -1027,13 +1039,15 @@ const RU: Dict = {
   "groups.full": "Заполнена",
   "groups.namePlaceholder": "Например: Математика — Утро",
   "groups.roomRequired": "Сначала директор должен создать кабинет.",
-  "groups.roomOptionalHint": "Кабинетов нет — группу можно создать без кабинета, директор добавит его позже.",
+  "groups.roomOptionalHint":
+    "Кабинетов нет — группу можно создать без кабинета, директор добавит его позже.",
   "groups.foundSlots": "Найдено: {found} · Свободно мест: {slots}",
   "groups.sameBranch": "этот филиал",
   "groups.moreStudents": "Ещё {n} учеников. Уточните поиск.",
   "groups.noSuchStudent": "Такой ученик не найден.",
   "groups.noFreeStudents": "Нет свободных учеников для добавления.",
-  "groups.groupFull": "Группа заполнена. Чтобы добавить ученика, освободите место или увеличьте вместимость.",
+  "groups.groupFull":
+    "Группа заполнена. Чтобы добавить ученика, освободите место или увеличьте вместимость.",
   "groups.pickRoom": "Выберите кабинет",
   "groups.updated": "Группа обновлена",
 
@@ -1516,7 +1530,8 @@ const RU: Dict = {
   "sa.confirmDeleteType": "Для подтверждения введите «{name}»:",
   "sa.confirmDeletePlaceholder": "Введите «{name}»",
   "sa.activeStudentsTitle": "Есть активные ученики!",
-  "sa.activeStudentsBody": "В учреждении «{name}» есть {count} активных учеников. Удалить всё равно? Это действие необратимо.",
+  "sa.activeStudentsBody":
+    "В учреждении «{name}» есть {count} активных учеников. Удалить всё равно? Это действие необратимо.",
   "sa.forceDelete": "Да, удалить всё",
   "sa.slug.checking": "Проверяется...",
   "sa.slug.available": "Свободен",
@@ -1564,7 +1579,8 @@ const RU: Dict = {
   "settings.prof.desc": "Номер телефона, используемый как логин",
   "settings.prof.fullname": "Ф.И.О.",
   "settings.prof.phone": "Номер телефона (Логин)",
-  "settings.prof.phoneHint": "Через этот номер вы входите в систему. Если измените, в следующий раз нужно будет входить с новым номером.",
+  "settings.prof.phoneHint":
+    "Через этот номер вы входите в систему. Если измените, в следующий раз нужно будет входить с новым номером.",
   "settings.prof.update": "Обновить",
   "settings.pass.title": "Изменение пароля",
   "settings.pass.desc": "Обновляйте пароль для безопасности",
@@ -1612,7 +1628,8 @@ const RU: Dict = {
   "sd.reason.student_request": "Просьба ученика",
   "sd.reason.other": "Другое",
   "sd.transferTitle": "Перевод между группами",
-  "sd.transferDesc": "Перевод ученика в другую группу. Баланс не меняется, цена урока пересчитывается по цене новой группы.",
+  "sd.transferDesc":
+    "Перевод ученика в другую группу. Баланс не меняется, цена урока пересчитывается по цене новой группы.",
   "sd.fromGroup": "Из какой группы",
   "sd.toGroup": "В какую группу",
   "sd.pickGroup": "Выберите группу",
@@ -1621,7 +1638,8 @@ const RU: Dict = {
   "sd.comment": "Комментарий",
   "sd.commentPlaceholder": "Напишите комментарий...",
   "sd.transfer": "Перевести",
-  "sd.assignParentDesc": "Вы можете привязать к этому ученику существующего родителя или создать нового.",
+  "sd.assignParentDesc":
+    "Вы можете привязать к этому ученику существующего родителя или создать нового.",
   "sd.existingParent": "Существующий родитель",
   "sd.newParent": "Новый родитель",
   "sd.searchParent": "Поиск родителя",
@@ -1774,7 +1792,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     lang === "ru" ? pluralizeRu(n, one, few, many) : one;
 
   return (
-    <I18nContext.Provider value={{ lang, setLang, toggle, t, tf, plural }}>{children}</I18nContext.Provider>
+    <I18nContext.Provider value={{ lang, setLang, toggle, t, tf, plural }}>
+      {children}
+    </I18nContext.Provider>
   );
 }
 

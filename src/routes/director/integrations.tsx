@@ -11,7 +11,17 @@ import { branchApi } from "@/lib/api";
 import { apiErrorMessage } from "@/lib/data/store";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
-import { Settings, Check, Loader2, Link2, Info, ArrowUpRight, MessageSquare, Copy, KeyRound } from "lucide-react";
+import {
+  Settings,
+  Check,
+  Loader2,
+  Link2,
+  Info,
+  ArrowUpRight,
+  MessageSquare,
+  Copy,
+  KeyRound,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/director/integrations")({
@@ -266,9 +276,7 @@ function DirectorIntegrationsPage() {
                       onChange={(e) => setPixelId(e.target.value)}
                       className="bg-background border-border/60 focus:border-primary/50 transition-colors"
                     />
-                    <p className="text-[11px] text-muted-foreground">
-                      {t.pixelIdHint}
-                    </p>
+                    <p className="text-[11px] text-muted-foreground">{t.pixelIdHint}</p>
                   </div>
 
                   <div className="space-y-2">
@@ -283,9 +291,7 @@ function DirectorIntegrationsPage() {
                       onChange={(e) => setAccessToken(e.target.value)}
                       className="bg-background border-border/60 focus:border-primary/50 transition-colors"
                     />
-                    <p className="text-[11px] text-muted-foreground">
-                      {t.accessTokenHint}
-                    </p>
+                    <p className="text-[11px] text-muted-foreground">{t.accessTokenHint}</p>
                   </div>
 
                   <div className="flex justify-end pt-4">
@@ -318,7 +324,9 @@ function DirectorIntegrationsPage() {
                     <MessageSquare className="h-5 w-5 text-ok" />
                   </div>
                   <div>
-                    <h3 className="font-medium">{lang === "uz" ? "SMS xabarnomalar" : "SMS уведомления"}</h3>
+                    <h3 className="font-medium">
+                      {lang === "uz" ? "SMS xabarnomalar" : "SMS уведомления"}
+                    </h3>
                     <p className="text-xs text-muted-foreground mt-0.5">Eskiz.uz</p>
                   </div>
                 </div>
@@ -348,7 +356,9 @@ function DirectorIntegrationsPage() {
                     className="mt-1"
                     type="password"
                     value={smsSettings.sms_password}
-                    onChange={(e) => setSmsSettings((s) => ({ ...s, sms_password: e.target.value }))}
+                    onChange={(e) =>
+                      setSmsSettings((s) => ({ ...s, sms_password: e.target.value }))
+                    }
                     autoComplete="new-password"
                     placeholder="••••••••"
                   />
@@ -407,7 +417,9 @@ function DirectorIntegrationsPage() {
                         setTestLoading(true);
                         try {
                           await branchApi.testSms(testPhone);
-                          toast.success(lang === "uz" ? "Test SMS yuborildi!" : "Тестовое SMS отправлено!");
+                          toast.success(
+                            lang === "uz" ? "Test SMS yuborildi!" : "Тестовое SMS отправлено!",
+                          );
                         } catch (err) {
                           toast.error(apiErrorMessage(err));
                         } finally {
@@ -431,7 +443,9 @@ function DirectorIntegrationsPage() {
                 <div>
                   <h3 className="font-medium">LidPixel</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {lang === "uz" ? "Murojaatlarni CRM'ga uzatish uchun API kalit" : "API-ключ для передачи заявок в CRM"}
+                    {lang === "uz"
+                      ? "Murojaatlarni CRM'ga uzatish uchun API kalit"
+                      : "API-ключ для передачи заявок в CRM"}
                   </p>
                 </div>
               </div>
@@ -443,19 +457,29 @@ function DirectorIntegrationsPage() {
                   </Label>
                   <div className="flex gap-2 mt-1">
                     <Input readOnly value={webhookUrl} className="flex-1 text-xs font-mono" />
-                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(webhookUrl)}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => copyToClipboard(webhookUrl)}
+                    >
                       <Copy className="size-4" />
                     </Button>
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-xs text-muted-foreground">API-{lang === "uz" ? "kalit" : "ключ"}</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    API-{lang === "uz" ? "kalit" : "ключ"}
+                  </Label>
                   {revealedKey ? (
                     <>
                       <div className="flex gap-2 mt-1">
                         <Input readOnly value={revealedKey} className="flex-1 text-xs font-mono" />
-                        <Button variant="outline" size="icon" onClick={() => copyToClipboard(revealedKey)}>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => copyToClipboard(revealedKey)}
+                        >
                           <Copy className="size-4" />
                         </Button>
                       </div>
@@ -479,8 +503,12 @@ function DirectorIntegrationsPage() {
                   {leadKeyLoading
                     ? "..."
                     : hasKey
-                      ? lang === "uz" ? "Kalitni qayta yaratish" : "Перевыпустить ключ"
-                      : lang === "uz" ? "Kalit yaratish" : "Создать ключ"}
+                      ? lang === "uz"
+                        ? "Kalitni qayta yaratish"
+                        : "Перевыпустить ключ"
+                      : lang === "uz"
+                        ? "Kalit yaratish"
+                        : "Создать ключ"}
                 </Button>
 
                 <div className="border-t border-border pt-3 mt-3 space-y-3">
@@ -552,8 +580,12 @@ function DirectorIntegrationsPage() {
                             <span className="truncate text-muted-foreground">
                               {d.lead_name} ·{" "}
                               {d.event === "sale"
-                                ? lang === "uz" ? "sotuv" : "продажа"
-                                : lang === "uz" ? "status" : "статус"}
+                                ? lang === "uz"
+                                  ? "sotuv"
+                                  : "продажа"
+                                : lang === "uz"
+                                  ? "status"
+                                  : "статус"}
                             </span>
                             <span
                               className={
@@ -565,10 +597,16 @@ function DirectorIntegrationsPage() {
                               }
                             >
                               {d.status === "sent"
-                                ? lang === "uz" ? "yuborildi" : "отправлено"
+                                ? lang === "uz"
+                                  ? "yuborildi"
+                                  : "отправлено"
                                 : d.status === "failed"
-                                  ? lang === "uz" ? "xato" : "ошибка"
-                                  : lang === "uz" ? "navbatda" : "в очереди"}
+                                  ? lang === "uz"
+                                    ? "xato"
+                                    : "ошибка"
+                                  : lang === "uz"
+                                    ? "navbatda"
+                                    : "в очереди"}
                             </span>
                           </div>
                         ))}
@@ -593,11 +631,15 @@ function DirectorIntegrationsPage() {
                   {t.helpStep1}
                 </li>
                 <li className="leading-relaxed">
-                  <strong className="text-foreground block mb-0.5">2. Conversions API (CAPI)</strong>
+                  <strong className="text-foreground block mb-0.5">
+                    2. Conversions API (CAPI)
+                  </strong>
                   {t.helpStep2}
                 </li>
                 <li className="leading-relaxed">
-                  <strong className="text-foreground block mb-0.5">3. {t.helpLeadTrackingTitle}</strong>
+                  <strong className="text-foreground block mb-0.5">
+                    3. {t.helpLeadTrackingTitle}
+                  </strong>
                   {t.helpLeadTrackingBody}
                 </li>
               </ul>
@@ -645,10 +687,12 @@ function labels(lang: "uz" | "ru") {
       cardSubtitle: "Настройка сквозной аналитики и отслеживания рекламных кампаний",
       pixelIdLabel: "Meta Pixel ID",
       pixelIdPlaceholder: "Например: 123456789012345",
-      pixelIdHint: "Уникальный числовой идентификатор вашего пикселя Meta. Позволяет связывать действия пользователей на сайте.",
+      pixelIdHint:
+        "Уникальный числовой идентификатор вашего пикселя Meta. Позволяет связывать действия пользователей на сайте.",
       accessTokenLabel: "Маркер доступа Meta Conversions API (System Token)",
       accessTokenPlaceholder: "Начинается с EAABw...",
-      accessTokenHint: "Токен доступа, сгенерированный в Events Manager. Позволяет отправлять события с сервера (Conversions API) в обход блокировщиков рекламы.",
+      accessTokenHint:
+        "Токен доступа, сгенерированный в Events Manager. Позволяет отправлять события с сервера (Conversions API) в обход блокировщиков рекламы.",
       saveButton: "Сохранить",
       savingButton: "Сохранение...",
       loadError: "Не удалось загрузить настройки интеграции",
@@ -656,10 +700,12 @@ function labels(lang: "uz" | "ru") {
       saveError: "Не удалось сохранить настройки",
       helpTitle: "Как это работает?",
       helpStep1: "Найдите ID вашего пикселя в панели Meta Events Manager во вкладке «Настройки».",
-      helpStep2: "В Events Manager перейдите в «Настройки» -> прокрутите до «Conversions API» -> нажмите «Сгенерировать маркер доступа» и вставьте его сюда.",
+      helpStep2:
+        "В Events Manager перейдите в «Настройки» -> прокрутите до «Conversions API» -> нажмите «Сгенерировать маркер доступа» и вставьте его сюда.",
       helpStep3: "Маркетинговые события",
       helpLeadTrackingTitle: "Отслеживание лидов",
-      helpLeadTrackingBody: "При переводе лида в статус «Won» (Записался) система автоматически посылает событие «Purchase» (Покупка) обратно в Meta, чтобы оптимизировать рекламу.",
+      helpLeadTrackingBody:
+        "При переводе лида в статус «Won» (Записался) система автоматически посылает событие «Purchase» (Покупка) обратно в Meta, чтобы оптимизировать рекламу.",
     };
   }
   return {
@@ -669,21 +715,25 @@ function labels(lang: "uz" | "ru") {
     cardSubtitle: "Reklama kampaniyalarini va konversiyalarni kuzatish tizimini sozlash",
     pixelIdLabel: "Meta Pixel ID",
     pixelIdPlaceholder: "Masalan: 123456789012345",
-    pixelIdHint: "Meta reklama hisobingiz uchun asosiy Pixel ID raqami. O'quvchilar faolligini reklama kampaniyasi bilan bog'laydi.",
+    pixelIdHint:
+      "Meta reklama hisobingiz uchun asosiy Pixel ID raqami. O'quvchilar faolligini reklama kampaniyasi bilan bog'laydi.",
     accessTokenLabel: "Meta Conversions API kirish tokeni (System Token)",
     accessTokenPlaceholder: "EAABw... bilan boshlanadi",
-    accessTokenHint: "Meta Events Manager bo'limidan olingan maxsus token. Server orqali (Conversions API) brauzer cheklovlarisiz ma'lumot uzatish imkonini beradi.",
+    accessTokenHint:
+      "Meta Events Manager bo'limidan olingan maxsus token. Server orqali (Conversions API) brauzer cheklovlarisiz ma'lumot uzatish imkonini beradi.",
     saveButton: "Saqlash",
     savingButton: "Saqlanmoqda...",
     loadError: "Integratsiya sozlamalarini yuklab bo'lmadi",
     saveSuccess: "Integratsiya sozlamalari muvaffaqiyatli saqlandi!",
     saveError: "Sozlamalarni saqlashda xatolik yuz berdi",
     helpTitle: "Qanday ishlaydi?",
-    helpStep1: "Meta Events Manager panelida «Sozlamalar» (Settings) bo'limidan o'z Pixel ID raqamingizni toping.",
-    helpStep2: "Events Manager-dan «Sozlamalar» -> «Conversions API» bo'limiga tushing -> «Kirish tokenini yaratish» (Generate access token) tugmasini bosing va uni bu yerga joylang.",
+    helpStep1:
+      "Meta Events Manager panelida «Sozlamalar» (Settings) bo'limidan o'z Pixel ID raqamingizni toping.",
+    helpStep2:
+      "Events Manager-dan «Sozlamalar» -> «Conversions API» bo'limiga tushing -> «Kirish tokenini yaratish» (Generate access token) tugmasini bosing va uni bu yerga joylang.",
     helpStep3: "Marketing hodisalari",
     helpLeadTrackingTitle: "Murojaatlarni kuzatish",
-    helpLeadTrackingBody: "Murojaat statusi «Won» (Yozildi) holatiga o'tishi bilan tizim avtomatik ravishda Meta serveriga «Purchase» (Xarid) hodisasini yuboradi. Bu reklama samaradorligini oshiradi.",
+    helpLeadTrackingBody:
+      "Murojaat statusi «Won» (Yozildi) holatiga o'tishi bilan tizim avtomatik ravishda Meta serveriga «Purchase» (Xarid) hodisasini yuboradi. Bu reklama samaradorligini oshiradi.",
   };
 }
-
