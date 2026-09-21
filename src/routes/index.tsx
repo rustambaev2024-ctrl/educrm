@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, GraduationCap } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -106,9 +106,19 @@ export function LoginPage() {
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-4 py-12 lg:flex-row lg:gap-16 lg:px-8">
         <div className="mb-10 flex-1 lg:mb-0">
           <div className="mb-8 flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-              <GraduationCap className="size-6 text-primary-foreground" />
-            </div>
+            {/* Настоящий знак GrowBase из public/brand/. До 2026-09-21 здесь
+                стояла универсальная иконка выпускной шапочки из библиотеки,
+                хотя логотип лежал в проекте и не использовался нигде.
+                Градиентной подложки нет намеренно: у самого знака свой
+                градиент, и второй под ним спорил бы с ним. */}
+            <img
+              src="/brand/growbase-logo-mark.webp"
+              alt=""
+              aria-hidden
+              className="size-11 shrink-0"
+              width={44}
+              height={44}
+            />
             <div>
               <div className="text-xl font-bold tracking-tight">GrowBase</div>
               <div className="text-xs text-muted-foreground">{t("brand.tagline")}</div>
@@ -118,15 +128,22 @@ export function LoginPage() {
           <h1 className="text-balance text-4xl font-bold tracking-tight md:text-5xl">
             {t("login.heroPrefix")} <span className="text-primary">{t("login.heroAccent")}</span>
           </h1>
-          <p className="mt-4 max-w-lg text-balance text-base text-muted-foreground md:text-lg">{t("login.subtitle")}</p>
+          <p className="mt-4 max-w-lg text-balance text-base text-muted-foreground md:text-lg">
+            {t("login.subtitle")}
+          </p>
         </div>
 
         <div className="w-full max-w-md flex-shrink-0">
           <Card className="border-border/60 bg-card p-6 shadow-elegant-lg sm:p-8">
             <div className="mb-6 flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-gradient-primary shadow-glow">
-                <GraduationCap className="size-5 text-primary-foreground" />
-              </div>
+              <img
+                src="/brand/growbase-logo-mark.webp"
+                alt=""
+                aria-hidden
+                className="size-10 shrink-0"
+                width={40}
+                height={40}
+              />
               <div>
                 <div className="text-base font-semibold">{t("login.signInAs")}</div>
                 <div className="text-xs text-muted-foreground">GrowBase</div>
@@ -172,8 +189,13 @@ export function LoginPage() {
                   {t("login.forgot")}
                 </button>
               </div>
-              <Button type="submit" className="w-full bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95" disabled={isSubmitting}>
-                {isSubmitting ? t("common.loading") : t("login.submit")} {!isSubmitting && <ArrowRight className="ml-1 size-4" />}
+              <Button
+                type="submit"
+                className="w-full bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? t("common.loading") : t("login.submit")}{" "}
+                {!isSubmitting && <ArrowRight className="ml-1 size-4" />}
               </Button>
             </form>
           </Card>
