@@ -11,7 +11,13 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { superadminApi } from "@/lib/api";
 import { apiErrorMessage } from "@/lib/data/store";
 import { useI18n } from "@/lib/i18n";
@@ -34,8 +40,10 @@ function SaSettings() {
   const [sessionTimeout, setSessionTimeout] = useState(30);
 
   // Значение по умолчанию — фирменный цвет платформы (--primary).
-  // Раньше стоял фиолетовый, не встречающийся в продукте нигде.
-  const [primaryColor, setPrimaryColor] = useState("#1A535C");
+  // Комментарий-предшественник говорил «раньше стоял фиолетовый, не
+  // встречающийся в продукте нигде»: с 2026-09-20 фиолетовый и есть
+  // фирменный акцент, а бирюза ушла вся.
+  const [primaryColor, setPrimaryColor] = useState("#59114D");
 
   // Если настройки не загрузились, форму показывать нельзя: поля останутся
   // с захардкоженными значениями по умолчанию, и «Сохранить» запишет их
@@ -44,14 +52,15 @@ function SaSettings() {
   const load = useCallback(() => {
     setLoading(true);
     setLoadError(false);
-    superadminApi.settings.get()
+    superadminApi.settings
+      .get()
       .then((data: any) => {
         if (data) {
           setPlatformName(data.platform_name ?? "GrowBase");
           setSupportEmail(data.support_email ?? "");
           setSupportPhone(data.support_phone ?? "");
           setDefaultLang(data.default_language ?? "uz");
-          setPrimaryColor(data.primary_color ?? "#1A535C");
+          setPrimaryColor(data.primary_color ?? "#59114D");
           setSessionTimeout(data.session_timeout ?? 30);
           setTwoFactor(data.require_2fa ?? false);
           setStrongPwd(data.strong_password ?? true);
@@ -92,7 +101,11 @@ function SaSettings() {
 
   if (loading) {
     return (
-      <PageShell title={t("sa.settings.title")} subtitle={t("sa.settings.subtitle")} ignoreLoadError>
+      <PageShell
+        title={t("sa.settings.title")}
+        subtitle={t("sa.settings.subtitle")}
+        ignoreLoadError
+      >
         <div className="space-y-6">
           <Skeleton className="h-9 w-72 max-w-full rounded-md" />
           <div className="space-y-5 rounded-lg border border-border p-6">
@@ -112,7 +125,11 @@ function SaSettings() {
 
   if (loadError) {
     return (
-      <PageShell title={t("sa.settings.title")} subtitle={t("sa.settings.subtitle")} ignoreLoadError>
+      <PageShell
+        title={t("sa.settings.title")}
+        subtitle={t("sa.settings.subtitle")}
+        ignoreLoadError
+      >
         <ErrorState
           title={
             lang === "uz"
@@ -144,9 +161,18 @@ function SaSettings() {
       <div>
         <Tabs defaultValue="general">
           <TabsList className="mb-6">
-            <TabsTrigger value="general"><SettingsIcon className="mr-1 size-3.5" />{t("sa.settings.general")}</TabsTrigger>
-            <TabsTrigger value="security"><ShieldCheck className="mr-1 size-3.5" />{t("sa.settings.security")}</TabsTrigger>
-            <TabsTrigger value="brand"><Palette className="mr-1 size-3.5" />{t("sa.settings.brand")}</TabsTrigger>
+            <TabsTrigger value="general">
+              <SettingsIcon className="mr-1 size-3.5" />
+              {t("sa.settings.general")}
+            </TabsTrigger>
+            <TabsTrigger value="security">
+              <ShieldCheck className="mr-1 size-3.5" />
+              {t("sa.settings.security")}
+            </TabsTrigger>
+            <TabsTrigger value="brand">
+              <Palette className="mr-1 size-3.5" />
+              {t("sa.settings.brand")}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -156,14 +182,20 @@ function SaSettings() {
                   <Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
                 </Field>
                 <Field label={t("sa.settings.supportEmail")}>
-                  <Input type="email" value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} />
+                  <Input
+                    type="email"
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                  />
                 </Field>
                 <Field label={t("sa.settings.supportPhone")}>
                   <Input value={supportPhone} onChange={(e) => setSupportPhone(e.target.value)} />
                 </Field>
                 <Field label={t("sa.settings.defaultLang")}>
                   <Select value={defaultLang} onValueChange={setDefaultLang}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="uz">O'zbekcha (Latin)</SelectItem>
                       <SelectItem value="ru">Русский</SelectItem>
@@ -180,14 +212,26 @@ function SaSettings() {
                 <div>
                   <div className="text-sm font-medium">{t("sa.settings.twoFactor")}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {twoFactor ? "Включено в настройках" : "Выключено"} — полноценная 2FA будет доступна в следующем обновлении
+                    {twoFactor ? "Включено в настройках" : "Выключено"} — полноценная 2FA будет
+                    доступна в следующем обновлении
                   </div>
                 </div>
                 <Switch checked={twoFactor} onCheckedChange={setTwoFactor} disabled />
               </div>
-              <Toggle label={t("sa.settings.passwordPolicy")} checked={strongPwd} onChange={setStrongPwd} />
+              <Toggle
+                label={t("sa.settings.passwordPolicy")}
+                checked={strongPwd}
+                onChange={setStrongPwd}
+              />
               <Field label={t("sa.settings.sessionTimeout")}>
-                <Input type="number" min={5} max={480} value={sessionTimeout} onChange={(e) => setSessionTimeout(Number(e.target.value))} className="max-w-xs" />
+                <Input
+                  type="number"
+                  min={5}
+                  max={480}
+                  value={sessionTimeout}
+                  onChange={(e) => setSessionTimeout(Number(e.target.value))}
+                  className="max-w-xs"
+                />
               </Field>
             </Card>
           </TabsContent>
@@ -196,19 +240,37 @@ function SaSettings() {
             <Card className="space-y-5 p-6 shadow-elegant">
               <Field label={t("sa.settings.primaryColor")}>
                 <div className="flex items-center gap-3">
-                  <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-10 w-16 cursor-pointer rounded-md border border-border bg-transparent" />
-                  <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="max-w-xs" />
+                  <input
+                    type="color"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="h-10 w-16 cursor-pointer rounded-md border border-border bg-transparent"
+                  />
+                  <Input
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="max-w-xs"
+                  />
                 </div>
               </Field>
               <div className="rounded-lg border border-border p-4">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("sa.settings.preview")}</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {t("sa.settings.preview")}
+                </div>
                 <div className="mt-3 flex items-center gap-3">
-                  <div className="flex size-12 items-center justify-center rounded-xl text-primary-foreground" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` }}>
+                  <div
+                    className="flex size-12 items-center justify-center rounded-xl text-primary-foreground"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+                    }}
+                  >
                     <Palette className="size-5" />
                   </div>
                   <div>
                     <div className="text-base font-semibold">{platformName}</div>
-                    <div className="text-xs text-muted-foreground">{t("sa.settings.brandPreview")}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {t("sa.settings.brandPreview")}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -229,7 +291,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-border p-4">
       <span className="text-sm font-medium">{label}</span>
