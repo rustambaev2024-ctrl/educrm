@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Users, UserCheck, AlertCircle, UserPlus, ArrowUp, ArrowDown, ArrowUpDown, Gift } from "lucide-react";
 import { toast } from "sonner";
@@ -41,7 +41,28 @@ import { GrantBonusDialog } from "@/components/edu/grant-bonus-dialog";
 
 export { CreateStudentSheet } from "@/components/students";
 
-export const Route = createFileRoute("/admin/students")({ component: StudentsPage });
+/**
+ * `?student=<id>` открывает карточку сразу при заходе.
+ *
+ * Ради непрерывности сценария: заявку переводят в ученика на доске
+ * заявок, и до 2026-09-21 человек оставался там же, а созданного
+ * ученика приходилось искать поиском на другой странице. Теперь с
+ * доски можно попасть прямо в карточку — группу назначить, оплату
+ * принять, родителя привязать.
+ *
+ * Тот же параметр читает и портал директора: обе страницы — один
+ * компонент StudentsPage, поэтому внутри он берётся нестрого.
+ */
+export type StudentsSearch = { student?: string };
+
+export const validateStudentsSearch = (
+  search: Record<string, unknown>,
+): StudentsSearch => (typeof search.student === "string" ? { student: search.student } : {});
+
+export const Route = createFileRoute("/admin/students")({
+  component: StudentsPage,
+  validateSearch: validateStudentsSearch,
+});
 
 type StatusFilter = "all" | StudentStatus;
 
@@ -75,6 +96,14 @@ export function StudentsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  /* Открыть карточку, на которую указывает адрес. Срабатывает только при
+     смене самого параметра, а не при каждом рендере: иначе закрытая
+     вручную карточка открывалась бы снова. */
+  const { student: studentFromUrl } = useSearch({ strict: false }) as StudentsSearch;
+  useEffect(() => {
+    if (studentFromUrl) setSelectedId(studentFromUrl);
+  }, [studentFromUrl]);
   const [bonusStudentId, setBonusStudentId] = useState<string | null>(null);
 
   // Сортировка серверная: список пагинирован по 50, поэтому сортировка

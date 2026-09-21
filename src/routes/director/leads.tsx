@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, CheckCircle2, Clock3, GraduationCap, Layers, MessageSquarePlus, Phone, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -199,6 +199,21 @@ function DirectorLeadsPage() {
     branch: string;
   } | null>(null);
   const [isLinking, setIsLinking] = useState(false);
+  const navigate = useNavigate();
+
+  /**
+   * Мост к следующему шагу сценария.
+   *
+   * Перевод заявки — это момент, когда заявка превращается в деньги, но
+   * новому ученику ещё нужны группа, первая оплата и родитель. Раньше
+   * после «Готово» человек оставался на доске, а созданного ученика
+   * искал поиском на другой странице. Ссылку даём тостом, а не
+   * принудительным переходом: заявки часто разбирают пачкой, и уводить
+   * с доски против воли было бы хуже поиска.
+   */
+  const openStudentCard = (studentId: string) => {
+    void navigate({ to: "/director/students", search: { student: studentId } });
+  };
   const [trialDialog, setTrialDialog] = useState<{ lead: StudentLead | null; date: string; groupId: string }>({
     lead: null,
     date: "",
@@ -423,9 +438,12 @@ function DirectorLeadsPage() {
     setIsLinking(true);
     try {
       await leadApi.convert(selected.id, { link_student_id: linkCandidate.id });
+      const studentId = linkCandidate.id;
       await finishConversion();
       setLinkCandidate(null);
-      toast.success(t.linked);
+      toast.success(t.linked, {
+        action: { label: t.openStudent, onClick: () => openStudentCard(studentId) },
+      });
     } catch (err) {
       console.error("[leads] link failed", err);
       let message = t.convertError;
@@ -447,7 +465,7 @@ function DirectorLeadsPage() {
   const handleConvertSubmit = async (payload: any) => {
     if (!selected) return;
     try {
-      await leadApi.convert(selected.id, {
+      const res = await leadApi.convert(selected.id, {
         password: payload.password,
         full_name: payload.fullName,
         phone: payload.phone,
@@ -458,7 +476,11 @@ function DirectorLeadsPage() {
         parent_password: payload.parentPassword,
       });
       await finishConversion();
-      toast.success(t.converted);
+      toast.success(t.converted, {
+        action: res?.student_id
+          ? { label: t.openStudent, onClick: () => openStudentCard(String(res.student_id)) }
+          : undefined,
+      });
     } catch (err) {
       console.error("[leads] convert failed", err);
       // 409 с найденным учеником — не ошибка, а другой случай: человека уже
@@ -1119,6 +1141,7 @@ function labels(lang: "uz" | "ru") {
       linkTitle: "Этот ученик уже есть в системе",
       linkConfirm: "Связать заявку",
       linked: "Заявка связана с учеником и закрыта",
+      openStudent: "Открыть карточку",
       branchRequired: "Для создания ученика укажите филиал",
       status: {
         new: "Новая",
@@ -1193,6 +1216,7 @@ function labels(lang: "uz" | "ru") {
     linkTitle: "Bu o'quvchi tizimda allaqachon bor",
     linkConfirm: "Murojaatni biriktirish",
     linked: "Murojaat o'quvchiga biriktirildi va yopildi",
+    openStudent: "Kartani ochish",
     branchRequired: "O'quvchi yaratish uchun filialni tanlang",
     status: {
       new: "Yangi",

@@ -496,10 +496,22 @@ export const studentApi = {
   myWallet: () => requestJson("/student/me/wallet/"),
 };
 
+/**
+ * Ответ перевода заявки. У него два вида: создание нового ученика
+ * (приходит `password`) и связывание с уже заведённым (`linked: true`,
+ * пароля нет — аккаунт существует). `student_id` есть в обоих.
+ */
+export type LeadConvertResult = {
+  student_id: string;
+  password?: string;
+  linked?: boolean;
+  meta_event_sent?: boolean;
+};
+
 export const leadApi = {
   ...crudApi("/leads/"),
   convert: (id: string, payload?: Record<string, any>) =>
-    requestJson(`/leads/${id}/convert/`, {
+    requestJson<LeadConvertResult>(`/leads/${id}/convert/`, {
       method: "POST",
       body: JSON.stringify(payload ?? {}),
     }),
