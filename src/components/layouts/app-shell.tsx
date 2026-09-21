@@ -16,7 +16,7 @@ import { GlobalSearch } from "@/components/edu/global-search";
 import { LangToggle } from "@/components/edu/lang-toggle";
 import { ThemeToggle } from "@/components/edu/theme-toggle";
 import { NotificationsPopover } from "@/components/edu/notifications-popover";
-import { useInstitutionBrand } from "@/hooks/use-institution-brand";
+import { PLATFORM_BRAND_NAME, useInstitutionBrand } from "@/hooks/use-institution-brand";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 
@@ -111,6 +111,12 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
           className="size-full object-contain"
           onError={brand.onLogoError}
         />
+      ) : brand.name === PLATFORM_BRAND_NAME ? (
+        /* Организации ещё нет (суперадмин или брендинг не загрузился) —
+             значит это сама платформа, и здесь её знак. Буква «G» на её
+             месте выглядела бы случайной, а логотип центра, если он
+             задан, по-прежнему перекрывает всё выше. */
+        <img src="/brand/growbase-logo-mark.webp" alt="" className="size-full object-contain" />
       ) : (
         brand.name.charAt(0).toUpperCase()
       )}
@@ -206,6 +212,8 @@ export function AppShell({ items, density = "comfortable", children }: AppShellP
                 className="size-full object-contain"
                 onError={brand.onLogoError}
               />
+            ) : brand.name === PLATFORM_BRAND_NAME ? (
+              <img src="/brand/growbase-logo-mark.webp" alt="" className="size-full object-contain" />
             ) : (
               brand.name.charAt(0).toUpperCase()
             )}

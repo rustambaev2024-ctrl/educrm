@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { branchApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
+/** Имя платформы — оно же подпись, пока брендинг организации не загружен.
+ *  Вынесено в константу, чтобы каркас мог отличить «это ещё платформа»
+ *  от «это учебный центр без логотипа»: в первом случае уместен знак
+ *  GrowBase, во втором — буква названия центра, иначе белый лейбл
+ *  перебивался бы нашим логотипом. */
+export const PLATFORM_BRAND_NAME = "GrowBase";
+
 export interface InstitutionBrand {
   /** Название организации. До загрузки — «GrowBase». */
   name: string;
@@ -24,7 +31,7 @@ export interface InstitutionBrand {
  */
 export function useInstitutionBrand(): InstitutionBrand {
   const { user } = useAuth();
-  const [name, setName] = useState("GrowBase");
+  const [name, setName] = useState(PLATFORM_BRAND_NAME);
   const [logo, setLogo] = useState<string | null>(null);
 
   useEffect(() => {
