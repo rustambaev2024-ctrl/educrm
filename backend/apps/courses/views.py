@@ -42,9 +42,30 @@ class CourseViewSet(
 
     def destroy(self, request, *args, **kwargs):
         course = self.get_object()
-        if course.groups.exists():
+        # «Нельзя удалить» без причины — тупик: администратор видит отказ и
+        # не знает, что именно мешает. Называем группы поимённо, чтобы
+        # следующий шаг был очевиден.
+        blocking = list(course.groups.values_list("name", flat=True)[:5])
+        if blocking:
+            total = course.groups.count()
+            names = ", ".join(blocking)
+            if total > len(blocking):
+                names += f" (+{total - len(blocking)})"
             return Response(
-                {"detail": "Course has groups and cannot be deleted."},
+                {
+                    "detail": {
+                        "uz": (
+                            f"Kursni o'chirib bo'lmaydi: unga {total} ta guruh "
+                            f"bog'langan — {names}. Avval guruhlarni "
+                            f"ko'chiring yoki yoping."
+                        ),
+                        "ru": (
+                            f"Курс нельзя удалить: к нему привязаны группы "
+                            f"({total}) — {names}. Сначала перенесите или "
+                            f"закройте их."
+                        ),
+                    }
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return super().destroy(request, *args, **kwargs)
@@ -211,7 +232,12 @@ class GroupViewSet(
         ).exists()
         if active_exists:
             return Response(
-                {"detail": "Student already in this group"},
+                {
+                    "detail": {
+                        "uz": "Bu o'quvchi allaqachon shu guruhda.",
+                        "ru": "Этот ученик уже состоит в этой группе.",
+                    }
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

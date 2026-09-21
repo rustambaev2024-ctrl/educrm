@@ -628,13 +628,43 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         lead = self.get_object()
         if lead.status == "won":
-            return Response({"detail": "Won lead cannot be edited"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": {
+                        "uz": (
+                            "Yopilgan murojaatni tahrirlab bo'lmaydi: "
+                            "o'quvchi allaqachon yaratilgan, ma'lumotni "
+                            "uning kartasida o'zgartiring."
+                        ),
+                        "ru": (
+                            "Закрытую заявку редактировать нельзя: ученик "
+                            "уже создан, правьте данные в его карточке."
+                        ),
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return super().update(request, *args, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
         lead = self.get_object()
         if lead.status == "won":
-            return Response({"detail": "Won lead cannot be edited"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": {
+                        "uz": (
+                            "Yopilgan murojaatni tahrirlab bo'lmaydi: "
+                            "o'quvchi allaqachon yaratilgan, ma'lumotni "
+                            "uning kartasida o'zgartiring."
+                        ),
+                        "ru": (
+                            "Закрытую заявку редактировать нельзя: ученик "
+                            "уже создан, правьте данные в его карточке."
+                        ),
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return super().partial_update(request, *args, **kwargs)
 
     def _students_in_scope(self):
@@ -685,7 +715,15 @@ class StudentLeadViewSet(viewsets.ModelViewSet):
         lead = self.get_object()
 
         if lead.status == "won":
-            return Response({"detail": "Lead already converted"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": {
+                        "uz": "Bu murojaat allaqachon o'quvchiga aylantirilgan.",
+                        "ru": "Эта заявка уже переведена в ученика.",
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         from apps.accounts.models import User
         import secrets
