@@ -50,10 +50,13 @@ const PAIRS: Array<[fg: string, bg: string, min: number, label: string]> = [
   ["--primary", "--card", AA_LARGE, "ссылка на карточке"],
 ];
 
-test("палитра проходит WCAG AA", async ({ page }) => {
-  await page.goto("/");
-
-  const results = await page.evaluate((pairs) => {
+/**
+ * Считает контраст всех пар в текущей теме страницы. Вынесено, чтобы
+ * светлая и тёмная проверялись ОДНИМ набором правил: тема со своим,
+ * более мягким списком перестаёт быть проверенной.
+ */
+async function measure(page: import("@playwright/test").Page) {
+  return page.evaluate((pairs) => {
     const channel = (c: number) => {
       const s = c / 255;
       return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
@@ -83,7 +86,9 @@ test("палитра проходит WCAG AA", async ({ page }) => {
       return { label, min, ratio: (hi + 0.05) / (lo + 0.05), resolved: true };
     });
   }, PAIRS);
+}
 
+function failuresOf(results: Awaited<ReturnType<typeof measure>>) {
   const failures: string[] = [];
   for (const r of results) {
     if (!r.resolved) {
@@ -95,10 +100,44 @@ test("палитра проходит WCAG AA", async ({ page }) => {
       failures.push(`«${r.label}» — ${ratio}:1, нужно ${r.min}:1`);
     }
   }
+  return failures;
+}
 
+test("палитра проходит WCAG AA", async ({ page }) => {
+  await page.goto("/");
+  const failures = failuresOf(await measure(page));
   expect(
     failures,
     `Нечитаемые пары. Чинить ЗНАЧЕНИЕ токена в src/styles.css, не порог здесь:\n${failures.join("\n")}`,
+  ).toEqual([]);
+});
+
+/**
+ * Та же арифметика для тёмной темы.
+ *
+ * Тёмная тема появилась 2026-09-20 и до этого теста не проверялась
+ * ничем: светлая была единственной, и гейт про неё ничего не знал.
+ * Осветлять смысловые цвета на глаз особенно опасно: тёмный зелёный
+ * успеха на почти чёрном фоне даёт 1.9:1 и невидим.
+ */
+test("тёмная тема проходит WCAG AA", async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("educrm.theme", "dark");
+    } catch {
+      /* приватное окно — проверка класса ниже это поймает */
+    }
+  });
+  await page.goto("/");
+
+  // Класс ставит блокирующий скрипт в <head>. Если он сломается, тема
+  // молча останется светлой и проверка пройдёт впустую.
+  await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+
+  const failures = failuresOf(await measure(page));
+  expect(
+    failures,
+    `Нечитаемые пары в тёмной теме. Чинить ЗНАЧЕНИЕ токена в блоке .dark:\n${failures.join("\n")}`,
   ).toEqual([]);
 });
 
